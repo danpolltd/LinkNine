@@ -1,6 +1,6 @@
 [Unit]
-Description=ConfigServer Firewall & Security - lfd
-After=network.target csf.service
+Description=ConfigServer Firewall & Security - qhtlwaterfall
+After=network.target qhtlfirewall.service
 
 [Service]
 LimitNOFILE=4096

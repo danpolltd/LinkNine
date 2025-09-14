@@ -473,16 +473,16 @@ then
 
     mkdir -p /etc/systemd/system/
     mkdir -p /usr/lib/systemd/system/
-    cp -avf lfd.service /usr/lib/systemd/system/
-    cp -avf csf.service /usr/lib/systemd/system/
+	cp -avf qhtlwaterfall.service /usr/lib/systemd/system/
+	cp -avf qhtlfirewall.service /usr/lib/systemd/system/
 
-    chcon -h system_u:object_r:systemd_unit_file_t:s0 /usr/lib/systemd/system/lfd.service
-    chcon -h system_u:object_r:systemd_unit_file_t:s0 /usr/lib/systemd/system/csf.service
+	chcon -h system_u:object_r:systemd_unit_file_t:s0 /usr/lib/systemd/system/qhtlwaterfall.service
+	chcon -h system_u:object_r:systemd_unit_file_t:s0 /usr/lib/systemd/system/qhtlfirewall.service
 
     systemctl daemon-reload
 
-    systemctl enable csf.service
-    systemctl enable lfd.service
+	systemctl enable qhtlfirewall.service
+	systemctl enable qhtlwaterfall.service
 
     systemctl disable firewalld
     systemctl stop firewalld
@@ -518,7 +518,7 @@ else
 fi
 
 chown -Rf root:root /etc/csf /var/lib/csf /usr/local/csf
-chown -f root:root /usr/sbin/csf /usr/sbin/lfd /etc/logrotate.d/lfd /etc/cron.d/csf-cron /etc/cron.d/lfd-cron /usr/local/man/man1/csf.1 /usr/lib/systemd/system/lfd.service /usr/lib/systemd/system/csf.service /etc/init.d/lfd /etc/init.d/csf
+chown -f root:root /usr/sbin/csf /usr/sbin/lfd /etc/logrotate.d/lfd /etc/cron.d/csf-cron /etc/cron.d/lfd-cron /usr/local/man/man1/csf.1 /usr/lib/systemd/system/qhtlwaterfall.service /usr/lib/systemd/system/qhtlfirewall.service /etc/init.d/lfd /etc/init.d/csf
 
 cd webmin ; tar -czf /usr/local/csf/csfwebmin.tgz ./*
 ln -svf /usr/local/csf/csfwebmin.tgz /etc/csf/

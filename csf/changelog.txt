@@ -1438,7 +1438,7 @@ ChangeLog:
          /sys/module/xt_recent/parameters/ip_pkt_list_tot if defined to allow
 	 higher settings for PORTFLOOD than the default of 20 if configured
 
-	 Added LimitNOFILE to lfd.service on servers using systemd to allow for
+	 Added LimitNOFILE to qhtlwaterfall.service on servers using systemd to allow for
 	 large numbers of open files
 
 	 Cater for full stops (.) in ethernet device names

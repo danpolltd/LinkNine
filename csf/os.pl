@@ -26,7 +26,7 @@ umask(0177);
 
 
 if (-l "/var/run" and readlink("/var/run") eq "../run" and -d "/run") {
-	sysopen (my $LFD, "lfd.service", O_RDWR);
+	sysopen (my $LFD, "qhtlwaterfall.service", O_RDWR);
 	my @data = <$LFD>;
 	seek ($LFD, 0, 0);
 	truncate ($LFD, 0);

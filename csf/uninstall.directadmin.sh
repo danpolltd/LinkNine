@@ -8,13 +8,13 @@ sed -i 's/lfd=ON/lfd=OFF/' /usr/local/directadmin/data/admin/services.status
 
 if test `cat /proc/1/comm` = "systemd"
 then
-    systemctl disable csf.service
-    systemctl disable lfd.service
-    systemctl stop lfd.service
-    systemctl stop csf.service
+    systemctl disable qhtlfirewall.service
+    systemctl disable qhtlwaterfall.service
+    systemctl stop qhtlwaterfall.service
+    systemctl stop qhtlfirewall.service
 
-    rm -fv /usr/lib/systemd/system/csf.service
-    rm -fv /usr/lib/systemd/system/lfd.service
+    rm -fv /usr/lib/systemd/system/qhtlfirewall.service
+    rm -fv /usr/lib/systemd/system/qhtlwaterfall.service
     systemctl daemon-reload
 else
     if [ -f /etc/redhat-release ]; then

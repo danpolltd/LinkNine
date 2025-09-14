@@ -1,7 +1,7 @@
 [Unit]
-Description=ConfigServer Firewall & Security - csf
+Description=ConfigServer Firewall & Security - qhtlfirewall
 After=network.target
-Before=lfd.service
+Before=qhtlwaterfall.service
 
 [Service]
 ExecStart=/usr/sbin/csf --initup

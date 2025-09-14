@@ -53,8 +53,8 @@ sub type {
 # start startlfd
 sub startlfd {
 	if ($sysinit eq "systemd") {
-		&printcmd($config{SYSTEMCTL},"start","lfd.service");
-		&printcmd($config{SYSTEMCTL},"status","lfd.service");
+		&printcmd($config{SYSTEMCTL},"start","qhtlwaterfall.service");
+		&printcmd($config{SYSTEMCTL},"status","qhtlwaterfall.service");
 	} else {
 		&printcmd("/etc/init.d/lfd","start");
 	}
@@ -66,7 +66,7 @@ sub startlfd {
 # start stoplfd
 sub stoplfd {
 	if ($sysinit eq "systemd") {
-		&printcmd($config{SYSTEMCTL},"stop","lfd.service");
+		&printcmd($config{SYSTEMCTL},"stop","qhtlwaterfall.service");
 	}
 	else {
 		&printcmd("/etc/init.d/lfd","stop");
@@ -79,8 +79,8 @@ sub stoplfd {
 # start restartlfd
 sub restartlfd {
 	if ($sysinit eq "systemd") {
-		&printcmd($config{SYSTEMCTL},"restart","lfd.service");
-		&printcmd($config{SYSTEMCTL},"status","lfd.service");
+		&printcmd($config{SYSTEMCTL},"restart","qhtlwaterfall.service");
+		&printcmd($config{SYSTEMCTL},"status","qhtlwaterfall.service");
 	}
 	else {
 		&printcmd("/etc/init.d/lfd","restart");
@@ -93,7 +93,7 @@ sub restartlfd {
 # start restartlfd
 sub statuslfd {
 	if ($sysinit eq "systemd") {
-		&printcmd($config{SYSTEMCTL},"status","lfd.service");
+		&printcmd($config{SYSTEMCTL},"status","qhtlwaterfall.service");
 	}
 	else {
 		&printcmd("/etc/init.d/lfd","status");
