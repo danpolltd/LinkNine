@@ -25,9 +25,10 @@
 # tcp/udp|in/out|s/d=port,port,...|s/d=ip
 # See readme.txt for more information
 #
-# Note: IP addressess listed in this file will NOT be ignored by lfd, so they
-# can still be blocked. If you do not want lfd to block an IP address you must
-# add it to csf.ignore
+# Note: IP addresses listed in this file will NOT be ignored by qhtlwaterfall,
+# so they can still be blocked. If you do not want qhtlwaterfall to block an IP
+# address you must add it to qhtlfirewall.ignore
 
-Include /etc/csf/cpanel.comodo.allow
-Include /etc/csf/cpanel.allow
+# cPanel-specific includes (migrated in install scripts if needed):
+# Include /etc/qhtlfirewall/cpanel.comodo.allow
+# Include /etc/qhtlfirewall/cpanel.allow

@@ -23,7 +23,7 @@ use File::Find;
 use Fcntl qw(:DEFAULT :flock);
 use Sys::Hostname qw(hostname);
 use IPC::Open3;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use ConfigServer::DisplayUI;
 use ConfigServer::DisplayResellerUI;
 use ConfigServer::Config;
@@ -36,7 +36,7 @@ my %config = $config->config;
 my $slurpreg = ConfigServer::Slurp->slurpreg;
 my $cleanreg = ConfigServer::Slurp->cleanreg;
 
-foreach my $line (slurp("/etc/csf/csf.resellers")) {
+foreach my $line (slurp("/etc/qhtlfirewall/qhtlfirewall.resellers")) {
 	$line =~ s/$cleanreg//g;
 	my ($user,$alert,$privs) = split(/\:/,$line);
 	$privs =~ s/\s//g;
@@ -60,7 +60,7 @@ if ($ENV{REMOTE_USER} ne "" and $rprivs{$ENV{REMOTE_USER}}{USE}) {
 	exit();
 }
 
-open (my $IN, "<", "/etc/csf/version.txt") or die $!;
+open (my $IN, "<", "/etc/qhtlfirewall/version.txt") or die $!;
 $myv = <$IN>;
 close ($IN);
 chomp $myv;

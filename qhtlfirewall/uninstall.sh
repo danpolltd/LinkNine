@@ -1,8 +1,8 @@
 #!/bin/sh
-echo "Uninstalling csf and lfd..."
+echo "Uninstalling qhtlfirewall and qhtlwaterfall..."
 echo
 
-/usr/sbin/csf -f
+/usr/sbin/qhtlfirewall -f
 
 if test `cat /proc/1/comm` = "systemd"
 then
@@ -16,46 +16,46 @@ then
     systemctl daemon-reload
 else
     if [ -f /etc/redhat-release ]; then
-        /sbin/chkconfig csf off
-        /sbin/chkconfig lfd off
-        /sbin/chkconfig csf --del
-        /sbin/chkconfig lfd --del
+    /sbin/chkconfig qhtlfirewall off
+    /sbin/chkconfig qhtlwaterfall off
+    /sbin/chkconfig qhtlfirewall --del
+    /sbin/chkconfig qhtlwaterfall --del
     elif [ -f /etc/debian_version ] || [ -f /etc/lsb-release ]; then
-        update-rc.d -f lfd remove
-        update-rc.d -f csf remove
+    update-rc.d -f qhtlwaterfall remove
+    update-rc.d -f qhtlfirewall remove
     elif [ -f /etc/gentoo-release ]; then
-        rc-update del lfd default
-        rc-update del csf default
+    rc-update del qhtlwaterfall default
+    rc-update del qhtlfirewall default
     elif [ -f /etc/slackware-version ]; then
-        rm -vf /etc/rc.d/rc3.d/S80csf
-        rm -vf /etc/rc.d/rc4.d/S80csf
-        rm -vf /etc/rc.d/rc5.d/S80csf
-        rm -vf /etc/rc.d/rc3.d/S85lfd
-        rm -vf /etc/rc.d/rc4.d/S85lfd
-        rm -vf /etc/rc.d/rc5.d/S85lfd
+        rm -vf /etc/rc.d/rc3.d/S80qhtlfirewall
+        rm -vf /etc/rc.d/rc4.d/S80qhtlfirewall
+        rm -vf /etc/rc.d/rc5.d/S80qhtlfirewall
+        rm -vf /etc/rc.d/rc3.d/S85qhtlwaterfall
+        rm -vf /etc/rc.d/rc4.d/S85qhtlwaterfall
+        rm -vf /etc/rc.d/rc5.d/S85qhtlwaterfall
     else
-        /sbin/chkconfig csf off
-        /sbin/chkconfig lfd off
-        /sbin/chkconfig csf --del
-        /sbin/chkconfig lfd --del
+    /sbin/chkconfig qhtlfirewall off
+    /sbin/chkconfig qhtlwaterfall off
+    /sbin/chkconfig qhtlfirewall --del
+    /sbin/chkconfig qhtlwaterfall --del
     fi
-    rm -fv /etc/init.d/csf
-    rm -fv /etc/init.d/lfd
+    rm -fv /etc/init.d/qhtlfirewall
+    rm -fv /etc/init.d/qhtlwaterfall
 fi
 
 if [ -e "/usr/local/cpanel/bin/unregister_appconfig" ]; then
     cd /
-	/usr/local/cpanel/bin/unregister_appconfig csf
+    /usr/local/cpanel/bin/unregister_appconfig csf
 fi
 
-rm -fv /etc/chkserv.d/lfd
-rm -fv /usr/sbin/csf
-rm -fv /usr/sbin/lfd
-rm -fv /etc/cron.d/csf_update
-rm -fv /etc/cron.d/lfd-cron
-rm -fv /etc/cron.d/csf-cron
-rm -fv /etc/logrotate.d/lfd
-rm -fv /usr/local/man/man1/csf.man.1
+rm -fv /etc/chkserv.d/qhtlwaterfall
+rm -fv /usr/sbin/qhtlfirewall
+rm -fv /usr/sbin/qhtlwaterfall
+rm -fv /etc/cron.d/qhtlfirewall_update
+rm -fv /etc/cron.d/qhtlwaterfall-cron
+rm -fv /etc/cron.d/qhtlfirewall-cron
+rm -fv /etc/logrotate.d/qhtlwaterfall
+rm -fv /usr/local/man/man1/qhtlfirewall.1
 
 /bin/rm -fv /usr/local/cpanel/whostmgr/docroot/cgi/addon_csf.cgi
 /bin/rm -Rfv /usr/local/cpanel/whostmgr/docroot/cgi/csf
@@ -67,11 +67,11 @@ rm -fv /usr/local/man/man1/csf.man.1
 /bin/rm -Rfv /usr/local/cpanel/Cpanel/Config/ConfigObj/Driver/ConfigServercsf
 /bin/touch /usr/local/cpanel/Cpanel/Config/ConfigObj/Driver
 
-rm -fv /var/run/chkservd/lfd
-sed -i 's/lfd:1//' /etc/chkserv.d/chkservd.conf
+rm -fv /var/run/chkservd/qhtlwaterfall
+sed -i 's/qhtlwaterfall:1//' /etc/chkserv.d/chkservd.conf
 /scripts/restartsrv_chkservd
 
-rm -Rfv /etc/csf /usr/local/csf /var/lib/csf
+rm -Rfv /etc/qhtlfirewall /usr/local/qhtlfirewall /var/lib/qhtlfirewall
 
 echo
 echo "...Done"

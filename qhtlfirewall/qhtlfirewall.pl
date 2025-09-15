@@ -20,7 +20,7 @@
 ## no critic (RequireUseWarnings, ProhibitExplicitReturnUndef, ProhibitMixedBooleanOperators, RequireBriefOpen)
 # start main
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Fcntl qw(:DEFAULT :flock);
 use File::Basename;
 use IO::Handle;
@@ -71,23 +71,23 @@ $faststart = 0;
 &process_input;
 &load_config;
 
-$urlget = ConfigServer::URLGet->new($config{URLGET}, "csf/$version", $config{URLPROXY});
+$urlget = ConfigServer::URLGet->new($config{URLGET}, "qhtlfirewall/$version", $config{URLPROXY});
 unless (defined $urlget) {
 	if (-e $config{CURL} or -e $config{WGET}) {
 		$config{URLGET} = 3;
-		$urlget = ConfigServer::URLGet->new($config{URLGET}, "csf/$version", $config{URLPROXY});
+		$urlget = ConfigServer::URLGet->new($config{URLGET}, "qhtlfirewall/$version", $config{URLPROXY});
 		print "*WARNING* URLGET set to use LWP but perl module is not installed, fallback to using CURL/WGET\n";
 		$warning .= "*WARNING* URLGET set to use LWP but perl module is not installed, fallback to using CURL/WGET\n";
 	} else {
 		$config{URLGET} = 1;
-		$urlget = ConfigServer::URLGet->new($config{URLGET}, "csf/$version", $config{URLPROXY});
+		$urlget = ConfigServer::URLGet->new($config{URLGET}, "qhtlfirewall/$version", $config{URLPROXY});
 		print "*WARNING* URLGET set to use LWP but perl module is not installed, reverting to HTTP::Tiny\n";
 		$warning .= "*WARNING* URLGET set to use LWP but perl module is not installed, reverting to HTTP::Tiny\n";
 	}
 }
 
-if ((-e "/etc/csf/csf.disable") and ($input{command} ne "--enable") and ($input{command} ne "-e")) {
-	print "csf and lfd have been disabled, use 'csf -e' to enable\n";
+if ((-e "/etc/qhtlfirewall/qhtlfirewall.disable") and ($input{command} ne "--enable") and ($input{command} ne "-e")) {
+	print "qhtlfirewall and qhtlwaterfall have been disabled, use 'qhtlfirewall -e' to enable\n";
 	my $ok = 0;
 	foreach my $opt ("--version","-v","--check","-c","--ports","-p","--help","-h","--update","-u","-uf","--flush","-f","--profile","") {
 		if ($input{command} eq $opt) {
@@ -100,20 +100,20 @@ if ((-e "/etc/csf/csf.disable") and ($input{command} ne "--enable") and ($input{
 unless (-e $config{IPTABLES}) {&error(__LINE__,"$config{IPTABLES} $config{IPTABLESWAIT} (iptables binary location) does not exist!")}
 if ($config{IPV6} and !(-e $config{IP6TABLES})) {&error(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} (ip6tables binary location) does not exist!")}
 
-if ((-e "/etc/csf/csf.error") and ($input{command} ne "--startf") and ($input{command} ne "-sf") and ($input{command} ne "-q") and ($input{command} ne "--startq") and ($input{command} ne "--start") and ($input{command} ne "-s") and ($input{command} ne "--restart") and ($input{command} ne "-r") and ($input{command} ne "--enable") and ($input{command} ne "-e")) {
-	open (my $IN, "<", "/etc/csf/csf.error");
+if ((-e "/etc/qhtlfirewall/qhtlfirewall.error") and ($input{command} ne "--startf") and ($input{command} ne "-sf") and ($input{command} ne "-q") and ($input{command} ne "--startq") and ($input{command} ne "--start") and ($input{command} ne "-s") and ($input{command} ne "--restart") and ($input{command} ne "-r") and ($input{command} ne "--enable") and ($input{command} ne "-e")) {
+	open (my $IN, "<", "/etc/qhtlfirewall/qhtlfirewall.error");
 	flock ($IN, LOCK_SH);
 	my $error = <$IN>;
 	close ($IN);
 	chomp $error;
-	print "You have an unresolved error when starting csf:\n$error\n\nYou need to restart csf successfully to remove this warning, or delete /etc/csf/csf.error\n";
+	print "You have an unresolved error when starting qhtlfirewall:\n$error\n\nYou need to restart qhtlfirewall successfully to remove this warning, or delete /etc/qhtlfirewall/qhtlfirewall.error\n";
 	exit 1;
 }
 
 unless ($input{command} =~ /^--(stop|initdown|initup)$/) {
-	if (-e "/var/lib/csf/csf.4.saved") {unlink "/var/lib/csf/csf.4.saved"}
-	if (-e "/var/lib/csf/csf.4.ipsets") {unlink "/var/lib/csf/csf.4.ipsets"}
-	if (-e "/var/lib/csf/csf.6.saved") {unlink "/var/lib/csf/csf.6.saved"}
+	if (-e "/var/lib/qhtlfirewall/qhtlfirewall.4.saved") {unlink "/var/lib/qhtlfirewall/qhtlfirewall.4.saved"}
+	if (-e "/var/lib/qhtlfirewall/qhtlfirewall.4.ipsets") {unlink "/var/lib/qhtlfirewall/qhtlfirewall.4.ipsets"}
+	if (-e "/var/lib/qhtlfirewall/qhtlfirewall.6.saved") {unlink "/var/lib/qhtlfirewall/qhtlfirewall.6.saved"}
 }
 
 if (($input{command} eq "--status") or ($input{command} eq "-l")) {&dostatus}
@@ -173,9 +173,9 @@ else {&dohelp}
 if ($config{TESTING}) {print "*WARNING* TESTING mode is enabled - do not forget to disable it in the configuration\n"}
 
 if ($config{AUTO_UPDATES}) {
-	unless (-e "/etc/cron.d/csf_update") {&autoupdates}
+	unless (-e "/etc/cron.d/qhtlfirewall_update") {&autoupdates}
 }
-elsif (-e "/etc/cron.d/csf_update") {unlink "/etc/cron.d/csf_update"}
+elsif (-e "/etc/cron.d/qhtlfirewall_update") {unlink "/etc/cron.d/qhtlfirewall_update"}
 
 if (($input{command} eq "--start") or ($input{command} eq "-s") or ($input{command} eq "--restart") or ($input{command} eq "-r") or ($input{command} eq "--restartall") or ($input{command} eq "-ra")) {
 	if ($warning) {print $warning}
@@ -183,7 +183,7 @@ if (($input{command} eq "--start") or ($input{command} eq "-s") or ($input{comma
 		my ($insane,$range,$default) = sanity($key,$config{$key});
 		if ($insane) {print "*WARNING* $key sanity check. $key = $config{$key}. Recommended range: $range (Default: $default)\n"}
 	}
-	unless ($config{RESTRICT_SYSLOG}) {print "\n*WARNING* RESTRICT_SYSLOG is disabled. See SECURITY WARNING in /etc/csf/csf.conf.\n"}
+	unless ($config{RESTRICT_SYSLOG}) {print "\n*WARNING* RESTRICT_SYSLOG is disabled. See SECURITY WARNING in /etc/qhtlfirewall/qhtlfirewall.conf.\n"}
 }
 
 exit 0;
@@ -194,7 +194,7 @@ exit 0;
 sub csflock {
 	my $lock = shift;
 	if ($lock eq "lock") {
-		sysopen ($CSFLOCKFILE, "/var/lib/csf/csf.lock", O_RDWR | O_CREAT) or die ("Error: Unable to open csf lock file: $!");
+	sysopen ($CSFLOCKFILE, "/var/lib/qhtlfirewall/qhtlfirewall.lock", O_RDWR | O_CREAT) or die ("Error: Unable to open qhtlfirewall lock file: $!");
 		flock ($CSFLOCKFILE, LOCK_EX | LOCK_NB) or die "Error: csf is being restarted, try again in a moment: $!";
 	} else {
 		close ($CSFLOCKFILE);
@@ -264,7 +264,7 @@ sub load_config {
 		$statemodule6new = "";
 	}
 
-	my @entries = slurp("/etc/csf/csf.blocklists");
+	my @entries = slurp("/etc/qhtlfirewall/qhtlfirewall.blocklists");
 	foreach my $line (@entries) {
 		if ($line =~ /^Include\s*(.*)$/) {
 			my @incfile = slurp($1);
@@ -286,7 +286,7 @@ sub load_config {
 			$blocklists{$name}{url} = $url;
 		}
 	}
-	if (-e "/etc/cxs/cxs.reputation" and -e "/usr/local/csf/lib/ConfigServer/cxs.pm") {
+	if (-e "/etc/cxs/cxs.reputation" and -e "/usr/local/qhtlfirewall/lib/ConfigServer/cxs.pm") {
 		require ConfigServer::cxs;
 		import ConfigServer::cxs;
 		$cxsreputation = 1;
@@ -319,17 +319,17 @@ sub load_config {
 	foreach my $bin (@binaries) {
 		if ($bin eq "SENDMAIL" and $config{LF_ALERT_SMTP}) {next}
 		unless (-e $config{$bin} and -x $config{$bin}) {
-			$warning .= "*WARNING* Binary location for [$bin] [$config{$bin}] in /etc/csf/csf.conf is either incorrect, is not installed or is not executable\n";
+			$warning .= "*WARNING* Binary location for [$bin] [$config{$bin}] in /etc/qhtlfirewall/qhtlfirewall.conf is either incorrect, is not installed or is not executable\n";
 			$hit = 1;
 		}
 	}
 	my $iphit = 0;
 	if (-e $config{IP} or -e $config{IFCONFIG}) {$iphit = 1}
 	unless ($iphit) {
-		$warning .= "*WARNING* Binary location for either [IP] [$config{IP}] or [IFCONFIG] [$config{IFCONFIG}] in /etc/csf/csf.conf must be set correctly, installed and executable\n";
+		$warning .= "*WARNING* Binary location for either [IP] [$config{IP}] or [IFCONFIG] [$config{IFCONFIG}] in /etc/qhtlfirewall/qhtlfirewall.conf must be set correctly, installed and executable\n";
 		$hit = 1;
 	}
-	if ($hit) {$warning .= "*WARNING* Missing or incorrect binary locations will break csf and lfd functionality\n"}
+	if ($hit) {$warning .= "*WARNING* Missing or incorrect binary locations will break qhtlfirewall and qhtlwaterfall functionality\n"}
 	return;
 }
 # end load_config
@@ -397,7 +397,7 @@ sub dostatus6 {
 			&syscommand(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} -v -t nat -L -n --line-numbers");
 		}
 	} else {
-		print "csf: IPV6 firewall not enabled\n";
+		print "qhtlfirewall: IPV6 firewall not enabled\n";
 	}
 	return;
 }
@@ -412,7 +412,7 @@ if ($config{INTERWORX}) {$generic = " (InterWorx)"}
 if ($config{CYBERPANEL}) {$generic = " (CyberPanel)"}
 if ($config{CWP}) {$generic = " (CentOS Web Panel)"}
 if ($config{VESTA}) {$generic = " (VestaCP)"}
-	print "csf: v$version$generic\n";
+	print "qhtlfirewall: v$version$generic\n";
 	return;
 }
 # end doversion
@@ -424,7 +424,7 @@ sub dolfd {
 	elsif ($lfd eq "stop") {ConfigServer::Service::stoplfd()}
 	elsif ($lfd eq "restart") {ConfigServer::Service::restartlfd()}
 	elsif ($lfd eq "status") {ConfigServer::Service::statuslfd()}
-	else {print "csf: usage: csf --lfd [stop|start|restart|status]\n"}
+	else {print "qhtlfirewall: usage: qhtlfirewall --qhtlwaterfall [stop|start|restart|status]\n"}
 	return;
 }
 # end dolfd
@@ -445,12 +445,12 @@ sub doinitup {
 	&csflock("lock");
 	if ($config{FASTSTART}) {
 		&modprobe;
-		if (-e "/var/lib/csf/csf.4.saved") {
+		if (-e "/var/lib/qhtlfirewall/qhtlfirewall.4.saved") {
 			if ($config{LF_IPSET}) {
 				if (-x $config{IPSET}) {
 					print "(restoring ipsets) ";
 
-					open (my $IN, "<", "/var/lib/csf/csf.4.ipsets");
+					open (my $IN, "<", "/var/lib/qhtlfirewall/qhtlfirewall.4.ipsets");
 					flock ($IN, LOCK_SH);
 					my @data = <$IN>;
 					close ($IN);
@@ -463,12 +463,12 @@ sub doinitup {
 					waitpid ($cmdpid, 0);
 					chomp @results;
 
-					unlink "/var/lib/csf/csf.4.ipsets";
+					unlink "/var/lib/qhtlfirewall/qhtlfirewall.4.ipsets";
 				}
 			}
 			print "(restoring iptables) ";
 
-			open (my $IN, "<", "/var/lib/csf/csf.4.saved");
+			open (my $IN, "<", "/var/lib/qhtlfirewall/qhtlfirewall.4.saved");
 			flock ($IN, LOCK_SH);
 			my @data = <$IN>;
 			close ($IN);
@@ -481,17 +481,17 @@ sub doinitup {
 			waitpid ($cmdpid, 0);
 			chomp @results;
 
-			unlink "/var/lib/csf/csf.4.saved";
+			unlink "/var/lib/qhtlfirewall/qhtlfirewall.4.saved";
 		} else {
 			&dostop(1);
 			&dostart;
 			exit 0;
 		}
 		if ($config{IPV6}) {
-			if (-e "/var/lib/csf/csf.6.saved") {
+			if (-e "/var/lib/qhtlfirewall/qhtlfirewall.6.saved") {
 				print "(restoring ip6tables) ";
 
-				open (my $IN, "<", "/var/lib/csf/csf.6.saved");
+				open (my $IN, "<", "/var/lib/qhtlfirewall/qhtlfirewall.6.saved");
 				flock ($IN, LOCK_SH);
 				my @data = <$IN>;
 				close ($IN);
@@ -504,7 +504,7 @@ sub doinitup {
 				waitpid ($cmdpid, 0);
 				chomp @results;
 
-				unlink "/var/lib/csf/csf.6.saved";
+				unlink "/var/lib/qhtlfirewall/qhtlfirewall.6.saved";
 			} else {
 				&dostop(1);
 				&dostart;
@@ -532,7 +532,7 @@ sub doinitdown {
 			my @results = <$childout>;
 			waitpid ($cmdpid, 0);
 			chomp @results;
-			open (my $OUT, ">", "/var/lib/csf/csf.4.saved");
+			open (my $OUT, ">", "/var/lib/qhtlfirewall/qhtlfirewall.4.saved");
 			flock ($OUT, LOCK_EX);
 			print $OUT join("\n",@results)."\n";
 			close ($OUT);
@@ -547,7 +547,7 @@ sub doinitdown {
 					my @results = <$childout>;
 					waitpid ($cmdpid, 0);
 					chomp @results;
-					open (my $OUT, ">", "/var/lib/csf/csf.4.ipsets");
+					open (my $OUT, ">", "/var/lib/qhtlfirewall/qhtlfirewall.4.ipsets");
 					flock ($OUT, LOCK_EX);
 					print $OUT join("\n",@results)."\n";
 					close ($OUT);
@@ -563,7 +563,7 @@ sub doinitdown {
 			my @results = <$childout>;
 			waitpid ($cmdpid, 0);
 			chomp @results;
-			open (my $OUT, ">", "/var/lib/csf/csf.6.saved");
+			open (my $OUT, ">", "/var/lib/qhtlfirewall/qhtlfirewall.6.saved");
 			flock ($OUT, LOCK_EX);
 			print $OUT join("\n",@results)."\n";
 			close ($OUT);
@@ -604,11 +604,11 @@ sub doclustertempdeny {
 
 	my $iptype = checkip(\$ip);
 	if ($iptype == 6 and !$config{IPV6}) {
-		print "failed: [$ip] is valid IPv6 but IPV6 is not enabled in csf.conf\n";
+		print "failed: [$ip] is valid IPv6 but IPV6 is not enabled in qhtlfirewall.conf\n";
 	}
 
 	unless ($iptype) {
-		print "csf: [$ip] is not a valid PUBLIC IP\n";
+		print "qhtlfirewall: [$ip] is not a valid PUBLIC IP\n";
 		return;
 	}
 
@@ -699,11 +699,11 @@ sub doclustertempallow {
 
 	my $iptype = checkip(\$ip);
 	if ($iptype == 6 and !$config{IPV6}) {
-		print "failed: [$ip] is valid IPv6 but IPV6 is not enabled in csf.conf\n";
+		print "failed: [$ip] is valid IPv6 but IPV6 is not enabled in qhtlfirewall.conf\n";
 	}
 
 	unless ($iptype) {
-		print "csf: [$ip] is not a valid PUBLIC IP\n";
+		print "qhtlfirewall: [$ip] is not a valid PUBLIC IP\n";
 		return;
 	}
 
@@ -805,7 +805,7 @@ sub docfile {
 
 		&clustersend($send);
 	} else {
-		print "csf: Error [$name] does not exist\n";
+		print "qhtlfirewall: Error [$name] does not exist\n";
 	}
 	return;
 }
@@ -867,10 +867,10 @@ sub clustersend {
 ###############################################################################
 # lfdstart
 sub lfdstart {
-	open (my $FH, ">", "/var/lib/csf/csf.restart") or die "Failed to create csf.restart - $!";
+	open (my $FH, ">", "/var/lib/qhtlfirewall/qhtlfirewall.restart") or die "Failed to create qhtlfirewall.restart - $!";
 	flock ($FH, LOCK_EX);
 	close ($FH);
-	print "lfd will restart csf within the next $config{LF_PARSE} seconds\n";
+	print "qhtlwaterfall will restart qhtlfirewall within the next $config{LF_PARSE} seconds\n";
 	return;
 }
 # lfdstart
@@ -934,13 +934,13 @@ sub dostart {
 		waitpid ($cmdpid, 0);
 		chomp @reply;
 		if ($reply[0] eq "active" or $reply[0] eq "activating") {
-			&error(__LINE__,"*Error* firewalld found to be running. You must stop and disable firewalld when using csf");
+			&error(__LINE__,"*Error* firewalld found to be running. You must stop and disable firewalld when using qhtlfirewall");
 			exit 1;
 		}
 	}
 
 	if ($config{TESTING}) {&crontab("add")} else {&crontab("remove")}
-	if (-e "/etc/csf/csf.error") {unlink ("/etc/csf/csf.error")}
+	if (-e "/etc/qhtlfirewall/qhtlfirewall.error") {unlink ("/etc/qhtlfirewall/qhtlfirewall.error")}
 
 	&getethdev;
 	&modprobe;
@@ -965,10 +965,10 @@ sub dostart {
 	my $path = "PATH=\$PATH:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin";
 	my $csfpre;
 	my $csfpost;
-	if (-e "/usr/local/csf/bin/csfpre.sh") {$csfpre = "/usr/local/csf/bin/csfpre.sh"}
-	elsif (-e "/etc/csf/csfpre.sh") {$csfpre = "/etc/csf/csfpre.sh"}
-	if (-e "/usr/local/csf/bin/csfpost.sh") {$csfpost = "/usr/local/csf/bin/csfpost.sh"}
-	elsif (-e "/etc/csf/csfpost.sh") {$csfpost = "/etc/csf/csfpost.sh"}
+	if (-e "/usr/local/qhtlfirewall/bin/qhtlfirewallpre.sh") {$csfpre = "/usr/local/qhtlfirewall/bin/qhtlfirewallpre.sh"}
+	elsif (-e "/etc/qhtlfirewall/qhtlfirewallpre.sh") {$csfpre = "/etc/qhtlfirewall/qhtlfirewallpre.sh"}
+	if (-e "/usr/local/qhtlfirewall/bin/qhtlfirewallpost.sh") {$csfpost = "/usr/local/qhtlfirewall/bin/qhtlfirewallpost.sh"}
+	elsif (-e "/etc/qhtlfirewall/qhtlfirewallpost.sh") {$csfpost = "/etc/qhtlfirewall/qhtlfirewallpost.sh"}
 
 	if ($csfpre ne "") {
 		chmod (0700,$csfpre);
@@ -1458,7 +1458,7 @@ sub doadd {
 	}
 
 	if ($checkip == 6 and !$config{IPV6}) {
-		print "add failed: [$ip] is valid IPv6 but IPV6 is not enabled in csf.conf\n";
+		print "add failed: [$ip] is valid IPv6 but IPV6 is not enabled in qhtlfirewall.conf\n";
 		return;
 	}
 
@@ -1468,7 +1468,7 @@ sub doadd {
 	}
 
 	my $hit;
-	my @deny = slurp("/etc/csf/csf.deny");
+	my @deny = slurp("/etc/qhtlfirewall/qhtlfirewall.deny");
 	foreach my $line (@deny) {
         $line =~ s/$cleanreg//g;
 		if ($line eq "") {next}
@@ -1487,7 +1487,7 @@ sub doadd {
 	}
 
 	my $allowmatches;
-	my @allow = slurp("/etc/csf/csf.allow");
+	my @allow = slurp("/etc/qhtlfirewall/qhtlfirewall.allow");
 	foreach my $line (@allow) {
 		if ($line =~ /^Include\s*(.*)$/) {
 			my @incfile = slurp($1);
@@ -1507,8 +1507,8 @@ sub doadd {
 	}
 
 	my $ipstring = quotemeta($ip);
-	sysopen (my $ALLOW, "/etc/csf/csf.allow", O_RDWR | O_CREAT) or &error(__LINE__,"Could not open /etc/csf/csf.allow: $!");
-	flock ($ALLOW, LOCK_EX) or &error(__LINE__,"Could not lock /etc/csf/csf.allow: $!");
+	sysopen (my $ALLOW, "/etc/qhtlfirewall/qhtlfirewall.allow", O_RDWR | O_CREAT) or &error(__LINE__,"Could not open /etc/qhtlfirewall/qhtlfirewall.allow: $!");
+	flock ($ALLOW, LOCK_EX) or &error(__LINE__,"Could not lock /etc/qhtlfirewall/qhtlfirewall.allow: $!");
 	my $text = join("", <$ALLOW>);
 	@allow = split(/$slurpreg/,$text);
 	chomp @allow;
@@ -1516,15 +1516,15 @@ sub doadd {
 		if ($comment eq "") {$comment = "Manually allowed: ".iplookup($ip)}
 		print $ALLOW "$ip \# $comment - ".localtime(time)."\n";
 		if ($config{TESTING}) {
-			print "Adding $ip to csf.allow only while in TESTING mode (not iptables ACCEPT)\n";
+			print "Adding $ip to qhtlfirewall.allow only while in TESTING mode (not iptables ACCEPT)\n";
 		} else {
-			print "Adding $ip to csf.allow and iptables ACCEPT...\n";
+			print "Adding $ip to qhtlfirewall.allow and iptables ACCEPT...\n";
 			&linefilter($ip, "allow");
 		}
 	} else {
-		print "add failed: $ip is in already in the allow file /etc/csf/csf.allow\n";
+		print "add failed: $ip is in already in the allow file /etc/qhtlfirewall/qhtlfirewall.allow\n";
 	}
-	close ($ALLOW) or &error(__LINE__,"Could not close /etc/csf/csf.allow: $!");
+	close ($ALLOW) or &error(__LINE__,"Could not close /etc/qhtlfirewall/qhtlfirewall.allow: $!");
 	return;
 }
 # end doadd
@@ -1542,7 +1542,7 @@ sub dodeny {
 	}
 
 	if ($checkip == 6 and !$config{IPV6}) {
-		print "deny failed: [$ip] is valid IPv6 but IPV6 is not enabled in csf.conf\n";
+		print "deny failed: [$ip] is valid IPv6 but IPV6 is not enabled in qhtlfirewall.conf\n";
 		return;
 	}
 
@@ -1551,7 +1551,7 @@ sub dodeny {
 		return;
 	}
 
-	my @allow = slurp("/etc/csf/csf.allow");
+	my @allow = slurp("/etc/qhtlfirewall/qhtlfirewall.allow");
 	foreach my $line (@allow) {
 		if ($line =~ /^Include\s*(.*)$/) {
 			my @incfile = slurp($1);
@@ -1565,7 +1565,7 @@ sub dodeny {
 		my ($ipd,$commentd) = split (/\s/,$line,2);
 		checkip(\$ipd);
 		if ($ipd eq $ip) {
-			print "deny failed: $ip is in the allow file /etc/csf/csf.allow\n";
+			print "deny failed: $ip is in the allow file /etc/qhtlfirewall/qhtlfirewall.allow\n";
 			return;
 		}
 		elsif ($ipd =~ /(.*\/\d+)/) {
@@ -1574,14 +1574,14 @@ sub dodeny {
 				my $cidr = Net::CIDR::Lite->new;
 				eval {local $SIG{__DIE__} = undef; $cidr->add($cidrhit)};
 				if ($cidr->find($ip)) {
-					print "deny failed: $ip is in the allow file /etc/csf/csf.allow\n";
+					print "deny failed: $ip is in the allow file /etc/qhtlfirewall/qhtlfirewall.allow\n";
 					return;
 				}
 			}
 		}
 	}
 
-	my @ignore = slurp("/etc/csf/csf.ignore");
+	my @ignore = slurp("/etc/qhtlfirewall/qhtlfirewall.ignore");
 	foreach my $line (@ignore) {
 		if ($line =~ /^Include\s*(.*)$/) {
 			my @incfile = slurp($1);
@@ -1595,7 +1595,7 @@ sub dodeny {
 		my ($ipd,$commentd) = split (/\s/,$line,2);
 		checkip(\$ipd);
 		if ($ipd eq $ip) {
-			print "deny failed: $ip is in the ignore file /etc/csf/csf.ignore\n";
+			print "deny failed: $ip is in the ignore file /etc/qhtlfirewall/qhtlfirewall.ignore\n";
 			return;
 		}
 		elsif ($ipd =~ /(.*\/\d+)/) {
@@ -1604,7 +1604,7 @@ sub dodeny {
 				my $cidr = Net::CIDR::Lite->new;
 				eval {local $SIG{__DIE__} = undef; $cidr->add($cidrhit)};
 				if ($cidr->find($ip)) {
-					print "deny failed: $ip is in the ignore file /etc/csf/csf.ignore\n";
+					print "deny failed: $ip is in the ignore file /etc/qhtlfirewall/qhtlfirewall.ignore\n";
 					return;
 				}
 			}
@@ -1612,7 +1612,7 @@ sub dodeny {
 	}
 
 	my $denymatches;
-	my @deny = slurp("/etc/csf/csf.deny");
+	my @deny = slurp("/etc/qhtlfirewall/qhtlfirewall.deny");
 	foreach my $line (@deny) {
 		if ($line =~ /^Include\s*(.*)$/) {
 			my @incfile = slurp($1);
@@ -1631,8 +1631,8 @@ sub dodeny {
 		}
 	}
 
-	sysopen (my $DENY, "/etc/csf/csf.deny", O_RDWR | O_CREAT) or &error(__LINE__,"Could not open /etc/csf/csf.deny: $!");
-	flock ($DENY, LOCK_EX) or &error(__LINE__,"Could not lock /etc/csf/csf.deny: $!");
+	sysopen (my $DENY, "/etc/qhtlfirewall/qhtlfirewall.deny", O_RDWR | O_CREAT) or &error(__LINE__,"Could not open /etc/qhtlfirewall/qhtlfirewall.deny: $!");
+	flock ($DENY, LOCK_EX) or &error(__LINE__,"Could not lock /etc/qhtlfirewall/qhtlfirewall.deny: $!");
 	my $text = join("", <$DENY>);
 	@deny = split(/$slurpreg/,$text);
 	chomp @deny;
@@ -1660,13 +1660,13 @@ sub dodeny {
 				if ($hit) {next}
 				print $DENY $line."\n";
 			}
-			print "csf: DENY_IP_LIMIT ($config{DENY_IP_LIMIT}), the following IP's were removed from /etc/csf/csf.deny:\n";
+			print "qhtlfirewall: DENY_IP_LIMIT ($config{DENY_IP_LIMIT}), the following IP's were removed from /etc/qhtlfirewall/qhtlfirewall.deny:\n";
 			for (my $x = 0; $x < ($ipcount - $config{DENY_IP_LIMIT})+1;$x++) {
 				print "$denyips[$x]\n";
 				my ($kip,undef) = split (/\s/,$denyips[$x],2);
 				&linefilter($kip, "deny", "", 1);
 
-#				sysopen (my $TEMPIP, "/var/lib/csf/csf.tempip", O_RDWR | O_CREAT);
+#				sysopen (my $TEMPIP, "/var/lib/qhtlfirewall/qhtlfirewall.tempip", O_RDWR | O_CREAT);
 #				flock ($TEMPIP, LOCK_EX);
 #				my @data = <$TEMPIP>;
 #				chomp @data;
@@ -1687,15 +1687,15 @@ sub dodeny {
 		print $DENY "$ip \# $comment - ".localtime(time)."\n";
 
 		if ($config{TESTING}) {
-			print "Adding $ip to csf.deny only while in TESTING mode (not iptables DROP)\n";
+			print "Adding $ip to qhtlfirewall.deny only while in TESTING mode (not iptables DROP)\n";
 		} else {
-			print "Adding $ip to csf.deny and iptables DROP...\n";
+			print "Adding $ip to qhtlfirewall.deny and iptables DROP...\n";
 			&linefilter($ip, "deny");
 		}
 	} else {
-		print "deny failed: $ip is in already in the deny file /etc/csf/csf.deny $denymatches times\n";
+		print "deny failed: $ip is in already in the deny file /etc/qhtlfirewall/qhtlfirewall.deny $denymatches times\n";
 	}
-	close ($DENY) or &error(__LINE__,"Could not close /etc/csf/csf.deny: $!");
+	close ($DENY) or &error(__LINE__,"Could not close /etc/qhtlfirewall/qhtlfirewall.deny: $!");
 	return;
 }
 # end dodeny
@@ -1713,8 +1713,8 @@ sub dokill {
 
 	&getethdev;
 
-	sysopen (my $DENY, "/etc/csf/csf.deny", O_RDWR | O_CREAT) or &error(__LINE__,"Could not open /etc/csf/csf.deny: $!");
-	flock ($DENY, LOCK_EX) or &error(__LINE__,"Could not lock /etc/csf/csf.deny: $!");
+	sysopen (my $DENY, "/etc/qhtlfirewall/qhtlfirewall.deny", O_RDWR | O_CREAT) or &error(__LINE__,"Could not open /etc/qhtlfirewall/qhtlfirewall.deny: $!");
+	flock ($DENY, LOCK_EX) or &error(__LINE__,"Could not lock /etc/qhtlfirewall/qhtlfirewall.deny: $!");
 	my $text = join("", <$DENY>);
 	my @deny = split(/$slurpreg/,$text);
 	chomp @deny;
@@ -1732,7 +1732,7 @@ sub dokill {
 		checkip(\$ipd);
 		if (uc $ip eq uc $ipmatch) {
 			if ($commentd =~ /do not delete/i) {
-				print "csf: $ip set as \"do not delete\" - not removed\n";
+				print "qhtlfirewall: $ip set as \"do not delete\" - not removed\n";
 				$hit = -1;
 			} else {
 				print "Removing rule...\n";
@@ -1743,10 +1743,10 @@ sub dokill {
 		}
 		print $DENY $line."\n";
 	}
-	close ($DENY) or &error(__LINE__,"Could not close /etc/csf/csf.deny: $!");
+	close ($DENY) or &error(__LINE__,"Could not close /etc/qhtlfirewall/qhtlfirewall.deny: $!");
 
 	if ($hit and ($config{LF_PERMBLOCK} or $config{LF_NETBLOCK})) {
-		sysopen (my $TEMPIP, "/var/lib/csf/csf.tempip", O_RDWR | O_CREAT);
+		sysopen (my $TEMPIP, "/var/lib/qhtlfirewall/qhtlfirewall.tempip", O_RDWR | O_CREAT);
 		flock ($TEMPIP, LOCK_EX);
 		my @data = <$TEMPIP>;
 		chomp @data;
@@ -1761,7 +1761,7 @@ sub dokill {
 	}
 	elsif ($hit == -1) {}
 	elsif (!$hit) {
-		print "csf: $ip not found in csf.deny\n";
+		print "qhtlfirewall: $ip not found in qhtlfirewall.deny\n";
 	}
 	return;
 }
@@ -1772,8 +1772,8 @@ sub dokillall {
 
 	&getethdev;
 
-	sysopen (my $DENY, "/etc/csf/csf.deny", O_RDWR | O_CREAT) or &error(__LINE__,"Could not open /etc/csf/csf.deny: $!");
-	flock ($DENY, LOCK_EX) or &error(__LINE__,"Could not lock /etc/csf/csf.deny: $!");
+	sysopen (my $DENY, "/etc/qhtlfirewall/qhtlfirewall.deny", O_RDWR | O_CREAT) or &error(__LINE__,"Could not open /etc/qhtlfirewall/qhtlfirewall.deny: $!");
+	flock ($DENY, LOCK_EX) or &error(__LINE__,"Could not lock /etc/qhtlfirewall/qhtlfirewall.deny: $!");
 	my $text = join("", <$DENY>);
 	my @deny = split(/$slurpreg/,$text);
 	chomp @deny;
@@ -1787,15 +1787,15 @@ sub dokillall {
 		}
 		elsif ($line =~ /do not delete/i) {
 			print $DENY $line."\n";
-			print "csf: skipped line: $line\n";
+			print "qhtlfirewall: skipped line: $line\n";
 		}
 		else {
 			my ($ipd,$commentd) = split (/\s/,$line,2);
 			&linefilter($ipd, "deny", "", 1);
 		}
 	}
-	close ($DENY) or &error(__LINE__,"Could not close /etc/csf/csf.deny: $!");
-	print "csf: all entries removed from csf.deny\n";
+	close ($DENY) or &error(__LINE__,"Could not close /etc/qhtlfirewall/qhtlfirewall.deny: $!");
+	print "qhtlfirewall: all entries removed from qhtlfirewall.deny\n";
 	return;
 }
 # end dokillall
@@ -1811,8 +1811,8 @@ sub doakill {
 
 	&getethdev;
 
-	sysopen (my $ALLOW, "/etc/csf/csf.allow", O_RDWR | O_CREAT) or &error(__LINE__,"Could not open /etc/csf/csf.allow: $!");
-	flock ($ALLOW, LOCK_EX) or &error(__LINE__,"Could not lock /etc/csf/csf.allow: $!");
+	sysopen (my $ALLOW, "/etc/qhtlfirewall/qhtlfirewall.allow", O_RDWR | O_CREAT) or &error(__LINE__,"Could not open /etc/qhtlfirewall/qhtlfirewall.allow: $!");
+	flock ($ALLOW, LOCK_EX) or &error(__LINE__,"Could not lock /etc/qhtlfirewall/qhtlfirewall.allow: $!");
 	my $text = join("", <$ALLOW>);
 	my @allow = split(/$slurpreg/,$text);
 	chomp @allow;
@@ -1831,9 +1831,9 @@ sub doakill {
 		}
 		print $ALLOW $line."\n";
 	}
-	close ($ALLOW) or &error(__LINE__,"Could not close /etc/csf/csf.allow: $!");
+	close ($ALLOW) or &error(__LINE__,"Could not close /etc/qhtlfirewall/qhtlfirewall.allow: $!");
 	unless ($hit) {
-		print "csf: $ip not found in csf.allow\n";
+		print "qhtlfirewall: $ip not found in qhtlfirewall.allow\n";
 	}
 	return;
 }
@@ -1844,8 +1844,8 @@ sub dohelp {
 	my $generic = " (cPanel)";
 	if ($config{GENERIC}) {$generic = " (generic)"}
 	if ($config{DIRECTADMIN}) {$generic = " (DirectAdmin)"}
-	print "csf: v$version$generic\n";
-	open (my $IN, "<", "/usr/local/csf/lib/csf.help");
+	print "qhtlfirewall: v$version$generic\n";
+	open (my $IN, "<", "/usr/local/qhtlfirewall/lib/qhtlfirewall.help");
 	flock ($IN, LOCK_SH);
 	print <$IN>;
 	close ($IN);
@@ -1929,7 +1929,7 @@ sub doportfilters {
 	if ($config{DROP_LOGGING}) {$dropin = "LOGDROPIN"}
 	if ($config{DROP_LOGGING}) {$dropout = "LOGDROPOUT"}
 
-	my @entries = slurp("/etc/csf/csf.sips");
+	my @entries = slurp("/etc/qhtlfirewall/qhtlfirewall.sips");
 	foreach my $line (@entries) {
 		if ($line =~ /^Include\s*(.*)$/) {
 			my @incfile = slurp($1);
@@ -1967,9 +1967,9 @@ sub doportfilters {
 				unless ($config{LF_BLOCKINONLY}) {&syscommand(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} $verbose -A GDENYOUT -m set --match-set chain_6_GDENY dst -j $pktout")}
 			}
 		}
-		if (-e "/var/lib/csf/csf.gdeny") {
+		if (-e "/var/lib/qhtlfirewall/qhtlfirewall.gdeny") {
 			if ($config{FASTSTART}) {$faststart = 1}
-			foreach my $line (slurp("/var/lib/csf/csf.gdeny")) {
+			foreach my $line (slurp("/var/lib/qhtlfirewall/qhtlfirewall.gdeny")) {
 				$line =~ s/$cleanreg//g;
 				if ($line =~ /^(\s|\#|$)/) {next}
 				my ($ip,$comment) = split (/\s/,$line,2);
@@ -1985,7 +1985,7 @@ sub doportfilters {
 		}
 	}
 
-	my @deny = slurp("/etc/csf/csf.deny");
+	my @deny = slurp("/etc/qhtlfirewall/qhtlfirewall.deny");
 	foreach my $line (@deny) {
 		if ($line =~ /^Include\s*(.*)$/) {
 			my @incfile = slurp($1);
@@ -2014,15 +2014,15 @@ sub doportfilters {
 		my ($ip,$comment) = split (/\s/,$line,2);
 		&linefilter($ip, "deny");
 	}
-	if ($config{FASTSTART}) {&faststart("csf.deny")}
+	if ($config{FASTSTART}) {&faststart("qhtlfirewall.deny")}
 
-	if (! -z "/var/lib/csf/csf.tempban") {
+	if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempban") {
 		my $dropin = $config{DROP};
 		my $dropout = $config{DROP_OUT};
 		if ($config{DROP_IP_LOGGING}) {$dropin = "LOGDROPIN"}
 		if ($config{DROP_OUT_LOGGING}) {$dropout = "LOGDROPOUT"}
 
-		sysopen (my $TEMPBAN, "/var/lib/csf/csf.tempban", O_RDWR | O_CREAT);
+		sysopen (my $TEMPBAN, "/var/lib/qhtlfirewall/qhtlfirewall.tempban", O_RDWR | O_CREAT);
 		flock ($TEMPBAN, LOCK_EX);
 		my @data = <$TEMPBAN>;
 		chomp @data;
@@ -2086,8 +2086,8 @@ sub doportfilters {
 		close ($TEMPBAN);
 	}
 
-	if (! -z "/var/lib/csf/csf.tempallow") {
-		sysopen (my $TEMPALLOW, "/var/lib/csf/csf.tempallow", O_RDWR | O_CREAT);
+	if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempallow") {
+		sysopen (my $TEMPALLOW, "/var/lib/qhtlfirewall/qhtlfirewall.tempallow", O_RDWR | O_CREAT);
 		flock ($TEMPALLOW, LOCK_EX);
 		my @data = <$TEMPALLOW>;
 		chomp @data;
@@ -2158,9 +2158,9 @@ sub doportfilters {
 				&syscommand(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} $verbose -A GALLOWOUT -m set --match-set chain_6_GALLOW dst -j $accept");
 			}
 		}
-		if (-e "/var/lib/csf/csf.gallow") {
+		if (-e "/var/lib/qhtlfirewall/qhtlfirewall.gallow") {
 			if ($config{FASTSTART}) {$faststart = 1}
-			foreach my $line (slurp("/var/lib/csf/csf.gallow")) {
+			foreach my $line (slurp("/var/lib/qhtlfirewall/qhtlfirewall.gallow")) {
 				$line =~ s/$cleanreg//g;
 				if ($line =~ /^(\s|\#|$)/) {next}
 				my ($ip,$comment) = split (/\s/,$line,2);
@@ -2188,10 +2188,10 @@ sub doportfilters {
 					&syscommand(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} $verbose -A CC_ALLOW -m set --match-set cc_6_$cc src -j $accept");
 				}
 			}
-			if (-e "/var/lib/csf/zone/$cc.zone") {
+			if (-e "/var/lib/qhtlfirewall/zone/$cc.zone") {
 				if ($config{LF_IPSET}) {
 					undef @ipset;
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2205,7 +2205,7 @@ sub doportfilters {
 					&ipsetrestore("cc_$cc");
 				} else {
 					if ($config{FASTSTART}) {$faststart = 1}
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2221,10 +2221,10 @@ sub doportfilters {
 					if ($config{FASTSTART}) {&faststart("CC_ALLOW [$cc]")}
 				}
 			}
-			if ($config{CC6_LOOKUPS} and -e "/var/lib/csf/zone/$cc.zone6") {
+			if ($config{CC6_LOOKUPS} and -e "/var/lib/qhtlfirewall/zone/$cc.zone6") {
 				if ($config{LF_IPSET}) {
 					undef @ipset;
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone6")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone6")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2233,7 +2233,7 @@ sub doportfilters {
 					&ipsetrestore("cc_6_$cc");
 				} else {
 					if ($config{FASTSTART}) {$faststart = 1}
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone6")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone6")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2262,8 +2262,8 @@ sub doportfilters {
 				&syscommand(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} $verbose -A ALLOWDYNOUT -m set --match-set chain_6_ALLOWDYN dst -j $accept");
 			}
 		}
-		if (-e "/var/lib/csf/csf.tempdyn") {
-			foreach my $line (slurp("/var/lib/csf/csf.tempdyn")) {
+		if (-e "/var/lib/qhtlfirewall/qhtlfirewall.tempdyn") {
+			foreach my $line (slurp("/var/lib/qhtlfirewall/qhtlfirewall.tempdyn")) {
 				$line =~ s/$cleanreg//g;
 				if ($line =~ /^(\s|\#|$)/) {next}
 				my ($ip,$comment) = split (/\s/,$line,2);
@@ -2288,9 +2288,9 @@ sub doportfilters {
 				&syscommand(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} $verbose -A GDYNOUT -m set --match-set chain_6_GDYN dst -j $accept");
 			}
 		}
-		if (-e "/var/lib/csf/csf.tempgdyn") {
+		if (-e "/var/lib/qhtlfirewall/qhtlfirewall.tempgdyn") {
 			if ($config{FASTSTART}) {$faststart = 1}
-			foreach my $line (slurp("/var/lib/csf/csf.tempgdyn")) {
+			foreach my $line (slurp("/var/lib/qhtlfirewall/qhtlfirewall.tempgdyn")) {
 				$line =~ s/$cleanreg//g;
 				if ($line =~ /^(\s|\#|$)/) {next}
 				my ($ip,$comment) = split (/\s/,$line,2);
@@ -2306,7 +2306,7 @@ sub doportfilters {
 		}
 	}
 
-	my @allow = slurp("/etc/csf/csf.allow");
+	my @allow = slurp("/etc/qhtlfirewall/qhtlfirewall.allow");
 	foreach my $line (@allow) {
 		if ($line =~ /^Include\s*(.*)$/) {
 			my @incfile = slurp($1);
@@ -2331,7 +2331,7 @@ sub doportfilters {
 		my ($ip,$comment) = split (/\s/,$line,2);
 		&linefilter($ip, "allow");
 	}
-	if ($config{FASTSTART}) {&faststart("csf.allow")}
+	if ($config{FASTSTART}) {&faststart("qhtlfirewall.allow")}
 
 	foreach my $name (keys %blocklists) {
 		my $drop = $config{DROP};
@@ -2344,11 +2344,11 @@ sub doportfilters {
 				&syscommand(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} $verbose -A $name -m set --match-set bl_6_$name src -j $drop");
 			}
 		}
-		if (-e "/var/lib/csf/csf.block.$name") {
+		if (-e "/var/lib/qhtlfirewall/qhtlfirewall.block.$name") {
 			if ($config{LF_IPSET}) {
 				undef @ipset;
 				my @ipset6;
-				foreach my $line (slurp("/var/lib/csf/csf.block.$name")) {
+				foreach my $line (slurp("/var/lib/qhtlfirewall/qhtlfirewall.block.$name")) {
 					$line =~ s/$cleanreg//g;
 					if ($line =~ /^(\s|\#|$)/) {next}
 					my ($ip,$comment) = split (/\s/,$line,2);
@@ -2367,7 +2367,7 @@ sub doportfilters {
 				}
 			} else {
 				if ($config{FASTSTART}) {$faststart = 1}
-				foreach my $line (slurp("/var/lib/csf/csf.block.$name")) {
+				foreach my $line (slurp("/var/lib/qhtlfirewall/qhtlfirewall.block.$name")) {
 					$line =~ s/$cleanreg//g;
 					if ($line =~ /^(\s|\#|$)/) {next}
 					my ($ip,$comment) = split (/\s/,$line,2);
@@ -2403,18 +2403,18 @@ sub doportfilters {
 
 	$config{CC_ALLOW_SMTPAUTH} =~ s/\s//g;
 	if ($config{SMTPAUTH_RESTRICT}) {
-		if ($verbose) {print "csf: Generating /etc/exim.smtpauth\n"}
+		if ($verbose) {print "qhtlfirewall: Generating /etc/exim.smtpauth\n"}
 		sysopen (my $SMTPAUTH, "/etc/exim.smtpauth", O_WRONLY | O_CREAT);
 		flock ($SMTPAUTH, LOCK_EX);
 		seek ($SMTPAUTH, 0, 0);
 		truncate ($SMTPAUTH, 0);
 		print $SMTPAUTH "# DO NOT EDIT THIS FILE\n#\n";
-		print $SMTPAUTH "# Modify /etc/csf/csf.smtpauth and then restart csf and then lfd\n\n";
+		print $SMTPAUTH "# Modify /etc/qhtlfirewall/qhtlfirewall.smtpauth and then restart qhtlfirewall and then qhtlwaterfall\n\n";
 		print $SMTPAUTH "127.0.0.0/8\n";
 		print $SMTPAUTH "\"::1\"\n";
 		print $SMTPAUTH "\"::1/128\"\n";
-		if (-e "/etc/csf/csf.smtpauth") {
-			my @entries = slurp("/etc/csf/csf.smtpauth");
+		if (-e "/etc/qhtlfirewall/qhtlfirewall.smtpauth") {
+			my @entries = slurp("/etc/qhtlfirewall/qhtlfirewall.smtpauth");
 			foreach my $line (@entries) {
 				if ($line =~ /^Include\s*(.*)$/) {
 					my @incfile = slurp($1);
@@ -2433,9 +2433,9 @@ sub doportfilters {
 		}
 		foreach my $cc (split(/\,/,$config{CC_ALLOW_SMTPAUTH})) {
 			$cc = lc $cc;
-			if (-e "/var/lib/csf/zone/$cc.zone") {
+			if (-e "/var/lib/qhtlfirewall/zone/$cc.zone") {
 				print $SMTPAUTH "\n# IPv4 addresses for [".uc($cc)."]:\n";
-				foreach my $line (slurp("/var/lib/csf/zone/$cc.zone")) {
+				foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone")) {
 					$line =~ s/$cleanreg//g;
 					if ($line =~ /^(\s|\#|$)/) {next}
 					my ($ip,undef) = split (/\s/,$line,2);
@@ -2449,9 +2449,9 @@ sub doportfilters {
 					elsif ($status == 6) {print $SMTPAUTH "\"$ip\"\n"}
 				}
 			}
-			if ($config{CC6_LOOKUPS} and -e "/var/lib/csf/zone/$cc.zone6") {
+			if ($config{CC6_LOOKUPS} and -e "/var/lib/qhtlfirewall/zone/$cc.zone6") {
 				print $SMTPAUTH "\n# IPv6 addresses for [".uc($cc)."]:\n";
-				foreach my $line (slurp("/var/lib/csf/zone/$cc.zone6")) {
+				foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone6")) {
 					$line =~ s/$cleanreg//g;
 					if ($line =~ /^(\s|\#|$)/) {next}
 					my ($ip,undef) = split (/\s/,$line,2);
@@ -2479,10 +2479,10 @@ sub doportfilters {
 					&syscommand(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} $verbose -I CC_DENY -m set --match-set cc_6_$cc src -j $drop");
 				}
 			}
-			if (-e "/var/lib/csf/zone/$cc.zone") {
+			if (-e "/var/lib/qhtlfirewall/zone/$cc.zone") {
 				if ($config{LF_IPSET}) {
 					undef @ipset;
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2496,7 +2496,7 @@ sub doportfilters {
 					&ipsetrestore("cc_$cc");
 				} else {
 					if ($config{FASTSTART}) {$faststart = 1}
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2512,10 +2512,10 @@ sub doportfilters {
 					if ($config{FASTSTART}) {&faststart("CC_DENY [$cc]")}
 				}
 			}
-			if ($config{CC6_LOOKUPS} and -e "/var/lib/csf/zone/$cc.zone6") {
+			if ($config{CC6_LOOKUPS} and -e "/var/lib/qhtlfirewall/zone/$cc.zone6") {
 				if ($config{LF_IPSET}) {
 					undef @ipset;
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone6")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone6")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2524,7 +2524,7 @@ sub doportfilters {
 					&ipsetrestore("cc_6_$cc");
 				} else {
 					if ($config{FASTSTART}) {$faststart = 1}
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone6")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone6")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2557,10 +2557,10 @@ sub doportfilters {
 					&syscommand(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} $verbose -A CC_ALLOWF -m set --match-set cc_6_$cc src -j RETURN");
 				}
 			}
-			if (-e "/var/lib/csf/zone/$cc.zone") {
+			if (-e "/var/lib/qhtlfirewall/zone/$cc.zone") {
 				if ($config{LF_IPSET}) {
 					undef @ipset;
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2577,7 +2577,7 @@ sub doportfilters {
 					&ipsetrestore("cc_$cc");
 				} else {
 					if ($config{FASTSTART}) {$faststart = 1}
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2594,10 +2594,10 @@ sub doportfilters {
 					if ($config{FASTSTART}) {&faststart("CC_ALLOW_FILTER [$cc]")}
 				}
 			}
-			if ($config{CC6_LOOKUPS} and -e "/var/lib/csf/zone/$cc.zone6") {
+			if ($config{CC6_LOOKUPS} and -e "/var/lib/qhtlfirewall/zone/$cc.zone6") {
 				if ($config{LF_IPSET}) {
 					undef @ipset;
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone6")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone6")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2609,7 +2609,7 @@ sub doportfilters {
 					&ipsetrestore("cc_6_$cc");
 				} else {
 					if ($config{FASTSTART}) {$faststart = 1}
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone6")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone6")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2686,10 +2686,10 @@ sub doportfilters {
 					&syscommand(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} $verbose -A CC_ALLOWP -m set --match-set cc_6_$cc src -j CC_ALLOWPORTS");
 				}
 			}
-			if (-e "/var/lib/csf/zone/$cc.zone") {
+			if (-e "/var/lib/qhtlfirewall/zone/$cc.zone") {
 				if ($config{LF_IPSET}) {
 					undef @ipset;
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2703,7 +2703,7 @@ sub doportfilters {
 					&ipsetrestore("cc_$cc");
 				} else {
 					if ($config{FASTSTART}) {$faststart = 1}
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2720,10 +2720,10 @@ sub doportfilters {
 					if ($config{FASTSTART}) {&faststart("CC_ALLOW_PORTS [$cc]")}
 				}
 			}
-			if ($config{CC6_LOOKUPS} and -e "/var/lib/csf/zone/$cc.zone6") {
+			if ($config{CC6_LOOKUPS} and -e "/var/lib/qhtlfirewall/zone/$cc.zone6") {
 				if ($config{LF_IPSET}) {
 					undef @ipset;
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone6")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone6")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2732,7 +2732,7 @@ sub doportfilters {
 					&ipsetrestore("cc_6_$cc");
 				} else {
 					if ($config{FASTSTART}) {$faststart = 1}
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone6")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone6")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2787,10 +2787,10 @@ sub doportfilters {
 					&syscommand(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} $verbose -I CC_DENYP -m set --match-set cc_6_$cc src -j CC_DENYPORTS");
 				}
 			}
-			if (-e "/var/lib/csf/zone/$cc.zone") {
+			if (-e "/var/lib/qhtlfirewall/zone/$cc.zone") {
 				if ($config{LF_IPSET}) {
 					undef @ipset;
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2804,7 +2804,7 @@ sub doportfilters {
 					&ipsetrestore("cc_$cc");
 				} else {
 					if ($config{FASTSTART}) {$faststart = 1}
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2821,10 +2821,10 @@ sub doportfilters {
 					if ($config{FASTSTART}) {&faststart("CC_DENY_PORTS [$cc]")}
 				}
 			}
-			if ($config{CC6_LOOKUPS} and -e "/var/lib/csf/zone/$cc.zone6") {
+			if ($config{CC6_LOOKUPS} and -e "/var/lib/qhtlfirewall/zone/$cc.zone6") {
 				if ($config{LF_IPSET}) {
 					undef @ipset;
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone6")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone6")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2833,7 +2833,7 @@ sub doportfilters {
 					&ipsetrestore("cc_6_$cc");
 				} else {
 					if ($config{FASTSTART}) {$faststart = 1}
-					foreach my $line (slurp("/var/lib/csf/zone/$cc.zone6")) {
+					foreach my $line (slurp("/var/lib/qhtlfirewall/zone/$cc.zone6")) {
 						$line =~ s/$cleanreg//g;
 						if ($line =~ /^(\s|\#|$)/) {next}
 						my ($ip,undef) = split (/\s/,$line,2);
@@ -2889,7 +2889,7 @@ sub doportfilters {
 		}
 		foreach my $portflood (split(/\,/,$config{PORTFLOOD})) {
 			my ($port,$proto,$count,$seconds) = split(/\;/,$portflood);
-			if ((($port < 0) or ($port > 65535)) or ($proto !~ /icmp|tcp|udp/) or ($seconds !~ /\d+/)) {&error(__LINE__,"csf: Incorrect PORTFLOOD setting: [$portflood]")}
+			if ((($port < 0) or ($port > 65535)) or ($proto !~ /icmp|tcp|udp/) or ($seconds !~ /\d+/)) {&error(__LINE__,"qhtlfirewall: Incorrect PORTFLOOD setting: [$portflood]")}
 			if (($count < 1) or ($count > $maxrecent)) {
 				print "WARNING: count in PORTFLOOD setting must be between 1 and $maxrecent: [$portflood]\n";
 			} else {
@@ -2911,7 +2911,7 @@ sub doportfilters {
 	if ($config{CONNLIMIT}) {
 		foreach my $connlimit (split(/\,/,$config{CONNLIMIT})) {
 			my ($port,$limit) = split(/\;/,$connlimit);
-			if (($port < 0) or ($port > 65535) or ($limit < 1) or ($limit !~ /\d+/)) {&error(__LINE__,"csf: Incorrect CONNLIMIT setting: [$connlimit]")}
+			if (($port < 0) or ($port > 65535) or ($limit < 1) or ($limit !~ /\d+/)) {&error(__LINE__,"qhtlfirewall: Incorrect CONNLIMIT setting: [$connlimit]")}
 			&syscommand(__LINE__,"$config{IPTABLES} $config{IPTABLESWAIT} $verbose -A INPUT $ethdevin -p tcp --syn --dport $port -m connlimit --connlimit-above $limit -j CONNLIMIT");
 			if ($config{CONNLIMIT6}) {
 				&syscommand(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} $verbose -A INPUT $ethdevin -p tcp --syn --dport $port -m connlimit --connlimit-above $limit -j CONNLIMIT");
@@ -3053,7 +3053,7 @@ sub doportfilters {
 			my @steps = split(/\;/,$knocks);
 			my $nsteps = @steps;
 			if ($nsteps < 3) {
-				print "csf: Error - not enough Port Knocks for port $port [$knocks]\n";
+				print "qhtlfirewall: Error - not enough Port Knocks for port $port [$knocks]\n";
 				next;
 			}
 			for (my $step = 1; $step < $nsteps+1; $step++) {
@@ -3218,9 +3218,9 @@ sub doportfilters {
 ##		&syscommand(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} $verbose  -A OUTPUT $eth6devout -p icmpv6 --icmpv6-type redirect -m hl --hl-eq 255 -j $accept");
 #	}
 
-	if (-e "/etc/csf/csf.redirect") {
+	if (-e "/etc/qhtlfirewall/qhtlfirewall.redirect") {
 		my $dnat = 0;
-		my @entries = slurp("/etc/csf/csf.redirect");
+		my @entries = slurp("/etc/qhtlfirewall/qhtlfirewall.redirect");
 		foreach my $line (@entries) {
 			if ($line =~ /^Include\s*(.*)$/) {
 				my @incfile = slurp($1);
@@ -3233,11 +3233,11 @@ sub doportfilters {
 			if ($line =~ /^\s*\#|Include/) {next}
 			my ($redirect,$comment) = split (/\s/,$line,2);
 			my ($ipx,$porta,$ipy,$portb,$proto) = split (/\|/,$redirect);
-			unless ($proto eq "tcp" or $proto eq "udp") {&error(__LINE__,"csf: Incorrect csf.redirect  setting ([$proto]): [$line]")}
-			unless ($ipx eq "*" or checkip(\$ipx)) {&error(__LINE__,"csf: Incorrect csf.redirect  setting ([$ipx]): [$line]")}
-			unless ($porta eq "*" or $porta > 0 or $porta < 65536) {&error(__LINE__,"csf: Incorrect csf.redirect  setting ([$porta]): [$line]")}
-			unless ($ipy eq "*" or checkip(\$ipy)) {&error(__LINE__,"csf: Incorrect csf.redirect  setting ([$ipy]): [$line]")}
-			unless ($portb eq "*" or $portb > 0 or $portb < 65536) {&error(__LINE__,"csf: Incorrect csf.redirect  setting ([$portb]): [$line]")}
+			unless ($proto eq "tcp" or $proto eq "udp") {&error(__LINE__,"qhtlfirewall: Incorrect qhtlfirewall.redirect setting ([$proto]): [$line]")}
+			unless ($ipx eq "*" or checkip(\$ipx)) {&error(__LINE__,"qhtlfirewall: Incorrect qhtlfirewall.redirect setting ([$ipx]): [$line]")}
+			unless ($porta eq "*" or $porta > 0 or $porta < 65536) {&error(__LINE__,"qhtlfirewall: Incorrect qhtlfirewall.redirect setting ([$porta]): [$line]")}
+			unless ($ipy eq "*" or checkip(\$ipy)) {&error(__LINE__,"qhtlfirewall: Incorrect qhtlfirewall.redirect setting ([$ipy]): [$line]")}
+			unless ($portb eq "*" or $portb > 0 or $portb < 65536) {&error(__LINE__,"qhtlfirewall: Incorrect qhtlfirewall.redirect setting ([$portb]): [$line]")}
 			if ($ipy eq "*") {
 				if ($ipx eq "*") {&syscommand(__LINE__,"$config{IPTABLES} $config{IPTABLESWAIT} $verbose -t nat -A PREROUTING $ethdevin -p $proto --dport $porta -j REDIRECT --to-ports $portb")}
 				else {&syscommand(__LINE__,"$config{IPTABLES} $config{IPTABLESWAIT} $verbose -t nat -A PREROUTING $ethdevin -p $proto -d $ipx --dport $porta -j REDIRECT --to-ports $portb")}
@@ -3259,7 +3259,7 @@ sub doportfilters {
 					&syscommand(__LINE__,"$config{IPTABLES} $config{IPTABLESWAIT} $verbose -t nat -A POSTROUTING $ethdevout -p $proto -d $ipy -j SNAT --to-source $ipx");
 					&syscommand(__LINE__,"$config{IPTABLES} $config{IPTABLESWAIT} $verbose -A FORWARD $ethdevin -p $proto -d $ipy --dport $portb  $statemodulenew -j ACCEPT");
 				}
-				else {&error(__LINE__,"csf: Invalid csf.redirect format [$line]")}
+				else {&error(__LINE__,"qhtlfirewall: Invalid qhtlfirewall.redirect format [$line]")}
 			}
 		}
 		if ($dnat and $config{LF_SPI}) {
@@ -3273,7 +3273,7 @@ sub doportfilters {
 ###############################################################################
 # start dodisable
 sub dodisable {
-	open (my $OUT, ">", "/etc/csf/csf.disable");
+	open (my $OUT, ">", "/etc/qhtlfirewall/qhtlfirewall.disable");
 	flock ($OUT, LOCK_EX);
 	close ($OUT);
 	unless ($config{GENERIC}) {
@@ -3307,18 +3307,18 @@ sub dodisable {
 	ConfigServer::Service::stoplfd();
 	&dostop(0);
 
-	print "csf and lfd have been disabled\n";
+	print "qhtlfirewall and qhtlwaterfall have been disabled\n";
 	return;
 }
 # end dodisable
 ###############################################################################
 # start doenable
 sub doenable {
-	unless (-e "/etc/csf/csf.disable") {
-		print "csf and lfd are not disabled!\n";
+	unless (-e "/etc/qhtlfirewall/qhtlfirewall.disable") {
+		print "qhtlfirewall and qhtlwaterfall are not disabled!\n";
 		exit 0;
 	}
-	unlink ("/etc/csf/csf.disable");
+	unlink ("/etc/qhtlfirewall/qhtlfirewall.disable");
 	&dostart;
 	ConfigServer::Service::startlfd();
 	unless ($config{GENERIC}) {
@@ -3354,7 +3354,7 @@ sub doenable {
 		close ($CONF) or &error(__LINE__,"Could not close /usr/local/directadmin/data/admin/services.status: $!");
 	}
 
-	print "csf and lfd have been enabled\n";
+	print "qhtlfirewall and qhtlwaterfall have been enabled\n";
 	return;
 }
 # end doenable
@@ -3366,7 +3366,7 @@ sub crontab {
 	my $hit = 0;
 	my @newcrontab;
 	foreach my $line (@crontab) {
-		if ($line =~ /csf(\.pl)? -f/) {
+		if ($line =~ /qhtlfirewall(\.pl)? -f/) {
 			$hit = 1;
 			if ($act eq "add") {
 				push @newcrontab, $line;
@@ -3376,7 +3376,7 @@ sub crontab {
 		}
 	}
 	if (($act eq "add") and !($hit)) {
-		push @newcrontab, "*/$config{TESTING_INTERVAL} * * * * root /usr/sbin/csf -f > /dev/null 2>&1";
+		push @newcrontab, "*/$config{TESTING_INTERVAL} * * * * root /usr/sbin/qhtlfirewall -f > /dev/null 2>&1";
 	}
 
 	if (($act eq "remove") and !($hit)) {
@@ -3445,7 +3445,7 @@ sub error {
 	}
 
 	print "Error: $error, at line $line\n";
-	open (my $OUT,">", "/etc/csf/csf.error");
+	open (my $OUT,">", "/etc/qhtlfirewall/qhtlfirewall.error");
 	flock ($OUT, LOCK_EX);
 	print $OUT "Error: $error, at line $line in /usr/sbin/csf\n";
 	close ($OUT);
@@ -3456,7 +3456,7 @@ sub error {
 ###############################################################################
 # start version
 sub version {
-	open (my $IN, "<", "/etc/csf/version.txt") or die "Unable to open version.txt: $!";
+	open (my $IN, "<", "/etc/qhtlfirewall/version.txt") or die "Unable to open version.txt: $!";
 	flock ($IN, LOCK_SH);
 	my $myv = <$IN>;
 	close ($IN);
@@ -3745,11 +3745,11 @@ sub autoupdates {
 	my $minutes = int (rand(60));
 
 	unless (-d "/etc/cron.d") {mkdir "/etc/cron.d"}
-	open (my $OUT,">", "/etc/cron.d/csf_update") or &error(__LINE__,"Could not create /etc/cron.d/csf_update: $!");
-	flock ($OUT, LOCK_EX) or &error(__LINE__,"Could not lock /etc/cron.d/csf_update: $!");
+	open (my $OUT,">", "/etc/cron.d/qhtlfirewall_update") or &error(__LINE__,"Could not create /etc/cron.d/qhtlfirewall_update: $!");
+	flock ($OUT, LOCK_EX) or &error(__LINE__,"Could not lock /etc/cron.d/qhtlfirewall_update: $!");
 	print $OUT <<END;
 SHELL=/bin/sh
-$minutes $hour * * * root /usr/sbin/csf -u
+$minutes $hour * * * root /usr/sbin/qhtlfirewall -u
 END
 	close ($OUT);
 	return;
@@ -3774,29 +3774,29 @@ sub doupdate {
 		if (($actv > $version) or $force) {
 			local $| = 1;
 
-			unless ($force) {print "Upgrading csf from v$version to $actv...\n"}
-			if (-e "/usr/src/csf.tgz") {unlink ("/usr/src/csf.tgz") or die $!}
-			print "Retrieving new csf package...\n";
+			unless ($force) {print "Upgrading qhtlfirewall from v$version to $actv...\n"}
+			if (-e "/usr/src/qhtlfirewall.tgz") {unlink ("/usr/src/qhtlfirewall.tgz") or die $!}
+			print "Retrieving new qhtlfirewall package...\n";
 
-			my $url = "https://$config{DOWNLOADSERVER}/csf.tgz";
-			if ($config{URLGET} == 1) {$url = "http://$config{DOWNLOADSERVER}/csf.tgz";}
-			my ($status, $text) = $urlget->urlget($url,"/usr/src/csf.tgz");
+			my $url = "https://$config{DOWNLOADSERVER}/qhtlfirewall.tgz";
+			if ($config{URLGET} == 1) {$url = "http://$config{DOWNLOADSERVER}/qhtlfirewall.tgz";}
+			my ($status, $text) = $urlget->urlget($url,"/usr/src/qhtlfirewall.tgz");
 
-			if (! -z "/usr/src/csf/csf.tgz") {
-				print "\nUnpacking new csf package...\n";
-				system ("cd /usr/src ; tar -xzf csf.tgz ; cd csf ; sh install.sh");
+			if (! -z "/usr/src/qhtlfirewall/qhtlfirewall.tgz") {
+				print "\nUnpacking new qhtlfirewall package...\n";
+				system ("cd /usr/src ; tar -xzf qhtlfirewall.tgz ; cd qhtlfirewall ; sh install.sh");
 				print "\nTidying up...\n";
-				system ("rm -Rfv /usr/src/csf*");
-				print "\nRestarting csf and lfd...\n";
-				system ("/usr/sbin/csf -r");
+				system ("rm -Rfv /usr/src/qhtlfirewall*");
+				print "\nRestarting qhtlfirewall and qhtlwaterfall...\n";
+				system ("/usr/sbin/qhtlfirewall -r");
 				ConfigServer::Service::restartlfd();
-				print "\n...All done.\n\nChangelog: https://$config{DOWNLOADSERVER}/csf/changelog.txt\n";
+				print "\n...All done.\n\nChangelog: https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt\n";
 			}
 		} else {
-			if (-t STDOUT) {print "csf is already at the latest version: v$version\n"} ##no critic
+			if (-t STDOUT) {print "qhtlfirewall is already at the latest version: v$version\n"} ##no critic
 		}
 	} else {
-		print "Unable to verify the latest version of csf at this time\n";
+		print "Unable to verify the latest version of qhtlfirewall at this time\n";
 	}
 	return;
 }
@@ -3804,8 +3804,8 @@ sub doupdate {
 ###############################################################################
 # start docheck
 sub docheck {
-	my $url = "https://$config{DOWNLOADSERVER}/csf/version.txt";
-	if ($config{URLGET} == 1) {$url = "http://$config{DOWNLOADSERVER}/csf/version.txt";}
+	my $url = "https://$config{DOWNLOADSERVER}/qhtlfirewall/version.txt";
+	if ($config{URLGET} == 1) {$url = "http://$config{DOWNLOADSERVER}/qhtlfirewall/version.txt";}
 	my ($status, $text) = $urlget->urlget($url);
 	if ($status) {print "Oops: $text\n"; exit 1}
 
@@ -3814,12 +3814,12 @@ sub docheck {
 
 	if (($actv ne "") and ($actv =~ /^[\d\.]*$/)) {
 		if ($actv > $version) {
-			print "A newer version of csf is available - Current:v$version New:v$actv\n";
+			print "A newer version of qhtlfirewall is available - Current:v$version New:v$actv\n";
 		} else {
-			print "csf is already at the latest version: v$version\n";
+			print "qhtlfirewall is already at the latest version: v$version\n";
 		}
 	} else {
-		print "Unable to verify the latest version of csf at this time\n";
+		print "Unable to verify the latest version of qhtlfirewall at this time\n";
 	}
 	return;
 }
@@ -3939,17 +3939,17 @@ $table, $chain, $rest
 
 			if ($chain =~ /^bl_(\w+)$/) {
 				$cc = $1;
-				$option = "$cc file:/etc/csf/csf.blocklists";
+				$option = "$cc file:/etc/qhtlfirewall/qhtlfirewall.blocklists";
 			}
 			if ($chain =~ /^bl_6_(\w+)$/) {
 				$cc = $1;
-				$option = "$cc file:/etc/csf/csf.blocklists";
+				$option = "$cc file:/etc/qhtlfirewall/qhtlfirewall.blocklists";
 			}
 
 			if ($chain =~ /^chain_(\w+)$/) {
 				$cc = $1;
-				if ($cc eq "DENY") {$option = " File:/etc/csf/csf.deny"}
-				if ($cc eq "ALLOW") {$option = " File:/etc/csf/csf.allow"}
+				if ($cc eq "DENY") {$option = " File:/etc/qhtlfirewall/qhtlfirewall.deny"}
+				if ($cc eq "ALLOW") {$option = " File:/etc/qhtlfirewall/qhtlfirewall.allow"}
 				if ($cc eq "GDENY") {$option = "GLOBAL_DENY"}
 				if ($cc eq "GALLOW") {$option = "GLOBAL_ALLOW"}
 				if ($cc eq "ALLOWDYN") {$option = "DYNDNS"}
@@ -3957,8 +3957,8 @@ $table, $chain, $rest
 			}
 			if ($chain =~ /^chain_6_(\w+)$/) {
 				$cc = $1;
-				if ($cc eq "DENY") {$option = " File:/etc/csf/csf.deny"}
-				if ($cc eq "ALLOW") {$option = " File:/etc/csf/csf.allow"}
+				if ($cc eq "DENY") {$option = " File:/etc/qhtlfirewall/qhtlfirewall.deny"}
+				if ($cc eq "ALLOW") {$option = " File:/etc/qhtlfirewall/qhtlfirewall.allow"}
 				if ($cc eq "GDENY") {$option = "GLOBAL_DENY"}
 				if ($cc eq "GALLOW") {$option = "GLOBAL_ALLOW"}
 				if ($cc eq "ALLOWDYN") {$option = "DYNDNS"}
@@ -4049,7 +4049,7 @@ $table, $chain, $rest
 		}
 	}
 
-	open (my $IN, "<", "/var/lib/csf/csf.tempallow");
+	open (my $IN, "<", "/var/lib/qhtlfirewall/qhtlfirewall.tempallow");
 	flock ($IN, LOCK_SH);
 	my @tempallow = <$IN>;
 	close ($IN);
@@ -4071,7 +4071,7 @@ $table, $chain, $rest
 			}
 		}
 	}
-	my @allow = slurp("/etc/csf/csf.allow");
+	my @allow = slurp("/etc/qhtlfirewall/qhtlfirewall.allow");
 	foreach my $line (@allow) {
 		if ($line =~ /^Include\s*(.*)$/) {
 			my @incfile = slurp($1);
@@ -4098,7 +4098,7 @@ $table, $chain, $rest
 			}
 		}
 	}
-	open (my $TEMPBAN, "<", "/var/lib/csf/csf.tempban");
+	open (my $TEMPBAN, "<", "/var/lib/qhtlfirewall/qhtlfirewall.tempban");
 	flock ($TEMPBAN, LOCK_SH);
 	my @tempdeny = <$TEMPBAN>;
 	close ($TEMPBAN);
@@ -4120,7 +4120,7 @@ $table, $chain, $rest
 			}
 		}
 	}
-	my @deny = slurp("/etc/csf/csf.deny");
+	my @deny = slurp("/etc/qhtlfirewall/qhtlfirewall.deny");
 	foreach my $line (@deny) {
 		if ($line =~ /^Include\s*(.*)$/) {
 			my @incfile = slurp($1);
@@ -4159,10 +4159,10 @@ sub dotempban {
 $deny, $ip,                                   $ports,  $inout,$time,$message
 .
 	local $~ = "TEMPBAN";
-	if ((! -z "/var/lib/csf/csf.tempban") or (! -z "/var/lib/csf/csf.tempallow")) {
+	if ((! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempban") or (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempallow")) {
 		print "\nA/D   IP address                               Port   Dir   Time To Live     Comment\n";
-		if (! -z "/var/lib/csf/csf.tempban") {
-			sysopen (my $IN, "/var/lib/csf/csf.tempban", O_RDWR);
+		if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempban") {
+			sysopen (my $IN, "/var/lib/qhtlfirewall/qhtlfirewall.tempban", O_RDWR);
 			flock ($IN, LOCK_SH);
 			my @data = <$IN>;
 			chomp @data;
@@ -4190,8 +4190,8 @@ $deny, $ip,                                   $ports,  $inout,$time,$message
 				foreach (split(/,/,$ports)) {write}
 			}
 		}
-		if (! -z "/var/lib/csf/csf.tempallow") {
-			sysopen (my $IN, "/var/lib/csf/csf.tempallow", O_RDWR);
+		if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempallow") {
+			sysopen (my $IN, "/var/lib/qhtlfirewall/qhtlfirewall.tempallow", O_RDWR);
 			flock ($IN, LOCK_SH);
 			my @data = <$IN>;
 			chomp @data;
@@ -4220,7 +4220,7 @@ $deny, $ip,                                   $ports,  $inout,$time,$message
 			}
 		}
 	} else {
-		print "csf: There are no temporary IP entries\n";
+		print "qhtlfirewall: There are no temporary IP entries\n";
 	}
 	return;
 }
@@ -4243,11 +4243,11 @@ sub dotempdeny {
 
 	my $iptype = checkip(\$ip);
 	if ($iptype == 6 and !$config{IPV6}) {
-		print "failed: [$ip] is valid IPv6 but IPV6 is not enabled in csf.conf\n";
+		print "failed: [$ip] is valid IPv6 but IPV6 is not enabled in qhtlfirewall.conf\n";
 	}
 
 	unless ($iptype) {
-		print "csf: [$ip] is not a valid PUBLIC IP\n";
+		print "qhtlfirewall: [$ip] is not a valid PUBLIC IP\n";
 		return;
 	}
 
@@ -4274,7 +4274,7 @@ sub dotempdeny {
 	$comment =~ s/^\s*|\s*$//g;
 	if ($comment eq "") {$comment = "Manually added: ".iplookup($ip)}
 
-	my @deny = slurp("/etc/csf/csf.deny");
+	my @deny = slurp("/etc/qhtlfirewall/qhtlfirewall.deny");
 	foreach my $line (@deny) {
 		if ($line =~ /^Include\s*(.*)$/) {
 			my @incfile = slurp($1);
@@ -4283,16 +4283,16 @@ sub dotempdeny {
 	}
 	my $ipstring = quotemeta($ip);
 	if (grep {$_ =~ /^$ipstring\b/} @deny) {
-		print "csf: $ip is already permanently blocked\n";
+		print "qhtlfirewall: $ip is already permanently blocked\n";
 		exit 0;
 	}
-	open (my $IN, "<", "/var/lib/csf/csf.tempban");
+	open (my $IN, "<", "/var/lib/qhtlfirewall/qhtlfirewall.tempban");
 	flock ($IN, LOCK_SH);
 	@deny = <$IN>;
 	close ($IN);
 	chomp @deny;
 	if (grep {$_ =~ /\b$ip\|$port\|\b/} @deny) {
-		print "csf: $ip is already temporarily blocked\n";
+		print "qhtlfirewall: $ip is already temporarily blocked\n";
 		exit 0;
 	}
 
@@ -4350,7 +4350,7 @@ sub dotempdeny {
 
 	if ($config{CF_ENABLE} and $cftemp) {$comment .= " (CF_ENABLE)"}
 
-	sysopen (my $OUT, "/var/lib/csf/csf.tempban", O_WRONLY | O_APPEND | O_CREAT) or &error(__LINE__,"Error: Can't append out file: $!");
+	sysopen (my $OUT, "/var/lib/qhtlfirewall/qhtlfirewall.tempban", O_WRONLY | O_APPEND | O_CREAT) or &error(__LINE__,"Error: Can't append out file: $!");
 	flock ($OUT, LOCK_EX);
 	print $OUT time."|$ip|$port|$inout|$timeout|$comment\n";
 	close ($OUT);
@@ -4359,7 +4359,7 @@ sub dotempdeny {
 	if ($inout eq "in") {$inout = "inbound"}
 	if ($inout eq "out") {$inout = "outbound"}
 	if ($inout eq "inout") {$inout = "in and outbound"}
-	print "csf: $ip blocked on port $port for $timeout seconds $inout\n";
+	print "qhtlfirewall: $ip blocked on port $port for $timeout seconds $inout\n";
 	return;
 }
 # end dotempdeny
@@ -4381,11 +4381,11 @@ sub dotempallow {
 
 	my $iptype = checkip(\$ip);
 	if ($iptype == 6 and !$config{IPV6}) {
-		print "failed: [$ip] is valid IPv6 but IPV6 is not enabled in csf.conf\n";
+		print "failed: [$ip] is valid IPv6 but IPV6 is not enabled in qhtlfirewall.conf\n";
 	}
 
 	unless ($iptype) {
-		print "csf: [$ip] is not a valid PUBLIC IP\n";
+		print "qhtlfirewall: [$ip] is not a valid PUBLIC IP\n";
 		return;
 	}
 	if ($timeout =~ /\D/) {
@@ -4405,7 +4405,7 @@ sub dotempallow {
 	$comment =~ s/^\s*|\s*$//g;
 	if ($comment eq "") {$comment = "Manually added: ".iplookup($ip)}
 
-	my @allow = slurp("/etc/csf/csf.allow");
+	my @allow = slurp("/etc/qhtlfirewall/qhtlfirewall.allow");
 	foreach my $line (@allow) {
 		if ($line =~ /^Include\s*(.*)$/) {
 			my @incfile = slurp($1);
@@ -4413,16 +4413,16 @@ sub dotempallow {
 		}
 	}
 	if (grep {$_ =~ /^$ip\b/} @allow) {
-		print "csf: $ip is already permanently allowed\n";
+		print "qhtlfirewall: $ip is already permanently allowed\n";
 		exit 0;
 	}
-	open (my $IN, "<", "/var/lib/csf/csf.tempallow");
+	open (my $IN, "<", "/var/lib/qhtlfirewall/qhtlfirewall.tempallow");
 	flock ($IN, LOCK_SH);
 	@allow = <$IN>;
 	close ($IN);
 	chomp @allow;
 	if (grep {$_ =~ /\b$ip\|$port\|\b/} @allow) {
-		print "csf: $ip is already temporarily allowed\n";
+		print "qhtlfirewall: $ip is already temporarily allowed\n";
 		exit 0;
 	}
 
@@ -4474,7 +4474,7 @@ sub dotempallow {
 
 	if ($config{CF_ENABLE} and $cftemp) {$comment .= " (CF_ENABLE)"}
 
-	sysopen (my $OUT, "/var/lib/csf/csf.tempallow", O_WRONLY | O_APPEND | O_CREAT) or &error(__LINE__,"Error: Can't append out file: $!");
+	sysopen (my $OUT, "/var/lib/qhtlfirewall/qhtlfirewall.tempallow", O_WRONLY | O_APPEND | O_CREAT) or &error(__LINE__,"Error: Can't append out file: $!");
 	flock ($OUT, LOCK_EX);
 	print $OUT time."|$ip|$port|$inout|$timeout|$comment\n";
 	close ($OUT);
@@ -4483,7 +4483,7 @@ sub dotempallow {
 	if ($inout eq "in") {$inout = "inbound"}
 	if ($inout eq "out") {$inout = "outbound"}
 	if ($inout eq "inout") {$inout = "in and outbound"}
-	print "csf: $ip allowed on port $port for $timeout seconds $inout\n";
+	print "qhtlfirewall: $ip allowed on port $port for $timeout seconds $inout\n";
 	return;
 }
 # end dotempallow
@@ -4493,7 +4493,7 @@ sub dotemprm {
 	my $ip = $input{argument};
 
 	if ($ip eq "") {
-		print "csf: No IP specified\n";
+		print "qhtlfirewall: No IP specified\n";
 		return;
 	}
 
@@ -4503,13 +4503,13 @@ sub dotemprm {
 	}
 
 	unless ($iptype) {
-		print "csf: [$ip] is not a valid PUBLIC IP\n";
+		print "qhtlfirewall: [$ip] is not a valid PUBLIC IP\n";
 		return;
 	}
 	&getethdev;
-	if (! -z "/var/lib/csf/csf.tempban") {
+	if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempban") {
 		my $unblock = 0;
-		sysopen (my $TEMPBAN, "/var/lib/csf/csf.tempban", O_RDWR | O_CREAT);
+		sysopen (my $TEMPBAN, "/var/lib/qhtlfirewall/qhtlfirewall.tempban", O_RDWR | O_CREAT);
 		flock ($TEMPBAN, LOCK_EX);
 		my @data = <$TEMPBAN>;
 		chomp @data;
@@ -4568,7 +4568,7 @@ sub dotemprm {
 					}
 				}
 				if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {ConfigServer::CloudFlare::action("remove",$ip,$config{CF_BLOCK})}
-				print "csf: $ip temporary block removed\n";
+				print "qhtlfirewall: $ip temporary block removed\n";
 				$unblock = 1;
 			} else {
 				push @newdata, $line;
@@ -4579,14 +4579,14 @@ sub dotemprm {
 		foreach my $line (@newdata) {print $TEMPBAN "$line\n"}
 		close ($TEMPBAN);
 		unless ($unblock) {
-			print "csf: $ip not found in temporary bans\n";
+			print "qhtlfirewall: $ip not found in temporary bans\n";
 		}
 	} else {
-		print "csf: There are no temporary IP bans\n";
+		print "qhtlfirewall: There are no temporary IP bans\n";
 	}
-	if (! -z "/var/lib/csf/csf.tempallow") {
+	if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempallow") {
 		my $unblock = 0;
-		sysopen (my $TEMPALLOW, "/var/lib/csf/csf.tempallow", O_RDWR | O_CREAT);
+		sysopen (my $TEMPALLOW, "/var/lib/qhtlfirewall/qhtlfirewall.tempallow", O_RDWR | O_CREAT);
 		flock ($TEMPALLOW, LOCK_EX);
 		my @data = <$TEMPALLOW>;
 		chomp @data;
@@ -4636,7 +4636,7 @@ sub dotemprm {
 					}
 				}
 				if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {ConfigServer::CloudFlare::action("remove",$ip,"whitelist")}
-				print "csf: $ip temporary allow removed\n";
+				print "qhtlfirewall: $ip temporary allow removed\n";
 				$unblock = 1;
 			} else {
 				push @newdata, $line;
@@ -4647,10 +4647,10 @@ sub dotemprm {
 		foreach my $line (@newdata) {print $TEMPALLOW "$line\n"}
 		close ($TEMPALLOW);
 		unless ($unblock) {
-			print "csf: $ip not found in temporary allows\n";
+			print "qhtlfirewall: $ip not found in temporary allows\n";
 		}
 	} else {
-		print "csf: There are no temporary IP allows\n";
+		print "qhtlfirewall: There are no temporary IP allows\n";
 	}
 	return;
 }
@@ -4661,7 +4661,7 @@ sub dotemprmd {
 	my $ip = $input{argument};
 
 	if ($ip eq "") {
-		print "csf: No IP specified\n";
+		print "qhtlfirewall: No IP specified\n";
 		return;
 	}
 
@@ -4671,13 +4671,13 @@ sub dotemprmd {
 	}
 
 	unless ($iptype) {
-		print "csf: [$ip] is not a valid PUBLIC IP\n";
+		print "qhtlfirewall: [$ip] is not a valid PUBLIC IP\n";
 		return;
 	}
 	&getethdev;
-	if (! -z "/var/lib/csf/csf.tempban") {
+	if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempban") {
 		my $unblock = 0;
-		sysopen (my $TEMPBAN, "/var/lib/csf/csf.tempban", O_RDWR | O_CREAT);
+		sysopen (my $TEMPBAN, "/var/lib/qhtlfirewall/qhtlfirewall.tempban", O_RDWR | O_CREAT);
 		flock ($TEMPBAN, LOCK_EX);
 		my @data = <$TEMPBAN>;
 		chomp @data;
@@ -4736,7 +4736,7 @@ sub dotemprmd {
 					}
 				}
 				if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {ConfigServer::CloudFlare::action("remove",$ip,$config{CF_BLOCK})}
-				print "csf: $ip temporary block removed\n";
+				print "qhtlfirewall: $ip temporary block removed\n";
 				$unblock = 1;
 			} else {
 				push @newdata, $line;
@@ -4747,10 +4747,10 @@ sub dotemprmd {
 		foreach my $line (@newdata) {print $TEMPBAN "$line\n"}
 		close ($TEMPBAN);
 		unless ($unblock) {
-			print "csf: $ip not found in temporary bans\n";
+			print "qhtlfirewall: $ip not found in temporary bans\n";
 		}
 	} else {
-		print "csf: There are no temporary IP bans\n";
+		print "qhtlfirewall: There are no temporary IP bans\n";
 	}
 
 	return;
@@ -4762,7 +4762,7 @@ sub dotemprma {
 	my $ip = $input{argument};
 
 	if ($ip eq "") {
-		print "csf: No IP specified\n";
+		print "qhtlfirewall: No IP specified\n";
 		return;
 	}
 
@@ -4772,13 +4772,13 @@ sub dotemprma {
 	}
 
 	unless ($iptype) {
-		print "csf: [$ip] is not a valid PUBLIC IP\n";
+		print "qhtlfirewall: [$ip] is not a valid PUBLIC IP\n";
 		return;
 	}
 	&getethdev;
-	if (! -z "/var/lib/csf/csf.tempallow") {
+	if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempallow") {
 		my $unblock = 0;
-		sysopen (my $TEMPALLOW, "/var/lib/csf/csf.tempallow", O_RDWR | O_CREAT);
+		sysopen (my $TEMPALLOW, "/var/lib/qhtlfirewall/qhtlfirewall.tempallow", O_RDWR | O_CREAT);
 		flock ($TEMPALLOW, LOCK_EX);
 		my @data = <$TEMPALLOW>;
 		chomp @data;
@@ -4828,7 +4828,7 @@ sub dotemprma {
 					}
 				}
 				if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {ConfigServer::CloudFlare::action("remove",$ip,"whitelist")}
-				print "csf: $ip temporary allow removed\n";
+				print "qhtlfirewall: $ip temporary allow removed\n";
 				$unblock = 1;
 			} else {
 				push @newdata, $line;
@@ -4839,10 +4839,10 @@ sub dotemprma {
 		foreach my $line (@newdata) {print $TEMPALLOW "$line\n"}
 		close ($TEMPALLOW);
 		unless ($unblock) {
-			print "csf: $ip not found in temporary allows\n";
+			print "qhtlfirewall: $ip not found in temporary allows\n";
 		}
 	} else {
-		print "csf: There are no temporary IP allows\n";
+		print "qhtlfirewall: There are no temporary IP allows\n";
 	}
 	return;
 }
@@ -4851,8 +4851,8 @@ sub dotemprma {
 # start dotempf
 sub dotempf {
 	&getethdev;
-	if (! -z "/var/lib/csf/csf.tempban") {
-		sysopen (my $TEMPBAN, "/var/lib/csf/csf.tempban", O_RDWR | O_CREAT);
+	if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempban") {
+		sysopen (my $TEMPBAN, "/var/lib/qhtlfirewall/qhtlfirewall.tempban", O_RDWR | O_CREAT);
 		flock ($TEMPBAN, LOCK_EX);
 		my @data = <$TEMPBAN>;
 		chomp @data;
@@ -4912,16 +4912,16 @@ sub dotempf {
 				}
 			}
 			if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {ConfigServer::CloudFlare::action("remove",$ip,$config{CF_BLOCK})}
-			print "csf: $ip temporary block removed\n";
+			print "qhtlfirewall: $ip temporary block removed\n";
 		}
 		seek ($TEMPBAN, 0, 0);
 		truncate ($TEMPBAN, 0);
 		close ($TEMPBAN);
 	} else {
-		print "csf: There are no temporary IP bans\n";
+		print "qhtlfirewall: There are no temporary IP bans\n";
 	}
-	if (! -z "/var/lib/csf/csf.tempallow") {
-		sysopen (my $TEMPALLOW, "/var/lib/csf/csf.tempallow", O_RDWR | O_CREAT);
+	if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempallow") {
+		sysopen (my $TEMPALLOW, "/var/lib/qhtlfirewall/qhtlfirewall.tempallow", O_RDWR | O_CREAT);
 		flock ($TEMPALLOW, LOCK_EX);
 		my @data = <$TEMPALLOW>;
 		chomp @data;
@@ -4972,13 +4972,13 @@ sub dotempf {
 				}
 			}
 			if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {ConfigServer::CloudFlare::action("remove",$ip,"whitelist")}
-			print "csf: $ip temporary allow removed\n";
+			print "qhtlfirewall: $ip temporary allow removed\n";
 		}
 		seek ($TEMPALLOW, 0, 0);
 		truncate ($TEMPALLOW, 0);
 		close ($TEMPALLOW);
 	} else {
-		print "csf: There are no temporary IP allows\n";
+		print "qhtlfirewall: There are no temporary IP allows\n";
 	}
 	return;
 }
@@ -4986,7 +4986,7 @@ sub dotempf {
 ###############################################################################
 # start dowatch
 sub dowatch {
-	print "csf: --watch, -w is no longer supported. Use --trace instead\n";
+	print "qhtlfirewall: --watch, -w is no longer supported. Use --trace instead\n";
 	return;
 }
 # end dowatch
@@ -4997,13 +4997,13 @@ sub dotrace {
 	my $ip = $ARGV[2];
 
 	if ($ip eq "") {
-		print "csf: No IP specified\n";
+		print "qhtlfirewall: No IP specified\n";
 		return;
 	}
 
 	my $checkip = checkip(\$ip);
 	unless ($checkip) {
-		print "csf: [$ip] is not a valid PUBLIC IP\n";
+		print "qhtlfirewall: [$ip] is not a valid PUBLIC IP\n";
 		return;
 	}
 
@@ -5013,7 +5013,7 @@ sub dotrace {
 		} else {
 			&syscommand(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} $verbose -t raw -I PREROUTING -p tcp --syn --source $ip -j TRACE");
 		}
-		print "csf: Added trace for $ip\n";
+		print "qhtlfirewall: Added trace for $ip\n";
 	}
 	elsif ($cmd eq "remove") {
 		if ($checkip == 4) {
@@ -5021,10 +5021,10 @@ sub dotrace {
 		} else {
 			&syscommand(__LINE__,"$config{IP6TABLES} $config{IPTABLESWAIT} $verbose -t raw -D PREROUTING -p tcp --syn --source $ip -j TRACE");
 		}
-		print "csf: Removed trace for $ip\n";
+		print "qhtlfirewall: Removed trace for $ip\n";
 	}
 	else {
-		print "csf: Error, use [add|remove] [ip]\n";
+		print "qhtlfirewall: Error, use [add|remove] [ip]\n";
 	}
 
 	return;
@@ -5034,7 +5034,7 @@ sub dotrace {
 # start dologrun
 sub dologrun {
 	if ($config{LOGSCANNER}) {
-		open (my $OUT, ">", "/var/lib/csf/csf.logrun") or &error(__LINE__,"Could not create /var/lib/csf/csf.logrun: $!");
+		open (my $OUT, ">", "/var/lib/qhtlfirewall/qhtlfirewall.logrun") or &error(__LINE__,"Could not create /var/lib/qhtlfirewall/qhtlfirewall.logrun: $!");
 		flock ($OUT, LOCK_EX);
 		close ($OUT);
 	} else {
@@ -5220,8 +5220,8 @@ sub doprofile {
 	$profile2 =~ s/\W/_/g;
 
 	if ($cmd eq "list") {
-		my @profiles = sort glob("/usr/local/csf/profiles/*");
-		my @backups = reverse glob("/var/lib/csf/backup/*");
+		my @profiles = sort glob("/usr/local/qhtlfirewall/profiles/*");
+		my @backups = reverse glob("/var/lib/qhtlfirewall/backup/*");
 		print "\n";
 		print "Configuration Profiles\n";
 		print "======================\n";
@@ -5244,24 +5244,24 @@ sub doprofile {
 	elsif ($cmd eq "backup") {
 		unless ($profile1) {$profile1 = "backup"}
 		print "Creating backup...\n";
-		system("/bin/cp","-avf","/etc/csf/csf.conf","/var/lib/csf/backup/${stamp}_${profile1}");
+		system("/bin/cp","-avf","/etc/qhtlfirewall/qhtlfirewall.conf","/var/lib/qhtlfirewall/backup/${stamp}_${profile1}");
 	}
 	elsif ($cmd eq "restore") {
-		if (-e "/var/lib/csf/backup/$profile1") {
+		if (-e "/var/lib/qhtlfirewall/backup/$profile1") {
 			print "Restoring backup...\n";
-			system("/bin/cp","-avf","/var/lib/csf/backup/${profile1}","/etc/csf/csf.conf");
+			system("/bin/cp","-avf","/var/lib/qhtlfirewall/backup/${profile1}","/etc/qhtlfirewall/qhtlfirewall.conf");
 			print "You should now restart csf and then lfd\n";
 		} else {
-			print "File [$profile1] not found in /var/lib/csf/backup/\n";
+			print "File [$profile1] not found in /var/lib/qhtlfirewall/backup/\n";
 		}
 	}
 	elsif ($cmd eq "apply") {
-		if (-e "/usr/local/csf/profiles/${profile1}.conf") {
+		if (-e "/usr/local/qhtlfirewall/profiles/${profile1}.conf") {
 			my %apply;
 			print "Creating backup...\n";
-			system("/bin/cp","-avf","/etc/csf/csf.conf","/var/lib/csf/backup/${stamp}_pre_${profile1}");
+			system("/bin/cp","-avf","/etc/qhtlfirewall/qhtlfirewall.conf","/var/lib/qhtlfirewall/backup/${stamp}_pre_${profile1}");
 			print "Applying profile...\n";
-			open (my $IN, "<", "/usr/local/csf/profiles/${profile1}.conf") or die $!;
+			open (my $IN, "<", "/usr/local/qhtlfirewall/profiles/${profile1}.conf") or die $!;
 			flock ($IN, LOCK_SH) or die $!;
 			my @applyconfig = <$IN>;
 			close ($IN);
@@ -5275,13 +5275,13 @@ sub doprofile {
 				$apply{$name} = $value;
 			}
 
-			sysopen (my $CONF, "/etc/csf/csf.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
+			sysopen (my $CONF, "/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
 			flock ($CONF, LOCK_SH);
 			my @confdata = <$CONF>;
 			close ($CONF);
 			chomp @confdata;
 
-			sysopen (my $OUT, "/etc/csf/csf.conf", O_WRONLY | O_CREAT) or die "Unable to open file: $!";
+			sysopen (my $OUT, "/etc/qhtlfirewall/qhtlfirewall.conf", O_WRONLY | O_CREAT) or die "Unable to open file: $!";
 			flock ($OUT, LOCK_EX);
 			seek ($OUT, 0, 0);
 			truncate ($OUT, 0);
@@ -5305,7 +5305,7 @@ sub doprofile {
 	}
 	elsif ($cmd eq "keep") {
 		if ($profile1 =~ /^\d+$/) {
-			my @backups = reverse glob("/var/lib/csf/backup/*");
+			my @backups = reverse glob("/var/lib/qhtlfirewall/backup/*");
 			for ($profile1..(@backups -1)) {
 				system("/bin/rm","-fv",$backups[$_]);
 			}
@@ -5314,13 +5314,13 @@ sub doprofile {
 		}
 	} 
 	elsif ($cmd eq "diff") {
-		my $firstfile = "/var/lib/csf/backup/$profile1";
-		my $secondfile = "/var/lib/csf/backup/$profile2";
-		if (-e "/usr/local/csf/profiles/${profile1}.conf") {
-			$firstfile = "/usr/local/csf/profiles/${profile1}.conf";
+		my $firstfile = "/var/lib/qhtlfirewall/backup/$profile1";
+		my $secondfile = "/var/lib/qhtlfirewall/backup/$profile2";
+		if (-e "/usr/local/qhtlfirewall/profiles/${profile1}.conf") {
+			$firstfile = "/usr/local/qhtlfirewall/profiles/${profile1}.conf";
 		}
-		if (-e "/usr/local/csf/profiles/${profile2}.conf") {
-			$secondfile = "/usr/local/csf/profiles/${profile2}.conf";
+		if (-e "/usr/local/qhtlfirewall/profiles/${profile2}.conf") {
+			$secondfile = "/usr/local/qhtlfirewall/profiles/${profile2}.conf";
 		}
 		if (-e $firstfile) {
 			if (-e $secondfile or $profile2 eq "" or $profile2 eq "current") {
@@ -5342,7 +5342,7 @@ sub doprofile {
 				my $PROFILE;
 				if ($profile2 eq "" or $profile2 eq "current") {
 					$profile2 = "current";
-					open ($PROFILE, "<", "/etc/csf/csf.conf") or die $!;
+					open ($PROFILE, "<", "/etc/qhtlfirewall/qhtlfirewall.conf") or die $!;
 				} else {
 					open ($PROFILE, "<", $secondfile) or die $!;
 				}
@@ -5363,10 +5363,10 @@ sub doprofile {
 					}
 				}
 			} else {
-				print "File [$profile2] not found in /var/lib/csf/backup/\n";
+				print "File [$profile2] not found in /var/lib/qhtlfirewall/backup/\n";
 			}
 		} else {
-			print "File [$profile1] not found in /var/lib/csf/backup/\n";
+			print "File [$profile1] not found in /var/lib/qhtlfirewall/backup/\n";
 		}
 	} 
 	else {
@@ -5721,7 +5721,7 @@ sub iptableslock {
 	my $lock = shift;
 	my $iptablesx = shift;
 	if ($lock eq "lock") {
-		sysopen ($IPTABLESLOCK, "/var/lib/csf/lock/command.lock", O_RDWR | O_CREAT);
+		sysopen ($IPTABLESLOCK, "/var/lib/qhtlfirewall/lock/command.lock", O_RDWR | O_CREAT);
 		flock ($IPTABLESLOCK, LOCK_EX);
 		autoflush $IPTABLESLOCK 1;
 		seek ($IPTABLESLOCK, 0, 0);
@@ -5783,7 +5783,7 @@ sub modprobe {
 sub faststart {
 	my $text = shift;
 	if (@faststart4) {
-		if ($verbose) {print "csf: FASTSTART loading $text (IPv4)\n"}
+		if ($verbose) {print "qhtlfirewall: FASTSTART loading $text (IPv4)\n"}
 		my $status;
 		if ($config{VPS}) {$status = &fastvps(scalar @faststart4)}
 		if ($status) {&error(__LINE__,$status)}
@@ -5805,7 +5805,7 @@ sub faststart {
 		&iptableslock("unlock",1);
 	}
 	if (@faststart4nat) {
-		if ($verbose) {print "csf: FASTSTART loading $text (IPv4 nat)\n"}
+		if ($verbose) {print "qhtlfirewall: FASTSTART loading $text (IPv4 nat)\n"}
 		my $status;
 		if ($config{VPS}) {$status = &fastvps(scalar @faststart4nat)}
 		if ($status) {&error(__LINE__,$status)}
@@ -5827,7 +5827,7 @@ sub faststart {
 		&iptableslock("unlock",1);
 	}
 	if (@faststart6 and $config{IPV6}) {
-		if ($verbose) {print "csf: FASTSTART loading $text (IPv6)\n"}
+		if ($verbose) {print "qhtlfirewall: FASTSTART loading $text (IPv6)\n"}
 		my $status;
 		if ($config{VPS}) {$status = &fastvps(scalar @faststart6)}
 		if ($status) {&error(__LINE__,$status)}
@@ -5849,7 +5849,7 @@ sub faststart {
 		&iptableslock("unlock",1);
 	}
 	if (@faststart6nat and $config{IPV6}) {
-		if ($verbose) {print "csf: FASTSTART loading $text (IPv6 nat)\n"}
+		if ($verbose) {print "qhtlfirewall: FASTSTART loading $text (IPv6 nat)\n"}
 		my $status;
 		if ($config{VPS}) {$status = &fastvps(scalar @faststart6nat)}
 		if ($status) {&error(__LINE__,$status)}
@@ -5871,7 +5871,7 @@ sub faststart {
 		&iptableslock("unlock",1);
 	}
 	if (@faststartipset) {
-		if ($verbose) {print "csf: FASTSTART loading $text (IPSET)\n"}
+		if ($verbose) {print "qhtlfirewall: FASTSTART loading $text (IPSET)\n"}
 		my ($childin, $childout);
 		my $cmdpid = open3($childin, $childout, $childout, $config{IPSET},"restore");
 		print $childin join("\n",@faststartipset)."\n";
@@ -5919,7 +5919,7 @@ sub ipsetcreate {
 	$SIG{PIPE} = 'IGNORE';
 	my $family = "inet";
 	if ($set =~ /_6/) {$family = "inet6"}
-	if ($verbose) {print "csf: IPSET creating set $set\n"}
+	if ($verbose) {print "qhtlfirewall: IPSET creating set $set\n"}
 	my ($childin, $childout);
 	my $cmdpid = open3($childin, $childout, $childout, $config{IPSET},"create","-exist",$set,"hash:net","family",$family,"hashsize",$config{LF_IPSET_HASHSIZE},"maxelem",$config{LF_IPSET_MAXELEM});
 	close $childin;
@@ -5938,7 +5938,7 @@ sub ipsetcreate {
 sub ipsetrestore {
 	my $set = shift;
 	$SIG{PIPE} = 'IGNORE';
-	if ($verbose) {print "csf: IPSET loading set $set with ".scalar(@ipset)." entries\n"}
+	if ($verbose) {print "qhtlfirewall: IPSET loading set $set with ".scalar(@ipset)." entries\n"}
 	my ($childin, $childout);
 	my $cmdpid = open3($childin, $childout, $childout, $config{IPSET},"restore");
 	print $childin join("\n",@ipset)."\n";
@@ -5968,7 +5968,7 @@ sub ipsetadd {
 		push @faststartipset, "add -exist $set $ip";
 		return;
 	}
-	if ($verbose) {print "csf: IPSET adding [$ip] to set [$set]\n"}
+	if ($verbose) {print "qhtlfirewall: IPSET adding [$ip] to set [$set]\n"}
 	my ($childin, $childout);
 	my $cmdpid = open3($childin, $childout, $childout, $config{IPSET},"add","-exist",$set,$ip);
 	close $childin;
@@ -5992,7 +5992,7 @@ sub ipsetdel {
 	if ($set =~ /^(\w+)(IN|OUT)$/) {$set = $1}
 	if ($set =~ /^bl(_6)?_NEW(\w+)$/) {$set = "bl".$1."_".$2}
 	if ($set eq "" or $ip eq "") {return}
-	if ($verbose) {print "csf: IPSET deleting [$ip] from set [$set]\n"}
+	if ($verbose) {print "qhtlfirewall: IPSET deleting [$ip] from set [$set]\n"}
 	my ($childin, $childout);
 	my $cmdpid = open3($childin, $childout, $childout, $config{IPSET},"del",$set,$ip);
 	close $childin;

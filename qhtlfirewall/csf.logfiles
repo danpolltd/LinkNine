@@ -20,7 +20,7 @@
 
 # All:
 /var/log/messages
-/var/log/lfd.log
+/var/log/qhtlwaterfall.log
 /var/log/cxswatch.log
 
 # RedHat:

@@ -21,7 +21,7 @@
 package ConfigServer::GetIPs;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Carp;
 use Socket;
 use IPC::Open3;

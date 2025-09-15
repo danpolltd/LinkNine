@@ -20,7 +20,7 @@
 package ConfigServer::DisplayResellerUI;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Fcntl qw(:DEFAULT :flock);
 use POSIX qw(:sys_wait_h sysconf strftime);
 use File::Basename;
@@ -54,7 +54,7 @@ sub main {
 	$images = shift;
 	$myv = shift;
 
-	open (my $IN,"<","/etc/csf/csf.resellers");
+	open (my $IN,"<","/etc/qhtlfirewall/qhtlfirewall.resellers");
 	flock ($IN, LOCK_SH);
 	while (my $line = <$IN>) {
 		my ($user,$alert,$privs) = split(/\:/,$line);
@@ -100,11 +100,11 @@ sub main {
 				print "<table class='table table-bordered table-striped'>\n";
 				print "<tr><td>";
 				print "<p>Allowing $FORM{ip}...</p>\n<p><pre style='font-family: Courier New, Courier; font-size: 12px'>\n";
-				my $text = &printcmd("/usr/sbin/csf","-a",$FORM{ip},"ALLOW by Reseller $ENV{REMOTE_USER} ($FORM{comment})");
+				my $text = &printcmd("/usr/sbin/qhtlfirewall","-a",$FORM{ip},"ALLOW by Reseller $ENV{REMOTE_USER} ($FORM{comment})");
 				print "</p>\n<p>...<b>Done</b>.</p>\n";
 				print "</td></tr></table>\n";
 				if ($rprivs{$ENV{REMOTE_USER}}{ALERT}) {
-					open (my $IN, "<", "/usr/local/csf/tpl/reselleralert.txt");
+					open (my $IN, "<", "/usr/local/qhtlfirewall/tpl/reselleralert.txt");
 					flock ($IN, LOCK_SH);
 					my @alert = <$IN>;
 					close ($IN);
@@ -134,11 +134,11 @@ sub main {
 				print "<table class='table table-bordered table-striped'>\n";
 				print "<tr><td>";
 				print "<p>Blocking $FORM{ip}...</p>\n<p><pre style='font-family: Courier New, Courier; font-size: 12px'>\n";
-				my $text = &printcmd("/usr/sbin/csf","-d",$FORM{ip},"DENY by Reseller $ENV{REMOTE_USER} ($FORM{comment})");
+				my $text = &printcmd("/usr/sbin/qhtlfirewall","-d",$FORM{ip},"DENY by Reseller $ENV{REMOTE_USER} ($FORM{comment})");
 				print "</p>\n<p>...<b>Done</b>.</p>\n";
 				print "</td></tr></table>\n";
 				if ($rprivs{$ENV{REMOTE_USER}}{ALERT}) {
-					open (my $IN, "<", "/usr/local/csf/tpl/reselleralert.txt");
+					open (my $IN, "<", "/usr/local/qhtlfirewall/tpl/reselleralert.txt");
 					flock ($IN, LOCK_SH);
 					my @alert = <$IN>;
 					close ($IN);
@@ -163,22 +163,22 @@ sub main {
 			my $text = "";
 			if ($rprivs{$ENV{REMOTE_USER}}{ALERT}) {
 				my ($childin, $childout);
-				my $pid = open3($childin, $childout, $childout, "/usr/sbin/csf","-g",$FORM{ip});
+				my $pid = open3($childin, $childout, $childout, "/usr/sbin/qhtlfirewall","-g",$FORM{ip});
 				while (<$childout>) {$text .= $_}
 				waitpid ($pid, 0);
 			}
 			print "<table class='table table-bordered table-striped'>\n";
 			print "<tr><td>";
 			print "<p>Unblock $FORM{ip}, trying permanent blocks...</p>\n<p><pre style='font-family: Courier New, Courier; font-size: 12px'>\n";
-			my $text1 = &printcmd("/usr/sbin/csf","-dr",$FORM{ip});
+			my $text1 = &printcmd("/usr/sbin/qhtlfirewall","-dr",$FORM{ip});
 			print "</p>\n<p>...<b>Done</b>.</p>\n";
 			print "<p>Unblock $FORM{ip}, trying temporary blocks...</p>\n<p><pre style='font-family: Courier New, Courier; font-size: 12px'>\n";
-			my $text2 = &printcmd("/usr/sbin/csf","-tr",$FORM{ip});
+			my $text2 = &printcmd("/usr/sbin/qhtlfirewall","-tr",$FORM{ip});
 			print "</p>\n<p>...<b>Done</b>.</p>\n";
 			print "</td></tr></table>\n";
 			print "<p><form action='$script' method='post'><input type='hidden' name='mobi' value='$FORM{mobi}'><input type='submit' class='btn btn-default' value='Return'></form></p>\n";
 			if ($rprivs{$ENV{REMOTE_USER}}{ALERT}) {
-				open (my $IN, "<", "/usr/local/csf/tpl/reselleralert.txt");
+				open (my $IN, "<", "/usr/local/qhtlfirewall/tpl/reselleralert.txt");
 				flock ($IN, LOCK_SH);
 				my @alert = <$IN>;
 				close ($IN);
@@ -201,14 +201,14 @@ sub main {
 			print "<table class='table table-bordered table-striped'>\n";
 			print "<tr><td>";
 			print "<p>Searching for $FORM{ip}...</p>\n<p><pre style='font-family: Courier New, Courier; font-size: 12px'>\n";
-			&printcmd("/usr/sbin/csf","-g",$FORM{ip});
+			&printcmd("/usr/sbin/qhtlfirewall","-g",$FORM{ip});
 			print "</p>\n<p>...<b>Done</b>.</p>\n";
 			print "</td></tr></table>\n";
 			print "<p><form action='$script' method='post'><input type='submit' class='btn btn-default' value='Return'></form></p>\n";
 		}
 		else {
 			print "<table class='table table-bordered table-striped'>\n";
-			print "<thead><tr><th align='left' colspan='2'>csf - ConfigServer Firewall options for $ENV{REMOTE_USER}</th></tr></thead>";
+			print "<thead><tr><th align='left' colspan='2'>qhtlfirewall options for $ENV{REMOTE_USER}</th></tr></thead>";
 			if ($rprivs{$ENV{REMOTE_USER}}{ALLOW}) {print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qallow'><input type='submit' class='btn btn-default' value='Quick Allow'></td><td width='100%'>Allow IP address <input type='text' name='ip' id='allowip' value='' size='18' style='background-color: lightgreen'> through the firewall and add to the allow file (csf.allow).<br>Comment for Allow: <input type='text' name='comment' value='' size='30'> (required)</form></td></tr>\n"}
 			if ($rprivs{$ENV{REMOTE_USER}}{DENY}) {print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qdeny'><input type='submit' class='btn btn-default' value='Quick Deny'></td><td width='100%'>Block IP address <input type='text' name='ip' value='' size='18' style='background-color: pink'> in the firewall and add to the deny file (csf.deny).<br>Comment for Block: <input type='text' name='comment' value='' size='30'> (required)</form></td></tr>\n"}
 			if ($rprivs{$ENV{REMOTE_USER}}{UNBLOCK}) {print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qkill'><input type='submit' class='btn btn-default' value='Quick Unblock'></td><td width='100%'>Remove IP address <input type='text' name='ip' value='' size='18'> from the firewall (temp and perm blocks)</form></td></tr>\n"}
@@ -218,8 +218,8 @@ sub main {
 	}
 
 	print "<br>\n";
-	print "<pre>csf: v$myv</pre>";
-	print "<p>&copy;2006-2023, <a href='http://www.configserver.com' target='_blank'>ConfigServer Services</a> (Jonathan Michaelson)</p>\n";
+	print "<pre>qhtlfirewall: v$myv</pre>";
+	print "<p>&copy;2006-2025, <a href='https://github.com/waytotheweb/scripts' target='_blank'>QHTL</a></p>\n";
 
 	return;
 }

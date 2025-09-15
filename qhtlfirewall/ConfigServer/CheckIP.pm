@@ -21,7 +21,7 @@
 package ConfigServer::CheckIP;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Carp;
 use Net::IP;
 use ConfigServer::Config;

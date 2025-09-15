@@ -21,7 +21,7 @@
 umask 0177
 
 touch /etc/csf/csf.disable
-/etc/init.d/lfd stop
+/etc/init.d/qhtlwaterfall stop
 
 # temp data:
 
@@ -72,7 +72,7 @@ cp -avf /etc/csf/csf.tempwatch /var/lib/csf/
 cp -avf /etc/csf/Geo/GeoIP.dat /var/lib/csf/Geo/
 cp -avf /etc/csf/Geo/GeoLiteCity.dat /var/lib/csf/Geo/
 cp -avf /etc/csf/lfd.enable /var/lib/csf/
-cp -avf /etc/csf/lfd.restart /var/lib/csf/
+cp -avf /etc/csf/qhtlwaterfall.restart /var/lib/csf/
 cp -avf /etc/csf/lfd.start /var/lib/csf/
 cp -avf /etc/csf/lock/ /var/lib/csf/
 cp -avf /etc/csf/nocheck /var/lib/csf/
@@ -130,7 +130,7 @@ rm -fv /etc/csf/csf.tempwatch
 rm -fv /etc/csf/Geo/GeoIP.dat
 rm -fv /etc/csf/Geo/GeoLiteCity.dat
 rm -fv /etc/csf/lfd.enable
-rm -fv /etc/csf/lfd.restart
+rm -fv /etc/csf/qhtlwaterfall.restart
 rm -fv /etc/csf/lfd.start
 rm -Rfv /etc/csf/lock/
 rm -fv /etc/csf/nocheck

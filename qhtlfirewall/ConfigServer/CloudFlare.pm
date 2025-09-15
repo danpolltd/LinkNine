@@ -21,7 +21,7 @@
 package ConfigServer::CloudFlare;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Carp;
 use Fcntl qw(:DEFAULT :flock);
 use JSON::Tiny();
@@ -76,7 +76,7 @@ sub action {
 
 	if ($action eq "remove") {
 		my @newfile;
-		sysopen (my $TEMP, "/var/lib/csf/cloudflare.temp", O_RDWR | O_CREAT);
+		sysopen (my $TEMP, "/var/lib/qhtlfirewall/cloudflare.temp", O_RDWR | O_CREAT);
 		flock($TEMP, LOCK_EX);
 		my $hit;
 		while (my $line = <$TEMP>) {
@@ -143,7 +143,7 @@ sub action {
 			if ($action eq "deny") {
 				my ($id,$status) = &block($ip);
 				logfile($status." ($user)");
-				sysopen (my $TEMP, "/var/lib/csf/cloudflare.temp", O_WRONLY | O_APPEND | O_CREAT);
+				sysopen (my $TEMP, "/var/lib/qhtlfirewall/cloudflare.temp", O_WRONLY | O_APPEND | O_CREAT);
 				flock($TEMP, LOCK_EX);
 				print $TEMP "$ip|$mode|$user|$account|$authlist{$account}{apikey}|$id|".time."\n";
 				close ($TEMP);
@@ -151,7 +151,7 @@ sub action {
 			elsif ($action eq "allow") {
 				my ($id,$status) = &whitelist($ip);
 				logfile($status." ($user)");
-				sysopen (my $TEMP, "/var/lib/csf/cloudflare.temp", O_WRONLY | O_APPEND | O_CREAT);
+				sysopen (my $TEMP, "/var/lib/qhtlfirewall/cloudflare.temp", O_WRONLY | O_APPEND | O_CREAT);
 				flock($TEMP, LOCK_EX);
 				print $TEMP "$ip|$mode|$user|$account|$authlist{$account}{apikey}|$id|".time."\n";
 				close ($TEMP);
@@ -432,7 +432,7 @@ sub getscope {
 	my %scope;
 	my %disabled;
 	my %any;
-	my @entries = slurp("/etc/csf/csf.cloudflare");
+	my @entries = slurp("/etc/qhtlfirewall/qhtlfirewall.cloudflare");
 	foreach my $line (@entries) {
 		if ($line =~ /^Include\s*(.*)$/) {
 			my @incfile = slurp($1);

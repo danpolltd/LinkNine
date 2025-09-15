@@ -47,18 +47,18 @@ def configservercsfiframe(request):
         qs = request.POST.urlencode()
 
     try:
-        tmp = tempfile.NamedTemporaryFile(mode = "w", delete=False)
+        tmp = tempfile.NamedTemporaryFile(mode="w", delete=False)
         tmp.write(qs)
         tmp.close()
-        command = "/usr/local/csf/bin/cyberpanel.pl '" + tmp.name + "'"
 
+        command = "/usr/local/qhtlfirewall/lib/cyberpanel/cyberpanel.pl '" + tmp.name + "'"
         try:
             output = ProcessUtilities.outputExecutioner(command)
         except:
-            output = "Output Error from csf UI script"
+            output = "Output Error from qhtlfirewall UI script"
 
         os.unlink(tmp.name)
     except:
-        output = "Unable to create csf UI temp file"
+        output = "Unable to create qhtlfirewall UI temp file"
 
     return HttpResponse(output)

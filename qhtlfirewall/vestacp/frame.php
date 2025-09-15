@@ -14,7 +14,7 @@ if ($_SESSION['user'] != 'admin') {
     exit;
 }
 
-exec (VESTA_CMD."csf.pl \"$env\"", $result, $return_var);
+exec (VESTA_CMD."qhtlfirewall.pl \"$env\"", $result, $return_var);
 
 $header = 1;
 foreach ($result as $line) {

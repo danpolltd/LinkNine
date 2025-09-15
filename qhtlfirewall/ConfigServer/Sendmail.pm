@@ -21,7 +21,7 @@
 package ConfigServer::Sendmail;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Carp;
 use POSIX qw(strftime);
 use Fcntl qw(:DEFAULT :flock);

@@ -28,13 +28,13 @@ our (%config, %configsetting, $vps, $oldversion);
 
 $oldversion = $ARGV[0];
 
-open (VERSION, "<","/etc/csf/version.txt");
+open (VERSION, "<","/etc/qhtlfirewall/version.txt");
 flock (VERSION, LOCK_SH);
 my $version = <VERSION>;
 close (VERSION);
 chomp $version;
 $version =~ s/\W/_/g;
-system("/bin/cp","-avf","/etc/csf/csf.conf","/var/lib/csf/backup/".time."_pre_v${version}_upgrade");
+system("/bin/cp","-avf","/etc/qhtlfirewall/qhtlfirewall.conf","/var/lib/qhtlfirewall/backup/".time."_pre_v${version}_upgrade");
 
 &loadcsfconfig;
 
@@ -56,8 +56,8 @@ if (-e "/proc/vz/veinfo") {
 }
 
 foreach my $alertfile ("sshalert.txt","sualert.txt","sudoalert.txt","webminalert.txt","cpanelalert.txt") {
-	if (-e "/usr/local/csf/tpl/".$alertfile) {
-		sysopen (my $IN, "/usr/local/csf/tpl/".$alertfile, O_RDWR | O_CREAT);
+	if (-e "/usr/local/qhtlfirewall/tpl/".$alertfile) {
+		sysopen (my $IN, "/usr/local/qhtlfirewall/tpl/".$alertfile, O_RDWR | O_CREAT);
 		flock ($IN, LOCK_EX);
 		my @data = <$IN>;
 		chomp @data;
@@ -72,9 +72,9 @@ foreach my $alertfile ("sshalert.txt","sualert.txt","sudoalert.txt","webminalert
 	}
 }
 
-if (&checkversion("10.11") and !-e "/var/lib/csf/auto1011") {
-	if (-e "/var/lib/csf/stats/lfdstats") {
-		sysopen (STATS,"/var/lib/csf/stats/lfdstats", O_RDWR | O_CREAT);
+if (&checkversion("10.11") and !-e "/var/lib/qhtlfirewall/auto1011") {
+	if (-e "/var/lib/qhtlfirewall/stats/lfdstats") {
+		sysopen (STATS,"/var/lib/qhtlfirewall/stats/lfdstats", O_RDWR | O_CREAT);
 		flock (STATS, LOCK_EX);
 		my @stats = <STATS>;
 		chomp @stats;
@@ -91,14 +91,14 @@ if (&checkversion("10.11") and !-e "/var/lib/csf/auto1011") {
 		close (STATS);
 	}
 
-	open (OUT, ">", "/var/lib/csf/auto1011");
+	open (OUT, ">", "/var/lib/qhtlfirewall/auto1011");
 	flock (OUT, LOCK_EX);
 	print OUT time;
 	close (OUT);
 }
-if (&checkversion("10.23") and !-e "/var/lib/csf/auto1023") {
-	if (-e "/etc/csf/csf.blocklists") {
-		sysopen (IN,"/etc/csf/csf.blocklists", O_RDWR | O_CREAT);
+if (&checkversion("10.23") and !-e "/var/lib/qhtlfirewall/auto1023") {
+	if (-e "/etc/qhtlfirewall/qhtlfirewall.blocklists") {
+		sysopen (IN,"/etc/qhtlfirewall/qhtlfirewall.blocklists", O_RDWR | O_CREAT);
 		flock (IN, LOCK_EX);
 		my @data = <IN>;
 		chomp @data;
@@ -126,14 +126,14 @@ if (&checkversion("10.23") and !-e "/var/lib/csf/auto1023") {
 		close (IN);
 	}
 
-	open (OUT, ">", "/var/lib/csf/auto1023");
+	open (OUT, ">", "/var/lib/qhtlfirewall/auto1023");
 	flock (OUT, LOCK_EX);
 	print OUT time;
 	close (OUT);
 }
-if (&checkversion("12.02") and !-e "/var/lib/csf/auto1202") {
-	if (-e "/etc/csf/csf.blocklists") {
-		sysopen (IN,"/etc/csf/csf.blocklists", O_RDWR | O_CREAT);
+if (&checkversion("12.02") and !-e "/var/lib/qhtlfirewall/auto1202") {
+	if (-e "/etc/qhtlfirewall/qhtlfirewall.blocklists") {
+		sysopen (IN,"/etc/qhtlfirewall/qhtlfirewall.blocklists", O_RDWR | O_CREAT);
 		flock (IN, LOCK_EX);
 		my @data = <IN>;
 		chomp @data;
@@ -146,14 +146,14 @@ if (&checkversion("12.02") and !-e "/var/lib/csf/auto1202") {
 		close (IN);
 	}
 
-	open (OUT, ">", "/var/lib/csf/auto1202");
+	open (OUT, ">", "/var/lib/qhtlfirewall/auto1202");
 	flock (OUT, LOCK_EX);
 	print OUT time;
 	close (OUT);
 }
-if (&checkversion("14.03") and !-e "/var/lib/csf/auto1403") {
-	if (-e "/etc/csf/csf.blocklists") {
-		sysopen (IN,"/etc/csf/csf.blocklists", O_RDWR | O_CREAT);
+if (&checkversion("14.03") and !-e "/var/lib/qhtlfirewall/auto1403") {
+	if (-e "/etc/qhtlfirewall/qhtlfirewall.blocklists") {
+		sysopen (IN,"/etc/qhtlfirewall/qhtlfirewall.blocklists", O_RDWR | O_CREAT);
 		flock (IN, LOCK_EX);
 		my @data = <IN>;
 		chomp @data;
@@ -166,14 +166,14 @@ if (&checkversion("14.03") and !-e "/var/lib/csf/auto1403") {
 		close (IN);
 	}
 
-	open (OUT, ">", "/var/lib/csf/auto1403");
+	open (OUT, ">", "/var/lib/qhtlfirewall/auto1403");
 	flock (OUT, LOCK_EX);
 	print OUT time;
 	close (OUT);
 }
 
-if (-e "/etc/csf/csf.allow") {
-	sysopen (IN,"/etc/csf/csf.allow", O_RDWR | O_CREAT);
+if (-e "/etc/qhtlfirewall/qhtlfirewall.allow") {
+	sysopen (IN,"/etc/qhtlfirewall/qhtlfirewall.allow", O_RDWR | O_CREAT);
 	flock (IN, LOCK_EX);
 	my @data = <IN>;
 	chomp @data;
@@ -185,8 +185,8 @@ if (-e "/etc/csf/csf.allow") {
 	}
 	close (IN);
 }
-if (-e "/etc/csf/csf.ignore") {
-	sysopen (IN,"/etc/csf/csf.ignore", O_RDWR | O_CREAT);
+if (-e "/etc/qhtlfirewall/qhtlfirewall.ignore") {
+	sysopen (IN,"/etc/qhtlfirewall/qhtlfirewall.ignore", O_RDWR | O_CREAT);
 	flock (IN, LOCK_EX);
 	my @data = <IN>;
 	chomp @data;
@@ -198,8 +198,8 @@ if (-e "/etc/csf/csf.ignore") {
 	}
 	close (IN);
 }
-if (-e "/usr/local/csf/bin/regex.custom.pm") {
-	sysopen (IN,"/usr/local/csf/bin/regex.custom.pm", O_RDWR | O_CREAT);
+if (-e "/usr/local/qhtlfirewall/bin/regex.custom.pm") {
+	sysopen (IN,"/usr/local/qhtlfirewall/bin/regex.custom.pm", O_RDWR | O_CREAT);
 	flock (IN, LOCK_EX);
 	my @data = <IN>;
 	chomp @data;
@@ -211,8 +211,8 @@ if (-e "/usr/local/csf/bin/regex.custom.pm") {
 	}
 	close (IN);
 }
-if (-e "/etc/csf/csf.blocklists") {
-	sysopen (IN,"/etc/csf/csf.blocklists", O_RDWR | O_CREAT);
+if (-e "/etc/qhtlfirewall/qhtlfirewall.blocklists") {
+	sysopen (IN,"/etc/qhtlfirewall/qhtlfirewall.blocklists", O_RDWR | O_CREAT);
 	flock (IN, LOCK_EX);
 	my @data = <IN>;
 	chomp @data;
@@ -226,8 +226,8 @@ if (-e "/etc/csf/csf.blocklists") {
 	}
 	close (IN);
 }
-if (-e "/var/lib/csf/csf.tempban") {
-	sysopen (IN,"/var/lib/csf/csf.tempban", O_RDWR | O_CREAT);
+if (-e "/var/lib/qhtlfirewall/qhtlfirewall.tempban") {
+	sysopen (IN,"/var/lib/qhtlfirewall/qhtlfirewall.tempban", O_RDWR | O_CREAT);
 	flock (IN, LOCK_EX);
 	my @data = <IN>;
 	chomp @data;
@@ -239,8 +239,8 @@ if (-e "/var/lib/csf/csf.tempban") {
 	}
 	close (IN);
 }
-if (-e "/var/lib/csf/csf.tempallow") {
-	sysopen (IN,"/var/lib/csf/csf.tempallow", O_RDWR | O_CREAT);
+if (-e "/var/lib/qhtlfirewall/qhtlfirewall.tempallow") {
+	sysopen (IN,"/var/lib/qhtlfirewall/qhtlfirewall.tempallow", O_RDWR | O_CREAT);
 	flock (IN, LOCK_EX);
 	my @data = <IN>;
 	chomp @data;
@@ -276,12 +276,12 @@ if ($config{TESTING}) {
 	if ($sshport ne "22") {
 		$config{TCP_IN} .= ",$sshport";
 		$config{TCP6_IN} .= ",$sshport";
-		open (IN, "<", "/etc/csf/csf.conf") or die $!;
+		open (IN, "<", "/etc/qhtlfirewall/qhtlfirewall.conf") or die $!;
 		flock (IN, LOCK_SH) or die $!;
 		my @config = <IN>;
 		close (IN);
 		chomp @config;
-		open (OUT, ">", "/etc/csf/csf.conf") or die $!;
+		open (OUT, ">", "/etc/qhtlfirewall/qhtlfirewall.conf") or die $!;
 		flock (OUT, LOCK_EX) or die $!;
 		foreach my $line (@config) {
 			if ($line =~ /^TCP6_IN/) {
@@ -311,12 +311,12 @@ if ($config{TESTING}) {
 		my $mid = $2;
 		my $min = $3;
 		if ($maj == 3 and $mid > 6) {
-			open (IN, "<", "/etc/csf/csf.conf") or die $!;
+			open (IN, "<", "/etc/qhtlfirewall/qhtlfirewall.conf") or die $!;
 			flock (IN, LOCK_SH) or die $!;
 			my @config = <IN>;
 			close (IN);
 			chomp @config;
-			open (OUT, ">", "/etc/csf/csf.conf") or die $!;
+			open (OUT, ">", "/etc/qhtlfirewall/qhtlfirewall.conf") or die $!;
 			flock (OUT, LOCK_EX) or die $!;
 			foreach my $line (@config) {
 				if ($line =~ /^USE_CONNTRACK =/) {
@@ -348,12 +348,12 @@ if ($config{TESTING}) {
 	if ($@ ne "alarm\n" and $ipdata[0] =~ /^Chain OUTPUT/) {
 		$config{IPTABLESWAIT} = "--wait";
 		$config{WAITLOCK} = 1;
-		open (IN, "<", "/etc/csf/csf.conf") or die $!;
+		open (IN, "<", "/etc/qhtlfirewall/qhtlfirewall.conf") or die $!;
 		flock (IN, LOCK_SH) or die $!;
 		my @config = <IN>;
 		close (IN);
 		chomp @config;
-		open (OUT, ">", "/etc/csf/csf.conf") or die $!;
+		open (OUT, ">", "/etc/qhtlfirewall/qhtlfirewall.conf") or die $!;
 		flock (OUT, LOCK_EX) or die $!;
 		foreach my $line (@config) {
 			if ($line =~ /WAITLOCK =/) {
@@ -391,12 +391,12 @@ if ($config{TESTING}) {
 					$config{IPV6_SPI} = 0;
 				}
 			}
-			open (IN, "<", "/etc/csf/csf.conf") or die $!;
+			open (IN, "<", "/etc/qhtlfirewall/qhtlfirewall.conf") or die $!;
 			flock (IN, LOCK_SH) or die $!;
 			my @config = <IN>;
 			close (IN);
 			chomp @config;
-			open (OUT, ">", "/etc/csf/csf.conf") or die $!;
+			open (OUT, ">", "/etc/qhtlfirewall/qhtlfirewall.conf") or die $!;
 			flock (OUT, LOCK_EX) or die $!;
 			foreach my $line (@config) {
 				if ($line =~ /^IPV6 =/) {
@@ -421,7 +421,7 @@ flock (IN, LOCK_SH) or die $!;
 my @config = <IN>;
 close (IN);
 chomp @config;
-open (OUT, ">", "/etc/csf/csf.conf") or die $!;
+open (OUT, ">", "/etc/qhtlfirewall/qhtlfirewall.conf") or die $!;
 flock (OUT, LOCK_EX) or die $!;
 foreach my $line (@config) {
 	if ($line =~ /^\#/) {
@@ -439,10 +439,10 @@ foreach my $line (@config) {
 	} else {
 		print "Error: Invalid configuration line [$line]";
 	}
-	if (&checkversion("10.15") and !-e "/var/lib/csf/auto1015") {
+	if (&checkversion("10.15") and !-e "/var/lib/qhtlfirewall/auto1015") {
 		if ($name eq "MESSENGER_RATE" and $config{$name} eq "30/m") {$config{$name} = "100/s"}
 		if ($name eq "MESSENGER_BURST" and $config{$name} eq "5") {$config{$name} = "150"}
-		open (my $AUTO, ">", "/var/lib/csf/auto1015");
+		open (my $AUTO, ">", "/var/lib/qhtlfirewall/auto1015");
 		flock ($AUTO, LOCK_EX);
 		print $AUTO time;
 		close ($AUTO);
@@ -450,9 +450,9 @@ foreach my $line (@config) {
 	if ($configsetting{$name}) {
 		print OUT "$name = \"$config{$name}\"\n";
 	} else {
-		if (&checkversion("9.29") and !-e "/var/lib/csf/auto929" and $name eq "PT_USERRSS") {
+		if (&checkversion("9.29") and !-e "/var/lib/qhtlfirewall/auto929" and $name eq "PT_USERRSS") {
 			$line = "PT_USERRSS = \"$config{PT_USERMEM}\"";
-			open (my $AUTO, ">", "/var/lib/csf/auto929");
+			open (my $AUTO, ">", "/var/lib/qhtlfirewall/auto929");
 			flock ($AUTO, LOCK_EX);
 			print $AUTO time;
 			close ($AUTO);
@@ -537,25 +537,25 @@ if ($config{TESTING}) {
 			}
 		}
 	}
-	print "\n\nNote: The port details above are for information only, csf hasn't been auto-configured.\n\n";
+	print "\n\nNote: The port details above are for information only, qhtlfirewall hasn't been auto-configured.\n\n";
 	print "Don't forget to:\n";
-	print "1. Configure the following options in the csf configuration to suite your server: $opts\n";
-	print "2. Restart csf and lfd\n";
-	print "3. Set TESTING to 0 once you're happy with the firewall, lfd will not run until you do so\n";
+	print "1. Configure the following options in the qhtlfirewall configuration to suit your server: $opts\n";
+	print "2. Restart qhtlfirewall and qhtlwaterfall\n";
+	print "3. Set TESTING to 0 once you're happy with the firewall, qhtlwaterfall will not run until you do so\n";
 }
 
 if ($ENV{SSH_CLIENT}) {
 	my $ip = (split(/ /,$ENV{SSH_CLIENT}))[0];
 	if ($ip =~ /(\d+\.\d+\.\d+\.\d+)/) {
-		print "\nAdding current SSH session IP address to the csf whitelist in csf.allow:\n";
-		system("/usr/sbin/csf -a $1 csf SSH installation/upgrade IP address");
+		print "\nAdding current SSH session IP address to the qhtlfirewall whitelist in qhtlfirewall.allow:\n";
+		system("/usr/sbin/qhtlfirewall -a $1 qhtlfirewall SSH installation/upgrade IP address");
 	}
 }
 
 exit;
 ###############################################################################
 sub loadcsfconfig {
-	open (IN, "<", "/etc/csf/csf.conf") or die $!;
+	open (IN, "<", "/etc/qhtlfirewall/qhtlfirewall.conf") or die $!;
 	flock (IN, LOCK_SH) or die $!;
 	my @config = <IN>;
 	close (IN);

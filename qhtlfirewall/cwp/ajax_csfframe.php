@@ -6,7 +6,7 @@
 	}
 	$env = $env."&CWPSESSID=".$_SERVER["REQUEST_URI"];
 
-	exec ("/usr/local/cwpsrv/htdocs/resources/admin/modules/csf.pl \"$env\"", $result, $return_var);
+	exec ("/usr/local/cwpsrv/htdocs/resources/admin/modules/qhtlfirewall.pl \"$env\"", $result, $return_var);
 
 	$header = 1;
 	foreach ($result as $line) {

@@ -20,7 +20,7 @@
 package ConfigServer::DisplayUI;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Fcntl qw(:DEFAULT :flock);
 use File::Basename;
 use File::Copy;
@@ -88,16 +88,16 @@ sub main {
 		if (!defined ConfigServer::ServerStats::init()) {$chart = 0}
 	}
 
-	$urlget = ConfigServer::URLGet->new($config{URLGET}, "csf/$myv", $config{URLPROXY});
+	$urlget = ConfigServer::URLGet->new($config{URLGET}, "qhtlfirewall/$myv", $config{URLPROXY});
 	unless (defined $urlget) {
 		$config{URLGET} = 1;
-		$urlget = ConfigServer::URLGet->new($config{URLGET}, "csf/$myv", $config{URLPROXY});
+		$urlget = ConfigServer::URLGet->new($config{URLGET}, "qhtlfirewall/$myv", $config{URLPROXY});
 		print "<p>*WARNING* URLGET set to use LWP but perl module is not installed, reverting to HTTP::Tiny<p>\n";
 	}
 
 	if ($config{RESTRICT_UI} == 2) {
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<tr><td><font color='red'>csf UI Disabled via the RESTRICT_UI option in /etc/csf/csf.conf</font></td></tr>\n";
+		print "<tr><td><font color='red'>qhtlfirewall UI Disabled via the RESTRICT_UI option in /etc/qhtlfirewall/qhtlfirewall.conf</font></td></tr>\n";
 		print "</tr></table>\n";
 		exit;
 	}
@@ -117,20 +117,20 @@ sub main {
 		print "<div><p>Checking version...</p>\n\n";
 		my ($upgrade, $actv) = &manualversion($myv);
 		if ($upgrade) {
-			print "<form action='$script' method='post'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade csf</button> A new version of csf (v$actv) is available. Upgrading will retain your settings. <a href='https://$config{DOWNLOADSERVER}/csf/changelog.txt' target='_blank'>View ChangeLog</a></form>\n";
+			print "<form action='$script' method='post'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button> A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings. <a href='https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt' target='_blank'>View ChangeLog</a></form>\n";
 		} else {
 			if ($actv ne "") {
 				print "<div class='bs-callout bs-callout-danger'>$actv</div>\n";
 			}
 			else {
-				print "<div class='bs-callout bs-callout-info'>You are running the latest version of csf (v$myv). An Upgrade button will appear here if a new version becomes available</div>\n";
+				print "<div class='bs-callout bs-callout-info'>You are running the latest version of qhtlfirewall (v$myv). An Upgrade button will appear here if a new version becomes available</div>\n";
 			}
 		}
 		print "</div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "lfdstatus") {
-		print "<div><p>Show lfd status...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
+		print "<div><p>Show qhtlwaterfall status...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 		ConfigServer::Service::statuslfd();
 		print "</pre>\n<p>...<b>Done</b>.</div>\n";
 		&printreturn;
@@ -145,25 +145,25 @@ sub main {
 		&systemstats($FORM{graph});
 	}
 	elsif ($FORM{action} eq "lfdstart") {
-		print "<div><p>Starting lfd...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
+	print "<div><p>Starting qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 		ConfigServer::Service::startlfd();
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "lfdrestart") {
 		if ($config{THIS_UI}) {
-			print "<div><p>Signal lfd to <i>restart</i>...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-			sysopen (my $OUT, "/var/lib/csf/lfd.restart",, O_WRONLY | O_CREAT) or die "Unable to open file: $!";
+			print "<div><p>Signal qhtlwaterfall to <i>restart</i>...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
+			sysopen (my $OUT, "/var/lib/qhtlfirewall/qhtlwaterfall.restart",, O_WRONLY | O_CREAT) or die "Unable to open file: $!";
 			close ($OUT);
 		} else {
-			print "<div><p>Restarting lfd...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
+			print "<div><p>Restarting qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 			ConfigServer::Service::restartlfd();
 		}
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "lfdstop") {
-		print "<div><p>Stopping lfd...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
+	print "<div><p>Stopping qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 		ConfigServer::Service::stoplfd();
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
@@ -171,36 +171,36 @@ sub main {
 	elsif ($FORM{action} eq "status") {
 		&resize("top");
 		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-		&printcmd("/usr/sbin/csf","-l");
+		&printcmd("/usr/sbin/qhtlfirewall","-l");
 		if ($config{IPV6}) {
 			print "\n\nip6tables:\n\n";
-			&printcmd("/usr/sbin/csf","-l6");
+			&printcmd("/usr/sbin/qhtlfirewall","-l6");
 		}
 		print "</pre>\n";
 		&resize("bot",1);
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "start") {
-		print "<div><p>Starting csf...</p>\n";
+	print "<div><p>Starting qhtlfirewall...</p>\n";
 		&resize("top");
 		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-		&printcmd("/usr/sbin/csf","-sf");
+		&printcmd("/usr/sbin/qhtlfirewall","-sf");
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&resize("bot",1);
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "restart") {
-		print "<div><p>Restarting csf...</p>\n";
+	print "<div><p>Restarting qhtlfirewall...</p>\n";
 		&resize("top");
 		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-		&printcmd("/usr/sbin/csf","-sf");
+		&printcmd("/usr/sbin/qhtlfirewall","-sf");
 		print "</pre>\n<p>...<b>Done</b>.</div>\n";
 		&resize("bot",1);
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "restartq") {
-		print "<div><p>Restarting csf via lfd...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-q");
+	print "<div><p>Restarting qhtlfirewall via qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
+		&printcmd("/usr/sbin/qhtlfirewall","-q");
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
@@ -208,8 +208,8 @@ sub main {
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th>&nbsp;</th><th>A/D</th><th>IP address</th><th>Port</th><th>Dir</th><th>Time To Live</th><th>Comment</th></tr></thead>\n";
 		my @deny;
-		if (! -z "/var/lib/csf/csf.tempban") {
-			open (my $IN, "<", "/var/lib/csf/csf.tempban") or die $!;
+		if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempban") {
+			open (my $IN, "<", "/var/lib/qhtlfirewall/qhtlfirewall.tempban") or die $!;
 			flock ($IN, LOCK_SH);
 			@deny = <$IN>;
 			chomp @deny;
@@ -238,8 +238,8 @@ sub main {
 			print "<td>DENY</td><td>$ip</td><td>$port</td><td>$inout</td><td>$time</td><td>$message</td></tr>\n";
 		}
 		my @allow;
-		if (! -z "/var/lib/csf/csf.tempallow") {
-			open (my $IN, "<", "/var/lib/csf/csf.tempallow") or die $!;
+		if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempallow") {
+			open (my $IN, "<", "/var/lib/qhtlfirewall/qhtlfirewall.tempallow") or die $!;
 			flock ($IN, LOCK_SH);
 			@allow = <$IN>;
 			chomp @allow;
@@ -277,27 +277,27 @@ sub main {
 	elsif ($FORM{action} eq "temprm") {
 		print "<div><p>Removing all temporary entries:</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 		if ($FORM{ip} eq "all") {
-			&printcmd("/usr/sbin/csf","-tf");
+			&printcmd("/usr/sbin/qhtlfirewall","-tf");
 		}
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='temp'><input type='submit' class='btn btn-default' value='Return'></form></div>\n";
 	}
 	elsif ($FORM{action} eq "temprmd") {
 		print "<div><p>Removing temporary deny entry for $FORM{ip}:</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-trd",$FORM{ip});
+		&printcmd("/usr/sbin/qhtlfirewall","-trd",$FORM{ip});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='temp'><input type='submit' class='btn btn-default' value='Return'></form></div>\n";
 	}
 	elsif ($FORM{action} eq "temprma") {
 		print "<div><p>Removing temporary allow entry for $FORM{ip}:</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-tra",$FORM{ip});
+		&printcmd("/usr/sbin/qhtlfirewall","-tra",$FORM{ip});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='temp'><input type='submit' class='btn btn-default' value='Return'></form></div>\n";
 	}
 	elsif ($FORM{action} eq "temptoperm") {
 		print "<div><p>Permanent ban for $FORM{ip}:</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-tr",$FORM{ip});
-		&printcmd("/usr/sbin/csf","-d",$FORM{ip});
+		&printcmd("/usr/sbin/qhtlfirewall","-tr",$FORM{ip});
+		&printcmd("/usr/sbin/qhtlfirewall","-d",$FORM{ip});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='temp'><input type='submit' class='btn btn-default' value='Return'></form></div>\n";
 	}
@@ -309,39 +309,39 @@ sub main {
 		if ($FORM{ports} eq "") {$FORM{ports} = "*"}
 		print "<div><p>Temporarily $FORM{do}ing $FORM{ip} for $FORM{timeout} seconds:</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 		if ($FORM{do} eq "block") {
-			&printcmd("/usr/sbin/csf","-td",$FORM{ip},$FORM{timeout},"-p",$FORM{ports},$FORM{comment});
+			&printcmd("/usr/sbin/qhtlfirewall","-td",$FORM{ip},$FORM{timeout},"-p",$FORM{ports},$FORM{comment});
 		} else {
-			&printcmd("/usr/sbin/csf","-ta",$FORM{ip},$FORM{timeout},"-p",$FORM{ports},$FORM{comment});
+			&printcmd("/usr/sbin/qhtlfirewall","-ta",$FORM{ip},$FORM{timeout},"-p",$FORM{ports},$FORM{comment});
 		}
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "stop") {
-		print "<div><p>Stopping csf...</p>\n";
+	print "<div><p>Stopping qhtlfirewall...</p>\n";
 		&resize("top");
 		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-		&printcmd("/usr/sbin/csf","-f");
+		&printcmd("/usr/sbin/qhtlfirewall","-f");
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&resize("bot",1);
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "disable") {
-		print "<div><p>Disabling csf...</p>\n";
+	print "<div><p>Disabling qhtlfirewall...</p>\n";
 		&resize("top");
 		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-		&printcmd("/usr/sbin/csf","-x");
+		&printcmd("/usr/sbin/qhtlfirewall","-x");
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&resize("bot",1);
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "enable") {
 		if ($config{THIS_UI}) {
-			print "<div><p>You must login to the root shell to enable csf using:\n<p><b>csf -e</b></p>\n";
+			print "<div><p>You must login to the root shell to enable qhtlfirewall using:\n<p><b>qhtlfirewall -e</b></p>\n";
 		} else {
-			print "<div><p>Enabling csf...</p>\n";
+			print "<div><p>Enabling qhtlfirewall...</p>\n";
 			&resize("top");
 			print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-			&printcmd("/usr/sbin/csf","-e");
+			&printcmd("/usr/sbin/qhtlfirewall","-e");
 			print "</pre>";
 			&resize("bot",1);
 		}
@@ -359,7 +359,7 @@ sub main {
 			$CSFfrombot = 400;
 			$CSFfromright = 150;
 		}
-		my @data = slurp("/etc/csf/csf.syslogs");
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
 		foreach my $line (@data) {
 			if ($line =~ /^Include\s*(.*)$/) {
 				my @incfile = slurp($1);
@@ -382,7 +382,7 @@ sub main {
 				if (-f $globfile) {
 					my $size = int((stat($globfile))[7]/1024);
 					$options .= "<option value='$cnt'";
-					if ($globfile eq "/var/log/lfd.log") {$options .= " selected"}
+					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
 					$options .= ">$globfile ($size kb)</option>\n";
 					$cnt++;
 				}
@@ -390,7 +390,7 @@ sub main {
 		}
 		$options .= "</select>\n";
 		
-		open (my $AJAX, "<", "/usr/local/csf/lib/csfajaxtail.js");
+		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/csfajaxtail.js");
 		flock ($AJAX, LOCK_SH);
 		my @jsdata = <$AJAX>;
 		close ($AJAX);
@@ -430,7 +430,7 @@ EOF
 		$FORM{lines} =~ s/\D//g;
 		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
 
-		my @data = slurp("/etc/csf/csf.syslogs");
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
 		foreach my $line (@data) {
 			if ($line =~ /^Include\s*(.*)$/) {
 				my @incfile = slurp($1);
@@ -439,7 +439,7 @@ EOF
 		}
 		@data = sort @data;
 		my $cnt = 0;
-		my $logfile = "/var/log/lfd.log";
+		my $logfile = "/var/log/qhtlwaterfall.log";
 		my $hit = 0;
 		foreach my $file (@data) {
 			$file =~ s/$cleanreg//g;
@@ -501,7 +501,7 @@ EOF
 			$CSFfrombot = 400;
 			$CSFfromright = 150;
 		}
-		my @data = slurp("/etc/csf/csf.syslogs");
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
 		foreach my $line (@data) {
 			if ($line =~ /^Include\s*(.*)$/) {
 				my @incfile = slurp($1);
@@ -524,7 +524,7 @@ EOF
 				if (-f $globfile) {
 					my $size = int((stat($globfile))[7]/1024);
 					$options .= "<option value='$cnt'";
-					if ($globfile eq "/var/log/lfd.log") {$options .= " selected"}
+					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
 					$options .= ">$globfile ($size kb)</option>\n";
 					$cnt++;
 				}
@@ -532,7 +532,7 @@ EOF
 		}
 		$options .= "</select>\n";
 		
-		open (my $AJAX, "<", "/usr/local/csf/lib/csfajaxtail.js");
+		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/csfajaxtail.js");
 		flock ($AJAX, LOCK_SH);
 		my @jsdata = <$AJAX>;
 		close ($AJAX);
@@ -549,7 +549,7 @@ EOF
 <img src="$images/loader.gif" id="CSFrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-configserver'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-configserver'></span></button></div>
-<pre class='comment' id="CSFajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear: both">
+<pre class='comment' id="CSFajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -557,8 +557,7 @@ Please Note:
  3. Use the "-E" option to perform an extended regular expression search
  4. Searching large log files can take a long time. This feature has a 30 second timeout
  5. The searched for text will usually be <mark>highlighted</mark> but may not always be successful
- 6. Only log files listed in /etc/csf/csf.syslogs can be searched. You can add to this file
- 7. The wildcard option will use $config{ZGREP} and search logs with a wildcard suffix, e.g. /var/log/lfd.log*
+ 6. Only log files listed in /etc/qhtlfirewall/qhtlfirewall.syslogs can be searched. You can add to this file
 </pre>
 
 <script>
@@ -583,7 +582,7 @@ EOF
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "loggrepcmd") {
-		my @data = slurp("/etc/csf/csf.syslogs");
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
 		foreach my $line (@data) {
 			if ($line =~ /^Include\s*(.*)$/) {
 				my @incfile = slurp($1);
@@ -592,7 +591,7 @@ EOF
 		}
 		@data = sort @data;
 		my $cnt = 0;
-		my $logfile = "/var/log/lfd.log";
+		my $logfile = "/var/log/qhtlwaterfall.log";
 		my $hit = 0;
 		foreach my $file (@data) {
 			$file =~ s/$cleanreg//g;
@@ -630,6 +629,7 @@ EOF
 				eval {
 					local $SIG{__DIE__} = undef;
 					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
 					my $total;
 					if ($FORM{grepZ}) {
 						foreach my $file (glob $logfile."\*") {
@@ -696,7 +696,7 @@ EOF
 	elsif ($FORM{action} eq "readme") {
 		&resize("top");
 		print "<pre id='output' class='comment' style='white-space: pre-wrap;height: 500px; overflow: auto; resize:both; clear:both'>\n";
-		open (my $IN, "<", "/etc/csf/readme.txt") or die $!;
+		open (my $IN, "<", "/etc/qhtlfirewall/readme.txt") or die $!;
 		flock ($IN, LOCK_SH);
 		my @readme = <$IN>;
 		close ($IN);
@@ -714,15 +714,15 @@ EOF
 	elsif ($FORM{action} eq "servercheck") {
 		print ConfigServer::ServerCheck::report($FORM{verbose});
 
-		open (my $IN, "<", "/etc/cron.d/csf-cron");
+	open (my $IN, "<", "/etc/cron.d/qhtlfirewall-cron");
 		flock ($IN, LOCK_SH);
 		my @data = <$IN>;
 		close ($IN);
 		chomp @data;
 		my $optionselected = "never";
 		my $email;
-		if (my @ls = grep {$_ =~ /csf \-m/} @data) {
-			if ($ls[0] =~ /\@(\w+)\s+root\s+\/usr\/sbin\/csf \-m (.*)/) {$optionselected = $1; $email = $2}
+		if (my @ls = grep {$_ =~ /qhtlfirewall \-m/} @data) {
+			if ($ls[0] =~ /\@(\w+)\s+root\s+\/usr\/sbin\/qhtlfirewall \-m (.*)/) {$optionselected = $1; $email = $2}
 		}
 		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='serverchecksave'>\n";
 		print "Generate and email this report <select name='freq'>\n";
@@ -743,7 +743,7 @@ EOF
 		if ($FORM{email} =~ /^[a-zA-Z0-9\-\_\.\@\+]+$/) {$email = $FORM{email}}
 		foreach my $option ("never","hourly","daily","weekly","monthly") {if ($FORM{freq} eq $option) {$freq = $option}}
 		unless ($email) {$freq = "never"; $extra = "(no valid email address supplied)";}
-		sysopen (my $CRON, "/etc/cron.d/csf-cron", O_RDWR | O_CREAT) or die "Unable to open file: $!";
+	sysopen (my $CRON, "/etc/cron.d/qhtlfirewall-cron", O_RDWR | O_CREAT) or die "Unable to open file: $!";
 		flock ($CRON, LOCK_EX);
 		my @data = <$CRON>;
 		chomp @data;
@@ -751,9 +751,9 @@ EOF
 		truncate ($CRON, 0);
 		my $done = 0;
 		foreach my $line (@data) {
-			if ($line =~ /csf \-m/) {
+			if ($line =~ /qhtlfirewall \-m/) {
 				if ($freq and ($freq ne "never") and !$done) {
-					print $CRON "\@$freq root /usr/sbin/csf -m $email\n";
+					print $CRON "\@$freq root /usr/sbin/qhtlfirewall -m $email\n";
 					$done = 1;
 				}
 			} else {
@@ -761,7 +761,7 @@ EOF
 			}
 		}
 		if (!$done and ($freq ne "never")) {
-				print $CRON "\@$freq root /usr/sbin/csf -m $email\n";
+				print $CRON "\@$freq root /usr/sbin/qhtlfirewall -m $email\n";
 		}
 		close ($CRON);
 
@@ -778,17 +778,17 @@ EOF
 		print "<div><b>These options can take a long time to run</b> (several minutes) depending on the number of IP addresses to check and the response speed of the DNS requests:</div>\n";
 		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='1'><input type='submit' class='btn btn-default' value='Update All Checks (standard)'> Generates the normal report showing exceptions only</form></div>\n";
 		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='2'><input type='submit' class='btn btn-default' value='Update All Checks (verbose)'> Generates the normal report but shows successes and failures</form></div>\n";
-		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='rblcheckedit'><input type='submit' class='btn btn-default' value='Edit RBL Options'> Edit csf.rblconf to enable and disable IPs and RBLs</form></div>\n";
+	print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='rblcheckedit'><input type='submit' class='btn btn-default' value='Edit RBL Options'> Edit qhtlfirewall.rblconf to enable and disable IPs and RBLs</form></div>\n";
 
-		open (my $IN, "<", "/etc/cron.d/csf-cron");
+	open (my $IN, "<", "/etc/cron.d/qhtlfirewall-cron");
 		flock ($IN, LOCK_SH);
 		my @data = <$IN>;
 		close ($IN);
 		chomp @data;
 		my $optionselected = "never";
 		my $email;
-		if (my @ls = grep {$_ =~ /csf \-\-rbl/} @data) {
-			if ($ls[0] =~ /\@(\w+)\s+root\s+\/usr\/sbin\/csf \-\-rbl (.*)/) {$optionselected = $1; $email = $2}
+		if (my @ls = grep {$_ =~ /qhtlfirewall \-\-rbl/} @data) {
+			if ($ls[0] =~ /\@(\w+)\s+root\s+\/usr\/sbin\/qhtlfirewall \-\-rbl (.*)/) {$optionselected = $1; $email = $2}
 		}
 		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='rblchecksave'>\n";
 		print "Generate and email this report <select name='freq'>\n";
@@ -806,7 +806,7 @@ EOF
 		if ($FORM{email} =~ /^[a-zA-Z0-9\-\_\.\@\+]+$/) {$email = $FORM{email}}
 		foreach my $option ("never","hourly","daily","weekly","monthly") {if ($FORM{freq} eq $option) {$freq = $option}}
 		unless ($email) {$freq = "never"; $extra = "(no valid email address supplied)";}
-		sysopen (my $CRON, "/etc/cron.d/csf-cron", O_RDWR | O_CREAT) or die "Unable to open file: $!";
+	sysopen (my $CRON, "/etc/cron.d/qhtlfirewall-cron", O_RDWR | O_CREAT) or die "Unable to open file: $!";
 		flock ($CRON, LOCK_EX);
 		my @data = <$CRON>;
 		chomp @data;
@@ -814,9 +814,9 @@ EOF
 		truncate ($CRON, 0);
 		my $done = 0;
 		foreach my $line (@data) {
-			if ($line =~ /csf \-\-rbl/) {
+			if ($line =~ /qhtlfirewall \-\-rbl/) {
 				if ($freq and ($freq ne "never") and !$done) {
-					print $CRON "\@$freq root /usr/sbin/csf --rbl $email\n";
+					print $CRON "\@$freq root /usr/sbin/qhtlfirewall --rbl $email\n";
 					$done = 1;
 				}
 			} else {
@@ -824,7 +824,7 @@ EOF
 			}
 		}
 		if (!$done and ($freq ne "never")) {
-				print $CRON "\@$freq root /usr/sbin/csf --rbl $email\n";
+				print $CRON "\@$freq root /usr/sbin/qhtlfirewall --rbl $email\n";
 		}
 		close ($CRON);
 
@@ -836,33 +836,33 @@ EOF
 		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='rblcheck'><input type='submit' class='btn btn-default' value='Return'></form></div>\n";
 	}
 	elsif ($FORM{action} eq "rblcheckedit") {
-		&editfile("/etc/csf/csf.rblconf","saverblcheckedit");
+		&editfile("/etc/qhtlfirewall/qhtlfirewall.rblconf","saverblcheckedit");
 		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='rblcheck'><input type='submit' class='btn btn-default' value='Return'></form></div>\n";
 	}
 	elsif ($FORM{action} eq "saverblcheckedit") {
-		&savefile("/etc/csf/csf.rblconf","");
+		&savefile("/etc/qhtlfirewall/qhtlfirewall.rblconf","");
 		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='rblcheck'><input type='submit' class='btn btn-default' value='Return'></form></div>\n";
 	}
 	elsif ($FORM{action} eq "cloudflareedit") {
-		&editfile("/etc/csf/csf.cloudflare","savecloudflareedit");
+		&editfile("/etc/qhtlfirewall/qhtlfirewall.cloudflare","savecloudflareedit");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "savecloudflareedit") {
-		&savefile("/etc/csf/csf.cloudflare","");
+		&savefile("/etc/qhtlfirewall/qhtlfirewall.cloudflare","");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "restartboth") {
-		print "<div><p>Restarting csf...</p>\n";
+		print "<div><p>Restarting qhtlfirewall...</p>\n";
 		&resize("top");
 		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-		&printcmd("/usr/sbin/csf","-sf");
+		&printcmd("/usr/sbin/qhtlfirewall","-sf");
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		if ($config{THIS_UI}) {
-			print "<div><p>Signal lfd to <i>restart</i>...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-			sysopen (my $OUT, "/var/lib/csf/lfd.restart",, O_WRONLY | O_CREAT) or die "Unable to open file: $!";
+			print "<div><p>Signal qhtlwaterfall to <i>restart</i>...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
+			sysopen (my $OUT, "/var/lib/qhtlfirewall/qhtlwaterfall.restart",, O_WRONLY | O_CREAT) or die "Unable to open file: $!";
 			close ($OUT);
 		} else {
-			print "<div><p>Restarting lfd...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
+			print "<div><p>Restarting qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 			ConfigServer::Service::restartlfd();
 		}
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
@@ -871,36 +871,36 @@ EOF
 	}
 	elsif ($FORM{action} eq "remapf") {
 		print "<div><p>Removing APF/BFD...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("sh","/usr/local/csf/bin/remove_apf_bfd.sh");
+		&printcmd("sh","/usr/local/qhtlfirewall/bin/remove_apf_bfd.sh");
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		print "<div><p><b>Note: You should check the root cron and /etc/crontab to ensure that there are no apf or bfd related cron jobs remaining</b></p></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "qallow") {
 		print "<div><p>Allowing $FORM{ip}...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-a",$FORM{ip},$FORM{comment});
+		&printcmd("/usr/sbin/qhtlfirewall","-a",$FORM{ip},$FORM{comment});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "qdeny") {
 		print "<div><p>Blocking $FORM{ip}...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-d",$FORM{ip},$FORM{comment});
+		&printcmd("/usr/sbin/qhtlfirewall","-d",$FORM{ip},$FORM{comment});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "qignore") {
 		print "<div><p>Ignoring $FORM{ip}...\n";
-		open (my $OUT, ">>", "/etc/csf/csf.ignore");
+		open (my $OUT, ">>", "/etc/qhtlfirewall/qhtlfirewall.ignore");
 		flock ($OUT, LOCK_EX);
 		print $OUT "$FORM{ip}\n";
 		close ($OUT);
 		print "<b>Done</b>.</p></div>\n";
 		if ($config{THIS_UI}) {
-			print "<div><p>Signal lfd to <i>restart</i>...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-			sysopen (my $OUT, "/var/lib/csf/lfd.restart",, O_WRONLY | O_CREAT) or die "Unable to open file: $!";
+			print "<div><p>Signal qhtlwaterfall to <i>restart</i>...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
+			sysopen (my $OUT, "/var/lib/qhtlfirewall/qhtlwaterfall.restart",, O_WRONLY | O_CREAT) or die "Unable to open file: $!";
 			close ($OUT);
 		} else {
-			print "<div><p>Restarting lfd...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
+			print "<div><p>Restarting qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 			ConfigServer::Service::restartlfd();
 		}
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
@@ -908,19 +908,19 @@ EOF
 	}
 	elsif ($FORM{action} eq "kill") {
 		print "<div><p>Unblock $FORM{ip}, trying permanent blocks...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-dr",$FORM{ip});
+		&printcmd("/usr/sbin/qhtlfirewall","-dr",$FORM{ip});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		print "<div><p>Unblock $FORM{ip}, trying temporary blocks...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-trd",$FORM{ip});
+		&printcmd("/usr/sbin/qhtlfirewall","-trd",$FORM{ip});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "killallow") {
 		print "<div><p>Unblock $FORM{ip}, trying permanent blocks...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-ar",$FORM{ip});
+		&printcmd("/usr/sbin/qhtlfirewall","-ar",$FORM{ip});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		print "<div><p>Unblock $FORM{ip}, trying temporary blocks...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-tra",$FORM{ip});
+		&printcmd("/usr/sbin/qhtlfirewall","-tra",$FORM{ip});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
@@ -929,14 +929,14 @@ EOF
 		&resize("top");
 		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
 		my ($childin, $childout);
-		my $pid = open3($childin, $childout, $childout, "/usr/sbin/csf","-g",$FORM{ip});
+		my $pid = open3($childin, $childout, $childout, "/usr/sbin/qhtlfirewall","-g",$FORM{ip});
 		my $unblock;
 		my $unallow;
 		while (<$childout>) {
 			my $line = $_;
-			if ($line =~ /^csf.deny:\s(\S+)\s*/) {$unblock = 1}
+			if ($line =~ /^qhtlfirewall.deny:\s(\S+)\s*/) {$unblock = 1}
 			if ($line =~ /^Temporary Blocks: IP:(\S+)\s*/) {$unblock = 1}
-			if ($line =~ /^csf.allow:\s(\S+)\s*/) {$unallow = 1}
+			if ($line =~ /^qhtlfirewall.allow:\s(\S+)\s*/) {$unallow = 1}
 			if ($line =~ /^Temporary Allows: IP:(\S+)\s*/) {$unallow = 1}
 			print $_;
 		}
@@ -949,19 +949,19 @@ EOF
 	}
 	elsif ($FORM{action} eq "callow") {
 		print "<div><p>Cluster Allow $FORM{ip}...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-ca",$FORM{ip},$FORM{comment});
+		&printcmd("/usr/sbin/qhtlfirewall","-ca",$FORM{ip},$FORM{comment});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "cignore") {
 		print "<div><p>Cluster Ignore $FORM{ip}...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-ci",$FORM{ip},$FORM{comment});
+		&printcmd("/usr/sbin/qhtlfirewall","-ci",$FORM{ip},$FORM{comment});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "cirm") {
 		print "<div><p>Cluster Remove ignore $FORM{ip}...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-cir",$FORM{ip});
+		&printcmd("/usr/sbin/qhtlfirewall","-cir",$FORM{ip});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
@@ -971,30 +971,30 @@ EOF
 	elsif ($FORM{action} eq "cflist") {
 		print "<div class='panel panel-info'><div class='panel-heading'>CloudFlare list $FORM{type} rules for user(s) $FORM{domains}:</div>\n";
 		print "<div class='panel-body'><pre class='comment' style='white-space: pre-wrap;'>";
-		&printcmd("/usr/sbin/csf","--cloudflare","list",$FORM{type},$FORM{domains});
+		&printcmd("/usr/sbin/qhtlfirewall","--cloudflare","list",$FORM{type},$FORM{domains});
 		print "</pre>\n</div></div>\n";
 	}
 	elsif ($FORM{action} eq "cftempdeny") {
 		print "<div class='panel panel-info'><div class='panel-heading'>CloudFlare $FORM{do} $FORM{target} for user(s) $FORM{domains}:</div>\n";
 		print "<div class='panel-body'><pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","--cloudflare","tempadd",$FORM{do},$FORM{target},$FORM{domains});
+		&printcmd("/usr/sbin/qhtlfirewall","--cloudflare","tempadd",$FORM{do},$FORM{target},$FORM{domains});
 		print "</pre>\n</div></div>\n";
 	}
 	elsif ($FORM{action} eq "cfadd") {
 		print "<div class='panel panel-info'><div class='panel-heading'>CloudFlare Add $FORM{type} $FORM{target} for user(s) $FORM{domains}:</div>\n";
 		print "<div class='panel-body'><pre class='comment' style='white-space: pre-wrap;'>";
-		&printcmd("/usr/sbin/csf","--cloudflare","add",$FORM{type},$FORM{target},$FORM{domains});
+		&printcmd("/usr/sbin/qhtlfirewall","--cloudflare","add",$FORM{type},$FORM{target},$FORM{domains});
 		print "</pre>\n</div></div>\n";
 	}
 	elsif ($FORM{action} eq "cfremove") {
 		print "<div class='panel panel-info'><div class='panel-heading'>CloudFlare Delete $FORM{type} $FORM{target} for user(s) $FORM{domains}:</div>\n";
 		print "<div class='panel-body'><pre class='comment' style='white-space: pre-wrap;'>";
-		&printcmd("/usr/sbin/csf","--cloudflare","del", $FORM{target},$FORM{domains});
+		&printcmd("/usr/sbin/qhtlfirewall","--cloudflare","del", $FORM{target},$FORM{domains});
 		print "</pre>\n</div></div>\n";
 	}
 	elsif ($FORM{action} eq "cdeny") {
 		print "<div><p>Cluster Deny $FORM{ip}...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-cd",$FORM{ip},$FORM{comment});
+		&printcmd("/usr/sbin/qhtlfirewall","-cd",$FORM{ip},$FORM{comment});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
@@ -1006,28 +1006,28 @@ EOF
 		if ($FORM{ports} eq "") {$FORM{ports} = "*"}
 		print "<div><p>cluster Temporarily $FORM{do}ing $FORM{ip} for $FORM{timeout} seconds:</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 		if ($FORM{do} eq "block") {
-			&printcmd("/usr/sbin/csf","-ctd",$FORM{ip},$FORM{timeout},"-p",$FORM{ports},$FORM{comment});
+			&printcmd("/usr/sbin/qhtlfirewall","-ctd",$FORM{ip},$FORM{timeout},"-p",$FORM{ports},$FORM{comment});
 		} else {
-			&printcmd("/usr/sbin/csf","-cta",$FORM{ip},$FORM{timeout},"-p",$FORM{ports},$FORM{comment});
+			&printcmd("/usr/sbin/qhtlfirewall","-cta",$FORM{ip},$FORM{timeout},"-p",$FORM{ports},$FORM{comment});
 		}
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "crm") {
 		print "<div><p>Cluster Remove Deny $FORM{ip}...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-cr",$FORM{ip});
+		&printcmd("/usr/sbin/qhtlfirewall","-cr",$FORM{ip});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "carm") {
 		print "<div><p>Cluster Remove Allow $FORM{ip}...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-car",$FORM{ip});
+		&printcmd("/usr/sbin/qhtlfirewall","-car",$FORM{ip});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "cping") {
 		print "<div><p>Cluster PING...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-cp");
+		&printcmd("/usr/sbin/qhtlfirewall","-cp");
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
@@ -1035,7 +1035,7 @@ EOF
 		print "<div><p>Cluster GREP for $FORM{ip}...</p>\n";
 		print "<pre class='comment' style='white-space: pre-wrap;'>\n";
 		my ($childin, $childout);
-		my $pid = open3($childin, $childout, $childout, "/usr/sbin/csf","-cg",$FORM{ip});
+	my $pid = open3($childin, $childout, $childout, "/usr/sbin/qhtlfirewall","-cg",$FORM{ip});
 		my $unblock;
 		my $start = 0;
 		while (<$childout>) {
@@ -1060,7 +1060,7 @@ EOF
 		$FORM{option} =~ s/\s*//g;
 		my %restricted;
 		if ($config{RESTRICT_UI}) {
-			sysopen (my $IN, "/usr/local/csf/lib/restricted.txt", O_RDWR | O_CREAT) or die "Unable to open file: $!";
+			sysopen (my $IN, "/usr/local/qhtlfirewall/lib/restricted.txt", O_RDWR | O_CREAT) or die "Unable to open file: $!";
 			flock ($IN, LOCK_SH);
 			while (my $entry = <$IN>) {
 				chomp $entry;
@@ -1073,114 +1073,114 @@ EOF
 			exit;
 		}
 		print "<div><p>Cluster configuration option...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","-cc",$FORM{option},$FORM{value});
+		&printcmd("/usr/sbin/qhtlfirewall","-cc",$FORM{option},$FORM{value});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "crestart") {
-		print "<div><p>Cluster restart csf and lfd...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf --crestart");
+		print "<div><p>Cluster restart qhtlfirewall and qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
+		&printcmd("/usr/sbin/qhtlfirewall --crestart");
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "allow") {
-		&editfile("/etc/csf/csf.allow","saveallow");
+		&editfile("/etc/qhtlfirewall/qhtlfirewall.allow","saveallow");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "saveallow") {
-		&savefile("/etc/csf/csf.allow","both");
+		&savefile("/etc/qhtlfirewall/qhtlfirewall.allow","both");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "redirect") {
-		&editfile("/etc/csf/csf.redirect","saveredirect");
+		&editfile("/etc/qhtlfirewall/qhtlfirewall.redirect","saveredirect");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "saveredirect") {
-		&savefile("/etc/csf/csf.redirect","both");
+		&savefile("/etc/qhtlfirewall/qhtlfirewall.redirect","both");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "smtpauth") {
-		&editfile("/etc/csf/csf.smtpauth","savesmtpauth");
+		&editfile("/etc/qhtlfirewall/qhtlfirewall.smtpauth","savesmtpauth");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "savesmtpauth") {
-		&savefile("/etc/csf/csf.smtpauth","both");
+		&savefile("/etc/qhtlfirewall/qhtlfirewall.smtpauth","both");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "reseller") {
-		&editfile("/etc/csf/csf.resellers","savereseller");
+		&editfile("/etc/qhtlfirewall/qhtlfirewall.resellers","savereseller");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "savereseller") {
-		&savefile("/etc/csf/csf.resellers","");
+		&savefile("/etc/qhtlfirewall/qhtlfirewall.resellers","");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "dirwatch") {
-		&editfile("/etc/csf/csf.dirwatch","savedirwatch");
+		&editfile("/etc/qhtlfirewall/qhtlfirewall.dirwatch","savedirwatch");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "savedirwatch") {
-		&savefile("/etc/csf/csf.dirwatch","lfd");
+		&savefile("/etc/qhtlfirewall/qhtlfirewall.dirwatch","qhtlwaterfall");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "dyndns") {
-		&editfile("/etc/csf/csf.dyndns","savedyndns");
+		&editfile("/etc/qhtlfirewall/qhtlfirewall.dyndns","savedyndns");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "savedyndns") {
-		&savefile("/etc/csf/csf.dyndns","lfd");
+		&savefile("/etc/qhtlfirewall/qhtlfirewall.dyndns","qhtlwaterfall");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "blocklists") {
-		&editfile("/etc/csf/csf.blocklists","saveblocklists");
+		&editfile("/etc/qhtlfirewall/qhtlfirewall.blocklists","saveblocklists");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "saveblocklists") {
-		&savefile("/etc/csf/csf.blocklists","both");
+		&savefile("/etc/qhtlfirewall/qhtlfirewall.blocklists","both");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "syslogusers") {
-		&editfile("/etc/csf/csf.syslogusers","savesyslogusers");
+		&editfile("/etc/qhtlfirewall/qhtlfirewall.syslogusers","savesyslogusers");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "savesyslogusers") {
-		&savefile("/etc/csf/csf.syslogusers","lfd");
+		&savefile("/etc/qhtlfirewall/qhtlfirewall.syslogusers","qhtlwaterfall");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "logfiles") {
-		&editfile("/etc/csf/csf.logfiles","savelogfiles");
+		&editfile("/etc/qhtlfirewall/qhtlfirewall.logfiles","savelogfiles");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "savelogfiles") {
-		&savefile("/etc/csf/csf.logfiles","lfd");
+		&savefile("/etc/qhtlfirewall/qhtlfirewall.logfiles","qhtlwaterfall");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "deny") {
-		&editfile("/etc/csf/csf.deny","savedeny");
+		&editfile("/etc/qhtlfirewall/qhtlfirewall.deny","savedeny");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "savedeny") {
-		&savefile("/etc/csf/csf.deny","both");
+		&savefile("/etc/qhtlfirewall/qhtlfirewall.deny","both");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "templates") {
-		&editfile("/usr/local/csf/tpl/$FORM{template}","savetemplates","template");
+		&editfile("/usr/local/qhtlfirewall/tpl/$FORM{template}","savetemplates","template");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "savetemplates") {
-		&savefile("/usr/local/csf/tpl/$FORM{template}","",1);
+		&savefile("/usr/local/qhtlfirewall/tpl/$FORM{template}","",1);
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "ignorefiles") {
-		&editfile("/etc/csf/$FORM{ignorefile}","saveignorefiles","ignorefile");
+		&editfile("/etc/qhtlfirewall/$FORM{ignorefile}","saveignorefiles","ignorefile");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "saveignorefiles") {
-		&savefile("/etc/csf/$FORM{ignorefile}","lfd");
+		&savefile("/etc/qhtlfirewall/$FORM{ignorefile}","qhtlwaterfall");
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "conf") {
-		sysopen (my $IN, "/etc/csf/csf.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
+		sysopen (my $IN, "/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
 		flock ($IN, LOCK_SH);
 		my @confdata = <$IN>;
 		close ($IN);
@@ -1188,7 +1188,7 @@ EOF
 
 		my %restricted;
 		if ($config{RESTRICT_UI}) {
-			sysopen (my $IN, "/usr/local/csf/lib/restricted.txt", O_RDWR | O_CREAT) or die "Unable to open file: $!";
+			sysopen (my $IN, "/usr/local/qhtlfirewall/lib/restricted.txt", O_RDWR | O_CREAT) or die "Unable to open file: $!";
 			flock ($IN, LOCK_SH);
 			while (my $entry = <$IN>) {
 				chomp $entry;
@@ -1208,7 +1208,7 @@ function CSFexpand(obj){
 </script>
 EOF
 		print "<style>.hidepiece\{display:none\}</style>\n";
-		open (my $DIV, "<", "/usr/local/csf/lib/csf.div");
+		open (my $DIV, "<", "/usr/local/qhtlfirewall/lib/csf.div");
 		flock ($DIV, LOCK_SH);
 		my @divdata = <$DIV>;
 		close ($DIV);
@@ -1321,7 +1321,7 @@ EOD
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "saveconf") {
-		sysopen (my $IN, "/etc/csf/csf.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
+		sysopen (my $IN, "/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
 		flock ($IN, LOCK_SH);
 		my @confdata = <$IN>;
 		close ($IN);
@@ -1329,7 +1329,7 @@ EOD
 
 		my %restricted;
 		if ($config{RESTRICT_UI}) {
-			sysopen (my $IN, "/usr/local/csf/lib/restricted.txt", O_RDWR | O_CREAT) or die "Unable to open file: $!";
+			sysopen (my $IN, "/usr/local/qhtlfirewall/lib/restricted.txt", O_RDWR | O_CREAT) or die "Unable to open file: $!";
 			flock ($IN, LOCK_SH);
 			while (my $entry = <$IN>) {
 				chomp $entry;
@@ -1338,7 +1338,7 @@ EOD
 			close ($IN);
 		}
 
-		sysopen (my $OUT, "/etc/csf/csf.conf", O_WRONLY | O_CREAT) or die "Unable to open file: $!";
+		sysopen (my $OUT, "/etc/qhtlfirewall/qhtlfirewall.conf", O_WRONLY | O_CREAT) or die "Unable to open file: $!";
 		flock ($OUT, LOCK_EX);
 		seek ($OUT, 0, 0);
 		truncate ($OUT, 0);
@@ -1369,13 +1369,13 @@ EOD
 			if ($insane) {print "<br>WARNING: $key sanity check. $key = \"$newconfig{$key}\". Recommended range: $range (Default: $default)\n"}
 		}
 
-		print "<div>Changes saved. You should restart both csf and lfd.</div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart csf+lfd'></form></div>\n";
+		print "<div>Changes saved. You should restart both qhtlfirewall and qhtlwaterfall.</div>\n";
+		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall+qhtlwaterfall'></form></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "viewlogs") {
-		if (-e "/var/lib/csf/stats/iptables_log") {
-			open (my $IN, "<", "/var/lib/csf/stats/iptables_log") or die "Unable to open file: $!";
+		if (-e "/var/lib/qhtlfirewall/stats/iptables_log") {
+			open (my $IN, "<", "/var/lib/qhtlfirewall/stats/iptables_log") or die "Unable to open file: $!";
 			flock ($IN, LOCK_SH);
 			my @iptables = <$IN>;
 			close ($IN);
@@ -1435,7 +1435,7 @@ EOD
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "sips") {
-		sysopen (my $IN, "/etc/csf/csf.sips", O_RDWR | O_CREAT) or die "Unable to open file: $!";
+		sysopen (my $IN, "/etc/qhtlfirewall/qhtlfirewall.sips", O_RDWR | O_CREAT) or die "Unable to open file: $!";
 		flock ($IN, LOCK_SH);
 		my @confdata = <$IN>;
 		close ($IN);
@@ -1446,7 +1446,7 @@ EOD
 		print "<tr><td><b>IP Address</b></td><td><b>Deny All Access to IP</b></td></tr>\n";
 
 		my %sips;
-		open (my $SIPS, "<","/etc/csf/csf.sips");
+		open (my $SIPS, "<","/etc/qhtlfirewall/qhtlfirewall.sips");
 		flock ($SIPS, LOCK_SH);
 		my @data = <$SIPS>;
 		close ($SIPS);
@@ -1484,13 +1484,13 @@ EOD
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "sipsave") {
-		open (my $IN,"<","/etc/csf/csf.sips");
+		open (my $IN,"<","/etc/qhtlfirewall/qhtlfirewall.sips");
 		flock ($IN, LOCK_SH);
 		my @data = <$IN>;
 		close ($IN);
 		chomp @data;
 
-		open (my $OUT,">","/etc/csf/csf.sips");
+		open (my $OUT,">","/etc/qhtlfirewall/qhtlfirewall.sips");
 		flock ($OUT, LOCK_EX);
 		foreach my $line (@data) {
 			if ($line =~ /^\#/) {print $OUT "$line\n"} else {last}
@@ -1504,22 +1504,22 @@ EOD
 		}
 		close($OUT);
 
-		print "<div>Changes saved. You should restart csf.</div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restart'><input type='submit' class='btn btn-default' value='Restart csf'></form></div>\n";
+		print "<div>Changes saved. You should restart qhtlfirewall.</div>\n";
+		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restart'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall'></form></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "upgrade") {
 		if ($config{THIS_UI}) {
-			print "<div>You cannot upgrade through the UI as restarting lfd will interrupt this session. You must login to the root shell to upgrade csf using:\n<p><b>csf -u</b></div>\n";
+			print "<div>You cannot upgrade through the UI as restarting qhtlwaterfall will interrupt this session. You must login to the root shell to upgrade the firewall using:\n<p><b>qhtlfirewall -u</b></div>\n";
 		} else {
-			print "<div><p>Upgrading csf...</p>\n";
+			print "<div><p>Upgrading qhtlfirewall...</p>\n";
 			&resize("top");
 			print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-			&printcmd("/usr/sbin/csf","-u");
+			&printcmd("/usr/sbin/qhtlfirewall","-u");
 			print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 			&resize("bot",1);
 
-			open (my $IN, "<", "/etc/csf/version.txt") or die $!;
+			open (my $IN, "<", "/etc/qhtlfirewall/version.txt") or die $!;
 			flock ($IN, LOCK_SH);
 			$myv = <$IN>;
 			close ($IN);
@@ -1529,30 +1529,30 @@ EOD
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "denyf") {
-		print "<div><p>Removing all entries from csf.deny...</p>\n";
+	print "<div><p>Removing all entries from qhtlfirewall.deny...</p>\n";
 		&resize("top");
 		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-		&printcmd("/usr/sbin/csf","-df");
-		&printcmd("/usr/sbin/csf","-tf");
+		&printcmd("/usr/sbin/qhtlfirewall","-df");
+		&printcmd("/usr/sbin/qhtlfirewall","-tf");
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&resize("bot",1);
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "csftest") {
 		print "<div><p>Testing iptables...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/local/csf/bin/csftest.pl");
+		&printcmd("/usr/local/qhtlfirewall/bin/csftest.pl");
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		print "<div>You should restart csf after having run this test.</div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restart'><input type='submit' class='btn btn-default' value='Restart csf'></form></div>\n";
+	print "<div>You should restart qhtlfirewall after having run this test.</div>\n";
+		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restart'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall'></form></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "profiles") {
-		my @profiles = sort glob("/usr/local/csf/profiles/*");
-		my @backups = reverse glob("/var/lib/csf/backup/*");
+		my @profiles = sort glob("/usr/local/qhtlfirewall/profiles/*");
+		my @backups = reverse glob("/var/lib/qhtlfirewall/backup/*");
 
 		print "<form action='$script' method='post'><input type='hidden' name='action' value='profileapply'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th>Preconfigured Profiles</th><th style='border-left:1px solid #990000'>&nbsp;</th></tr></thead>\n";
+		print "<thead><tr><th colspan='2'>Preconfigured Profiles</th><th style='border-left:1px solid #990000'>&nbsp;</th></tr></thead>\n";
 		foreach my $profile (@profiles) {
 			my ($file, undef) = fileparse($profile);
 			$file =~ s/\.conf$//;
@@ -1564,7 +1564,7 @@ EOD
 			chomp @profiledata;
 
 			if ($file eq "reset_to_defaults") {
-				$text = "This is the installation default profile and will reset all csf.conf settings, including enabling TESTING mode";
+				$text = "This is the installation default profile and will reset all qhtlfirewall.conf settings, including enabling TESTING mode";
 			}
 			elsif ($profiledata[0] =~ /^\# Profile:/) {
 				foreach my $line (@profiledata) {
@@ -1574,21 +1574,23 @@ EOD
 
 			print "<tr><td><b>$file</b><br>\n$text</td><td style='border-left:1px solid #990000'><input type='radio' name='profile' value='$file'></td></tr>\n";
 		}
-		print "<tr><td>You can apply one or more of these profiles to csf.conf. Apart from reset_to_defaults, most of these profiles contain only a subset of settings. You can find out what will be changed by comparing the profile to the current configuration below. A backup of csf.conf will be created before any profile is applied.</td><td style='border-left:1px solid #990000'><input type='submit' class='btn btn-default' value='Apply Profile'></td></tr>\n";
+		print "<tr><td>You can apply one or more of these profiles to qhtlfirewall.conf. Apart from reset_to_defaults, most of these profiles contain only a subset of settings. You can find out what will be changed by comparing the profile to the current configuration below. A backup of qhtlfirewall.conf will be created before any profile is applied.</td><td style='border-left:1px solid #990000'><input type='submit' class='btn btn-default' value='Apply Profile'></td></tr>\n";
+	print "<tr><td>You can apply one or more of these profiles to qhtlfirewall.conf. Apart from reset_to_defaults, most of these profiles contain only a subset of settings. You can find out what will be changed by comparing the profile to the current configuration below. A backup of qhtlfirewall.conf will be created before any profile is applied.</td><td style='border-left:1px solid #990000'><input type='submit' class='btn btn-default' value='Apply Profile'></td></tr>\n";
 		print "</table>\n";
 		print "</form>\n";
 
 		print "<br><form action='$script' method='post'><input type='hidden' name='action' value='profilebackup'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th>Backup csf.conf</th></tr></thead>\n";
-		print "<tr><td>Create a backup of csf.conf. You can use an optional name for the backup that should only contain alphanumerics. Other characters (including spaces) will be replaced with an underscore ( _ )</td></tr>\n";
+		print "<thead><tr><th>Backup qhtlfirewall.conf</th></tr></thead>\n";
+	print "<thead><tr><th>Backup qhtlfirewall.conf</th></tr></thead>\n";
+		print "<tr><td>Create a backup of qhtlfirewall.conf. You can use an optional name for the backup that should only contain alphanumerics. Other characters (including spaces) will be replaced with an underscore ( _ )</td></tr>\n";
 		print "<tr><td><input type='text' size='40' name='backup' placeholder='Optional name'> <input type='submit' class='btn btn-default' value='Create Backup'></td></tr>\n";
 		print "</table>\n";
 		print "</form>\n";
 
 		print "<br><form action='$script' method='post'><input type='hidden' name='action' value='profilerestore'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th>Restore Backup Of csf.conf</th></tr></thead>\n";
+		print "<thead><tr><th>Restore Backup Of qhtlfirewall.conf</th></tr></thead>\n";
 		print "<tr><td><select name='backup' size='10' style='min-width:400px'>\n";
 		foreach my $backup (@backups) {
 			my ($file, undef) = fileparse($backup);
@@ -1618,7 +1620,7 @@ EOD
 		}
 		print "</select></td></tr>\n";
 		print "<tr><td style='border-top:1px dashed #990000'>Select second configuration:<br>\n<select name='profile2' size='10' style='min-width:400px'>\n";
-		print "<optgroup label='Current Configuration:'><option value='current' selected>/etc/csf/csf.conf</option></optgroup>\n";
+		print "<optgroup label='Current Configuration:'><option value='current' selected>/etc/qhtlfirewall/qhtlfirewall.conf</option></optgroup>\n";
 		print "<optgroup label='Profiles:'>\n";
 		foreach my $profile (@profiles) {
 			my ($file, undef) = fileparse($profile);
@@ -1642,17 +1644,17 @@ EOD
 		my $profile = $FORM{profile};
 		$profile =~ s/\W/_/g;
 		print "<div><p>Applying profile ($profile)...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","--profile","apply",$profile);
+		&printcmd("/usr/sbin/qhtlfirewall","--profile","apply",$profile);
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		print "<div>You should restart both csf and lfd.</div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart csf+lfd'></form></div>\n";
+		print "<div>You should restart both qhtlfirewall and qhtlwaterfall.</div>\n";
+		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall+qhtlwaterfall'></form></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "profilebackup") {
 		my $profile = $FORM{backup};
 		$profile =~ s/\W/_/g;
 		print "<div><p>Creating backup...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","--profile","backup",$profile);
+		&printcmd("/usr/sbin/qhtlfirewall","--profile","backup",$profile);
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
@@ -1660,10 +1662,10 @@ EOD
 		my $profile = $FORM{backup};
 		$profile =~ s/\W/_/g;
 		print "<div><p>Restoring backup ($profile)...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/csf","--profile","restore",$profile);
+		&printcmd("/usr/sbin/qhtlfirewall","--profile","restore",$profile);
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		print "<div>You should restart both csf and lfd.</div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart csf+lfd'></form></div>\n";
+		print "<div>You should restart both qhtlfirewall and qhtlwaterfall.</div>\n";
+		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall+qhtlwaterfall'></form></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "profilediff") {
@@ -1674,7 +1676,7 @@ EOD
 
 		print "<table class='table table-bordered table-striped'>\n";
 		my ($childin, $childout);
-		my $pid = open3($childin, $childout, $childout, "/usr/sbin/csf","--profile","diff",$profile1,$profile2);
+		my $pid = open3($childin, $childout, $childout, "/usr/sbin/qhtlfirewall","--profile","diff",$profile1,$profile2);
 		while (<$childout>) {
 			$_ =~ s/\[|\]//g;
 			my ($var,$p1,$p2) = split(/\s+/,$_);
@@ -1732,7 +1734,7 @@ EOD
 		print "</table>\n";
 	}
 	elsif ($FORM{action} eq "fix") {
-		print "<div class='bs-callout bs-callout-warning'>These options should only be used as a last resort as most of them will reduce the effectiveness of csf and lfd to protect the server</div>\n";
+		print "<div class='bs-callout bs-callout-warning'>These options should only be used as a last resort as most of them will reduce the effectiveness of qhtlfirewall and qhtlwaterfall to protect the server</div>\n";
 
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Fix Common Problems</th></tr></thead>";
@@ -1742,7 +1744,7 @@ EOD
 		} else {
 			print "<tr><td><button type='button' class='btn btn-default confirmButton' data-query='Are you sure you want to disable LF_SPI?' data-href='$script?action=fixspi' data-toggle='modal' data-target='#confirmmodal'>Disable SPI</button>\n";
 		}
-		print "</td><td style='width:100%'>If you find that ports listed in TCP_IN/UDP_IN are being blocked by iptables (e.g. port 80) as seen in /var/log/messages and users can only connect to the server if entered in csf.allow, then it could be that the kernel (usually on virtual servers) is broken and cannot perform connection tracking. In this case, disabling the Stateful Packet Inspection functionality of csf (LF_SPI) may help\n";
+		print "</td><td style='width:100%'>If you find that ports listed in TCP_IN/UDP_IN are being blocked by iptables (e.g. port 80) as seen in /var/log/messages and users can only connect to the server if entered in qhtlfirewall.allow, then it could be that the kernel (usually on virtual servers) is broken and cannot perform connection tracking. In this case, disabling the Stateful Packet Inspection functionality of qhtlfirewall (LF_SPI) may help\n";
 		if ($config{LF_SPI} == 0) {
 			print "<br><strong>Note: LF_SPI is already disabled</strong>";
 		}
@@ -1782,11 +1784,11 @@ EOD
 		print "</td></tr>\n";
 
 		print "<tr><td><button type='button' class='btn btn-default confirmButton' data-query='Are you sure you want to disable all alerts?' data-href='$script?action=fixalerts' data-toggle='modal' data-target='#confirmmodal'>Disable All Alerts</button>\n";
-		print "</td><td style='width:100%'>If you really want to disable all alerts in lfd you can do so here. This is <strong>not</strong> recommended in any situation - you should go through the csf configuration and only disable those you do not want. As new features are added to csf you may find that you have to go into the csf configuration and disable them manually as this procedure only disables the ones that it is aware of when applied\n";
+		print "</td><td style='width:100%'>If you really want to disable all alerts in qhtlwaterfall you can do so here. This is <strong>not</strong> recommended in any situation - you should go through the qhtlfirewall configuration and only disable those you do not want. As new features are added to qhtlfirewall you may find that you have to go into the qhtlfirewall configuration and disable them manually as this procedure only disables the ones that it is aware of when applied\n";
 		print "</td></tr>\n";
 
-		print "<tr><td><button type='button' class='btn btn-danger confirmButton' data-query='Are you sure you want to reinstall csf and lose all modifications?' data-href='$script?action=fixnuclear' data-toggle='modal' data-target='#confirmmodal'>Reinstall csf</button>\n";
-		print "</td><td style='width:100%'>If all else fails this option will <strong>completely</strong> uninstall csf and install it again with completely default options (including TESTING mode). The previous configuration will be lost including all modifications\n";
+		print "<tr><td><button type='button' class='btn btn-danger confirmButton' data-query='Are you sure you want to reinstall qhtlfirewall and lose all modifications?' data-href='$script?action=fixnuclear' data-toggle='modal' data-target='#confirmmodal'>Reinstall qhtlfirewall</button>\n";
+		print "</td><td style='width:100%'>If all else fails this option will <strong>completely</strong> uninstall qhtlfirewall and install it again with completely default options (including TESTING mode). The previous configuration will be lost including all modifications\n";
 		print "</td></tr>\n";
 
 		print "</table>\n";
@@ -1835,8 +1837,8 @@ EOD
 			$config{TCP_IN} .= ",30000:35000";
 			$config{TCP6_IN} .= ",30000:35000";
 
-			copy("/etc/csf/csf.conf","/var/lib/csf/backup/".time."_prefixpasvftp");
-			sysopen (my $CSFCONF,"/etc/csf/csf.conf", O_RDWR | O_CREAT);
+			copy("/etc/qhtlfirewall/qhtlfirewall.conf","/var/lib/qhtlfirewall/backup/".time."_prefixpasvftp");
+			sysopen (my $CSFCONF,"/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT);
 			flock ($CSFCONF, LOCK_EX);
 			my @csf = <$CSFCONF>;
 			chomp @csf;
@@ -1864,8 +1866,8 @@ EOD
 		unless ($ftpdone) {print "<p><strong>You MUST now open the same port range hole (30000 to 35000) in your FTP Server configuration</strong></p>\n"}
 		print "</div>\n";
 		print "</div>\n";
-		print "<div>You MUST now restart both csf and lfd:</div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart csf+lfd'></form></div>\n";
+		print "<div>You MUST now restart both qhtlfirewall and qhtlwaterfall:</div>\n";
+		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall+qhtlwaterfall'></form></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "fixspi") {
@@ -1873,8 +1875,8 @@ EOD
 		print "<div class='panel-heading panel-heading'>Disabling LF_SPI:</div>\n";
 		print "<div class='panel-body'>";
 
-		copy("/etc/csf/csf.conf","/var/lib/csf/backup/".time."_prefixspi");
-		sysopen (my $CSFCONF,"/etc/csf/csf.conf", O_RDWR | O_CREAT);
+		copy("/etc/qhtlfirewall/qhtlfirewall.conf","/var/lib/qhtlfirewall/backup/".time."_prefixspi");
+		sysopen (my $CSFCONF,"/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT);
 		flock ($CSFCONF, LOCK_EX);
 		my @csf = <$CSFCONF>;
 		chomp @csf;
@@ -1893,8 +1895,8 @@ EOD
 		print "</div>\n";
 		print "<div class='panel-footer panel-footer'>Completed</div>\n";
 		print "</div>\n";
-		print "<div>You MUST now restart both csf and lfd:</div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart csf+lfd'></form></div>\n";
+		print "<div>You MUST now restart both qhtlfirewall and qhtlwaterfall:</div>\n";
+		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall+qhtlwaterfall'></form></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "fixkill") {
@@ -1902,8 +1904,8 @@ EOD
 		print "<div class='panel-heading panel-heading'>Disabling PT_USERKILL:</div>\n";
 		print "<div class='panel-body'>";
 
-		copy("/etc/csf/csf.conf","/var/lib/csf/backup/".time."_prefixkill");
-		sysopen (my $CSFCONF,"/etc/csf/csf.conf", O_RDWR | O_CREAT);
+		copy("/etc/qhtlfirewall/qhtlfirewall.conf","/var/lib/qhtlfirewall/backup/".time."_prefixkill");
+		sysopen (my $CSFCONF,"/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT);
 		flock ($CSFCONF, LOCK_EX);
 		my @csf = <$CSFCONF>;
 		chomp @csf;
@@ -1922,8 +1924,8 @@ EOD
 		print "</div>\n";
 		print "<div class='panel-footer panel-footer'>Completed</div>\n";
 		print "</div>\n";
-		print "<div>You MUST now restart both csf and lfd:</div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart csf+lfd'></form></div>\n";
+		print "<div>You MUST now restart both qhtlfirewall and qhtlwaterfall:</div>\n";
+		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall+qhtlwaterfall'></form></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "fixsmtp") {
@@ -1931,8 +1933,8 @@ EOD
 		print "<div class='panel-heading panel-heading'>Disabling SMTP_BLOCK:</div>\n";
 		print "<div class='panel-body'>";
 
-		copy("/etc/csf/csf.conf","/var/lib/csf/backup/".time."_prefixsmtp");
-		sysopen (my $CSFCONF,"/etc/csf/csf.conf", O_RDWR | O_CREAT);
+		copy("/etc/qhtlfirewall/qhtlfirewall.conf","/var/lib/qhtlfirewall/backup/".time."_prefixsmtp");
+		sysopen (my $CSFCONF,"/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT);
 		flock ($CSFCONF, LOCK_EX);
 		my @csf = <$CSFCONF>;
 		chomp @csf;
@@ -1952,6 +1954,7 @@ EOD
 		print "<div class='panel-footer panel-footer'>Completed</div>\n";
 		print "</div>\n";
 		print "<div>You MUST now restart both csf and lfd:</div>\n";
+	print "<div>You MUST now restart both qhtlfirewall and qhtlwaterfall:</div>\n";
 		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart csf+lfd'></form></div>\n";
 		&printreturn;
 	}
@@ -1962,15 +1965,15 @@ EOD
 
 		&resize("top");
 		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-		copy("/etc/csf/csf.conf","/var/lib/csf/backup/".time."_prefixalerts");
-		&printcmd("/usr/sbin/csf","--profile","apply","disable_alerts");
+		copy("/etc/qhtlfirewall/qhtlfirewall.conf","/var/lib/qhtlfirewall/backup/".time."_prefixalerts");
+		&printcmd("/usr/sbin/qhtlfirewall","--profile","apply","disable_alerts");
 		print "</pre>\n";
 		&resize("bot",1);
 		print "</div>\n";
 		print "<div class='panel-footer panel-footer'>Completed</div>\n";
 		print "</div>\n";
-		print "<div>You MUST now restart both csf and lfd:</div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart csf+lfd'></form></div>\n";
+		print "<div>You MUST now restart both qhtlfirewall and qhtlwaterfall:</div>\n";
+		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall+qhtlwaterfall'></form></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "fixnuclear") {
@@ -1981,15 +1984,15 @@ EOD
 		my $time = time;
 		sysopen (my $REINSTALL, "/usr/src/reinstall_$time.sh", O_WRONLY | O_CREAT | O_TRUNC);
 		flock ($REINSTALL, LOCK_EX);
-		print $REINSTALL <<EOF;
+	print $REINSTALL <<EOF;
 #!/usr/bin/bash
-bash /etc/csf/uninstall.sh
+bash /etc/qhtlfirewall/uninstall.sh
 cd /usr/src
-mv -fv csf.tgz csf.tgz.$time
-mv -fv csf csf.$time
-wget https://$config{DOWNLOADSERVER}/csf.tgz
-tar -xzf csf.tgz
-cd csf
+mv -fv qhtlfirewall.tgz qhtlfirewall.tgz.$time
+mv -fv qhtlfirewall qhtlfirewall.$time
+wget https://$config{DOWNLOADSERVER}/qhtlfirewall.tgz
+tar -xzf qhtlfirewall.tgz
+cd qhtlfirewall
 sh install.sh
 EOF
 		close ($REINSTALL);
@@ -2011,13 +2014,13 @@ EOF
 				if ($line =~ /^name=csf$/) {
 					unless (-l "index.cgi") {
 						unlink "index.cgi";
-						my $status = symlink ("/usr/local/csf/lib/webmin/csf/index.cgi","index.cgi");
+						my $status = symlink ("/usr/local/qhtlfirewall/lib/webmin/csf/index.cgi","index.cgi");
 						if ($status and -l "index.cgi") {
-							symlink ("/usr/local/csf/lib/webmin/csf/images","csfimages");
-							print "<p><b>csf updated to symlink webmin module to /usr/local/csf/lib/webmin/csf/. Click <a href='index.cgi'>here</a> to continue<p></b>\n";
+							symlink ("/usr/local/qhtlfirewall/lib/webmin/csf/images","csfimages");
+							print "<p><b>csf updated to symlink webmin module to /usr/local/qhtlfirewall/lib/webmin/csf/. Click <a href='index.cgi'>here</a> to continue<p></b>\n";
 							exit;
 						} else {
-							print "<p>Failed to symlink to /usr/local/csf/lib/webmin/csf/<p>\n";
+							print "<p>Failed to symlink to /usr/local/qhtlfirewall/lib/webmin/csf/<p>\n";
 						}
 					}
 					last;
@@ -2034,7 +2037,7 @@ EOF
 		if ($iptstatus[0] =~ /# Warning: iptables-legacy tables present/) {shift @iptstatus}
 		my $status = "<div class='bs-callout bs-callout-success text-center'><h4>Firewall Status: Enabled and Running</h4></div>";
 
-		if (-e "/etc/csf/csf.disable") {
+		if (-e "/etc/qhtlfirewall/qhtlfirewall.disable") {
 			$status = "<div class='bs-callout bs-callout-danger text-center'><form action='$script' method='post'><h4>Firewall Status: Disabled and Stopped <input type='hidden' name='action' value='enable'><input type='submit' class='btn btn-default' value='Enable'></form></h4></div>\n"
 		}
 		elsif ($config{TESTING}) {
@@ -2043,13 +2046,13 @@ EOF
 		elsif ($iptstatus[0] !~ /^Chain LOCALINPUT/) {
 			$status = "<div class='bs-callout bs-callout-danger text-center'><form action='$script' method='post'><h4>Firewall Status: Enabled but Stopped <input type='hidden' name='action' value='start'><input type='submit' class='btn btn-default' value='Start'></form></h4></div>"
 		}
-		if (-e "/var/lib/csf/lfd.restart") {$status .= "<div class='bs-callout bs-callout-info text-center'><h4>lfd restart request pending</h4></div>"}
+		if (-e "/var/lib/qhtlfirewall/qhtlwaterfall.restart") {$status .= "<div class='bs-callout bs-callout-info text-center'><h4>qhtlwaterfall restart request pending</h4></div>"}
 		unless ($config{RESTRICT_SYSLOG}) {$status .= "<div class='bs-callout bs-callout-warning text-center'><h4>WARNING: RESTRICT_SYSLOG is disabled. See SECURITY WARNING in Firewall Configuration</h4></div>\n"}
 
 		my $tempcnt = 0;
-		if (! -z "/var/lib/csf/csf.tempban") {
-			sysopen (my $IN, "/var/lib/csf/csf.tempban", O_RDWR);
-			flock ($IN, LOCK_EX);
+		if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempban") {
+			sysopen (my $IN, "/var/lib/qhtlfirewall/qhtlfirewall.tempban", O_RDWR);
+			flock ($IN, LOCK_SH);
 			my @data = <$IN>;
 			close ($IN);
 			chomp @data;
@@ -2057,9 +2060,9 @@ EOF
 		}
 		my $tempbans = "(Currently: <code>$tempcnt</code> temp IP bans, ";
 		$tempcnt = 0;
-		if (! -z "/var/lib/csf/csf.tempallow") {
-			sysopen (my $IN, "/var/lib/csf/csf.tempallow", O_RDWR);
-			flock ($IN, LOCK_EX);
+		if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempallow") {
+			sysopen (my $IN, "/var/lib/qhtlfirewall/qhtlfirewall.tempallow", O_RDWR);
+			flock ($IN, LOCK_SH);
 			my @data = <$IN>;
 			close ($IN);
 			chomp @data;
@@ -2068,8 +2071,8 @@ EOF
 		$tempbans .= "<code>$tempcnt</code> temp IP allows)";
 
 		my $permcnt = 0;
-		if (! -z "/etc/csf/csf.deny") {
-			sysopen (my $IN, "/etc/csf/csf.deny", O_RDWR);
+		if (! -z "/etc/qhtlfirewall/qhtlfirewall.deny") {
+			sysopen (my $IN, "/etc/qhtlfirewall/qhtlfirewall.deny", O_RDWR);
 			flock ($IN, LOCK_SH);
 			while (my $line = <$IN>) {
 				chomp $line;
@@ -2081,8 +2084,8 @@ EOF
 		my $permbans = "(Currently: <code>$permcnt</code> permanent IP bans)";
 
 		$permcnt = 0;
-		if (! -z "/etc/csf/csf.allow") {
-			sysopen (my $IN, "/etc/csf/csf.allow", O_RDWR);
+		if (! -z "/etc/qhtlfirewall/qhtlfirewall.allow") {
+			sysopen (my $IN, "/etc/qhtlfirewall/qhtlfirewall.allow", O_RDWR);
 			flock ($IN, LOCK_SH);
 			while (my $line = <$IN>) {
 				chomp $line;
@@ -2096,13 +2099,13 @@ EOF
 		print $status;
 
 		print "<div class='normalcontainer'>\n";
-		print "<div class='bs-callout bs-callout-info text-center collapse' id='upgradebs'><h4>A new version of csf is <a href='#upgradetable'>available</a></h4></div>";
+		print "<div class='bs-callout bs-callout-info text-center collapse' id='upgradebs'><h4>A new version of qhtlfirewall is <a href='#upgradetable'>available</a></h4></div>";
 
 		print "<ul class='nav nav-tabs' id='myTabs' style='font-weight:bold'>\n";
 		print "<li class='active'><a data-toggle='tab' href='#' id='tabAll'>All</a></li>\n";
 		print "<li><a data-toggle='tab' href='#home'>Info</a></li>\n";
-		print "<li><a data-toggle='tab' href='#csf'>csf</a></li>\n";
-		print "<li><a data-toggle='tab' href='#lfd'>lfd</a></li>\n";
+		print "<li><a data-toggle='tab' href='#csf'>qhtlfirewall</a></li>\n";
+		print "<li><a data-toggle='tab' href='#lfd'>qhtlwaterfall</a></li>\n";
 		if ($config{CLUSTER_SENDTO}) {
 			print "<li><a data-toggle='tab' href='#cluster'>Cluster</a></li>\n";
 		}
@@ -2115,15 +2118,15 @@ EOF
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
 		print "<tr><td><button name='action' value='servercheck' type='submit' class='btn btn-default'>Check Server Security</button></td><td style='width:100%'>Perform a basic security, stability and settings check on the server</td></tr>\n";
-		print "<tr><td><button name='action' value='readme' type='submit' class='btn btn-default'>Firewall Information</button></td><td style='width:100%'>View the csf+lfd readme.txt file</td></tr>\n";
-		print "<tr><td><button name='action' value='logtail' type='submit' class='btn btn-default'>Watch System Logs</button></td><td style='width:100%'>Watch (tail) various system log files (listed in csf.syslogs)</td></tr>\n";
-		print "<tr><td><button name='action' value='loggrep' type='submit' class='btn btn-default'>Search System Logs</button></td><td style='width:100%'>Search (grep) various system log files (listed in csf.syslogs)</td></tr>\n";
+	print "<tr><td><button name='action' value='readme' type='submit' class='btn btn-default'>Firewall Information</button></td><td style='width:100%'>View the qhtlfirewall+qhtlwaterfall readme.txt file</td></tr>\n";
+		print "<tr><td><button name='action' value='logtail' type='submit' class='btn btn-default'>Watch System Logs</button></td><td style='width:100%'>Watch (tail) various system log files (listed in qhtlfirewall.syslogs)</td></tr>\n";
+		print "<tr><td><button name='action' value='loggrep' type='submit' class='btn btn-default'>Search System Logs</button></td><td style='width:100%'>Search (grep) various system log files (listed in qhtlfirewall.syslogs)</td></tr>\n";
 		print "<tr><td><button name='action' value='viewports' type='submit' class='btn btn-default'>View Listening Ports</button></td><td style='width:100%'>View ports on the server that have a running process behind them listening for external connections</td></tr>\n";
 		print "<tr><td><button name='action' value='rblcheck' type='submit' class='btn btn-default'>Check for IPs in RBLs</button></td><td style='width:100%'>Check whether any of the servers IP addresses are listed in RBLs</td></tr>\n";
 		if ($config{ST_ENABLE}) {
 			print "<tr><td><button name='action' value='viewlogs' type='submit' class='btn btn-default'>View iptables Log</button></td><td style='width:100%'>View the last $config{ST_IPTABLES} iptables log lines</td></tr>\n";
 			if ($chart) {
-				print "<tr><td><button name='action' value='chart' type='submit' class='btn btn-default'>View lfd Statistics</button></td><td style='width:100%'>View lfd blocking statistics</td></tr>\n";
+				print "<tr><td><button name='action' value='chart' type='submit' class='btn btn-default'>View qhtlwaterfall Statistics</button></td><td style='width:100%'>View qhtlwaterfall blocking statistics</td></tr>\n";
 				if ($config{ST_SYSTEM}) {
 					print "<tr><td><button name='action' value='systemstats' type='submit' class='btn btn-default'>View System Statistics</button></td><td style='width:100%'>View basic system statistics</td></tr>\n";
 				}
@@ -2135,16 +2138,16 @@ EOF
 		print "<form action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped' id='upgradetable'>\n";
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
-		my ($upgrade, $actv) = &csgetversion("csf",$myv);
+		my ($upgrade, $actv) = &csgetversion("qhtlfirewall",$myv);
 		if ($upgrade) {
-			print "<tr><td><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade csf</button></td><td style='width:100%'><b>A new version of csf (v$actv) is available. Upgrading will retain your settings<br><a href='https://$config{DOWNLOADSERVER}/csf/changelog.txt' target='_blank'>View ChangeLog</a></b></td></tr>\n";
+			print "<tr><td><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button></td><td style='width:100%'><b>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings<br><a href='https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt' target='_blank'>View ChangeLog</a></b></td></tr>\n";
 		} else {
 			print "<tr><td><button name='action' value='manualcheck' type='submit' class='btn btn-default'>Manual Check</button></td><td>";
 			if ($actv ne "") {
-				print "(csget cron check) $actv</td></tr>\n";
+				print "(version check) $actv</td></tr>\n";
 			}
 			else {
-				print "You are running the latest version of csf. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (csget)</td></tr>\n";
+				print "You are running the latest version of qhtlfirewall (v$myv). An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job</td></tr>\n";
 			}
 		}
 		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
@@ -2178,29 +2181,29 @@ EOF
 
 		print "<div id='csf' class='tab-pane active'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>csf - Quick Actions</th></tr></thead>";
-		print "<tr><td><button onClick='\$(\"#qallow\").submit();' class='btn btn-default'>Quick Allow</button></td><td style='width:100%'><form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>Allow IP address <a href='javascript:fillfield(\"allowip\",\"$ENV{REMOTE_ADDR}\")'><span class='glyphicon glyphicon-cog icon-configserver' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='allowip' value='' size='18' style='background-color: #BDECB6'> through the firewall and add to the allow file (csf.allow).<br>Comment for Allow: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
-		print "<tr><td><button onClick='\$(\"#qdeny\").submit();' class='btn btn-default'>Quick Deny</button></td><td style='width:100%'><form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>Block IP address <input type='text' name='ip' value='' size='18' style='background-color: #FFD1DC'> in the firewall and add to the deny file (csf.deny).<br>Comment for Block: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
-		print "<tr><td><button onClick='\$(\"#qignore\").submit();' class='btn btn-default'>Quick Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>Ignore IP address <a href='javascript:fillfield(\"ignoreip\",\"$ENV{REMOTE_ADDR}\")'><span class='glyphicon glyphicon-cog icon-configserver' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='ignoreip' value='' size='18' style='background-color: #D9EDF7'> in lfd, add to the ignore file (csf.ignore) and restart lfd</form></td></tr>\n";
+		print "<thead><tr><th colspan='2'>qhtlfirewall - Quick Actions</th></tr></thead>";
+		print "<tr><td><button onClick='\$(\"#qallow\").submit();' class='btn btn-default'>Quick Allow</button></td><td style='width:100%'><form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>Allow IP address <a href='javascript:fillfield(\"allowip\",\"$ENV{REMOTE_ADDR}\")'><span class='glyphicon glyphicon-cog icon-configserver' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='allowip' value='' size='18' style='background-color: #BDECB6'> through the firewall and add to the allow file (qhtlfirewall.allow).<br>Comment for Allow: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
+		print "<tr><td><button onClick='\$(\"#qdeny\").submit();' class='btn btn-default'>Quick Deny</button></td><td style='width:100%'><form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>Block IP address <input type='text' name='ip' value='' size='18' style='background-color: #FFD1DC'> in the firewall and add to the deny file (qhtlfirewall.deny).<br>Comment for Block: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
+		print "<tr><td><button onClick='\$(\"#qignore\").submit();' class='btn btn-default'>Quick Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>Ignore IP address <a href='javascript:fillfield(\"ignoreip\",\"$ENV{REMOTE_ADDR}\")'><span class='glyphicon glyphicon-cog icon-configserver' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='ignoreip' value='' size='18' style='background-color: #D9EDF7'> in qhtlwaterfall, add to the ignore file (qhtlfirewall.ignore) and restart qhtlwaterfall</form></td></tr>\n";
 		print "<tr><td><button onClick='\$(\"#kill\").submit();' class='btn btn-default'>Quick Unblock</button></td><td style='width:100%'><form action='$script' method='post' id='kill'><input type='submit' class='hide'><input type='hidden' name='action' value='kill'>Remove IP address <input type='text' name='ip' value='' size='18'> from the firewall (temp and perm blocks)</form></td></tr>\n";
 		print "</table>\n";
 
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>csf - ConfigServer Firewall</th></tr></thead>";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='conf' type='submit' class='btn btn-default'>Firewall Configuration</button></form></td><td style='width:100%'>Edit the configuration file for the csf firewall and lfd</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='profiles' type='submit' class='btn btn-default'>Firewall Profiles</button></form></td><td style='width:100%'>Apply pre-configured csf.conf profiles and backup/restore csf.conf</td></tr>\n";
+		print "<thead><tr><th colspan='2'>qhtlfirewall - Firewall</th></tr></thead>";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='conf' type='submit' class='btn btn-default'>Firewall Configuration</button></form></td><td style='width:100%'>Edit the configuration file for the qhtlfirewall and qhtlwaterfall</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='profiles' type='submit' class='btn btn-default'>Firewall Profiles</button></form></td><td style='width:100%'>Apply pre-configured qhtlfirewall.conf profiles and backup/restore qhtlfirewall.conf</td></tr>\n";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='status' type='submit' class='btn btn-default'>View iptables Rules</button></form></td><td style='width:100%'>Display the active iptables rules</td></tr>\n";
 		print "<tr><td><button onClick='\$(\"#grep\").submit();' class='btn btn-default'>Search for IP</button></td><td style='width:100%'><form action='$script' method='post' id='grep'><input type='submit' class='hide'><input type='hidden' name='action' value='grep'>Search iptables for IP address <input type='text' name='ip' value='' size='18'></form></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='allow' type='submit' class='btn btn-default'>Firewall Allow IPs</button></form></td><td style='width:100%'>Edit csf.allow, the IP address allow file $permallows</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Firewall Deny IPs</button></form></td><td style='width:100%'>Edit csf.deny, the IP address deny file $permbans</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='enable' type='submit' class='btn btn-default'>Firewall Enable</button></form></td><td style='width:100%'>Enables csf and lfd if previously Disabled</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='disable' type='submit' class='btn btn-default'>Firewall Disable</button></form></td><td style='width:100%'>Completely disables csf and lfd</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='restart' type='submit' class='btn btn-default'>Firewall Restart</button></form></td><td style='width:100%'>Restart the csf iptables firewall</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='restartq' type='submit' class='btn btn-default'>Firewall Quick Restart</button></form></td><td style='width:100%'>Have lfd restart the csf iptables firewall</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='allow' type='submit' class='btn btn-default'>Firewall Allow IPs</button></form></td><td style='width:100%'>Edit qhtlfirewall.allow, the IP address allow file $permallows</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Firewall Deny IPs</button></form></td><td style='width:100%'>Edit qhtlfirewall.deny, the IP address deny file $permbans</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='enable' type='submit' class='btn btn-default'>Firewall Enable</button></form></td><td style='width:100%'>Enables qhtlfirewall and qhtlwaterfall if previously Disabled</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='disable' type='submit' class='btn btn-default'>Firewall Disable</button></form></td><td style='width:100%'>Completely disables qhtlfirewall and qhtlwaterfall</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='restart' type='submit' class='btn btn-default'>Firewall Restart</button></form></td><td style='width:100%'>Restart the qhtlfirewall iptables firewall</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='restartq' type='submit' class='btn btn-default'>Firewall Quick Restart</button></form></td><td style='width:100%'>Have qhtlwaterfall restart the qhtlfirewall iptables firewall</td></tr>\n";
 		print "<tr><td><button onClick='\$(\"#tempdeny\").submit();' class='btn btn-default'>Temporary Allow/Deny</button></td><td style='width:100%'><form action='$script' method='post' id='tempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='tempdeny'>Temporarily <select name='do'><option>block</option><option>allow</option></select> IP address <input type='text' name='ip' value='' size='18'> to port(s) <input type='text' name='ports' value='*' size='5'> for <input type='text' name='timeout' value='' size='4'> <select name='dur'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select>.<br>Comment: <input type='text' name='comment' value='' size='30'><br>\n(ports can be either * for all ports, a single port, or a comma separated list of ports)</form></td></tr>\n";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='temp' type='submit' class='btn btn-default'>Temporary IP Entries</button></form></td><td style='width:100%'>View/Remove the <i>temporary</i> IP entries $tempbans</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='sips' type='submit' class='btn btn-default'>Deny Server IPs</button></form></td><td style='width:100%'>Deny access to and from specific IP addresses configured on the server (csf.sips)</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='denyf' type='submit' class='btn btn-default'>Flush all Blocks</button></form></td><td style='width:100%'>Removes and unblocks all entries in csf.deny (excluding those marked \"do not delete\") and all temporary IP entries (blocks <i>and</i> allows)</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='sips' type='submit' class='btn btn-default'>Deny Server IPs</button></form></td><td style='width:100%'>Deny access to and from specific IP addresses configured on the server (qhtlfirewall.sips)</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='denyf' type='submit' class='btn btn-default'>Flush all Blocks</button></form></td><td style='width:100%'>Removes and unblocks all entries in qhtlfirewall.deny (excluding those marked \"do not delete\") and all temporary IP entries (blocks <i>and</i> allows)</td></tr>\n";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='redirect' type='submit' class='btn btn-default'>Firewall Redirect</button></form></td><td style='width:100%'>Redirect connections to this server to other ports/IP addresses</td></tr>\n";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='fix' type='submit' class='btn btn-default'>Fix Common Problems</button></form></td><td style='width:100%'>Offers solutions to some common problems when using an SPI firewall</td></tr>\n";
 		print "</table>\n";
@@ -2209,42 +2212,42 @@ EOF
 
 		print "<div id='lfd' class='tab-pane active'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>lfd - Login Failure Daemon</th></tr></thead>";
-		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='lfdstatus'><input type='submit' class='btn btn-default' value='lfd Status'></form></td><td style='width:100%'>Display lfd status</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='lfdrestart'><input type='submit' class='btn btn-default' value='lfd Restart'></form></td><td style='width:100%'>Restart lfd</td></tr>\n";
+		print "<thead><tr><th colspan='2'>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
+		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='lfdstatus'><input type='submit' class='btn btn-default' value='qhtlwaterfall Status'></form></td><td style='width:100%'>Display qhtlwaterfall status</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='lfdrestart'><input type='submit' class='btn btn-default' value='qhtlwaterfall Restart'></form></td><td style='width:100%'>Restart qhtlwaterfall</td></tr>\n";
 		print "<tr><td style='white-space: nowrap;'><form action='$script' method='post'><input type='hidden' name='action' value='ignorefiles'><select name='ignorefile'>\n";
-		print "<option value='csf.ignore'>csf.ignore - IP Blocking</option>\n";
-		print "<option value='csf.pignore'>csf.pignore, Process Tracking</option>\n";
-		print "<option value='csf.fignore'>csf.fignore, Directory Watching</option>\n";
-		print "<option value='csf.signore'>csf.signore, Script Alert</option>\n";
-		print "<option value='csf.rignore'>csf.rignore, Reverse DNS lookup</option>\n";
-		print "<option value='csf.suignore'>csf.suignore, Superuser check</option>\n";
-		print "<option value='csf.mignore'>csf.mignore, RT_LOCALRELAY</option>\n";
-		print "<option value='csf.logignore'>csf.logignore, Log Scanner</option>\n";
-		print "<option value='csf.uidignore'>csf.uidignore, User ID Tracking</option>\n";
+		print "<option value='qhtlfirewall.ignore'>qhtlfirewall.ignore - IP Blocking</option>\n";
+		print "<option value='qhtlfirewall.pignore'>qhtlfirewall.pignore, Process Tracking</option>\n";
+		print "<option value='qhtlfirewall.fignore'>qhtlfirewall.fignore, Directory Watching</option>\n";
+		print "<option value='qhtlfirewall.signore'>qhtlfirewall.signore, Script Alert</option>\n";
+		print "<option value='qhtlfirewall.rignore'>qhtlfirewall.rignore, Reverse DNS lookup</option>\n";
+		print "<option value='qhtlfirewall.suignore'>qhtlfirewall.suignore, Superuser check</option>\n";
+		print "<option value='qhtlfirewall.mignore'>qhtlfirewall.mignore, RT_LOCALRELAY</option>\n";
+		print "<option value='qhtlfirewall.logignore'>qhtlfirewall.logignore, Log Scanner</option>\n";
+		print "<option value='qhtlfirewall.uidignore'>qhtlfirewall.uidignore, User ID Tracking</option>\n";
 		print "</select> <input type='submit' class='btn btn-default' value='Edit'></form></td><td style='width:100%'>Edit lfd ignore file</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='dirwatch' type='submit' class='btn btn-default'>lfd Directory File Watching</button></form></td><td style='width:100%'>Edit the Directory File Watching file (csf.dirwatch) - all listed files and directories will be watched for changes by lfd</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='dyndns' type='submit' class='btn btn-default'>lfd Dynamic DNS</button></form></td><td style='width:100%'>Edit the Dynamic DNS file (csf.dyndns) - all listed domains will be resolved and allowed through the firewall</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='dirwatch' type='submit' class='btn btn-default'>qhtlwaterfall Directory File Watching</button></form></td><td style='width:100%'>Edit the Directory File Watching file (qhtlfirewall.dirwatch) - all listed files and directories will be watched for changes by qhtlwaterfall</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='dyndns' type='submit' class='btn btn-default'>qhtlwaterfall Dynamic DNS</button></form></td><td style='width:100%'>Edit the Dynamic DNS file (qhtlfirewall.dyndns) - all listed domains will be resolved and allowed through the firewall</td></tr>\n";
 		print "<tr><td><form action='$script' method='post'><select name='template'>\n";
 		foreach my $tmp ("alert.txt","tracking.txt","connectiontracking.txt","processtracking.txt","accounttracking.txt","usertracking.txt","sshalert.txt","webminalert.txt","sualert.txt","sudoalert.txt","uialert.txt","cpanelalert.txt","scriptalert.txt","filealert.txt","watchalert.txt","loadalert.txt","resalert.txt","integrityalert.txt","exploitalert.txt","relayalert.txt","portscan.txt","uidscan.txt","permblock.txt","netblock.txt","queuealert.txt","logfloodalert.txt","logalert.txt","modsecipdbcheck.txt") {print "<option>$tmp</option>\n"}
 		print "</select> <button name='action' value='templates' type='submit' class='btn btn-default'>Edit</button></form></td><td style='width:100%'>Edit email alert templates. See Firewall Information for details of each file</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='logfiles' type='submit' class='btn btn-default'>lfd Log Scanner Files</button></form></td><td style='width:100%'>Edit the Log Scanner file (csf.logfiles) - Scan listed log files for log lines and periodically send a report</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='blocklists' type='submit' class='btn btn-default'>lfd Blocklists</button></form></td><td style='width:100%'>Edit the Blocklists configuration file (csf.blocklists)</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='syslogusers' type='submit' class='btn btn-default'>lfd Syslog Users</button></form></td><td style='width:100%'>Edit the syslog/rsyslog allowed users file (csf.syslogusers)</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='logfiles' type='submit' class='btn btn-default'>qhtlwaterfall Log Scanner Files</button></form></td><td style='width:100%'>Edit the Log Scanner file (qhtlfirewall.logfiles) - Scan listed log files for log lines and periodically send a report</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='blocklists' type='submit' class='btn btn-default'>qhtlwaterfall Blocklists</button></form></td><td style='width:100%'>Edit the Blocklists configuration file (qhtlfirewall.blocklists)</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='syslogusers' type='submit' class='btn btn-default'>qhtlwaterfall Syslog Users</button></form></td><td style='width:100%'>Edit the syslog/rsyslog allowed users file (qhtlfirewall.syslogusers)</td></tr>\n";
 		print "</table>\n";
 		print "</div>\n";
 
 		if ($config{CLUSTER_SENDTO}) {
 			print "<div id='cluster' class='tab-pane active'>\n";
 			print "<table class='table table-bordered table-striped'>\n";
-			print "<thead><tr><th colspan='2'>csf - ConfigServer lfd Cluster</th></tr></thead>";
+			print "<thead><tr><th colspan='2'>qhtlfirewall - qhtlwaterfall Cluster</th></tr></thead>";
 
 			print "<tr><td><form action='$script' method='post'><button name='action' value='cping' type='submit' class='btn btn-default'>Cluster PING</button></form></td><td style='width:100%'>Ping each member of the cluster (logged in lfd.log)</td></tr>\n";
-			print "<tr><td><button onClick='\$(\"#callow\").submit();' class='btn btn-default'>Cluster Allow</button></td><td style='width:100%'><form action='$script' method='post' id='callow'><input type='submit' class='hide'><input type='hidden' name='action' value='callow'>Allow IP address <input type='text' name='ip' value='' size='18' style='background-color: lightgreen'> through the Cluster and add to the allow file (csf.allow)<br>Comment: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
-			print "<tr><td><button onClick='\$(\"#cdeny\").submit();' class='btn btn-default'>Cluster Deny</button></td><td style='width:100%'><form action='$script' method='post' id='cdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='cdeny'>Block IP address <input type='text' name='ip' value='' size='18' style='background-color: pink'> in the Cluster and add to the deny file (csf.deny)<br>Comment: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
-			print "<tr><td><button onClick='\$(\"#cignore\").submit();' class='btn btn-default'>Cluster Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='cignore'><input type='submit' class='hide'><input type='hidden' name='action' value='cignore'>Ignore IP address <input type='text' name='ip' value='' size='18'> in the Cluster and add to the ignore file (csf.ignore)<br>Comment: <input type='text' name='comment' value='' size='30'> Note: This will result in lfd being restarted</form></td></tr>\n";
+			print "<tr><td><button onClick='\$(\"#callow\").submit();' class='btn btn-default'>Cluster Allow</button></td><td style='width:100%'><form action='$script' method='post' id='callow'><input type='submit' class='hide'><input type='hidden' name='action' value='callow'>Allow IP address <input type='text' name='ip' value='' size='18' style='background-color: lightgreen'> through the Cluster and add to the allow file (qhtlfirewall.allow)<br>Comment: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
+			print "<tr><td><button onClick='\$(\"#cdeny\").submit();' class='btn btn-default'>Cluster Deny</button></td><td style='width:100%'><form action='$script' method='post' id='cdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='cdeny'>Block IP address <input type='text' name='ip' value='' size='18' style='background-color: pink'> in the Cluster and add to the deny file (qhtlfirewall.deny)<br>Comment: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
+			print "<tr><td><button onClick='\$(\"#cignore\").submit();' class='btn btn-default'>Cluster Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='cignore'><input type='submit' class='hide'><input type='hidden' name='action' value='cignore'>Ignore IP address <input type='text' name='ip' value='' size='18'> in the Cluster and add to the ignore file (qhtlfirewall.ignore)<br>Comment: <input type='text' name='comment' value='' size='30'> Note: This will result in qhtlwaterfall being restarted</form></td></tr>\n";
 			print "<tr><td><button onClick='\$(\"#cgrep\").submit();' class='btn btn-default'>Search the Cluster for IP</button></td><td style='width:100%'><form action='$script' method='post' id='cgrep'><input type='submit' class='hide'><input type='hidden' name='action' value='cgrep'>Search iptables for IP address <input type='text' name='ip' value='' size='18'></form></td></tr>\n";
-			print "<tr><td><button onClick='\$(\"#ctempdeny\").submit();' class='btn btn-default'>Cluster Temp Allow/Deny</button></td><td style='width:100%'><form action='$script' method='post' id='ctempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='ctempdeny'>Temporarily <select name='do'><option>block</option><option>allow</option></select> IP address <input type='text' name='ip' value='' size='18'> to port(s) <input type='text' name='ports' value='*' size='5'> for <input type='text' name='timeout' value='' size='4'> <select name='dur'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select>.<br>Comment: <input type='text' name='comment' value='' size='30'><br>\n(ports can be either * for all ports, a single port, or a comma separated list of ports)</form></td></tr>\n";
+			print "<tr><td><button onClick='\$(\"#ctempdeny\").submit();' class='btn btn-default'>Cluster Temp Allow/Deny</button></td><td style='width:100%'><form action='$script' method='post' id='ctempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='ctempdeny'>Temporarily <select name='do' id='do'><option>allow</option><option>deny</option></select> IP address <input type='text' name='target' value='' size='18' id='target'> for $config{CF_TEMP} secs in CloudFlare AND qhtlfirewall for the chosen accounts and those with to \"any\"<br>Comment: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
 			print "<tr><td><button onClick='\$(\"#crm\").submit();' class='btn btn-default'>Cluster Remove Deny</button></td><td style='width:100%'><form action='$script' method='post' id='crm'><input type='submit' class='hide'><input type='hidden' name='action' value='crm'>Remove Deny IP address <input type='text' name='ip' value='' size='18' style=''> in the Cluster (temporary or permanent)</form></td></tr>\n";
 			print "<tr><td><button onClick='\$(\"#carm\").submit();' class='btn btn-default'>Cluster Remove Allow</button></td><td style='width:100%'><form action='$script' method='post' id='carm'><input type='submit' class='hide'><input type='hidden' name='action' value='carm'>Remove Allow IP address <input type='text' name='ip' value='' size='18' style=''> in the Cluster (temporary or permanent)</form></td></tr>\n";
 			print "<tr><td><button onClick='\$(\"#cirm\").submit();' class='btn btn-default'>Cluster Remove Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='cirm'><input type='submit' class='hide'><input type='hidden' name='action' value='cirm'>Remove Ignore IP address <input type='text' name='ip' value='' size='18'> in the Cluster<br>Note: This will result in lfd being restarted</form></td></tr>\n";
@@ -2254,7 +2257,7 @@ EOF
 					my $options;
 					my %restricted;
 					if ($config{RESTRICT_UI}) {
-						sysopen (my $IN, "/usr/local/csf/lib/restricted.txt", O_RDWR | O_CREAT) or die "Unable to open file: $!";
+						sysopen (my $IN, "/usr/local/qhtlfirewall/lib/restricted.txt", O_RDWR | O_CREAT) or die "Unable to open file: $!";
 						flock ($IN, LOCK_SH);
 						while (my $entry = <$IN>) {
 							chomp $entry;
@@ -2268,7 +2271,7 @@ EOF
 					print "<tr><td><button onClick='\$(\"#cconfig\").submit();' class='btn btn-default'>Cluster Config</button></td><td style='width:100%'><form action='$script' method='post' id='cconfig'><input type='submit' class='hide'><input type='hidden' name='action' value='cconfig'>Change configuration option <select name='option'>$options</select> to <input type='text' name='value' value='' size='18'> in the Cluster";
 					if ($config{RESTRICT_UI}) {print "<br />\nSome items have been removed with RESTRICT_UI enabled"}
 					print "</form></td></tr>\n";
-					print "<tr><td><form action='$script' method='post'><button name='action' value='crestart' type='submit' class='btn btn-default'>Cluster Restart</button></form></td><td style='width:100%'>Restart csf and lfd on Cluster members</td></tr>\n";
+					print "<tr><td><form action='$script' method='post'><button name='action' value='crestart' type='submit' class='btn btn-default'>Cluster Restart</button></form></td><td style='width:100%'>Restart qhtlfirewall and qhtlwaterfall on Cluster members</td></tr>\n";
 				}
 			}
 			print "</table>\n";
@@ -2302,7 +2305,7 @@ EOF
 
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Extra</th></tr></thead>";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='csftest' type='submit' class='btn btn-default'>Test iptables</button></form></td><td style='width:100%'>Check that iptables has the required modules to run csf</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='csftest' type='submit' class='btn btn-default'>Test iptables</button></form></td><td style='width:100%'>Check that iptables has the required modules to run qhtlfirewall</td></tr>\n";
 		print "</table>\n";
 #		if ($config{DIRECTADMIN} and !$config{THIS_UI}) {
 #			print "<a href='/' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> DirectAdmin Main Page</a>\n";
@@ -2367,8 +2370,8 @@ EOF
 
 	unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
 		print "<br>\n";
-		print "<div class='well well-sm'>csf: v$myv</div>";
-		print "<p>&copy;2006-2023, <a href='http://www.configserver.com' target='_blank'>ConfigServer Services</a> (Jonathan Michaelson)</p>\n";
+		print "<div class='well well-sm'>qhtlfirewall: v$myv</div>";
+		print "<p>&copy;2006-2025, qhtl</p>\n";
 		print "</div>\n";
 	}
 
@@ -2436,15 +2439,15 @@ sub chart {
 	}
 	if ($config{THIS_UI}) {
 		$imgdir = "$images/";
-		$imghddir = "/etc/csf/ui/images/";
+		$imghddir = "/etc/qhtlfirewall/ui/images/";
 	}
 
 	my $STATS;
-	if (-e "/var/lib/csf/stats/lfdstats") {
-		sysopen ($STATS,"/var/lib/csf/stats/lfdstats", O_RDWR | O_CREAT);
+	if (-e "/var/lib/qhtlfirewall/stats/lfdstats") {
+		sysopen ($STATS,"/var/lib/qhtlfirewall/stats/lfdstats", O_RDWR | O_CREAT);
 	}
-	elsif (-e "/var/lib/csf/stats/lfdmain") {
-		sysopen (my $OLDSTATS,"/var/lib/csf/stats/lfdmain", O_RDWR | O_CREAT);
+	elsif (-e "/var/lib/qhtlfirewall/stats/lfdmain") {
+		sysopen (my $OLDSTATS,"/var/lib/qhtlfirewall/stats/lfdmain", O_RDWR | O_CREAT);
 		flock ($OLDSTATS, LOCK_EX);
 		my @stats = <$OLDSTATS>;
 		chomp @stats;
@@ -2456,7 +2459,7 @@ sub chart {
 			push @newstats,$line;
 			$cnt++;
 		}
-		sysopen ($STATS,"/var/lib/csf/stats/lfdstats", O_RDWR | O_CREAT);
+		sysopen ($STATS,"/var/lib/qhtlfirewall/stats/lfdstats", O_RDWR | O_CREAT);
 		flock ($STATS, LOCK_EX);
 		seek ($STATS, 0, 0);
 		truncate ($STATS, 0);
@@ -2465,11 +2468,11 @@ sub chart {
 		}
 		close ($STATS);
 
-		rename "/var/lib/csf/stats/lfdmain", "/var/lib/csf/stats/lfdmain.".time;
+		rename "/var/lib/qhtlfirewall/stats/lfdmain", "/var/lib/qhtlfirewall/stats/lfdmain.".time;
 		close ($OLDSTATS);
-		sysopen ($STATS,"/var/lib/csf/stats/lfdstats", O_RDWR | O_CREAT);
+		sysopen ($STATS,"/var/lib/qhtlfirewall/stats/lfdstats", O_RDWR | O_CREAT);
 	} else {
-		sysopen ($STATS,"/var/lib/csf/stats/lfdstats", O_RDWR | O_CREAT);
+		sysopen ($STATS,"/var/lib/qhtlfirewall/stats/lfdstats", O_RDWR | O_CREAT);
 	}
 	flock ($STATS, LOCK_SH);
 	my @stats = <$STATS>;
@@ -2478,65 +2481,6 @@ sub chart {
 
 	if (@stats) {
 		ConfigServer::ServerStats::charts($config{CC_LOOKUPS},$imghddir);
-		print ConfigServer::ServerStats::charts_html($config{CC_LOOKUPS},$imgdir);
-	} else {
-		print "<table class='table table-bordered table-striped'>\n";
-		print "<tr><td>No statistical data has been collected yet</td></tr></table>\n";
-	}
-	&printreturn;
-
-	return;
-}
-# end chart
-###############################################################################
-# start systemstats
-sub systemstats {
-	my $type = shift;
-	if ($type eq "") {$type = "load"}
-	my $img;
-	my $imgdir = "";
-	my $imghddir = "";
-	if (-e "/usr/local/cpanel/version") {
-		if (-e "/usr/local/cpanel/bin/register_appconfig") {
-			$imgdir = "csf/";
-			$imghddir = "cgi/configserver/csf/";
-		} else {
-			$imgdir = "/";
-			$imghddir = "";
-		}
-	}
-	elsif (-e "/usr/local/directadmin/conf/directadmin.conf") {
-		$imgdir = "/CMD_PLUGINS_ADMIN/csf/images/";
-		$imghddir = "plugins/csf/images/";
-		umask(0133);
-	}
-	elsif (-e "/usr/local/interworx") {
-		$imgdir = "/configserver/csf/";
-		$imghddir = "/usr/local/interworx/html/configserver/csf/";
-		umask(0133);
-	}
-	elsif (-e "/usr/local/CyberCP/") {
-		$imgdir = "/static/configservercsf/";
-		$imghddir = "/usr/local/CyberCP/public/static/configservercsf/";
-		umask(0133);
-	}
-	if ($config{THIS_UI}) {
-		$imgdir = "$images/";
-		$imghddir = "/etc/csf/ui/images/";
-	}
-	if (defined $ENV{WEBMIN_VAR} and defined $ENV{WEBMIN_CONFIG}) {
-		$imgdir = "/csf/";
-		$imghddir = "";
-	}
-
-	sysopen (my $STATS,"/var/lib/csf/stats/system", O_RDWR | O_CREAT);
-	flock ($STATS, LOCK_SH);
-	my @stats = <$STATS>;
-	chomp @stats;
-	close ($STATS);
-
-	if (@stats > 1) {
-		ConfigServer::ServerStats::graphs($type,$config{ST_SYSTEM_MAXDAYS},$imghddir);
 
 		print "<div class='text-center'><form action='$script' method='post'><input type='hidden' name='action' value='systemstats'><select name='graph'>\n";
 		my $selected;
@@ -2556,7 +2500,7 @@ sub systemstats {
 			if ($type eq "diskw") {$selected = "selected"} else {$selected = ""}
 			print "<option value='diskw' $selected>Disk Write Performance</option>\n";
 		}
-		if (-e "/var/lib/csf/stats/email") {
+		if (-e "/var/lib/qhtlfirewall/stats/email") {
 			if ($type eq "email") {$selected = "selected"} else {$selected = ""}
 			print "<option value='email' $selected>Email Statistics</option>\n";
 		}
@@ -2765,7 +2709,7 @@ sub cloudflare {
 	print "</script>\n";
 
 	print "<table class='table table-bordered table-striped'>\n";
-	print "<thead><tr><th colspan='2'>csf - CloudFlare</th></tr></thead>";
+	print "<thead><tr><th colspan='2'>qhtlfirewall - CloudFlare</th></tr></thead>";
 	print "<tr><td>Select the user(s), then select the action below</td><td style='width:100%'><select data-placeholder='Select user(s)' class='chosen-select' id='domains' name='domains' multiple>\n";
 	foreach my $user (keys %{$scope->{user}}) {print "<option>$user</option>\n"}
 	print "</select></td></tr>\n";
@@ -2777,7 +2721,7 @@ sub cloudflare {
 	print "<tr><td><button type='button' id='cflistbtn' class='btn btn-default' disabled='true'>CF List Rules</button></td><td style='width:100%'><form action='#' id='cflist'>List <select name='type' id='type'><option>all</option><option>block</option><option>challenge</option><option>whitelist</option></select> rules in CloudFlare ONLY for the chosen accounts</form></td></tr>";
 	print "<tr><td><button type='button' id='cfaddbtn' class='btn btn-default' disabled='true'>CloudFlare Add</button></td><td style='width:100%'><form action='#' id='cfadd'>Add <select name='type' id='type'><option>block</option><option>challenge</option><option>whitelist</option></select> rule for target <input type='text' name='target' value='' size='18' id='target'> in CloudFlare ONLY for the chosen accounts</form></td></tr>\n";
 	print "<tr><td><button type='button' id='cfremovebtn' class='btn btn-default' disabled='true'>CloudFlare Delete</button></td><td style='width:100%'><form action='#' id='cfremove'>Delete rule for target <input type='text' name='target' value='' size='18' id='target'> in CloudFlare ONLY</form></td></tr>\n";
-	print "<tr><td><button type='button' id='cftempdenybtn' class='btn btn-default' disabled='true'>CF Temp Allow/Deny</button></td><td style='width:100%'><form action='#' id='cftempdeny'>Temporarily <select name='do' id='do'><option>allow</option><option>deny</option></select> IP address <input type='text' name='target' value='' size='18' id='target'> for $config{CF_TEMP} secs in CloudFlare AND csf for the chosen accounts and those with to \"any\"</form></td></tr>";
+	print "<tr><td><button type='button' id='cftempdenybtn' class='btn btn-default' disabled='true'>CF Temp Allow/Deny</button></td><td style='width:100%'><form action='#' id='cftempdeny'>Temporarily <select name='do' id='do'><option>allow</option><option>deny</option></select> IP address <input type='text' name='target' value='' size='18' id='target'> for $config{CF_TEMP} secs in CloudFlare AND qhtlfirewall for the chosen accounts and those with to \"any\"<br>Comment: <input type='text' name='comment' value='' size='30'></form></td></tr>";
 	print "</table>\n";
 	print "<div id='CFajax'><div class='panel panel-info'><div class='panel-heading'>Output will appear here</div></div></div>\n";
 	print "<div class='bs-callout bs-callout-success'>Note:\n<ul>\n";
@@ -2942,8 +2886,8 @@ sub csgetversion {
 sub manualversion {
 	my $current = shift;
 	my $upgrade = 0;
-	my $url = "https://$config{DOWNLOADSERVER}/csf/version.txt";
-	if ($config{URLGET} == 1) {$url = "http://$config{DOWNLOADSERVER}/csf/version.txt";}
+	my $url = "https://$config{DOWNLOADSERVER}/qhtlfirewall/version.txt";
+	if ($config{URLGET} == 1) {$url = "http://$config{DOWNLOADSERVER}/qhtlfirewall/version.txt";}
 	my ($status, $newversion) = $urlget->urlget($url);
 	if (!$status and $newversion ne "" and $newversion =~ /^[\d\.]*$/ and $newversion > $current) {$upgrade = 1} else {$newversion = ""}
 	return ($upgrade, $newversion);

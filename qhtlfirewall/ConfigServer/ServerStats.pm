@@ -21,7 +21,7 @@
 package ConfigServer::ServerStats;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Fcntl qw(:DEFAULT :flock);
 
 use Exporter qw(import);
@@ -59,7 +59,7 @@ sub graphs {
 	require GD::Graph::lines;
 	import GD::Graph::lines;
 
-	sysopen (my $STATS,"/var/lib/csf/stats/system", O_RDWR | O_CREAT);
+	sysopen (my $STATS,"/var/lib/qhtlfirewall/stats/system", O_RDWR | O_CREAT);
 	flock ($STATS, LOCK_SH);
 	my @stats = <$STATS>;
 	chomp @stats;
@@ -3183,7 +3183,7 @@ sub charts {
 	require GD::Graph::lines;
 	import GD::Graph::lines;
 
-	sysopen (my $STATS,"/var/lib/csf/stats/lfdstats", O_RDWR | O_CREAT);
+	sysopen (my $STATS,"/var/lib/qhtlfirewall/stats/lfdstats", O_RDWR | O_CREAT);
 	flock ($STATS, LOCK_SH);
 	my @stats = <$STATS>;
 	chomp @stats;

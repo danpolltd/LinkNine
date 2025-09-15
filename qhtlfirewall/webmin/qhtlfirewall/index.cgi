@@ -24,7 +24,7 @@ use File::Find;
 use Fcntl qw(:DEFAULT :flock);
 use Sys::Hostname qw(hostname);
 use IPC::Open3;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use ConfigServer::DisplayUI;
 use ConfigServer::Config;
 
@@ -33,13 +33,13 @@ our ($script, $images, $myv, %FORM, %in);
 my $config = ConfigServer::Config->loadconfig();
 my %config = $config->config;
 
-open (my $IN, "<", "/etc/csf/version.txt") or die $!;
+open (my $IN, "<", "/etc/qhtlfirewall/version.txt") or die $!;
 $myv = <$IN>;
 close ($IN);
 chomp $myv;
 
 $script = "index.cgi";
-$images = "csfimages";
+$images = "images";
 
 do '../web-lib.pl';      
 &init_config();         
@@ -59,33 +59,33 @@ my @body;
 my @footer;
 my $bodytag;
 my $htmltag = " data-post='$FORM{action}' ";
-if (-e "/etc/csf/csf.header") {
-	open (my $HEADER, "<", "/etc/csf/csf.header");
+if (-e "/etc/qhtlfirewall/qhtlfirewall.header") {
+	open (my $HEADER, "<", "/etc/qhtlfirewall/qhtlfirewall.header");
 	flock ($HEADER, LOCK_SH);
 	@header = <$HEADER>;
 	close ($HEADER);
 }
-if (-e "/etc/csf/csf.body") {
-	open (my $BODY, "<", "/etc/csf/csf.body");
+if (-e "/etc/qhtlfirewall/qhtlfirewall.body") {
+	open (my $BODY, "<", "/etc/qhtlfirewall/qhtlfirewall.body");
 	flock ($BODY, LOCK_SH);
 	@body = <$BODY>;
 	close ($BODY);
 }
-if (-e "/etc/csf/csf.footer") {
-	open (my $FOOTER, "<", "/etc/csf/csf.footer");
+if (-e "/etc/qhtlfirewall/qhtlfirewall.footer") {
+	open (my $FOOTER, "<", "/etc/qhtlfirewall/qhtlfirewall.footer");
 	flock ($FOOTER, LOCK_SH);
 	@footer = <$FOOTER>;
 	close ($FOOTER);
 }
-if (-e "/etc/csf/csf.htmltag") {
-	open (my $HTMLTAG, "<", "/etc/csf/csf.htmltag");
+if (-e "/etc/qhtlfirewall/qhtlfirewall.htmltag") {
+	open (my $HTMLTAG, "<", "/etc/qhtlfirewall/qhtlfirewall.htmltag");
 	flock ($HTMLTAG, LOCK_SH);
 	$htmltag .= <$HTMLTAG>;
 	chomp $htmltag;
 	close ($HTMLTAG);
 }
-if (-e "/etc/csf/csf.bodytag") {
-	open (my $BODYTAG, "<", "/etc/csf/csf.bodytag");
+if (-e "/etc/qhtlfirewall/qhtlfirewall.bodytag") {
+	open (my $BODYTAG, "<", "/etc/qhtlfirewall/qhtlfirewall.bodytag");
 	flock ($BODYTAG, LOCK_SH);
 	$bodytag = <$BODYTAG>;
 	chomp $bodytag;
@@ -105,11 +105,12 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	print "<head>\n";
 	print "	<title>ConfigServer Security &amp; Firewall</title>\n";
 	print "	<meta charset='utf-8'>\n";
+		print "	<title>QHTL Firewall</title>\n";
 	print "	<meta name='viewport' content='width=device-width, initial-scale=1'>\n";
 	print "	$bootstrapcss\n";
 	print "	<link href='$images/configserver.css' rel='stylesheet' type='text/css'>\n";
 	print "	$jqueryjs\n";
-	print "	$bootstrapjs\n";
+	print "	<meta charset='utf-8'>\n";
 	print "<style>\n";
 	print ".mobilecontainer {\n";
 	print "	display:none;\n";
@@ -137,11 +138,11 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	print "<div class='container-fluid'>\n";
 	print "<div class='panel panel-default'>\n";
 	print "<h4><img src='$images/csf_small.png' style='padding-left: 10px'> ConfigServer Security &amp; Firewall - csf v$myv</h4>\n";
+		print "<h4><img src='$images/csf_small.png' style='padding-left: 10px'> QHTL Firewall - qhtlfirewall v$myv</h4>\n";
 	print "</div>\n";
 }
 
 ConfigServer::DisplayUI::main(\%FORM, $script, 0, $images, $myv);
-
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
 	print "<a class='botlink' id='botlink' title='Go to top'><span class='glyphicon glyphicon-hand-up'></span></a>\n";
 	print "<script>\n";

@@ -21,7 +21,7 @@
 package ConfigServer::RBLCheck;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Fcntl qw(:DEFAULT :flock);
 use ConfigServer::Config;
 use ConfigServer::CheckIP qw(checkip);
@@ -61,10 +61,10 @@ sub report {
 
 	&getethdev;
 
-	my @RBLS = slurp("/usr/local/csf/lib/csf.rbls");
+	my @RBLS = slurp("/usr/local/qhtlfirewall/lib/csf.rbls");
 
-	if (-e "/etc/csf/csf.rblconf") {
-		my @entries = slurp("/etc/csf/csf.rblconf");
+	if (-e "/etc/qhtlfirewall/qhtlfirewall.rblconf") {
+		my @entries = slurp("/etc/qhtlfirewall/qhtlfirewall.rblconf");
 		foreach my $line (@entries) {
 			if ($line =~ /^Include\s*(.*)$/) {
 				my @incfile = slurp($1);
@@ -101,12 +101,12 @@ sub report {
 		my $type = $netip->iptype();
 		if ($type eq "PUBLIC") {
 
-			if ($verbose and -e "/var/lib/csf/${ip}.rbls") {
-				unlink "/var/lib/csf/${ip}.rbls";
+			if ($verbose and -e "/var/lib/qhtlfirewall/${ip}.rbls") {
+				unlink "/var/lib/qhtlfirewall/${ip}.rbls";
 			}
 
-			if (-e "/var/lib/csf/${ip}.rbls") {
-				my $text = join("\n",slurp("/var/lib/csf/${ip}.rbls"));
+			if (-e "/var/lib/qhtlfirewall/${ip}.rbls") {
+				my $text = join("\n",slurp("/var/lib/qhtlfirewall/${ip}.rbls"));
 				if ($ui) {print $text} else {$output .= $text}
 			} else {
 				if ($verbose) {
@@ -146,7 +146,7 @@ sub report {
 						if ($ui) {print $text} else {$output .= $text}
 						$ipresult .= $text;
 					}
-					sysopen (my $OUT, "/var/lib/csf/${ip}.rbls", O_WRONLY | O_CREAT);
+					sysopen (my $OUT, "/var/lib/qhtlfirewall/${ip}.rbls", O_WRONLY | O_CREAT);
 					flock($OUT, LOCK_EX);
 					print $OUT $ipresult;
 					close ($OUT);

@@ -36,9 +36,18 @@ open STDIN, "<","/dev/null";
 open STDOUT, ">","/dev/null";
 open STDERR, ">","/dev/null";
 
-$0 = "ConfigServer Version Check";
+$0 = "qhtlfirewall Version Check";
 
-my @downloadservers = ""; # ("https://download.configserver.com", "https://download2.configserver.com");
+my @downloadservers = ();
+if (open(my $DS, '<', '/etc/qhtlfirewall/downloadservers')) {
+	while (my $line = <$DS>) {
+		chomp $line;
+		$line =~ s/^\s+|\s+$//g;
+		next if ($line eq '' || $line =~ /^\s*#/);
+		push @downloadservers, $line;
+	}
+	close($DS);
+}
 
 system("mkdir -p /var/lib/configserver/");
 system("rm -f /var/lib/configserver/*.txt /var/lib/configserver/*error");
@@ -56,15 +65,7 @@ my $GET;
 if (-e "/usr/bin/GET") {$GET = "/usr/bin/GET -sd -t 120"}
 
 my %versions;
-if (-e "/etc/csf/csf.pl") {$versions{"/csf/version.txt"} = "/var/lib/configserver/csf.txt"}
-if (-e "/etc/cxs/cxs.pl") {$versions{"/cxs/version.txt"} = "/var/lib/configserver/cxs.txt"}
-if (-e "/usr/local/cpanel/whostmgr/docroot/cgi/configserver/cmm.cgi") {$versions{"/cmm/cmmversion.txt"} = "/var/lib/configserver/cmm.txt"}
-if (-e "/usr/local/cpanel/whostmgr/docroot/cgi/configserver/cse.cgi") {$versions{"/cse/cseversion.txt"} = "/var/lib/configserver/cse.txt"}
-if (-e "/usr/local/cpanel/whostmgr/docroot/cgi/configserver/cmq.cgi") {$versions{"/cmq/cmqversion.txt"} = "/var/lib/configserver/cmq.txt"}
-if (-e "/usr/local/cpanel/whostmgr/docroot/cgi/configserver/cmc.cgi") {$versions{"/cmc/cmcversion.txt"} = "/var/lib/configserver/cmc.txt"}
-if (-e "/etc/osm/osmd.pl") {$versions{"/osm/osmversion.txt"} = "/var/lib/configserver/osm.txt"}
-if (-e "/usr/msfe/version.txt") {$versions{"/version.txt"} = "/var/lib/configserver/msinstall.txt"}
-if (-e "/usr/msfe/msfeversion.txt") {$versions{"/msfeversion.txt"} = "/var/lib/configserver/msfe.txt"}
+if (-e "/etc/qhtlfirewall/qhtlfirewall.conf") {$versions{"/qhtlfirewall/version.txt"} = "/var/lib/configserver/qhtlfirewall.txt"}
 
 if (scalar(keys %versions) == 0) {
 	unlink $0;
@@ -94,10 +95,18 @@ foreach my $server (@downloadservers) {
 					my $GETstatus = system("$GET $server$version >> $versions{$version}".".error");
 				} else {
 					open (my $ERROR, ">", $versions{$version}.".error");
-					print $ERROR "Failed to retrieve latest version from ConfigServer";
+					print $ERROR "Failed to retrieve latest version";
 					close ($ERROR);
 				}
 			}
 		}
+	}
+}
+
+if (!@downloadservers && scalar(keys %versions) > 0) {
+	foreach my $version (keys %versions) {
+		open (my $ERROR, ">", $versions{$version}.".error");
+		print $ERROR "No download servers configured for qhtlfirewall";
+		close ($ERROR);
 	}
 }

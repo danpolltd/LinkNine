@@ -21,7 +21,7 @@
 package ConfigServer::LookUpIP;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Carp;
 use Fcntl qw(:DEFAULT :flock);
 use IPC::Open3;
@@ -63,7 +63,7 @@ sub iplookup {
 		my $dnsrip;
 		my $dnshost;
 		my $cachehit;
-		open (my $DNS, "<", "/var/lib/csf/csf.dnscache");
+		open (my $DNS, "<", "/var/lib/qhtlfirewall/csf.dnscache");
 		flock ($DNS, LOCK_SH);
 		while (my $line = <$DNS>) {
 			chomp $line;
@@ -119,7 +119,7 @@ sub iplookup {
 					alarm(0);
 				}
 			}
-			sysopen (DNS, "/var/lib/csf/csf.dnscache", O_WRONLY | O_APPEND | O_CREAT);
+			sysopen (DNS, "/var/lib/qhtlfirewall/csf.dnscache", O_WRONLY | O_APPEND | O_CREAT);
 			flock (DNS, LOCK_EX);
 			print DNS "$ip|$ip|$host\n";
 			close (DNS);
@@ -197,9 +197,9 @@ sub geo_binary {
 	}
 
 	if ($config{CC_SRC} eq "" or $config{CC_SRC} eq "1") {
-		my $file = "/var/lib/csf/Geo/GeoLite2-Country-Blocks-IPv${ipv}.csv";
+		my $file = "/var/lib/qhtlfirewall/Geo/GeoLite2-Country-Blocks-IPv${ipv}.csv";
 		if ($config{CC_LOOKUPS} == 2 or $config{CC_LOOKUPS} == 3) {
-			$file = "/var/lib/csf/Geo/GeoLite2-City-Blocks-IPv${ipv}.csv";
+			$file = "/var/lib/qhtlfirewall/Geo/GeoLite2-City-Blocks-IPv${ipv}.csv";
 		}
 		my $start = 0;
 		my $end = -s $file;
@@ -238,9 +238,9 @@ sub geo_binary {
 		close ($CSV);
 
 		if ($geoid > 0) {
-			my $file = "/var/lib/csf/Geo/GeoLite2-Country-Locations-en.csv";
+			my $file = "/var/lib/qhtlfirewall/Geo/GeoLite2-Country-Locations-en.csv";
 			if ($config{CC_LOOKUPS} == 2 or $config{CC_LOOKUPS} == 3) {
-				$file = "/var/lib/csf/Geo/GeoLite2-City-Locations-en.csv";
+				$file = "/var/lib/qhtlfirewall/Geo/GeoLite2-City-Locations-en.csv";
 			}
 			my $start = 0;
 			my $end = -s $file;
@@ -281,7 +281,7 @@ sub geo_binary {
 		}
 
 		if ($config{CC_LOOKUPS} == 3) {
-			my $file = "/var/lib/csf/Geo/GeoLite2-ASN-Blocks-IPv${ipv}.csv";
+			my $file = "/var/lib/qhtlfirewall/Geo/GeoLite2-ASN-Blocks-IPv${ipv}.csv";
 			my $start = 0;
 			my $end = -s $file;
 			$end += 4;
@@ -322,7 +322,7 @@ sub geo_binary {
 		}
 	} elsif ($config{CC_SRC} eq "2") {
 		my %country_name;
-		open (my $CC, "<", "/var/lib/csf/Geo/countryInfo.txt");
+		open (my $CC, "<", "/var/lib/qhtlfirewall/Geo/countryInfo.txt");
 		flock ($CC, LOCK_SH);
 		foreach my $line (<$CC>) {
 			if ($line eq "" or $line =~ /^\#/ or $line =~ /^\s/) {next}
@@ -331,9 +331,9 @@ sub geo_binary {
 		}
 		close ($CC);
 
-		my $file = "/var/lib/csf/Geo/dbip-country-lite.csv";
+		my $file = "/var/lib/qhtlfirewall/Geo/dbip-country-lite.csv";
 		if ($config{CC_LOOKUPS} == 2 or $config{CC_LOOKUPS} == 3) {
-			$file = "/var/lib/csf/Geo/dbip-city-lite.csv";
+			$file = "/var/lib/qhtlfirewall/Geo/dbip-city-lite.csv";
 		}
 		my $start = 0;
 		my $end = -s $file;
@@ -384,7 +384,7 @@ sub geo_binary {
 		close ($CSV);
 
 		if ($config{CC_LOOKUPS} == 3) {
-			my $file = "/var/lib/csf/Geo/ip2asn-combined.tsv";
+			my $file = "/var/lib/qhtlfirewall/Geo/ip2asn-combined.tsv";
 			my $start = 0;
 			my $end = -s $file;
 			$end += 4;

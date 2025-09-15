@@ -1,8 +1,8 @@
 #!/bin/sh
-echo "Uninstalling csf and lfd..."
+echo "Uninstalling qhtlfirewall and qhtlwaterfall..."
 echo
 
-/usr/sbin/csf -f
+/usr/sbin/qhtlfirewall -f
 
 if test `cat /proc/1/comm` = "systemd"
 then
@@ -16,46 +16,46 @@ then
     systemctl daemon-reload
 else
     if [ -f /etc/redhat-release ]; then
-        /sbin/chkconfig csf off
-        /sbin/chkconfig lfd off
-        /sbin/chkconfig csf --del
-        /sbin/chkconfig lfd --del
+        /sbin/chkconfig qhtlfirewall off
+        /sbin/chkconfig qhtlwaterfall off
+        /sbin/chkconfig qhtlfirewall --del
+        /sbin/chkconfig qhtlwaterfall --del
     elif [ -f /etc/debian_version ] || [ -f /etc/lsb-release ]; then
-        update-rc.d -f lfd remove
-        update-rc.d -f csf remove
+        update-rc.d -f qhtlwaterfall remove
+        update-rc.d -f qhtlfirewall remove
     elif [ -f /etc/gentoo-release ]; then
-        rc-update del lfd default
-        rc-update del csf default
+        rc-update del qhtlwaterfall default
+        rc-update del qhtlfirewall default
     elif [ -f /etc/slackware-version ]; then
-        rm -vf /etc/rc.d/rc3.d/S80csf
-        rm -vf /etc/rc.d/rc4.d/S80csf
-        rm -vf /etc/rc.d/rc5.d/S80csf
-        rm -vf /etc/rc.d/rc3.d/S85lfd
-        rm -vf /etc/rc.d/rc4.d/S85lfd
-        rm -vf /etc/rc.d/rc5.d/S85lfd
+        rm -vf /etc/rc.d/rc3.d/S80qhtlfirewall
+        rm -vf /etc/rc.d/rc4.d/S80qhtlfirewall
+        rm -vf /etc/rc.d/rc5.d/S80qhtlfirewall
+        rm -vf /etc/rc.d/rc3.d/S85qhtlwaterfall
+        rm -vf /etc/rc.d/rc4.d/S85qhtlwaterfall
+        rm -vf /etc/rc.d/rc5.d/S85qhtlwaterfall
     else
-        /sbin/chkconfig csf off
-        /sbin/chkconfig lfd off
-        /sbin/chkconfig csf --del
-        /sbin/chkconfig lfd --del
+        /sbin/chkconfig qhtlfirewall off
+        /sbin/chkconfig qhtlwaterfall off
+        /sbin/chkconfig qhtlfirewall --del
+        /sbin/chkconfig qhtlwaterfall --del
     fi
     rm -fv /etc/init.d/csf
     rm -fv /etc/init.d/lfd
 fi
 
-rm -fv /etc/chkserv.d/lfd
-rm -fv /usr/sbin/csf
-rm -fv /usr/sbin/lfd
+rm -fv /etc/chkserv.d/qhtlwaterfall
+rm -fv /usr/sbin/qhtlfirewall
+rm -fv /usr/sbin/qhtlwaterfall
 rm -fv /etc/cron.d/csf_update
-rm -fv /etc/cron.d/lfd-cron
-rm -fv /etc/cron.d/csf-cron
-rm -fv /etc/logrotate.d/lfd
-rm -fv /usr/local/man/man1/csf.man.1
+rm -fv /etc/cron.d/qhtlwaterfall-cron
+rm -fv /etc/cron.d/qhtlfirewall-cron
+rm -fv /etc/logrotate.d/qhtlwaterfall
+rm -fv /usr/local/man/man1/qhtlfirewall.1
 
-rm -fv /usr/sbin/csf /usr/local/vesta/bin/csf.pl
-rm -Rfv /etc/csf /usr/local/vesta/web/list/csf/ 
-rm -fv /usr/local/csf/lib/ConfigServer/csf.pm
-sed -i "/CSF/d" /usr/local/vesta/web/templates/admin/panel.html
+rm -fv /usr/sbin/qhtlfirewall /usr/local/vesta/bin/csf.pl
+rm -Rfv /etc/qhtlfirewall /usr/local/vesta/web/list/csf/ 
+rm -fv /usr/local/qhtlfirewall/lib/ConfigServer/csf.pm
+sed -i "/QHTL/d" /usr/local/vesta/web/templates/admin/panel.html
 
 echo
 echo "...Done"

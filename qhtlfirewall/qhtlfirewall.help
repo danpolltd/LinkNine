@@ -1,0 +1,5 @@
+qhtlfirewall: QHTL Firewall CLI
+
+Usage: qhtlfirewall [options]
+
+Run "qhtlfirewall --help" to see the full set of commands or check the man page: man qhtlfirewall

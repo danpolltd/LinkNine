@@ -22,9 +22,9 @@
 #
 # Each IP address belongs to the Sectigo SSL provider (formerly Comodo)
 #
-# Note: This file will be replaced when csf is upgraded - do NOT make any
+# Note: This file may be replaced during upgrades - do NOT make any
 # changes to this file. If you do not want to whitelist these IP addresses you
-# need to remove the Include line from csf.allow as this is only added there
+# need to remove the Include line from qhtlfirewall.allow as this is only added there
 # once
 
 tcp|in|d=80|s=178.255.81.12 # Sectigo SSL Resolver

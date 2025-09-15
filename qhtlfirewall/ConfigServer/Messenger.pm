@@ -21,7 +21,7 @@
 package ConfigServer::Messenger;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Fcntl qw(:DEFAULT :flock);
 use File::Copy;
 use JSON::Tiny;
@@ -69,7 +69,7 @@ my $osslkey;
 my $osslca;
 my $sslaliases;
 my $litestart = 0;
-my $ssldir = "/var/lib/csf/ssl/";
+my $ssldir = "/var/lib/qhtlfirewall/ssl/";
 my $phphandler;
 my $version = 1;
 my $serverroot;
@@ -278,9 +278,9 @@ sub messenger {
 	}
 	
 	my $index;
-	if ($type eq "HTML" and $config{RECAPTCHA_SITEKEY} ne "") {$index = "/etc/csf/messenger/index.recaptcha.html"}
-	elsif ($type eq "HTML") {$index = "/etc/csf/messenger/index.html"}
-	else {$index = "/etc/csf/messenger/index.text"}
+	if ($type eq "HTML" and $config{RECAPTCHA_SITEKEY} ne "") {$index = "/etc/qhtlfirewall/messenger/index.recaptcha.html"}
+	elsif ($type eq "HTML") {$index = "/etc/qhtlfirewall/messenger/index.html"}
+	else {$index = "/etc/qhtlfirewall/messenger/index.text"}
 	open (my $IN, "<", $index);
 	flock ($IN, LOCK_SH);
 	my @message = <$IN>;
@@ -289,10 +289,10 @@ sub messenger {
 
 	my %images;
 	if ($type eq "HTML") {
-		opendir (DIR, "/etc/csf/messenger");
+	opendir (DIR, "/etc/qhtlfirewall/messenger");
 		foreach my $file (readdir(DIR)) {
 			if ($file =~ /\.(gif|png|jpg)$/) {
-				open (my $IN, "<", "/etc/csf/messenger/$file");
+				open (my $IN, "<", "/etc/qhtlfirewall/messenger/$file");
 				flock ($IN, LOCK_SH);
 				my @data = <$IN>;
 				close ($IN);
@@ -388,7 +388,7 @@ sub messenger {
 								my $text;
 								eval {
 									local $SIG{__DIE__} = undef;
-									eval("no lib '/usr/local/csf/lib'");
+									eval("no lib '/usr/local/qhtlfirewall/lib'");
 									my $urlget = ConfigServer::URLGet->new(2, "", $config{URLPROXY});
 									my $url = "https://www.google.com/recaptcha/api/siteverify?secret=$config{RECAPTCHA_SECRET}&response=$recv";
 									($status, $text) = $urlget->urlget($url);
@@ -491,7 +491,7 @@ sub messenger {
 # start messengerv2
 sub messengerv2 {
 	my (undef,undef,$uid,$gid,undef,undef,undef,$homedir) = getpwnam($config{MESSENGER_USER});
-	if ($homedir eq "" or $homedir eq "/" or $homedir =~ m[/etc/csf]) {
+	if ($homedir eq "" or $homedir eq "/" or $homedir =~ m[/etc/qhtlfirewall]) {
 		return (1, "The home directory for $config{MESSENGER_USER} is not valid [$homedir]");
 	}
 	if (! -e $homedir) {
@@ -519,15 +519,15 @@ sub messengerv2 {
 	}
 	unless (-e $public_html."/index.php") {
 		if ($config{RECAPTCHA_SITEKEY}) {
-			system("cp","/etc/csf/messenger/index.recaptcha.php",$public_html."/index.php");
+			system("cp","/etc/qhtlfirewall/messenger/index.recaptcha.php",$public_html."/index.php");
 		} else {
-			system("cp","/etc/csf/messenger/index.php",$public_html."/index.php");
+			system("cp","/etc/qhtlfirewall/messenger/index.php",$public_html."/index.php");
 		}
 		system("chown","$config{MESSENGER_USER}:$config{MESSENGER_USER}",$public_html."/index.php");
 		system("chmod","644",$public_html."/index.php");
 	}
 	unless (-e $homedir."/en.php") {
-		system("cp","/etc/csf/messenger/en.php",$homedir."/en.php");
+	system("cp","/etc/qhtlfirewall/messenger/en.php",$homedir."/en.php");
 		system("chown","$config{MESSENGER_USER}:$config{MESSENGER_USER}",$homedir."/en.php");
 		system("chmod","644",$homedir."/en.php");
 	}
@@ -537,13 +537,13 @@ sub messengerv2 {
 	print $CONF "\$secret = '$config{RECAPTCHA_SECRET}';\n";
 	print $CONF "\$sitekey = '$config{RECAPTCHA_SITEKEY}';\n";
 	print $CONF "\$unblockfile = '$homedir/unblock.txt';\n";
-	print $CONF "\$logfile = '/var/log/lfd_messenger.log';\n";
+	print $CONF "\$logfile = '/var/log/qhtlwaterfall_messenger.log';\n";
 	print $CONF "?>\n";
 	system("chown","$config{MESSENGER_USER}:$config{MESSENGER_USER}",$homedir."/recaptcha.php");
 	system("chmod","644",$homedir."/recaptcha.php");
 
 	
-	open (my $OUT, ">", "/var/lib/csf/csf.conf");
+	open (my $OUT, ">", "/var/lib/qhtlfirewall/qhtlfirewall.conf");
 	flock ($OUT, LOCK_EX);
 
 	if ($config{MESSENGER_HTML_IN} ne "") {
@@ -583,7 +583,7 @@ sub messengerv2 {
 		my $sslcert;
 		my $sslkey;
 		my $sslaliases;
-		my $ssldir = "/var/lib/csf/ssl/";
+	my $ssldir = "/var/lib/qhtlfirewall/ssl/";
 		unless (-d $ssldir) {
 			mkdir $ssldir;
 			mkdir $ssldir."certs/";
@@ -710,14 +710,14 @@ sub messengerv2 {
 	}
 	close ($OUT);
 
-	system("cp","-f","/var/lib/csf/csf.conf","/etc/apache2/conf.d/csf.messenger.conf");
+	system("cp","-f","/var/lib/qhtlfirewall/qhtlfirewall.conf","/etc/apache2/conf.d/qhtlfirewall.messenger.conf");
 
 	my ($childin, $childout);
 	my $cmdpid = open3($childin, $childout, $childout, "/usr/sbin/apachectl", "configtest");
 	my @data = <$childout>;
 	waitpid ($cmdpid, 0);
 
-	if (-e "/var/lib/csf/apachectl.error") {unlink("/var/lib/csf/apachectl.error")}
+	if (-e "/var/lib/qhtlfirewall/apachectl.error") {unlink("/var/lib/qhtlfirewall/apachectl.error")}
 	my $ok = 0;
 	foreach (@data) {
 		if ($_ =~ /^Syntax OK/) {$ok = 1}
@@ -726,11 +726,11 @@ sub messengerv2 {
 		system("/scripts/restartsrv_httpd");
 		logfile("MESSENGERV2: Started Apache MESSENGERV2 service using /etc/apache2/conf.d/csf.messenger.conf");
 	} else {
-		logfile("*MESSENGERV2*: Unable to generate a valid Apache configuration, see /var/lib/csf/apachectl.error");
+	logfile("*MESSENGERV2*: Unable to generate a valid Apache configuration, see /var/lib/qhtlfirewall/apachectl.error");
 		if (-e "/etc/apache2/conf.d/csf.messenger.conf") {unlink("/etc/apache2/conf.d/csf.messenger.conf")}
 		system("/scripts/restartsrv_httpd");
 		
-		open (my $ERROR, ">", "/var/lib/csf/apachectl.error");
+	open (my $ERROR, ">", "/var/lib/qhtlfirewall/apachectl.error");
 		flock ($ERROR, LOCK_EX);
 		foreach (@data) {print $ERROR $_}
 		close ($ERROR);
@@ -742,7 +742,7 @@ sub messengerv2 {
 # start messengerv3
 sub messengerv3 {
 	my (undef,undef,$uid,$gid,undef,undef,undef,$homedir) = getpwnam($config{MESSENGER_USER});
-	if ($homedir eq "" or $homedir eq "/" or $homedir =~ m[/etc/csf]) {
+	if ($homedir eq "" or $homedir eq "/" or $homedir =~ m[/etc/qhtlfirewall]) {
 		return (1, "The home directory for $config{MESSENGER_USER} is not valid [$homedir]");
 	}
 	if (! -e $homedir) {
@@ -771,15 +771,15 @@ EOF
 	}
 	unless (-e $public_html."/index.php") {
 		if ($config{RECAPTCHA_SITEKEY}) {
-			system("cp","/etc/csf/messenger/index.recaptcha.php",$public_html."/index.php");
+			system("cp","/etc/qhtlfirewall/messenger/index.recaptcha.php",$public_html."/index.php");
 		} else {
-			system("cp","/etc/csf/messenger/index.php",$public_html."/index.php");
+			system("cp","/etc/qhtlfirewall/messenger/index.php",$public_html."/index.php");
 		}
 		system("chown","$config{MESSENGER_USER}:$config{MESSENGER_USER}",$public_html."/index.php");
 		system("chmod","644",$public_html."/index.php");
 	}
 	unless (-e $homedir."/en.php") {
-		system("cp","/etc/csf/messenger/en.php",$homedir."/en.php");
+	system("cp","/etc/qhtlfirewall/messenger/en.php",$homedir."/en.php");
 		system("chown","$config{MESSENGER_USER}:$config{MESSENGER_USER}",$homedir."/en.php");
 		system("chmod","644",$homedir."/en.php");
 	}
@@ -789,7 +789,7 @@ EOF
 	print $CONF "\$secret = '$config{RECAPTCHA_SECRET}';\n";
 	print $CONF "\$sitekey = '$config{RECAPTCHA_SITEKEY}';\n";
 	print $CONF "\$unblockfile = '$homedir/unblock.txt';\n";
-	print $CONF "\$logfile = '/var/log/lfd_messenger.log';\n";
+	print $CONF "\$logfile = '/var/log/qhtlwaterfall_messenger.log';\n";
 	print $CONF "?>\n";
 	system("chown","$config{MESSENGER_USER}:$config{MESSENGER_USER}",$homedir."/recaptcha.php");
 	system("chmod","644",$homedir."/recaptcha.php");
@@ -801,7 +801,7 @@ EOF
 		$webserver = "litespeed";
 	}
 
-	open (my $OUT, ">", "/var/lib/csf/csf.conf");
+	open (my $OUT, ">", "/var/lib/qhtlfirewall/qhtlfirewall.conf");
 	flock ($OUT, LOCK_EX);
 
 	if ($config{MESSENGERV3PHPHANDLER} ne "") {
@@ -818,7 +818,7 @@ EOF
 		}
 	}
 
-	foreach my $line (slurp("/usr/local/csf/tpl/$webserver.main.txt")) {
+	foreach my $line (slurp("/usr/local/qhtlfirewall/tpl/$webserver.main.txt")) {
 		$line =~ s/\[PORT\]/$config{MESSENGER_HTML}/g;
 		if ($line =~ /Listen \[::\]:/ and !$config{IPV6}) {next}
 		$line =~ s/\[SERVERNAME\]/$hostname/g;
@@ -830,7 +830,7 @@ EOF
 	}
 	
 	if ($config{MESSENGER_HTML_IN} ne "") {
-		foreach my $line (slurp("/usr/local/csf/tpl/$webserver.http.txt")) {
+	foreach my $line (slurp("/usr/local/qhtlfirewall/tpl/$webserver.http.txt")) {
 			$line =~ s/\[PORT\]/$config{MESSENGER_HTML}/g;
 			if ($line =~ /Listen \[::\]:/ and !$config{IPV6}) {next}
 			$line =~ s/\[SERVERNAME\]/$hostname/g;
@@ -888,7 +888,7 @@ EOF
 		my @virtualhost;
 		my $start = 0;
 		my $key = $ssldomainkeys[0];
-		foreach my $line (slurp("/usr/local/csf/tpl/$webserver.https.txt")) {
+	foreach my $line (slurp("/usr/local/qhtlfirewall/tpl/$webserver.https.txt")) {
 			if ($line =~ /^\# Virtualhost start/) {$start = 1}
 			if ($start) {
 				if ($line =~ /^\# Virtualhost end/) {$start = 0}
@@ -975,26 +975,26 @@ EOF
 
 	my $location;
 	if (-d $config{MESSENGERV3LOCATION}) {
-		system("cp","-f","/var/lib/csf/csf.conf",$config{MESSENGERV3LOCATION}."/csf.messenger.conf");
+		system("cp","-f","/var/lib/qhtlfirewall/qhtlfirewall.conf",$config{MESSENGERV3LOCATION}."/qhtlfirewall.messenger.conf");
 		$location = $config{MESSENGERV3LOCATION}."/csf.messenger.conf";
 	}
 	elsif (-f $config{MESSENGERV3LOCATION}) {
 		my @conf = slurp($config{MESSENGERV3LOCATION});
-		unless (grep {$_ =~ m[^Include /var/lib/csf/csf.conf]i} @conf) {
+		unless (grep {$_ =~ m[^Include /var/lib/qhtlfirewall/qhtlfirewall.conf]i} @conf) {
 			sysopen (my $FILE, $config{MESSENGERV3LOCATION}, O_WRONLY | O_APPEND | O_CREAT);
 			flock ($FILE, LOCK_EX);
 			if ($webserver eq "apache") {
-				print $FILE "Include /var/lib/csf/csf.conf\n";
+				print $FILE "Include /var/lib/qhtlfirewall/qhtlfirewall.conf\n";
 			}
 			elsif ($webserver eq "litespeed") {
-				print $FILE "include /var/lib/csf/csf.conf\n";
+				print $FILE "include /var/lib/qhtlfirewall/qhtlfirewall.conf\n";
 			}
 			close ($FILE);
 		}
 		$location = $config{MESSENGERV3LOCATION};
 	}
 	else {
-		logfile("MESSENGERV3: [$config{MESSENGERV3LOCATION}] is neither a directory nor a file. You must manually include /var/lib/csf/csf.conf into the $webserver configuration");
+		logfile("MESSENGERV3: [$config{MESSENGERV3LOCATION}] is neither a directory nor a file. You must manually include /var/lib/qhtlfirewall/qhtlfirewall.conf into the $webserver configuration");
 		return;
 	}
 
@@ -1004,7 +1004,7 @@ EOF
 		my @data = <$childout>;
 		waitpid ($cmdpid, 0);
 
-		if (-e "/var/lib/csf/messenger.error") {unlink("/var/lib/csf/messenger.error")}
+		if (-e "/var/lib/qhtlfirewall/messenger.error") {unlink("/var/lib/qhtlfirewall/messenger.error")}
 		my $ok = 0;
 		foreach (@data) {
 			if ($_ =~ /^Syntax OK/) {$ok = 1}
@@ -1013,7 +1013,7 @@ EOF
 			system($config{MESSENGERV3RESTART});
 			logfile("MESSENGERV3: Restarted $webserver MESSENGERV3 service using $location");
 		} else {
-			open (my $ERROR, ">", "/var/lib/csf/messenger.error");
+		open (my $ERROR, ">", "/var/lib/qhtlfirewall/messenger.error");
 			flock ($ERROR, LOCK_EX);
 			foreach (@data) {print $ERROR $_}
 			close ($ERROR);
@@ -1023,12 +1023,12 @@ EOF
 			}
 			elsif (-f $config{MESSENGERV3LOCATION}) {
 				my @conf = slurp($config{MESSENGERV3LOCATION});
-				if (grep {$_ =~ m[^Include /var/lib/csf/csf.conf]i} @conf) {
+				if (grep {$_ =~ m[^Include /var/lib/qhtlfirewall/qhtlfirewall.conf]i} @conf) {
 					sysopen (my $FILE, $config{MESSENGERV3LOCATION}, O_WRONLY | O_CREAT | O_TRUNC);
 					flock ($FILE, LOCK_EX);
 					foreach my $line (@conf) {
 						$line =~ s/$cleanreg//g;
-						if ($line =~ m[^Include /var/lib/csf/csf.conf]i) {next}
+						if ($line =~ m[^Include /var/lib/qhtlfirewall/qhtlfirewall.conf]i) {next}
 						print $FILE $line."\n";
 					}
 					close ($FILE);
@@ -1037,7 +1037,7 @@ EOF
 
 			system($config{MESSENGERV3RESTART});
 
-			logfile("*MESSENGERV3*: Unable to generate a valid $webserver configuration, see /var/lib/csf/messenger.error");
+		logfile("*MESSENGERV3*: Unable to generate a valid $webserver configuration, see /var/lib/qhtlfirewall/messenger.error");
 		}
 	} else {
 		system($config{MESSENGERV3RESTART});
@@ -1052,7 +1052,7 @@ sub messengerlog {
 	my $homedir = shift;
 	my $message = shift;
 	if ($config{DEBUG}) {
-		sysopen (my $LOG, "/var/log/lfd_messenger.log", O_WRONLY | O_APPEND | O_CREAT);
+		sysopen (my $LOG, "/var/log/qhtlwaterfall_messenger.log", O_WRONLY | O_APPEND | O_CREAT);
 		print $LOG "[$$]: ".$message."\n";
 		close ($LOG);
 	}

@@ -21,7 +21,7 @@
 package ConfigServer::Slurp;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Fcntl qw(:DEFAULT :flock);
 use Carp;
 

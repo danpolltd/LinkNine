@@ -1016,7 +1016,7 @@ sub countfiles {
 ###############################################################################
 # loadconfig
 sub loadconfig {
-	sysopen (my $IN, "/etc/csf/csf.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
+	sysopen (my $IN, "/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
 	flock ($IN, LOCK_SH);
 	my @config = <$IN>;
 	close ($IN);

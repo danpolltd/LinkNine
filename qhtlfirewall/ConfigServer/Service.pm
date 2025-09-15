@@ -21,7 +21,7 @@
 package ConfigServer::Service;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Carp;
 use IPC::Open3;
 use Fcntl qw(:DEFAULT :flock);
@@ -56,7 +56,7 @@ sub startlfd {
 		&printcmd($config{SYSTEMCTL},"start","qhtlwaterfall.service");
 		&printcmd($config{SYSTEMCTL},"status","qhtlwaterfall.service");
 	} else {
-		&printcmd("/etc/init.d/lfd","start");
+		&printcmd("/etc/init.d/qhtlwaterfall","start");
 	}
 
 	return;
@@ -69,7 +69,7 @@ sub stoplfd {
 		&printcmd($config{SYSTEMCTL},"stop","qhtlwaterfall.service");
 	}
 	else {
-		&printcmd("/etc/init.d/lfd","stop");
+		&printcmd("/etc/init.d/qhtlwaterfall","stop");
 	}
 
 	return;
@@ -83,7 +83,7 @@ sub restartlfd {
 		&printcmd($config{SYSTEMCTL},"status","qhtlwaterfall.service");
 	}
 	else {
-		&printcmd("/etc/init.d/lfd","restart");
+		&printcmd("/etc/init.d/qhtlwaterfall","restart");
 	}
 
 	return;
@@ -96,7 +96,7 @@ sub statuslfd {
 		&printcmd($config{SYSTEMCTL},"status","qhtlwaterfall.service");
 	}
 	else {
-		&printcmd("/etc/init.d/lfd","status");
+		&printcmd("/etc/init.d/qhtlwaterfall","status");
 	}
 
 	return 0

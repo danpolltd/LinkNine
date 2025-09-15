@@ -21,7 +21,7 @@
 package ConfigServer::Config;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use version;
 use Fcntl qw(:DEFAULT :flock);
 use Carp;
@@ -43,7 +43,7 @@ my $version;
 
 my $slurpreg = ConfigServer::Slurp->slurpreg;
 my $cleanreg = ConfigServer::Slurp->cleanreg;
-my $configfile = "/etc/csf/csf.conf";
+my $configfile = "/etc/qhtlfirewall/qhtlfirewall.conf";
 
 # end main
 ###############################################################################
@@ -75,7 +75,7 @@ sub loadconfig {
 			croak "*Error* Invalid configuration line [$line] in $configfile";
 		}
 		if ($configsetting{$name}) {
-			croak "*Error* Setting $name is repeated in $configfile - you must remove the duplicates and then restart csf and lfd";
+			croak "*Error* Setting $name is repeated in $configfile - you must remove the duplicates and then restart qhtlfirewall and qhtlwaterfall";
 		}
 		$config{$name} = $value;
 		$configsetting{$name} = 1;
@@ -98,7 +98,7 @@ sub loadconfig {
 	}
 
 	if ($config{IPTABLES} eq "" or !(-x $config{IPTABLES})) {
-		croak "*Error* The path to iptables is either not set or incorrect for IPTABLES [$config{IPTABLES}] in /etc/csf/csf.conf";
+		croak "*Error* The path to iptables is either not set or incorrect for IPTABLES [$config{IPTABLES}] in /etc/qhtlfirewall/qhtlfirewall.conf";
 	}
 
 	if (-e "/proc/sys/net/netfilter/nf_conntrack_helper" and !$config{USE_FTPHELPER}) {
@@ -149,7 +149,7 @@ sub loadconfig {
 
 	if ($config{CC_LOOKUPS} and $config{CC_LOOKUPS} != 4 and $config{CC_SRC} eq "1") {
 		if ($config{MM_LICENSE_KEY} eq "") {
-			$warning .= "*ERROR*: Country Code Lookups setting MM_LICENSE_KEY must be set in /etc/csf/csf.conf to continue using the MaxMind databases\n";
+			$warning .= "*ERROR*: Country Code Lookups setting MM_LICENSE_KEY must be set in /etc/qhtlfirewall/qhtlfirewall.conf to continue using the MaxMind databases\n";
 		}
 	}
 
@@ -169,7 +169,7 @@ sub loadconfig {
 
 	if ($config{CC_DENY} or $config{CC_ALLOW} or $config{CC_ALLOW_FILTER} or $config{CC_ALLOW_PORTS} or $config{CC_DENY_PORTS} or $config{CC_ALLOW_SMTPAUTH}) {
 		if ($config{MM_LICENSE_KEY} eq "" and $config{CC_SRC} eq "1") {
-			$warning .= "*ERROR*: Country Code Filters setting MM_LICENSE_KEY must be set in /etc/csf/csf.conf to continue updating the MaxMind databases\n";
+			$warning .= "*ERROR*: Country Code Filters setting MM_LICENSE_KEY must be set in /etc/qhtlfirewall/qhtlfirewall.conf to continue updating the MaxMind databases\n";
 		}
 	}
 
@@ -327,7 +327,7 @@ sub loadconfig {
 			my $min = $3;
 			if (($maj > 2) or (($maj > 1) and ($mid > 6)) or (($maj > 1) and ($mid > 5) and ($min > 19))) {
 			} else {
-				$warning .=  "*WARNING* Kernel $data[0] may not support an ip6tables SPI firewall. You should set IPV6_SPI to \"0\" in /etc/csf/csf.conf\n\n";
+				$warning .=  "*WARNING* Kernel $data[0] may not support an ip6tables SPI firewall. You should set IPV6_SPI to \"0\" in /etc/qhtlfirewall/qhtlfirewall.conf\n\n";
 			}
 		}
 	}
@@ -356,7 +356,7 @@ sub loadconfig {
 	}
 
 	if ($config{PT_USERKILL}) {
-		$warning .= "*WARNING* PT_USERKILL should not normally be enabled as it can easily lead to legitimate processes being terminated, use csf.pignore instead\n";
+	$warning .= "*WARNING* PT_USERKILL should not normally be enabled as it can easily lead to legitimate processes being terminated, use qhtlfirewall.pignore instead\n";
 	}
 
 	$config{cc_src} = "MaxMind";
@@ -439,7 +439,7 @@ sub systemcmd {
 ## start getdownloadserver
 sub getdownloadserver {
 	my @servers;
-	my $downloadservers = "/etc/csf/downloadservers";
+	my $downloadservers = "/etc/qhtlfirewall/downloadservers";
 	my $chosen;
 	if (-e $downloadservers) {
 		foreach my $line (slurp($downloadservers)) {

@@ -21,7 +21,7 @@
 package ConfigServer::Logger;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Carp;
 use Fcntl qw(:DEFAULT :flock);
 use ConfigServer::Config;
@@ -59,18 +59,18 @@ sub logfile {
 	my @ts = split(/\s+/,scalar localtime);
 	if ($ts[2] < 10) {$ts[2] = " ".$ts[2]}
 
-	my $logfile = "/var/log/lfd.log";
-	if ($< != 0) {$logfile = "/var/log/lfd_messenger.log"}
+	my $logfile = "/var/log/qhtlwaterfall.log";
+	if ($< != 0) {$logfile = "/var/log/qhtlwaterfall_messenger.log"}
 	
 	sysopen (my $LOGFILE, $logfile, O_WRONLY | O_APPEND | O_CREAT);
 	flock ($LOGFILE, LOCK_EX);
-	print $LOGFILE "$ts[1] $ts[2] $ts[3] $hostshort lfd[$$]: $line\n";
+	print $LOGFILE "$ts[1] $ts[2] $ts[3] $hostshort qhtlwaterfall[$$]: $line\n";
 	close ($LOGFILE);
 
 	if ($config{SYSLOG} and $sys_syslog) {
 		eval {
 			local $SIG{__DIE__} = undef;
-			openlog('lfd', 'ndelay,pid', 'user');
+			openlog('qhtlwaterfall', 'ndelay,pid', 'user');
 			syslog('info', $line);
 			closelog();
 		}

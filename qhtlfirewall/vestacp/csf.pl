@@ -23,7 +23,7 @@ use File::Find;
 use Fcntl qw(:DEFAULT :flock);
 use Sys::Hostname qw(hostname);
 use IPC::Open3;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use ConfigServer::DisplayUI;
 use ConfigServer::Config;
 
@@ -32,7 +32,7 @@ our ($script, $images, $myv, %FORM, %in);
 my $config = ConfigServer::Config->loadconfig();
 my %config = $config->config;
 
-open (my $IN, "<", "/etc/csf/version.txt") or die $!;
+open (my $IN, "<", "/etc/qhtlfirewall/version.txt") or die $!;
 $myv = <$IN>;
 close ($IN);
 chomp $myv;

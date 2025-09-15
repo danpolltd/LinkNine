@@ -25,7 +25,7 @@ use Fcntl qw(:DEFAULT :flock);
 use Sys::Hostname qw(hostname);
 use IPC::Open3;
 
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use ConfigServer::DisplayUI;
 use ConfigServer::DisplayResellerUI;
 use ConfigServer::Config;
@@ -62,7 +62,7 @@ if (-e "/usr/local/cpanel/bin/register_appconfig") {
 	$images = "csf";
 }
 
-foreach my $line (slurp("/etc/csf/csf.resellers")) {
+foreach my $line (slurp("/etc/qhtlfirewall/qhtlfirewall.resellers")) {
 	$line =~ s/$cleanreg//g;
 	my ($user,$alert,$privs) = split(/\:/,$line);
 	$privs =~ s/\s//g;
@@ -83,7 +83,7 @@ if (!Whostmgr::ACLS::hasroot()) {
 	}
 }
 
-open (my $IN, "<", "/etc/csf/version.txt") or die $!;
+open (my $IN, "<", "/etc/qhtlfirewall/version.txt") or die $!;
 $myv = <$IN>;
 close ($IN);
 chomp $myv;
@@ -95,14 +95,14 @@ my $bootstrapjs = "<script src='$images/bootstrap/js/bootstrap.min.js'></script>
 my @header;
 my @footer;
 my $htmltag = "data-post='$FORM{action}'";
-if (-e "/etc/csf/csf.header") {
-	open (my $HEADER, "<", "/etc/csf/csf.header");
+if (-e "/etc/qhtlfirewall/qhtlfirewall.header") {
+	open (my $HEADER, "<", "/etc/qhtlfirewall/qhtlfirewall.header");
 	flock ($HEADER, LOCK_SH);
 	@header = <$HEADER>;
 	close ($HEADER);
 }
-if (-e "/etc/csf/csf.footer") {
-	open (my $FOOTER, "<", "/etc/csf/csf.footer");
+if (-e "/etc/qhtlfirewall/qhtlfirewall.footer") {
+	open (my $FOOTER, "<", "/etc/qhtlfirewall/qhtlfirewall.footer");
 	flock ($FOOTER, LOCK_SH);
 	@footer = <$FOOTER>;
 	close ($FOOTER);
@@ -187,7 +187,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	print <<EOF;
 <div id="loader"></div><br />
 <div class='panel panel-default'>
-<h4><img src='$images/csf_small.png' style='padding-left: 10px'> ConfigServer Security &amp; Firewall - csf v$myv</h4></div>
+<h4><img src='$images/csf_small.png' style='padding-left: 10px'> QHTL Firewall - qhtlfirewall v$myv</h4></div>
 EOF
 	if ($reregister ne "") {print $reregister}
 }

@@ -21,7 +21,7 @@
 package ConfigServer::ServerCheck;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Fcntl qw(:DEFAULT :flock);
 use File::Basename;
 use IPC::Open3;
@@ -215,7 +215,7 @@ sub endoutput {
 sub firewallcheck {
 	&addtitle("Firewall Check");
 	my $status = 0;
-	open (my $IN, "<", "/etc/csf/csf.conf");
+	open (my $IN, "<", "/etc/qhtlfirewall/qhtlfirewall.conf");
 	flock ($IN, LOCK_SH);
 	my @config = <$IN>;
 	chomp @config;
@@ -234,7 +234,7 @@ sub firewallcheck {
 	}
 
 	$status = 0;
-	if (-e "/etc/csf/csf.disable") {$status = 1}
+	if (-e "/etc/qhtlfirewall/qhtlfirewall.disable") {$status = 1}
 	&addline($status,"csf enabled check","csf is currently disabled and should be enabled otherwise it is not functioning");
 	
 	if (-x $config{IPTABLES}) {
@@ -255,7 +255,7 @@ sub firewallcheck {
 
 	$status = 0;
 	unless ($config{RESTRICT_SYSLOG}) {$status = 1}
-	&addline($status,"RESTRICT_SYSLOG option check","Due to issues with syslog/rsyslog you should consider enabling this option. See the Firewall Configuration (/etc/csf/csf.conf) for more information");
+	&addline($status,"RESTRICT_SYSLOG option check","Due to issues with syslog/rsyslog you should consider enabling this option. See the Firewall Configuration (/etc/qhtlfirewall/qhtlfirewall.conf) for more information");
 
 	$status = 0;
 	unless ($config{AUTO_UPDATES}) {$status = 1}
@@ -328,7 +328,7 @@ sub firewallcheck {
 		&addline($status,"PT_ALL_USERS option check","This option ensures that almost all Linux accounts are checked with Process Tracking, not just the cPanel ones");
 	}
 
-	sysopen (my $CONF, "/etc/csf/csf.conf", O_RDWR | O_CREAT);
+	sysopen (my $CONF, "/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT);
 	flock ($CONF, LOCK_SH);
 	my @confdata = <$CONF>;
 	close ($CONF);

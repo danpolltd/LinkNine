@@ -21,7 +21,7 @@
 package ConfigServer::AbuseIP;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Carp;
 use IPC::Open3;
 use Net::IP;

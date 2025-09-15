@@ -95,7 +95,7 @@ To install or upgrade the csf webmin module:
 Install csf as above
 Install the csf webmin module in:
   Webmin > Webmin Configuration > Webmin Modules >
-  From local file > /usr/local/csf/csfwebmin.tgz > Install Module
+  From local file > /usr/local/qhtlfirewall/qhtlfirewallwebmin.tgz > Install Module
 
 
 Uninstallation

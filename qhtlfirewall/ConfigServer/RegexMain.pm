@@ -21,7 +21,7 @@
 package ConfigServer::RegexMain;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use IPC::Open3;
 use ConfigServer::Config;
 use ConfigServer::CheckIP qw(checkip);
@@ -83,7 +83,7 @@ my $ethdev = ConfigServer::GetEthDev->new();
 %brd = $ethdev->brd;
 %ips = $ethdev->ipv4;
 
-if (-e "/usr/local/csf/bin/regex.custom.pm") {require "/usr/local/csf/bin/regex.custom.pm"} ##no critic
+if (-e "/usr/local/qhtlfirewall/bin/regex.custom.pm") {require "/usr/local/qhtlfirewall/bin/regex.custom.pm"} ##no critic
 
 # end main
 ###############################################################################
@@ -96,7 +96,7 @@ sub processline {
 	$line =~ s/\n//g;
 	$line =~ s/\r//g;
 
-	if (-e "/usr/local/csf/bin/regex.custom.pm") {
+	if (-e "/usr/local/qhtlfirewall/bin/regex.custom.pm") {
 		my ($text,$ip,$app,$trigger,$ports,$temp,$cf) = &custom_line($line,$lgfile);
 		if ($text) {
 			return ($text,$ip,$app,$trigger,$ports,$temp,$cf);

@@ -21,7 +21,7 @@
 package ConfigServer::Sanity;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Fcntl qw(:DEFAULT :flock);
 use Carp;
 use ConfigServer::Config;
@@ -33,7 +33,7 @@ our @EXPORT_OK   = qw(sanity);
 
 my %sanity;
 my %sanitydefault;
-my $sanityfile = "/usr/local/csf/lib/sanity.txt";
+my $sanityfile = "/usr/local/qhtlfirewall/lib/sanity.txt";
 
 open (my $IN, "<", $sanityfile);
 flock ($IN, LOCK_SH);

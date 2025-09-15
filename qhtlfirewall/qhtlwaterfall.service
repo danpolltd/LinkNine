@@ -4,9 +4,9 @@ After=network.target qhtlfirewall.service
 
 [Service]
 LimitNOFILE=4096
-ExecStart=/usr/sbin/lfd
+ExecStart=/usr/sbin/qhtlwaterfall
 Type=forking
-PIDFile=/run/lfd.pid
+PIDFile=/run/qhtlwaterfall.pid
 
 [Install]
 WantedBy=multi-user.target

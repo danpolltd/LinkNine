@@ -54,7 +54,7 @@ rm -fv /etc/logrotate.d/qhtlwaterfall
 
 # Remove binaries and manpage
 rm -fv /usr/sbin/qhtlfirewall /usr/sbin/qhtlwaterfall
-rm -fv /usr/local/man/man1/csf.1
+rm -fv /usr/local/man/man1/qhtlfirewall.1
 
 # Remove DirectAdmin plugin
 rm -Rfv /usr/local/directadmin/plugins/csf

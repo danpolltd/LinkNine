@@ -21,7 +21,7 @@
 package ConfigServer::GetEthDev;
 
 use strict;
-use lib '/usr/local/csf/lib';
+use lib '/usr/local/qhtlfirewall/lib';
 use Carp;
 use Fcntl qw(:DEFAULT :flock);
 use IPC::Open3;
