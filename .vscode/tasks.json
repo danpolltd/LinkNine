@@ -1,0 +1,33 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Diff vs main (stat)",
+      "type": "shell",
+      "command": "git --no-pager diff --stat main...HEAD",
+      "group": "none",
+      "problemMatcher": []
+    },
+    {
+      "label": "Diff vs main (shortstat)",
+      "type": "shell",
+      "command": "git --no-pager diff --shortstat main...HEAD",
+      "group": "none",
+      "problemMatcher": []
+    },
+    {
+      "label": "Diff vs main (names)",
+      "type": "shell",
+      "command": "git --no-pager diff --name-status main...HEAD",
+      "group": "none",
+      "problemMatcher": []
+    },
+    {
+      "label": "Diff vs main (numstat)",
+      "type": "shell",
+      "command": "git --no-pager diff --numstat main...HEAD",
+      "group": "none",
+      "problemMatcher": []
+    }
+  ]
+}

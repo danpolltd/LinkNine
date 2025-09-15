@@ -8,5 +8,6 @@ __pycache__/
 rebrand-patches/
 SHA256SUMS.txt
 
-# VS Code settings
-.vscode/
+# VS Code settings (ignore all except tasks.json)
+.vscode/*
+!.vscode/tasks.json
