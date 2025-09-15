@@ -1,0 +1,40 @@
+From 3b68543214d507070d02892b9971fefcce1a8cfa Mon Sep 17 00:00:00 2001
+From: Daniel Nowakowski <asti.nowak@gmail.com>
+Date: Mon, 15 Sep 2025 18:43:52 +0000
+Subject: [PATCH 3/4] CWP glue: rebrand csfofficial -> qhtlfirewall and
+ simplify module check
+
+---
+ qhtlfirewall/cwp/configserver.php | 15 +++++++--------
+ 1 file changed, 7 insertions(+), 8 deletions(-)
+
+diff --git a/qhtlfirewall/cwp/configserver.php b/qhtlfirewall/cwp/configserver.php
+index d285e0b..76f47eb 100644
+--- a/qhtlfirewall/cwp/configserver.php
++++ b/qhtlfirewall/cwp/configserver.php
+@@ -5,15 +5,14 @@
+ 		+' <a href="#" class="hasUl"><span aria-hidden="true" class="icon16 icomoon-icon-bug"></span>ConfigServer Scripts<span class="hasDrop icon16 icomoon-icon-arrow-down-2"></span></a>'
+ 		+'	<ul class="sub">'
+ <?php 
+-	
+-	if (file_exists("/usr/local/cwpsrv/htdocs/resources/admin/modules/csfofficial.php")) {
+-		echo "+'		<li><a href=\"index.php?module=csfofficial\"><span class=\"icon16 icomoon-icon-arrow-right-3\"></span>ConfigServer Firewall</a></li>'\n";
+-	}
+-
+-	if (file_exists("/usr/local/cwpsrv/htdocs/resources/admin/modules/cxs.php")) {
+-		echo "+'		<li><a href=\"index.php?module=cxs\"><span class=\"icon16 icomoon-icon-arrow-right-3\"></span>ConfigServer Exploit Scanner</a></li>'\n";
+-	}
++// qhtlfirewall rebrand (removed legacy csfofficial module name)
++if (file_exists("/usr/local/cwpsrv/htdocs/resources/admin/modules/qhtlfirewall.php")) {
++	echo "+'\t\t<li><a href=\"index.php?module=qhtlfirewall\"><span class=\"icon16 icomoon-icon-arrow-right-3\"></span>QHTL Firewall</a></li>'\n";
++}
+ 
++if (file_exists("/usr/local/cwpsrv/htdocs/resources/admin/modules/cxs.php")) {
++	echo "+'\t\t<li><a href=\"index.php?module=cxs\"><span class=\"icon16 icomoon-icon-arrow-right-3\"></span>ConfigServer Exploit Scanner</a></li>'\n";
++}
+ ?>
+ 		+'	</ul>'
+ 		+'</li>';
+-- 
+2.50.1
+
