@@ -1,0 +1,12 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Distribution / packaging
+*.bundle
+*.tar.gz
+rebrand-patches/
+SHA256SUMS.txt
+
+# VS Code settings
+.vscode/
