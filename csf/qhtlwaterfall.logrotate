@@ -1,0 +1,12 @@
+/var/log/qhtlwaterfall.log {
+        weekly
+        rotate 1
+        compress
+        missingok
+}
+/var/log/qhtlwaterfall_messenger.log {
+        weekly
+        rotate 1
+        compress
+        missingok
+}

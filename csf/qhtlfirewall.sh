@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 ###############################################################################
-# lfd
+# qhtlfirewall
 # Copyright (C) 2006-2025 Jonathan Michaelson
 #
 # https://github.com/waytotheweb/scripts
@@ -20,43 +20,40 @@
 # this program; if not, see <https://www.gnu.org/licenses>.
 ###############################################################################
 #
-# chkconfig: 2345 20 75
-# description: Login Failure Daemon
+# chkconfig: 2345 15 80
+# description: QHTL Firewall
 #
 ### BEGIN INIT INFO
-# Provides:          lfd
-# Required-Start:    $network $syslog
-# Required-Stop:     $network $syslog
+# Provides:          qhtlfirewall
+# Required-Start:    $network
+# Required-Stop:     $network
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: csf Login Failure Daemon (lfd)
-# Description:       csf Login Failure Daemon (lfd) init script
+# X-Start-Before:    $syslog
+# Short-Description: QHTL Firewall (qhtlfirewall)
+# Description:       QHTL Firewall (qhtlfirewall) init script
 ### END INIT INFO
 #
 
-[ -f /usr/sbin/lfd ] || exit 0
+[ -f /usr/sbin/qhtlfirewall ] || exit 0
 
 # Source function library.
 if [ -f /etc/init.d/functions ]; then
 	. /etc/init.d/functions
 fi
 
-RETVAL=0
-PID=/var/run/lfd.pid
-DAEMON=/usr/sbin/lfd
-PIDOF=pidof
+DAEMON=/usr/sbin/qhtlfirewall
+LOCKFILE=/var/lock/subsys/qhtlfirewall
 
 if [ -f /etc/SuSE-release ]; then
 	. /etc/rc.status
 	rc_reset
 fi
 
-# See how we were called.
 case "$1" in
   start)
-	echo -n "Starting lfd:"
-    ulimit -n 4096
-	$DAEMON
+	echo -n "Starting qhtlfirewall:"
+	$DAEMON --initup
 	if [ -f /etc/SuSE-release ]; then
 		rc_status -v
 	elif [ -f /etc/debian_version ] || [ -f /etc/lsb-release ] || [ -f /etc/gentoo-release ]; then
@@ -64,52 +61,43 @@ case "$1" in
 	else
 		success
 		echo
+	fi
+	echo
+	if [ -e /var/lock/subsys/ ]; then
+		touch $LOCKFILE
 	fi
 	;;
   stop)
-	echo -n "Stopping lfd:"
+	echo "WARNING: This script should ONLY be used by the init process. To restart qhtlfirewall use the CLI command 'qhtlfirewall -r'"
+	echo
+	echo -n "Stopping qhtlfirewall:"
+	$DAEMON --initdown
+	$DAEMON --stop > /dev/null 2>&1
 	if [ -f /etc/SuSE-release ]; then
-		killproc lfd
 		rc_status -v
 	elif [ -f /etc/debian_version ] || [ -f /etc/lsb-release ] || [ -f /etc/gentoo-release ]; then
-		lfd=`cat /var/run/lfd.pid 2>/dev/null`
-		if [ -n "${lfd}" ] && [ -e /proc/"${lfd}" ]; then
-			kill "$lfd";
-		fi
 		echo " Done"
 	else
-		killproc lfd
 		success
 		echo
 	fi
+	echo
+	if [ -e /var/lock/subsys/ ]; then
+		rm -f $LOCKFILE
+	fi
 	;;
   status)
-        echo -n "Status of lfd:"
-	if [ -f /etc/SuSE-release ]; then
-	        checkproc lfd
-	        rc_status -v
-		RETVAL=$?
-	elif [ -f /etc/debian_version ] || [ -f /etc/lsb-release ] || [ -f /etc/gentoo-release ]; then
-		lfd=`cat /var/run/lfd.pid 2>/dev/null`
-		if [ -n "${lfd}" ] && [ -e /proc/"${lfd}" ]; then
-			echo " Running"
-		else
-			echo " Stopped"
-			RETVAL=3
-		fi
-	else
-		status lfd
-		RETVAL=$?
-		echo
-	fi
+        echo -n "Status of qhtlfirewall:"
+	$DAEMON --status
+	echo
         ;;
-  restart|force-reload)
+  restart|force-reload|reload)
 	$0 stop
 	$0 start
 	;;
   *)
-	echo "Usage: /etc/init.d/lfd start|stop|restart|force-reload|status"
+	echo "Usage: /etc/init.d/qhtlfirewall start|stop|restart|force-reload|status"
 	exit 1
 esac
 
-exit $RETVAL
+exit 0
