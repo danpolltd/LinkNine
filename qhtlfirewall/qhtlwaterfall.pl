@@ -559,9 +559,9 @@ if (-e "/var/lib/qhtlfirewall/qhtlfirewall.restart") {
 	&qhtlfirewallrestart;
 }
 
-if ($config{LF_CSF}) {
+if ($config{LF_QHTLFIREWALL}) {
 	if (-e "/var/lib/qhtlfirewall/cpanel.new") {unlink "/var/lib/qhtlfirewall/cpanel.new"}
-	logfile("CSF Tracking...");
+	logfile("QHTLFIREWALL Tracking...");
 	&qhtlfirewallcheck;
 	$qhtlfirewalltimeout = 0;
 }
@@ -1228,7 +1228,7 @@ while (1)  {
 		&qhtlfirewallrestart;
 	}
 
-	if ($config{LF_CSF}) {
+	if ($config{LF_QHTLFIREWALL}) {
 		$qhtlfirewalltimeout+=$duration;
 		if ($qhtlfirewalltimeout >= 300) {
 			$qhtlfirewalltimeout = 0;
@@ -2334,8 +2334,8 @@ sub lockhang {
 			close ($COMMANDLOCK);
 			if ($pid == $$) {
 				logfile("*Hanging Lock* by main qhtlwaterfall process found for /var/lib/qhtlfirewall/lock/command.lock - restarting qhtlwaterfall");
-				open (my $LFDOUT, ">", "/var/lib/qhtlfirewall/qhtlwaterfall.restart");
-				close ($LFDOUT);
+				open (my $QHTLWATERFALLOUT, ">", "/var/lib/qhtlfirewall/qhtlwaterfall.restart");
+				close ($QHTLWATERFALLOUT);
 			} else {
 				kill (9, $pid);
 				logfile("*Hanging Lock* by $pid found for /var/lib/qhtlfirewall/lock/command.lock - terminated");
@@ -3246,7 +3246,7 @@ sub qhtlfirewallcheck {
 						if ($config{DEBUG} >= 3) {$timer = &timer("start","cpanelcheck",$timer)}
 						$0 = "qhtlwaterfall - (child) cPanel upgraded...";
 
-						my $lockstr = "LF_CSF";
+						my $lockstr = "LF_QHTLFIREWALL";
 						sysopen (my $THISLOCK, "/var/lib/qhtlfirewall/lock/$lockstr.lock", O_RDWR | O_CREAT) or &childcleanup("*Error* Unable to open /var/lib/qhtlfirewall/lock/$lockstr.lock");
 						flock ($THISLOCK, LOCK_EX | LOCK_NB) or &childcleanup("*Lock Error* [$lockstr] still active - section skipped");
 						print $THISLOCK time;
@@ -3300,8 +3300,8 @@ sub qhtlfirewallcheck {
 						}
 
 						logfile("cPanel upgrade detected, restarting qhtlwaterfall");
-						open (my $LFDOUT, ">", "/var/lib/qhtlfirewall/qhtlwaterfall.restart");
-						close ($LFDOUT);
+						open (my $QHTLWATERFALLOUT, ">", "/var/lib/qhtlfirewall/qhtlwaterfall.restart");
+						close ($QHTLWATERFALLOUT);
 				
 						close ($THISLOCK );
 						if ($config{DEBUG} >= 3) {$timer = &timer("stop","cpanelcheck",$timer)}
@@ -8284,9 +8284,9 @@ sub timer {
 # start qhtlfirewalllock
 sub qhtlfirewalllock {
 	my $ret = 0;
-	sysopen (my $CSFLOCKFILE, "/var/lib/qhtlfirewall/qhtlfirewall.lock", O_RDWR | O_CREAT) or &childcleanup("*Error* Unable to open qhtlfirewall lock file");
-	flock ($CSFLOCKFILE, LOCK_SH | LOCK_NB) or $ret = 1;
-	close ($CSFLOCKFILE);
+	sysopen (my $QHTLFIREWALLLOCKFILE, "/var/lib/qhtlfirewall/qhtlfirewall.lock", O_RDWR | O_CREAT) or &childcleanup("*Error* Unable to open qhtlfirewall lock file");
+	flock ($QHTLFIREWALLLOCKFILE, LOCK_SH | LOCK_NB) or $ret = 1;
+	close ($QHTLFIREWALLLOCKFILE);
 
 	return $ret;
 }
@@ -10421,8 +10421,8 @@ sub qhtlwaterfallserver {
 									print $IGNORE "$ip # Cluster member $pip said, IGNORE $ip, Reason:[$message] - ".localtime(time)."\n";
 									logfile("Cluster member $pip said, IGNORE $ip, [$message]");
 									logfile("Cluster - qhtlwaterfall restarting...");
-									open (my $LFDOUT, ">", "/var/lib/qhtlfirewall/qhtlwaterfall.restart");
-									close ($LFDOUT);
+									open (my $QHTLWATERFALLOUT, ">", "/var/lib/qhtlfirewall/qhtlwaterfall.restart");
+									close ($QHTLWATERFALLOUT);
 								} else {
 									logfile("Cluster member $pip said, IGNORE $ip, [$message], however it is already being ignored");
 								}
@@ -10452,8 +10452,8 @@ sub qhtlwaterfallserver {
 								if ($hit) {
 									logfile("Cluster member $pip said, REMOVE IGNORE $tip");
 									logfile("Cluster - qhtlwaterfall restarting...");
-									open (my $LFDOUT, ">", "/var/lib/qhtlfirewall/qhtlwaterfall.restart");
-									close ($LFDOUT);
+									open (my $QHTLWATERFALLOUT, ">", "/var/lib/qhtlfirewall/qhtlwaterfall.restart");
+									close ($QHTLWATERFALLOUT);
 								} else {
 									logfile("Cluster member $pip said, REMOVE IGNORE $tip, however it is not in qhtlfirewall.ignore");
 								}
@@ -10507,8 +10507,8 @@ sub qhtlwaterfallserver {
 										logfile("Cluster - qhtlfirewall restarting...");
 										&syscommand(__LINE__,"/usr/sbin/qhtlfirewall","-sf");
 										logfile("Cluster - qhtlwaterfall restarting...");
-										open (my $LFDOUT, ">", "/var/lib/qhtlfirewall/qhtlwaterfall.restart");
-										close ($LFDOUT);
+										open (my $QHTLWATERFALLOUT, ">", "/var/lib/qhtlfirewall/qhtlwaterfall.restart");
+										close ($QHTLWATERFALLOUT);
 									} else {
 										logfile("*Cluster* member $pip said restart qhtlfirewall and qhtlwaterfall, however CLUSTER_CONFIG disabled");
 									}

@@ -31,7 +31,7 @@ main ()
 	int admin = 0;
 	int reseller = 0;
 
-	setenv("CSF_RESELLER", "", 1);
+	setenv("QHTLFIREWALL_RESELLER", "", 1);
 	ruid = getuid();
 	pw = getpwuid(ruid);
 
@@ -65,7 +65,7 @@ main ()
 				if (strcmp(pw->pw_name, name) == 0)
 				{
 					reseller = 1;
-					setenv("CSF_RESELLER", pw->pw_name, 1);
+					setenv("QHTLFIREWALL_RESELLER", pw->pw_name, 1);
 				}
 			}
 			fclose(resellerFile);

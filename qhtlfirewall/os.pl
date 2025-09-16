@@ -26,18 +26,18 @@ umask(0177);
 
 
 if (-l "/var/run" and readlink("/var/run") eq "../run" and -d "/run") {
-	sysopen (my $LFD, "qhtlwaterfall.service", O_RDWR);
-	my @data = <$LFD>;
-	seek ($LFD, 0, 0);
-	truncate ($LFD, 0);
+	sysopen (my $QHTLWATERFALL, "qhtlwaterfall.service", O_RDWR);
+	my @data = <$QHTLWATERFALL>;
+	seek ($QHTLWATERFALL, 0, 0);
+	truncate ($QHTLWATERFALL, 0);
 	foreach my $line (@data) {
 		if ($line =~ /^PIDFile=/) {
-			print $LFD "PIDFile=/run/qhtlwaterfall.pid\n";
+			print $QHTLWATERFALL "PIDFile=/run/qhtlwaterfall.pid\n";
 		} else {
-			print $LFD $line;
+			print $QHTLWATERFALL $line;
 		}
 	}
-	close ($LFD);
+	close ($QHTLWATERFALL);
 }
 
 my $return = 0;

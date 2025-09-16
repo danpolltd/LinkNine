@@ -33,7 +33,7 @@ OPTIONS
 	      Quick restart (qhtlfirewall restarted by qhtlwaterfall)
 
        -sf, --startf
-	      Force CLI restart regardless of LFDSTART setting
+	      Force CLI restart regardless of QHTLWATERFALLSTART setting
 
        -ra, --restartall
 	      Restart firewall rules (qhtlfirewall) and then restart qhtlwaterfall daemon. Both qhtlfirewall and then qhtlwaterfall should be restarted after making	any  changes  to

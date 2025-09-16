@@ -17,52 +17,52 @@
 //# this program; if not, see <https://www.gnu.org/licenses>.
 //#############################################################################
 
-var CSFscript = '';
-var CSFcountval = 6;
-var CSFlineval = 100;
-var CSFcounter;
-var CSFcount = 1;
-var CSFpause = 0;
-var CSFfrombot = 120;
-var CSFfromright = 10;
-var CSFsettimer = 0;
-var CSFheight = 0;
-var CSFwidth = 0;
-var CSFajaxHTTP = CSFcreateRequestObject();
+var QHTLFIREWALLscript = '';
+var QHTLFIREWALLcountval = 6;
+var QHTLFIREWALLlineval = 100;
+var QHTLFIREWALLcounter;
+var QHTLFIREWALLcount = 1;
+var QHTLFIREWALLpause = 0;
+var QHTLFIREWALLfrombot = 120;
+var QHTLFIREWALLfromright = 10;
+var QHTLFIREWALLsettimer = 0;
+var QHTLFIREWALLheight = 0;
+var QHTLFIREWALLwidth = 0;
+var QHTLFIREWALLajaxHTTP = QHTLFIREWALLcreateRequestObject();
 
-function CSFcreateRequestObject() {
-	var CSFajaxRequest;
+function QHTLFIREWALLcreateRequestObject() {
+	var QHTLFIREWALLajaxRequest;
 	if (window.XMLHttpRequest) {
-		CSFajaxRequest = new XMLHttpRequest();
+		QHTLFIREWALLajaxRequest = new XMLHttpRequest();
 	}
 	else if (window.ActiveXObject) {
-		CSFajaxRequest = new ActiveXObject("Microsoft.XMLHTTP");
+		QHTLFIREWALLajaxRequest = new ActiveXObject("Microsoft.XMLHTTP");
 	}
 	else {
 		alert('There was a problem creating the XMLHttpRequest object in your browser');
-		CSFajaxRequest = '';
+		QHTLFIREWALLajaxRequest = '';
 	}
-	return CSFajaxRequest;
+	return QHTLFIREWALLajaxRequest;
 }
 
-function CSFsendRequest(url) {
+function QHTLFIREWALLsendRequest(url) {
 	var now = new Date();
-	CSFajaxHTTP.open('get', url + '&nocache=' + now.getTime());
-	CSFajaxHTTP.onreadystatechange = CSFhandleResponse;
-	CSFajaxHTTP.send();
-	document.getElementById("CSFrefreshing").style.display = "inline";
+	QHTLFIREWALLajaxHTTP.open('get', url + '&nocache=' + now.getTime());
+	QHTLFIREWALLajaxHTTP.onreadystatechange = QHTLFIREWALLhandleResponse;
+	QHTLFIREWALLajaxHTTP.send();
+	document.getElementById("QHTLFIREWALLrefreshing").style.display = "inline";
 } 
 
-function CSFhandleResponse() {
-	if(CSFajaxHTTP.readyState == 4 && CSFajaxHTTP.status == 200){
-		if(CSFajaxHTTP.responseText) {
-			var CSFobj = document.getElementById("CSFajax");
-			CSFobj.innerHTML = CSFajaxHTTP.responseText;
-			waitForElement("CSFajax",function(){
-				CSFobj.scrollTop = CSFobj.scrollHeight;
+function QHTLFIREWALLhandleResponse() {
+	if(QHTLFIREWALLajaxHTTP.readyState == 4 && QHTLFIREWALLajaxHTTP.status == 200){
+		if(QHTLFIREWALLajaxHTTP.responseText) {
+			var QHTLFIREWALLobj = document.getElementById("QHTLFIREWALLajax");
+			QHTLFIREWALLobj.innerHTML = QHTLFIREWALLajaxHTTP.responseText;
+			waitForElement("QHTLFIREWALLajax",function(){
+				QHTLFIREWALLobj.scrollTop = QHTLFIREWALLobj.scrollHeight;
 			});
-			document.getElementById("CSFrefreshing").style.display = "none";
-			if (CSFsettimer) {CSFcounter = setInterval(CSFtimer, 1000);}
+			document.getElementById("QHTLFIREWALLrefreshing").style.display = "none";
+			if (QHTLFIREWALLsettimer) {QHTLFIREWALLcounter = setInterval(QHTLFIREWALLtimer, 1000);}
 		}
 	}
 }
@@ -78,68 +78,68 @@ function waitForElement(elementId, callBack){
 	},500)
 }
 
-function CSFgrep() {
-	CSFsettimer = 0;
-	var CSFlogobj = document.getElementById("CSFlognum");
-	var CSFlognum;
-	if (CSFlogobj) {CSFlognum = '&lognum=' + CSFlogobj.options[CSFlogobj.selectedIndex].value}
-	else {CSFlognum = ""}
-	if (document.getElementById("CSFgrep_i").checked) {CSFlognum = CSFlognum + "&grepi=1"}
-	if (document.getElementById("CSFgrep_E").checked) {CSFlognum = CSFlognum + "&grepE=1"}
-	if (document.getElementById("CSFgrep_Z").checked) {CSFlognum = CSFlognum + "&grepZ=1"}
-	var CSFurl = CSFscript + '&grep=' + document.getElementById("CSFgrep").value + CSFlognum;
-	CSFsendRequest(CSFurl);
+function QHTLFIREWALLgrep() {
+	QHTLFIREWALLsettimer = 0;
+	var QHTLFIREWALLlogobj = document.getElementById("QHTLFIREWALLlognum");
+	var QHTLFIREWALLlognum;
+	if (QHTLFIREWALLlogobj) {QHTLFIREWALLlognum = '&lognum=' + QHTLFIREWALLlogobj.options[QHTLFIREWALLlogobj.selectedIndex].value}
+	else {QHTLFIREWALLlognum = ""}
+	if (document.getElementById("QHTLFIREWALLgrep_i").checked) {QHTLFIREWALLlognum = QHTLFIREWALLlognum + "&grepi=1"}
+	if (document.getElementById("QHTLFIREWALLgrep_E").checked) {QHTLFIREWALLlognum = QHTLFIREWALLlognum + "&grepE=1"}
+	if (document.getElementById("QHTLFIREWALLgrep_Z").checked) {QHTLFIREWALLlognum = QHTLFIREWALLlognum + "&grepZ=1"}
+	var QHTLFIREWALLurl = QHTLFIREWALLscript + '&grep=' + document.getElementById("QHTLFIREWALLgrep").value + QHTLFIREWALLlognum;
+	QHTLFIREWALLsendRequest(QHTLFIREWALLurl);
 }
 
-function CSFtimer() {
-	CSFsettimer = 1;
-	if (CSFpause) {return}
-	CSFcount = CSFcount - 1;
-	document.getElementById("CSFtimer").innerHTML = CSFcount;
-	if (CSFcount <= 0) {
-		clearInterval(CSFcounter);
-		var CSFlogobj = document.getElementById("CSFlognum");
-		var CSFlognum;
-		if (CSFlogobj) {CSFlognum = '&lognum=' + CSFlogobj.options[CSFlogobj.selectedIndex].value}
-		else {CSFlognum = ""}
-		CSFsendRequest(CSFscript + '&lines=' + document.getElementById("CSFlines").value + CSFlognum);
-		CSFcount = CSFcountval;
+function QHTLFIREWALLtimer() {
+	QHTLFIREWALLsettimer = 1;
+	if (QHTLFIREWALLpause) {return}
+	QHTLFIREWALLcount = QHTLFIREWALLcount - 1;
+	document.getElementById("QHTLFIREWALLtimer").innerHTML = QHTLFIREWALLcount;
+	if (QHTLFIREWALLcount <= 0) {
+		clearInterval(QHTLFIREWALLcounter);
+		var QHTLFIREWALLlogobj = document.getElementById("QHTLFIREWALLlognum");
+		var QHTLFIREWALLlognum;
+		if (QHTLFIREWALLlogobj) {QHTLFIREWALLlognum = '&lognum=' + QHTLFIREWALLlogobj.options[QHTLFIREWALLlogobj.selectedIndex].value}
+		else {QHTLFIREWALLlognum = ""}
+		QHTLFIREWALLsendRequest(QHTLFIREWALLscript + '&lines=' + document.getElementById("QHTLFIREWALLlines").value + QHTLFIREWALLlognum);
+		QHTLFIREWALLcount = QHTLFIREWALLcountval;
 		return;
 	}
 }
 
-function CSFpausetimer() {
-	if (CSFpause) {
-		CSFpause = 0;
-		document.getElementById("CSFpauseID").innerHTML = "Pause";
+function QHTLFIREWALLpausetimer() {
+	if (QHTLFIREWALLpause) {
+		QHTLFIREWALLpause = 0;
+		document.getElementById("QHTLFIREWALLpauseID").innerHTML = "Pause";
 	}
 	else {
-		CSFpause = 1;
-		document.getElementById("CSFpauseID").innerHTML = "Continue";
+		QHTLFIREWALLpause = 1;
+		document.getElementById("QHTLFIREWALLpauseID").innerHTML = "Continue";
 	}
 }
 
-function CSFrefreshtimer() {
-	var pause = CSFpause;
-	CSFcount = 1;
-	CSFpause = 0;
-	CSFtimer();
-	CSFpause = pause;
-	CSFcount = CSFcountval - 1;
-	document.getElementById("CSFtimer").innerHTML = CSFcount;
+function QHTLFIREWALLrefreshtimer() {
+	var pause = QHTLFIREWALLpause;
+	QHTLFIREWALLcount = 1;
+	QHTLFIREWALLpause = 0;
+	QHTLFIREWALLtimer();
+	QHTLFIREWALLpause = pause;
+	QHTLFIREWALLcount = QHTLFIREWALLcountval - 1;
+	document.getElementById("QHTLFIREWALLtimer").innerHTML = QHTLFIREWALLcount;
 }
 
 function windowSize() {
 	if( typeof( window.innerHeight ) == 'number' ) {
-		CSFheight = window.innerHeight;
-		CSFwidth = window.innerWidth;
+		QHTLFIREWALLheight = window.innerHeight;
+		QHTLFIREWALLwidth = window.innerWidth;
 	}
 	else if (document.documentElement && (document.documentElement.clientHeight)) {
-		CSFheight = document.documentElement.clientHeight;
-		CSFwidth = document.documentElement.clientWidth;
+		QHTLFIREWALLheight = document.documentElement.clientHeight;
+		QHTLFIREWALLwidth = document.documentElement.clientWidth;
 	}
 	else if (document.body && (document.body.clientHeight)) {
-		CSFheight = document.body.clientHeight;
-		CSFwidth = document.body.clientWidth;
+		QHTLFIREWALLheight = document.body.clientHeight;
+		QHTLFIREWALLwidth = document.body.clientWidth;
 	}
 }

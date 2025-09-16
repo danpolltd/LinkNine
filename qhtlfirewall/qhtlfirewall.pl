@@ -49,7 +49,7 @@ our ($verbose, $version, $logintarget, $noowner, $warning, $accept, $ipscidr,
 	 $eth6devout, $statemodule, $logouttarget, $cleanreg, $slurpreg,
 	 $faststart, $urlget, $statemodulenew, $statemodule6new, $cxsreputation);
 
-our ($IPTABLESLOCK, $CSFLOCKFILE);
+our ($IPTABLESLOCK, $QHTLFIREWALLLOCKFILE);
 
 our (%input, %config, %ips, %ifaces, %messengerports,%sanitydefault,
      %blocklists, %cxsports);
@@ -121,7 +121,7 @@ elsif (($input{command} eq "--status6") or ($input{command} eq "-l6")) {&dostatu
 elsif (($input{command} eq "--version") or ($input{command} eq "-v")) {&doversion}
 elsif (($input{command} eq "--stop") or ($input{command} eq "-f")) {&qhtlfirewalllock("lock");&dostop(0);&qhtlfirewalllock("unlock")}
 elsif (($input{command} eq "--startf") or ($input{command} eq "-sf")) {&qhtlfirewalllock("lock");&dostop(1);&dostart;&qhtlfirewalllock("unlock")}
-elsif (($input{command} eq "--start") or ($input{command} eq "-s") or ($input{command} eq "--restart") or ($input{command} eq "-r")) {if ($config{LFDSTART}) {&qhtlwaterfallstart} else {&qhtlfirewalllock("lock");&dostop(1);&dostart;&qhtlfirewalllock("unlock")}}
+elsif (($input{command} eq "--start") or ($input{command} eq "-s") or ($input{command} eq "--restart") or ($input{command} eq "-r")) {if ($config{QHTLWATERFALLSTART}) {&qhtlwaterfallstart} else {&qhtlfirewalllock("lock");&dostop(1);&dostart;&qhtlfirewalllock("unlock")}}
 elsif (($input{command} eq "--startq") or ($input{command} eq "-q")) {&qhtlwaterfallstart}
 elsif (($input{command} eq "--restartall") or ($input{command} eq "-ra")) {&dorestartall}
 elsif (($input{command} eq "--add") or ($input{command} eq "-a")) {&doadd}
@@ -194,10 +194,10 @@ exit 0;
 sub qhtlfirewalllock {
 	my $lock = shift;
 	if ($lock eq "lock") {
-		sysopen ($CSFLOCKFILE, "/var/lib/qhtlfirewall/qhtlfirewall.lock", O_RDWR | O_CREAT) or die ("Error: Unable to open qhtlfirewall lock file: $!");
-		flock ($CSFLOCKFILE, LOCK_EX | LOCK_NB) or die "Error: qhtlfirewall is being restarted, try again in a moment: $!";
+		sysopen ($QHTLFIREWALLLOCKFILE, "/var/lib/qhtlfirewall/qhtlfirewall.lock", O_RDWR | O_CREAT) or die ("Error: Unable to open qhtlfirewall lock file: $!");
+		flock ($QHTLFIREWALLLOCKFILE, LOCK_EX | LOCK_NB) or die "Error: qhtlfirewall is being restarted, try again in a moment: $!";
 	} else {
-		close ($CSFLOCKFILE);
+		close ($QHTLFIREWALLLOCKFILE);
 	}
 	return;
 }

@@ -1028,26 +1028,26 @@ if ($config{TESTING}) {
 						$config{TCP_IN} .= ",$range";
 						$config{TCP6_IN} .= ",$range";
 
-						sysopen (my $CSFCONF,"/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT);
-						flock ($CSFCONF, LOCK_EX);
-						my @qhtlfirewall = <$CSFCONF>;
+						sysopen (my $QHTLFIREWALLCONF,"/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT);
+						flock ($QHTLFIREWALLCONF, LOCK_EX);
+						my @qhtlfirewall = <$QHTLFIREWALLCONF>;
 						chomp @qhtlfirewall;
-						seek ($CSFCONF, 0, 0);
-						truncate ($CSFCONF, 0);
+						seek ($QHTLFIREWALLCONF, 0, 0);
+						truncate ($QHTLFIREWALLCONF, 0);
 						foreach my $line (@qhtlfirewall) {
 							if ($line =~ /^TCP6_IN/) {
-								print $CSFCONF "TCP6_IN = \"$config{TCP6_IN}\"\n";
+								print $QHTLFIREWALLCONF "TCP6_IN = \"$config{TCP6_IN}\"\n";
 								print "*** PASV port range $range added to the TCP6_IN port list\n";
 							}
 							elsif ($line =~ /^TCP_IN/) {
-								print $CSFCONF "TCP_IN = \"$config{TCP_IN}\"\n";
+								print $QHTLFIREWALLCONF "TCP_IN = \"$config{TCP_IN}\"\n";
 								print "*** PASV port range $range added to the TCP_IN port list\n";
 							}
 							else {
-								print $CSFCONF $line."\n";
+								print $QHTLFIREWALLCONF $line."\n";
 							}
 						}
-						close ($CSFCONF);
+						close ($QHTLFIREWALLCONF);
 						&loadqhtlfirewallconfig;
 					}
 				}

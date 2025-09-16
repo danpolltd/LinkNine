@@ -55,7 +55,7 @@ rm -fv /usr/local/man/man1/qhtlfirewall.man.1
 rm -fv /usr/sbin/qhtlfirewall /usr/local/vesta/bin/qhtlfirewall.pl
 rm -Rfv /etc/qhtlfirewall /usr/local/vesta/web/list/qhtlfirewall/ 
 rm -fv /usr/local/qhtlfirewall/lib/ConfigServer/qhtlfirewall.pm
-sed -i "/CSF/d" /usr/local/vesta/web/templates/admin/panel.html
+sed -i "/QHTLFIREWALL/d" /usr/local/vesta/web/templates/admin/panel.html
 
 echo
 echo "...Done"

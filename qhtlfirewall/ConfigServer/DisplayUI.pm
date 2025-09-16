@@ -352,12 +352,12 @@ sub main {
 		$FORM{lines} =~ s/\D//g;
 		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
 		my $script_safe = $script;
-		my $CSFfrombot = 120;
-		my $CSFfromright = 10;
+		my $QHTLFIREWALLfrombot = 120;
+		my $QHTLFIREWALLfromright = 10;
 		if ($config{DIRECTADMIN}) {
 			$script = $script_da;
-			$CSFfrombot = 400;
-			$CSFfromright = 150;
+			$QHTLFIREWALLfrombot = 400;
+			$QHTLFIREWALLfromright = 150;
 		}
 		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
 		foreach my $line (@data) {
@@ -367,7 +367,7 @@ sub main {
 			}
 		}
 		@data = sort @data;
-		my $options = "<select id='CSFlognum' onchange='CSFrefreshtimer()'>\n";
+		my $options = "<select id='QHTLFIREWALLlognum' onchange='QHTLFIREWALLrefreshtimer()'>\n";
 		my $cnt = 0;
 		foreach my $file (@data) {
 			$file =~ s/$cleanreg//g;
@@ -398,28 +398,28 @@ sub main {
 		print @jsdata;
 		print "</script>\n";
 		print <<EOF;
-<div>$options Lines:<input type='text' id="CSFlines" value="100" size='4'>&nbsp;&nbsp;<button class='btn btn-default' onclick="CSFrefreshtimer()">Refresh Now</button></div>
-<div>Refresh in <span id="CSFtimer">0</span> <button class='btn btn-default' id="CSFpauseID" onclick="CSFpausetimer()" style="width:80px;">Pause</button> <img src="$images/loader.gif" id="CSFrefreshing" style="display:none" /></div>
+<div>$options Lines:<input type='text' id="QHTLFIREWALLlines" value="100" size='4'>&nbsp;&nbsp;<button class='btn btn-default' onclick="QHTLFIREWALLrefreshtimer()">Refresh Now</button></div>
+<div>Refresh in <span id="QHTLFIREWALLtimer">0</span> <button class='btn btn-default' id="QHTLFIREWALLpauseID" onclick="QHTLFIREWALLpausetimer()" style="width:80px;">Pause</button> <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-configserver'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-configserver'></span></button></div>
-<pre class='comment' id="CSFajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both"> &nbsp; </pre>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both"> &nbsp; </pre>
 
 <script>
-	CSFfrombot = $CSFfrombot;
-	CSFfromright = $CSFfromright;
-	CSFscript = '$script?action=logtailcmd';
-	CSFtimer();
+	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+	QHTLFIREWALLscript = '$script?action=logtailcmd';
+	QHTLFIREWALLtimer();
 
 	var myFont = 14;
 	\$("#fontplus-btn").on('click', function () {
 		myFont++;
 		if (myFont > 20) {myFont = 20}
-		\$('#CSFajax').css("font-size",myFont+"px");
+		\$('#QHTLFIREWALLajax').css("font-size",myFont+"px");
 	});
 	\$("#fontminus-btn").on('click', function () {
 		myFont--;
 		if (myFont < 12) {myFont = 12}
-		\$('#CSFajax').css("font-size",myFont+"px");
+		\$('#QHTLFIREWALLajax').css("font-size",myFont+"px");
 	});
 </script>
 EOF
@@ -494,12 +494,12 @@ EOF
 		$FORM{lines} =~ s/\D//g;
 		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
 		my $script_safe = $script;
-		my $CSFfrombot = 120;
-		my $CSFfromright = 10;
+		my $QHTLFIREWALLfrombot = 120;
+		my $QHTLFIREWALLfromright = 10;
 		if ($config{DIRECTADMIN}) {
 			$script = $script_da;
-			$CSFfrombot = 400;
-			$CSFfromright = 150;
+			$QHTLFIREWALLfrombot = 400;
+			$QHTLFIREWALLfromright = 150;
 		}
 		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
 		foreach my $line (@data) {
@@ -509,7 +509,7 @@ EOF
 			}
 		}
 		@data = sort @data;
-		my $options = "<select id='CSFlognum'>\n";
+		my $options = "<select id='QHTLFIREWALLlognum'>\n";
 		my $cnt = 0;
 		foreach my $file (@data) {
 			$file =~ s/$cleanreg//g;
@@ -541,15 +541,15 @@ EOF
 		print "</script>\n";
 		print <<EOF;
 <div>Log: $options</div>
-<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="CSFgrep" onClick="this.select()">&nbsp;
-<input type="checkbox" id="CSFgrep_i" value="1">-i&nbsp;
-<input type="checkbox" id="CSFgrep_E" value="1">-E&nbsp;
-<input type="checkbox" id="CSFgrep_Z" value="1"> wildcard&nbsp;
-<button class='btn btn-default' onClick="CSFgrep()">Search</button>&nbsp;
-<img src="$images/loader.gif" id="CSFrefreshing" style="display:none" /></div>
+<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="QHTLFIREWALLgrep" onClick="this.select()">&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
+<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-configserver'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-configserver'></span></button></div>
-<pre class='comment' id="CSFajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear: both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear: both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -562,20 +562,20 @@ Please Note:
 </pre>
 
 <script>
-	CSFfrombot = $CSFfrombot;
-	CSFfromright = $CSFfromright;
-	CSFscript = '$script?action=loggrepcmd';
+	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+	QHTLFIREWALLscript = '$script?action=loggrepcmd';
 
 	var myFont = 14;
 	\$("#fontplus-btn").on('click', function () {
 		myFont++;
 		if (myFont > 20) {myFont = 20}
-		\$('#CSFajax').css("font-size",myFont+"px");
+		\$('#QHTLFIREWALLajax').css("font-size",myFont+"px");
 	});
 	\$("#fontminus-btn").on('click', function () {
 		myFont--;
 		if (myFont < 12) {myFont = 12}
-		\$('#CSFajax').css("font-size",myFont+"px");
+		\$('#QHTLFIREWALLajax').css("font-size",myFont+"px");
 	});
 </script>
 EOF
@@ -1199,7 +1199,7 @@ EOF
 
 		print <<EOF;
 <script type="text/javascript">
-function CSFexpand(obj){
+function QHTLFIREWALLexpand(obj){
 	if (!obj.savesize) {obj.savesize=obj.size;}
 	var newsize = Math.max(obj.savesize,obj.value.length);
 	if (newsize > 120) {newsize = 120;}
@@ -1248,7 +1248,7 @@ EOF
 					print "<div class='$class'><b>$start</b> = <input type='text' value='********' size='14' disabled> (hidden restricted UI item)</div>\n";
 				}
 				elsif ($restricted{$cleanname}) {
-					print "<div class='$class'><b>$start</b> = <input type='text' onFocus='CSFexpand(this);' onkeyup='CSFexpand(this);' value='$end' size='$size' disabled> (restricted UI item)</div>\n";
+					print "<div class='$class'><b>$start</b> = <input type='text' onFocus='QHTLFIREWALLexpand(this);' onkeyup='QHTLFIREWALLexpand(this);' value='$end' size='$size' disabled> (restricted UI item)</div>\n";
 				} else {
 					if ($range eq "0-1") {
 						my $switch_checked_0 = "";
@@ -1276,7 +1276,7 @@ EOF
 						}
 						print "</select></div>\n";
 					} else {
-						print "<div class='$class'><b>$start</b> = <input type='text' onFocus='CSFexpand(this);' onkeyup='CSFexpand(this);' name='$name' value='$end' size='$size'>$showrange</div>\n";
+						print "<div class='$class'><b>$start</b> = <input type='text' onFocus='QHTLFIREWALLexpand(this);' onkeyup='QHTLFIREWALLexpand(this);' name='$name' value='$end' size='$size'>$showrange</div>\n";
 					}
 				}
 			} else {
@@ -1836,26 +1836,26 @@ EOD
 			$config{TCP6_IN} .= ",30000:35000";
 
 			copy("/etc/qhtlfirewall/qhtlfirewall.conf","/var/lib/qhtlfirewall/backup/".time."_prefixpasvftp");
-			sysopen (my $CSFCONF,"/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT);
-			flock ($CSFCONF, LOCK_EX);
-			my @qhtlfirewall = <$CSFCONF>;
+			sysopen (my $QHTLFIREWALLCONF,"/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT);
+			flock ($QHTLFIREWALLCONF, LOCK_EX);
+			my @qhtlfirewall = <$QHTLFIREWALLCONF>;
 			chomp @qhtlfirewall;
-			seek ($CSFCONF, 0, 0);
-			truncate ($CSFCONF, 0);
+			seek ($QHTLFIREWALLCONF, 0, 0);
+			truncate ($QHTLFIREWALLCONF, 0);
 			foreach my $line (@qhtlfirewall) {
 				if ($line =~ /^TCP6_IN/) {
-					print $CSFCONF "TCP6_IN = \"$config{TCP6_IN}\"\n";
+					print $QHTLFIREWALLCONF "TCP6_IN = \"$config{TCP6_IN}\"\n";
 					print "*** PASV port range 30000:35000 added to the TCP6_IN port list\n";
 				}
 				elsif ($line =~ /^TCP_IN/) {
-					print $CSFCONF "TCP_IN = \"$config{TCP_IN}\"\n";
+					print $QHTLFIREWALLCONF "TCP_IN = \"$config{TCP_IN}\"\n";
 					print "*** PASV port range 30000:35000 added to the TCP_IN port list\n";
 				}
 				else {
-					print $CSFCONF $line."\n";
+					print $QHTLFIREWALLCONF $line."\n";
 				}
 			}
-			close ($CSFCONF);
+			close ($QHTLFIREWALLCONF);
 		}
 
 		print "</pre></div>\n";
@@ -1874,21 +1874,21 @@ EOD
 		print "<div class='panel-body'>";
 
 		copy("/etc/qhtlfirewall/qhtlfirewall.conf","/var/lib/qhtlfirewall/backup/".time."_prefixspi");
-		sysopen (my $CSFCONF,"/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT);
-		flock ($CSFCONF, LOCK_EX);
-		my @qhtlfirewall = <$CSFCONF>;
+		sysopen (my $QHTLFIREWALLCONF,"/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT);
+		flock ($QHTLFIREWALLCONF, LOCK_EX);
+		my @qhtlfirewall = <$QHTLFIREWALLCONF>;
 		chomp @qhtlfirewall;
-		seek ($CSFCONF, 0, 0);
-		truncate ($CSFCONF, 0);
+		seek ($QHTLFIREWALLCONF, 0, 0);
+		truncate ($QHTLFIREWALLCONF, 0);
 		foreach my $line (@qhtlfirewall) {
 			if ($line =~ /^LF_SPI /) {
-				print $CSFCONF "LF_SPI = \"0\"\n";
+				print $QHTLFIREWALLCONF "LF_SPI = \"0\"\n";
 				print "*** LF_SPI disabled ***\n";
 			} else {
-				print $CSFCONF $line."\n";
+				print $QHTLFIREWALLCONF $line."\n";
 			}
 		}
-		close ($CSFCONF);
+		close ($QHTLFIREWALLCONF);
 
 		print "</div>\n";
 		print "<div class='panel-footer panel-footer'>Completed</div>\n";
@@ -1903,21 +1903,21 @@ EOD
 		print "<div class='panel-body'>";
 
 		copy("/etc/qhtlfirewall/qhtlfirewall.conf","/var/lib/qhtlfirewall/backup/".time."_prefixkill");
-		sysopen (my $CSFCONF,"/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT);
-		flock ($CSFCONF, LOCK_EX);
-		my @qhtlfirewall = <$CSFCONF>;
+		sysopen (my $QHTLFIREWALLCONF,"/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT);
+		flock ($QHTLFIREWALLCONF, LOCK_EX);
+		my @qhtlfirewall = <$QHTLFIREWALLCONF>;
 		chomp @qhtlfirewall;
-		seek ($CSFCONF, 0, 0);
-		truncate ($CSFCONF, 0);
+		seek ($QHTLFIREWALLCONF, 0, 0);
+		truncate ($QHTLFIREWALLCONF, 0);
 		foreach my $line (@qhtlfirewall) {
 			if ($line =~ /^PT_USERKILL /) {
-				print $CSFCONF "PT_USERKILL = \"0\"\n";
+				print $QHTLFIREWALLCONF "PT_USERKILL = \"0\"\n";
 				print "*** PT_USERKILL disabled ***\n";
 			} else {
-				print $CSFCONF $line."\n";
+				print $QHTLFIREWALLCONF $line."\n";
 			}
 		}
-		close ($CSFCONF);
+		close ($QHTLFIREWALLCONF);
 
 		print "</div>\n";
 		print "<div class='panel-footer panel-footer'>Completed</div>\n";
@@ -1932,21 +1932,21 @@ EOD
 		print "<div class='panel-body'>";
 
 		copy("/etc/qhtlfirewall/qhtlfirewall.conf","/var/lib/qhtlfirewall/backup/".time."_prefixsmtp");
-		sysopen (my $CSFCONF,"/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT);
-		flock ($CSFCONF, LOCK_EX);
-		my @qhtlfirewall = <$CSFCONF>;
+		sysopen (my $QHTLFIREWALLCONF,"/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT);
+		flock ($QHTLFIREWALLCONF, LOCK_EX);
+		my @qhtlfirewall = <$QHTLFIREWALLCONF>;
 		chomp @qhtlfirewall;
-		seek ($CSFCONF, 0, 0);
-		truncate ($CSFCONF, 0);
+		seek ($QHTLFIREWALLCONF, 0, 0);
+		truncate ($QHTLFIREWALLCONF, 0);
 		foreach my $line (@qhtlfirewall) {
 			if ($line =~ /^SMTP_BLOCK /) {
-				print $CSFCONF "SMTP_BLOCK = \"0\"\n";
+				print $QHTLFIREWALLCONF "SMTP_BLOCK = \"0\"\n";
 				print "*** SMTP_BLOCK disabled ***\n";
 			} else {
-				print $CSFCONF $line."\n";
+				print $QHTLFIREWALLCONF $line."\n";
 			}
 		}
-		close ($CSFCONF);
+		close ($QHTLFIREWALLCONF);
 
 		print "</div>\n";
 		print "<div class='panel-footer panel-footer'>Completed</div>\n";

@@ -37,7 +37,7 @@ Quick restart (qhtlfirewall restarted by qhtlwaterfall)
 .TP
 .B
 -sf, --startf
-Force CLI restart regardless of LFDSTART setting
+Force CLI restart regardless of QHTLWATERFALLSTART setting
 .TP
 .B
 -ra, --restartall

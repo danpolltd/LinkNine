@@ -267,7 +267,7 @@ ChangeLog:
 	Modifications to MESSENGER server to speed up connection response time
 	and improve stability
 
-	Modifications to LFD UI and CLUSTER server to improve stability
+	Modifications to QHTLWATERFALL UI and CLUSTER server to improve stability
 
         Added SUDO login alerts: LF_SUDO_EMAIL_ALERT. This will send an email
 	alert using the sudoalert.txt template whenever there is a failed or
@@ -1631,7 +1631,7 @@ ChangeLog:
 
 7.70   - Removed PayPal Donation buttons due to recent abuse
 
-7.69   - Modified LF_CSF on cPanel servers to detect a change in the cPanel
+7.69   - Modified LF_QHTLFIREWALL on cPanel servers to detect a change in the cPanel
 	 version and then trigger a restart of ConfigServer scripts (added
 	 cxs pure-uploadscript restart)
 
@@ -1742,7 +1742,7 @@ ChangeLog:
 
 7.56   - Fixed issue with Restricted UI item sanity checks failing
 
-         Modified LF_CSF on cPanel servers to detect a change in the cPanel
+         Modified LF_QHTLFIREWALL on cPanel servers to detect a change in the cPanel
 	 version and then trigger a restart of ConfigServer scripts (qhtlwaterfall,
 	 MailScanner cxs Watch). Restart triggers are limited to every 12 hours
 	 and will only trigger if upcp is not running
@@ -3352,7 +3352,7 @@ ChangeLog:
 5.17   - Updated Server Check for cPanel Update configuration check to cater
          for the new format
 
-	 Disable LFD service in DA on uninstall of qhtlfirewall using SED instead of
+	 Disable QHTLWATERFALL service in DA on uninstall of qhtlfirewall using SED instead of
 	 REPLACE
 
 5.16   - Fixed missing perm.png from DA install
@@ -3609,7 +3609,7 @@ ChangeLog:
 	 Added UI option for "Firewall Quick Restart" which uses qhtlfirewall -q,
 	 "Firewall Restart" uses qhtlfirewall -sf
 
-	 qhtlwaterfall now restarts qhtlfirewall (if stopped and LF_CSF enabled) within the main
+	 qhtlwaterfall now restarts qhtlfirewall (if stopped and LF_QHTLFIREWALL enabled) within the main
 	 process to enhance the integrity of the firewall
 
 	 Multiple login failure regex detection improvements
@@ -3960,7 +3960,7 @@ ChangeLog:
 	 Added Connection Tracking check for pre-existing block to cater for
 	 linux connection status timeouts
 
-	 Moved LF_CSF check to the start of the qhtlwaterfall processing interval
+	 Moved LF_QHTLFIREWALL check to the start of the qhtlwaterfall processing interval
 
 	 New option LF_ALERT_FROM. If set, the value of this option will
 	 override the From: field in all of the qhtlwaterfall alert templates. This
@@ -5844,7 +5844,7 @@ ETH_DEVICE_SKIP = ""
 
 1.74   - Fixed qhtlwaterfall to when reading qhtlfirewall.ignore when comments present
 
-1.73   - Added new option LF_CSF to restart qhtlfirewall if iptables appears to have
+1.73   - Added new option LF_QHTLFIREWALL to restart qhtlfirewall if iptables appears to have
          been flushed (i.e. stopped)
 
          Added new option LF_SCRIPT_PERM to disable directories identified by

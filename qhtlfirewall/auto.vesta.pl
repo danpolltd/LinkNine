@@ -79,9 +79,9 @@ if (-e "/usr/local/vesta") {
 	seek ($VESTA, 0, 0);
 	truncate ($VESTA, 0);
 	foreach my $line (@data) {
-		if (!(grep {$_ =~ /CSF/} @data) and $line =~ /if\(\$TAB == 'SERVER'/) {
+		if (!(grep {$_ =~ /QHTLFIREWALL/} @data) and $line =~ /if\(\$TAB == 'SERVER'/) {
 			print $VESTA $line."\n";
-			print $VESTA "<div class=\"l-menu__item <?php if(\$TAB == 'CSF' ) echo 'l-menu__item--active' ?>\"><a href=\"/list/qhtlfirewall/\"><?=__('CSF')?></a></div>\n";
+			print $VESTA "<div class=\"l-menu__item <?php if(\$TAB == 'QHTLFIREWALL' ) echo 'l-menu__item--active' ?>\"><a href=\"/list/qhtlfirewall/\"><?=__('QHTLFIREWALL')?></a></div>\n";
 		} else {
 			print $VESTA $line."\n";
 		}

@@ -1,6 +1,6 @@
 <?php
 error_reporting(NULL);
-$TAB = 'CSF';
+$TAB = 'QHTLFIREWALL';
 
 include($_SERVER['DOCUMENT_ROOT']."/inc/main.php");
 
