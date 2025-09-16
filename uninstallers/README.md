@@ -21,10 +21,10 @@ bash /etc/cxs/uninstall.sh
 bash /etc/osm/uninstall.sh
 ```
 
-## csf:
+## qhtlfirewall:
 
 ```
-bash /etc/csf/uninstall.sh
+bash /etc/qhtlfirewall/uninstall.sh
 ```
 
 ## cmc:

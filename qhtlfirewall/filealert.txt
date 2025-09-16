@@ -1,0 +1,9 @@
+From: root
+To: root
+Subject: qhtlwaterfall on [hostname]: Suspicious File Alert
+
+Time:   [time]
+File:   [file]
+Reason: [reason]
+Owner:  [owner]
+Action: [action]

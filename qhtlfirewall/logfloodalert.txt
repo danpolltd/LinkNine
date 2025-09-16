@@ -1,0 +1,6 @@
+From: root
+To: root
+Subject: qhtlwaterfall on [hostname]: Log file flooding
+
+Time:     [time]
+Alert:    [text]

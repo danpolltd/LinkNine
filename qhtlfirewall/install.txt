@@ -1,0 +1,106 @@
+###############################################################################
+# Copyright (C) 2006-2025 Jonathan Michaelson
+#
+# https://github.com/waytotheweb/scripts
+#
+# This program is free software; you can redistribute it and/or modify it under
+# the terms of the GNU General Public License as published by the Free Software
+# Foundation; either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, see <https://www.gnu.org/licenses>.
+###############################################################################
+
+
+Installation
+============
+Installation is quite straightforward:
+
+cd /usr/src
+rm -fv qhtlfirewall.tgz
+wget https://download.configserver.com/qhtlfirewall.tgz
+tar -xzf qhtlfirewall.tgz
+cd qhtlfirewall
+sh install.sh
+
+Next, test whether you have the required iptables modules:
+
+perl /usr/local/qhtlfirewall/bin/qhtlfirewalltest.pl
+
+Don't worry if you cannot run all the features, so long as the script doesn't
+report any FATAL errors
+
+You should not run any other iptables firewall configuration script. For
+example, if you previously used APF+BFD you can remove the combination (which
+you will need to do if you have them installed otherwise they will conflict):
+
+sh /usr/local/qhtlfirewall/bin/remove_apf_bfd.sh
+
+That's it. You can then configure qhtlfirewall and qhtlwaterfall by reading the documentation and
+configuration files in /etc/qhtlfirewall/qhtlfirewall.conf and /etc/qhtlfirewall/readme.txt directly or
+through the qhtlfirewall User Interface.
+
+qhtlfirewall installation for cPanel and DirectAdmin is preconfigured to work on those
+servers with all the standard ports open.
+
+qhtlfirewall auto-configures your SSH port on installation where it's running on a non-
+standard port.
+
+qhtlfirewall auto-whitelists your connected IP address where possible on installation.
+
+You should ensure that kernel logging daemon (klogd) is enabled. Typically, VPS
+servers running RedHat/CentOS v5 have this disabled and you should check
+/etc/init.d/syslog and make sure that any klogd lines are not commented out. If
+you change the file, remember to restart syslog.
+
+See the qhtlfirewall.conf and readme.txt files for more information.
+
+Perl Modules
+============
+
+While most should be installed on a standard perl installation the following
+may need to be installed manually:
+
+# On rpm based systems:
+yum install perl-libwww-perl.noarch perl-LWP-Protocol-https.noarch perl-GDGraph perl-Math-BigInt.noarch
+
+# On APT based systems:
+apt-get install libwww-perl liblwp-protocol-https-perl libgd-graph-perl
+
+# Via cpan:
+perl -MCPAN -eshell
+cpan> install LWP LWP::Protocol::https GD::Graph
+
+
+
+InterWorx
+=========
+
+1. Enable qhtlfirewall in InterWorx > NodeWorx > Plugins > qhtlfirewall
+
+2. See the InterWorx section in /etc/qhtlfirewall/readme.txt
+
+
+Webmin Module Installation/Upgrade
+==================================
+
+To install or upgrade the qhtlfirewall webmin module:
+
+Install qhtlfirewall as above
+Install the qhtlfirewall webmin module in:
+  Webmin > Webmin Configuration > Webmin Modules >
+  From local file > /usr/local/qhtlfirewall/qhtlfirewallwebmin.tgz > Install Module
+
+
+Uninstallation
+==============
+Removing qhtlfirewall and qhtlwaterfall is even more simple:
+
+cd /etc/qhtlfirewall
+sh uninstall.sh

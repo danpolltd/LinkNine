@@ -1,0 +1,12 @@
+[Unit]
+Description=ConfigServer Firewall & Security - qhtlwaterfall
+After=network.target qhtlfirewall.service
+
+[Service]
+LimitNOFILE=4096
+ExecStart=/usr/sbin/qhtlwaterfall
+Type=forking
+PIDFile=/run/qhtlwaterfall.pid
+
+[Install]
+WantedBy=multi-user.target

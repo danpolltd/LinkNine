@@ -1,0 +1,13 @@
+[Unit]
+Description=ConfigServer Firewall & Security - qhtlfirewall
+After=network.target
+Before=qhtlwaterfall.service
+
+[Service]
+ExecStart=/usr/sbin/qhtlfirewall --initup
+ExecStop=/usr/sbin/qhtlfirewall --initdown ; /usr/sbin/qhtlfirewall --stop
+RemainAfterExit=yes
+Type=oneshot
+
+[Install]
+WantedBy=multi-user.target
