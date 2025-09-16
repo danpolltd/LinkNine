@@ -2417,7 +2417,7 @@ ChangeLog:
 	 Added MaxMind GeoIP Anonymous Proxies to qhtlfirewall.blocklists for new
 	 installs
 
-	 Added new setting CSFDATADIR. This is the location of the qhtlfirewall and qhtlwaterfall
+	 Added new setting QHTLFIREWALLDATADIR. This is the location of the qhtlfirewall and qhtlwaterfall
 	 temporary data. By default it is set to the current value of /etc/qhtlfirewall
 	 with the intention of moving this data to /var/lib/qhtlfirewall in the future
 	 in a move towards the Linux Filesystem Hierarchy Standard (FHS)
