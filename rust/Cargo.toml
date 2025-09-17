@@ -2,5 +2,6 @@
 members = [
     "qhtlcore",
     "qhtlcli",
+    "qhtldaemon",
 ]
 resolver = "2"

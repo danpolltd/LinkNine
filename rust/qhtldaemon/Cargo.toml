@@ -1,0 +1,11 @@
+[package]
+name = "qhtldaemon"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "Daemon scaffold for qhtlwaterfall Rust rewrite (WIP)"
+
+[dependencies]
+anyhow = "1"
+qhtlcore = { path = "../qhtlcore" }
+time = { version = "0.3", features = ["formatting"] }
