@@ -324,17 +324,6 @@ if [ -e "/usr/local/qhtlfirewall/bin/regex.pm" ]; then
 	rm -f /usr/local/qhtlfirewall/bin/regex.pm
 fi
 
-# Legacy cleanup: remove any obsolete cse artifacts from previous installs
-if [ -e "/etc/qhtlfirewall/cseui.pl" ]; then
-	rm -f /etc/qhtlfirewall/cseui.pl
-fi
-if [ -e "/usr/local/qhtlfirewall/bin/cseui.pl" ]; then
-	rm -f /usr/local/qhtlfirewall/bin/cseui.pl
-fi
-if [ -e "/usr/local/qhtlfirewall/lib/QhtLink/cseUI.pm" ]; then
-	rm -f /usr/local/qhtlfirewall/lib/QhtLink/cseUI.pm
-fi
-
 OLDVERSION=0
 if [ -e "/etc/qhtlfirewall/version.txt" ]; then
     OLDVERSION=`head -n 1 /etc/qhtlfirewall/version.txt`

@@ -1,5 +1,5 @@
 ###############################################################################
-# QhtLink::qhtlmanagerUI - QhtLink File Manager (formerly cse)
+# QhtLink::qhtlmanagerUI - QhtLink File Manager
 ###############################################################################
 package QhtLink::qhtlmanagerUI;
 
