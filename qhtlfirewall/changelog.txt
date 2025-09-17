@@ -403,7 +403,7 @@ ChangeLog:
 	smtpgidonlytweak to disable it from CLI as it is not currently possible
 	from the DNSONLY WHM UI
 
-13.04 - Fixed issue with ConfigServer::CheckIP generating incorrect IPv6
+13.04 - Fixed issue with QhtLink::CheckIP generating incorrect IPv6
         addresses during validation using Net::CIDR::Lite
 
         Added UI entry for editing qhtlfirewall.reseller for DirectAdmin and InterWorx
@@ -498,8 +498,12 @@ ChangeLog:
         Removed ALTTOR from qhtlfirewall.blocklists on new installations as it has been
         discontinued
 
-	Use ConfigServer::Slurp to read qhtlfirewall.resellers to avoid invalid line
+	Use QhtLink::Slurp to read qhtlfirewall.resellers to avoid invalid line
 	endings
+	 Export QhtLink::Logger::logfile
+	 Updated common QhtLink UI
+	 Implemented more efficient qhtlfirewall.conf loading in QhtLink::Config
+8.01   - Modify QhtLink::CheckIP to cope with entries not passed by reference 
 
 	Modified CLUSTER_SENDTO and CLUSTER_RECVFROM so that they can be set to
 	a file instead of listing IP's within the respective setting. See
@@ -1180,14 +1184,14 @@ ChangeLog:
 
 	 Corrected text description of IPv6 port lists in non-cPanel qhtlfirewall.conf
 
-	 Export ConfigServer::Logger::logfile
+	 Export QhtLink::Logger::logfile
 
 	 Detect mpm_itk_module and treat in a similar manner to ruid2_module in
 	 Server Check
 
 	 Removed use of Cpanel::cPanelFunctions as it is now being withdrawn
 
-	 Updated common ConfigServer UI
+	 Updated common QhtLink UI
 
 	 Fix instance where cluster block timeout for temporary blocks was not
 	 being sent
@@ -1538,9 +1542,9 @@ ChangeLog:
 
 	 Improve IPv6 detection on installation
 
-	 Implemented more efficient qhtlfirewall.conf loading in ConfigServer::Config
+	 Implemented more efficient qhtlfirewall.conf loading in QhtLink::Config
 
-8.01   - Modify ConfigServer::CheckIP to cope with entries not passed by reference 
+8.01   - Modify QhtLink::CheckIP to cope with entries not passed by reference 
 
 8.00   - Added new option CC6_LOOKUPS. This adds IPv6 support for Country Code
          and Country lookups
@@ -1632,7 +1636,8 @@ ChangeLog:
 7.70   - Removed PayPal Donation buttons due to recent abuse
 
 7.69   - Modified LF_QHTLFIREWALL on cPanel servers to detect a change in the cPanel
-	 version and then trigger a restart of ConfigServer scripts (added
+7.69   - Modified LF_QHTLFIREWALL on cPanel servers to detect a change in the cPanel
+	 version and then trigger a restart of QhtLink scripts (added
 	 cxs pure-uploadscript restart)
 
 7.68   - Added Debian v8 and Ubuntu v15 support
@@ -1723,7 +1728,7 @@ ChangeLog:
 	 instead of HTTP::Tiny
 
 	 If URLGET set to use LWP, qhtlfirewall will perform upgrades over SSL to
-	 https://download.configserver.com
+	 https://download.qhtlf.danpol.co.uk
 
 	 Added check for URLGET to Server Check
 
@@ -1743,7 +1748,7 @@ ChangeLog:
 7.56   - Fixed issue with Restricted UI item sanity checks failing
 
          Modified LF_QHTLFIREWALL on cPanel servers to detect a change in the cPanel
-	 version and then trigger a restart of ConfigServer scripts (qhtlwaterfall,
+	 version and then trigger a restart of QhtLink scripts (qhtlwaterfall,
 	 MailScanner cxs Watch). Restart triggers are limited to every 12 hours
 	 and will only trigger if upcp is not running
 
@@ -1787,7 +1792,7 @@ ChangeLog:
 	 Modified ipset information in qhtlfirewall.conf including that only ipset v6+
 	 is supported
 
-	 Modified ConfigServer::Slurp to carp instead of croak
+	 Modified QhtLink::Slurp to carp instead of croak
 
 	 Improvements to Server Check nameserver checking to include IPv6
 	 servers and better determine how many are local nameservers
@@ -1846,7 +1851,7 @@ ChangeLog:
 	 Modified integrated UI to display die errors to browser
 
 	 Modified X_ARF report to use a self-published schema:
-	 http://download.configserver.com/abuse_login-attack_0.2.json
+	 https://danpol.co.uk/abuse_login-attack_0.2.json
 
 	 Modified X_ARF to lowercase the Source-Type field
 
@@ -1863,7 +1868,7 @@ ChangeLog:
          Fixed issue with temporary allow/deny not applying individual port
 	 rules for outgoing connections
 
-7.14   - Updated scripts to use download.configserver.com
+7.14   - Updated scripts to use download.qhtlf.danpol.co.uk
 
 7.13   - Fixed issue with temporary allow/deny when issued through the UI
 
@@ -2091,7 +2096,7 @@ ChangeLog:
 	 /etc/qhtlfirewall/qhtlfirewall.syslogusers for more information
 
 	 Those running our MailScanner implementation, you must be running
-	 at least ConfigServer MailScanner Script v2.91 for logging to work
+	 at least QhtLink MailScanner Script v2.91 for logging to work
 	 with RESTRICT_SYSLOG_GROUP
 
 	 qhtlfirewall UI option added for editing qhtlfirewall.syslogusers
@@ -2366,7 +2371,7 @@ ChangeLog:
 	 automatically. Some files and directories are symlinked to /etc/qhtlfirewall/
 	 for backwards compatibility and ease of use. See the following for
 	 individual file locations in the new configuration:
-	 http://blog.configserver.com/?p=7
+	 https://qhtlf.danpol.co.uk
 
          CC_LOOKUPS rDNS reporting improvements
 
@@ -2397,17 +2402,19 @@ ChangeLog:
 6.14   - Added support for cPanel v11.38.1+ AppConfig addon registration
 
 	 NOTE: In accordance with the new conventions for v11.38.1+ AppConfig
+	 NOTE: In accordance with the new conventions for v11.38.1+ AppConfig
 	 the url to the qhtlfirewall WHM plugin will change from /cgi/addon_qhtlfirewall.cgi to
-	 /cgi/configserver/qhtlfirewall.cgi. This will only happen with qhtlfirewall v6.14+ and
+	 /cgi/qhtlink/qhtlfirewall.cgi. This will only happen with qhtlfirewall v6.14+ and
 	 cPanel v11.38.1+. Older version of qhtlfirewall will continue to use the old
 	 URL. This has no particular relevance to users accessing through WHM,
 	 but will affect direct URL access by users or third party
 	 applications
 
 	 Added support for cPanel v11.38.1+ Custom ACL driver. This creates an
-	 ACL (software-ConfigServer-qhtlfirewall) which must be used to grant resellers
+	 Added support for cPanel v11.38.1+ Custom ACL driver. This creates an
+	 ACL (software-qhtlfirewall) which must be used to grant resellers
 	 access via "WHM > Edit Reseller Nameservers and Privileges > Third
-	 Party Services > ConfigServer Security & Firewall (Reseller UI)" when
+	 Party Services > QhtLink Firewall (Reseller UI)" when
 	 running cPanel v11.38.1+
 
 	 Added Server Check for AppConfig restrictions for cPanel v11.38.1+
@@ -3256,7 +3263,7 @@ ChangeLog:
 	 All user: item selector examples removed from the default qhtlfirewall.pignore
 	 for all new installations (e.g. user:mailman). qhtlfirewall.pignore examples
 	 for some common processes can be found here:
-	 http://forum.configserver.com/viewtopic.php?f=6&t=2059
+	 https://qhtlf.danpol.co.uk
 
 	 Updated DA and GENERIC default qhtlfirewall.pignore files for new installations
 
@@ -3415,7 +3422,7 @@ ChangeLog:
 	 Added 'exe:/usr/bin/postgres' to the cPanel qhtlfirewall.pignore for new
 	 installations
 
-	 Added retry timeout in WHM UI for checking www.configserver.com for
+	 Added retry timeout in WHM UI for checking www.qhtlf.danpol.co.uk for
 	 new version information (to avoid repeated hangs when unreachable)
 
 	 Fixed LF_PERMBLOCK issue that flushed all temporary IP blocks, not
@@ -4572,7 +4579,7 @@ ChangeLog:
 	 Added new option LF_QUEUE_ALERT, which will send an email alert using
 	 queuealert.txt if the exim queue length exceeds the value it is set
 	 to. The check is repeated every LF_QUEUE_INTERVAL seconds. If the
-	 ConfigServer MailScanner configuration is being used, both the
+	 MailScanner configuration is being used, both the
 	 MailScanner pending and exim delivery queues will be checked. This is
 	 a cPanel only option
 
@@ -4592,8 +4599,9 @@ ChangeLog:
 
 	 Updated Server Report checks for qhtlfirewall status
 
-	 Changed the destination of the ConfigServer Services link at the
+	 Changed the destination of the services link at the
 	 bottom of the WHM UI to go to the qhtlfirewall web page
+2.08   - Changed app name to QhtLink Firewall
 
 3.37   - Fixed an issue currently in cPanel EDGE that affects the use of the
          cPanel SafeFile module in WHM scripts
@@ -5690,7 +5698,7 @@ ETH_DEVICE_SKIP = ""
 
 2.09   - Removed the nodev check on /tmp etc
 
-2.08   - Changed app name to ConfigServer Security & Firewall
+2.08   - Changed app name to QhtLink Firewall
 
          New Feature - Added Server Security Check report to WHM UI
 

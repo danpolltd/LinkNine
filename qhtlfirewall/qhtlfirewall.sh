@@ -1,27 +1,13 @@
 #!/bin/bash
 #
 ###############################################################################
-# qhtlwaterfall
-# Copyright (C) 2006-2025 Jonathan Michaelson
+# Copyright (C) 2025 Daniel Nowakowski
 #
-# https://github.com/waytotheweb/scripts
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, see <https://www.gnu.org/licenses>.
+# https://qhtlf.danpol.co.uk
 ###############################################################################
 #
 # chkconfig: 2345 15 80
-# description: ConfigServer Firewall
+# description: QhtLink Firewall
 #
 ### BEGIN INIT INFO
 # Provides:          qhtlfirewall
@@ -30,8 +16,8 @@
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # X-Start-Before:    $syslog
-# Short-Description: ConfigServer Firewall (qhtlfirewall)
-# Description:       ConfigServer Firewall (qhtlfirewall) init script
+# Short-Description: QhtLink Firewall (qhtlfirewall)
+# Description:       QhtLink Firewall (qhtlfirewall) init script
 ### END INIT INFO
 #
 

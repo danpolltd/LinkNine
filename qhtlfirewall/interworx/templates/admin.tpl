@@ -1,4 +1,4 @@
-<iframe border="0" name='myiframe' id='myiframe' src="/nodeworx/configserverqhtlfirewall" style="width: 100%;" frameborder="0" onload="resizeIframe(this);"></iframe>
+<iframe border="0" name='myiframe' id='myiframe' src="/nodeworx/qhtlfirewall" style="width: 100%;" frameborder="0" onload="resizeIframe(this);"></iframe>
 {literal}
 <script>
   function resizeIframe(obj) {

@@ -1,22 +1,9 @@
 #!/usr/bin/perl
-#WHMADDON:addonupdates:ConfigServer Security&<b>Firewall</b>
+#WHMADDON:addonupdates:QhtLink Firewall
 ###############################################################################
-# Copyright (C) 2006-2025 Jonathan Michaelson
+# Copyright (C) 2025 Daniel Nowakowski
 #
-# https://github.com/waytotheweb/scripts
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, see <https://www.gnu.org/licenses>.
+# https://qhtlf.danpol.co.uk
 ###############################################################################
 ## no critic (RequireUseWarnings, ProhibitExplicitReturnUndef, ProhibitMixedBooleanOperators, RequireBriefOpen)
 # start main
@@ -27,16 +14,16 @@ use Sys::Hostname qw(hostname);
 use IPC::Open3;
 
 use lib '/usr/local/qhtlfirewall/lib';
-use ConfigServer::DisplayUI;
-use ConfigServer::Config;
-use ConfigServer::Slurp qw(slurp);
+use QhtLink::DisplayUI;
+use QhtLink::Config;
+use QhtLink::Slurp qw(slurp);
 
 our ($script, $script_da, $images, $myv, %FORM, %daconfig);
 
-my $config = ConfigServer::Config->loadconfig();
+my $config = QhtLink::Config->loadconfig();
 my %config = $config->config;
-my $slurpreg = ConfigServer::Slurp->slurpreg;
-my $cleanreg = ConfigServer::Slurp->cleanreg;
+my $slurpreg = QhtLink::Slurp->slurpreg;
+my $cleanreg = QhtLink::Slurp->cleanreg;
 
 our %session;
 our @sessiondata;
@@ -146,11 +133,11 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 <!doctype html>
 <html lang='en' $htmltag>
 <head>
-	<title>ConfigServer Security &amp; Firewall</title>
+	<title>QhtLink Firewall</title>
 	<meta charset='utf-8'>
 	<meta name='viewport' content='width=device-width, initial-scale=1'>
 	$bootstrapcss
-	<link href='$images/configserver.css' rel='stylesheet' type='text/css'>
+	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
 	$jqueryjs
 	$bootstrapjs
 
@@ -184,12 +171,12 @@ EOF
 <div class='container-fluid'>
 <br>
 <div class='panel panel-default'>
-<h4><img src='$images/qhtlfirewall_small.png' style='padding-left: 10px'> ConfigServer Security &amp; Firewall - qhtlfirewall v$myv</h4>
+<h4><img src='$images/qhtlfirewall_small.png' style='padding-left: 10px'> QhtLink Firewall - qhtlfirewall v$myv</h4>
 </div>
 EOF
 }
 
-ConfigServer::DisplayUI::main(\%FORM, $script, $script_da, $images, $myv);
+QhtLink::DisplayUI::main(\%FORM, $script, $script_da, $images, $myv);
 
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
 	print <<EOF;

@@ -1,4 +1,4 @@
-# qhtlfirewall — rebranded firewall suite
+# qhtlfirewall — Danpol QhtLink Firewall
 
 ### All files within this repository are subject to the [GPL license](LICENSE.txt) as outlined in [COPYING.md](COPYING.md)
 

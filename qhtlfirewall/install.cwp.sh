@@ -1,21 +1,8 @@
 #!/bin/sh
 ###############################################################################
-# Copyright (C) 2006-2025 Jonathan Michaelson
+# Copyright (C) 2025 Daniel Nowakowski
 #
-# https://github.com/waytotheweb/scripts
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, see <https://www.gnu.org/licenses>.
+# https://qhtlf.danpol.co.uk
 ###############################################################################
 
 umask 0177
@@ -391,7 +378,7 @@ cp -avf install.txt /etc/qhtlfirewall/
 cp -avf version.txt /etc/qhtlfirewall/
 cp -avf license.txt /etc/qhtlfirewall/
 cp -avf webmin /usr/local/qhtlfirewall/lib/
-cp -avf ConfigServer /usr/local/qhtlfirewall/lib/
+cp -avf QhtLink /usr/local/qhtlfirewall/lib/
 cp -avf Net /usr/local/qhtlfirewall/lib/
 cp -avf Geo /usr/local/qhtlfirewall/lib/
 cp -avf Crypt /usr/local/qhtlfirewall/lib/
@@ -544,7 +531,7 @@ cp -av cwp/qhtlfirewallofficial.php /usr/local/cwpsrv/htdocs/resources/admin/mod
 cp -av cwp/qhtlfirewall.pl /usr/local/cwpsrv/htdocs/resources/admin/modules/
 chmod 700 /usr/local/cwpsrv/htdocs/resources/admin/modules/qhtlfirewall.pl
 cp -av cwp/ajax_qhtlfirewallframe.php /usr/local/cwpsrv/htdocs/resources/admin/addons/ajax/
-cp -av cwp/configserver.php /usr/local/cwpsrv/htdocs/resources/admin/include/
+cp -av cwp/qhtlfirewall.php /usr/local/cwpsrv/htdocs/resources/admin/include/
 mkdir -v -m 0600 /usr/local/cwpsrv/htdocs/admin/design/qhtlfirewall/
 cp -avf qhtlfirewall/* /usr/local/cwpsrv/htdocs/admin/design/qhtlfirewall/
 

@@ -1,21 +1,8 @@
 #!/bin/sh
 ###############################################################################
-# Copyright (C) 2006-2025 Jonathan Michaelson
+# Copyright (C) 2025 Daniel Nowakowski
 #
-# https://github.com/waytotheweb/scripts
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, see <https://www.gnu.org/licenses>.
+# https://qhtlf.danpol.co.uk
 ###############################################################################
 
 umask 0177
@@ -384,7 +371,7 @@ cp -avf install.txt /etc/qhtlfirewall/
 cp -avf version.txt /etc/qhtlfirewall/
 cp -avf license.txt /etc/qhtlfirewall/
 cp -avf webmin /usr/local/qhtlfirewall/lib/
-cp -avf ConfigServer /usr/local/qhtlfirewall/lib/
+cp -avf QhtLink /usr/local/qhtlfirewall/lib/
 cp -avf Net /usr/local/qhtlfirewall/lib/
 cp -avf Geo /usr/local/qhtlfirewall/lib/
 cp -avf Crypt /usr/local/qhtlfirewall/lib/
@@ -434,16 +421,19 @@ chmod 700 /etc/cron.daily/csget
 chmod -v 700 auto.pl
 ./auto.pl $OLDVERSION
 
-mkdir /usr/local/cpanel/whostmgr/docroot/cgi/configserver
-chmod 700 /usr/local/cpanel/whostmgr/docroot/cgi/configserver
-mkdir /usr/local/cpanel/whostmgr/docroot/cgi/configserver/qhtlfirewall
-chmod 700 /usr/local/cpanel/whostmgr/docroot/cgi/configserver/qhtlfirewall
+mkdir -p /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink
+chmod 700 /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink
+mkdir -p /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall
+chmod 700 /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall
 
-cp -avf cpanel/qhtlfirewall.cgi /usr/local/cpanel/whostmgr/docroot/cgi/configserver/qhtlfirewall.cgi
-chmod -v 700 /usr/local/cpanel/whostmgr/docroot/cgi/configserver/qhtlfirewall.cgi
+cp -avf cpanel/qhtlfirewall.cgi /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall.cgi
+chmod -v 700 /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall.cgi
 
-cp -avf qhtlfirewall/ /usr/local/cpanel/whostmgr/docroot/cgi/configserver/
-cp -avf cpanel/Driver /usr/local/cpanel/whostmgr/docroot/cgi/configserver/qhtlfirewall/
+cp -avf qhtlfirewall/ /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/
+mkdir -p /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/Driver
+# Install only the canonical QhtLinkFirewall driver
+cp -avf cpanel/Driver/QhtLinkFirewall.pm /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/Driver/
+cp -avf cpanel/Driver/QhtLinkFirewall /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/Driver/
 cp -avf ui/images/icon.gif /usr/local/cpanel/whostmgr/docroot/themes/x/icons/qhtlfirewall.gif
 cp -avf cpanel/qhtlfirewall.tmpl /usr/local/cpanel/whostmgr/docroot/templates/
 
@@ -456,15 +446,16 @@ else
     echo "cPanel v$VERSION, target set to _self"
 fi
 
-cp -avf cpanel/qhtlfirewall.conf /usr/local/cpanel/whostmgr/docroot/cgi/configserver/qhtlfirewall/qhtlfirewall.conf
-cp -avf cpanel/upgrade.sh /usr/local/cpanel/whostmgr/docroot/cgi/configserver/qhtlfirewall/upgrade.sh
-chmod 700 /usr/local/cpanel/whostmgr/docroot/cgi/configserver/qhtlfirewall/upgrade.sh
+cp -avf cpanel/qhtlfirewall.conf /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/qhtlfirewall.conf
+cp -avf cpanel/upgrade.sh /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/upgrade.sh
+chmod 700 /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/upgrade.sh
 
 if [ -e "/usr/local/cpanel/bin/register_appconfig" ]; then
-    /bin/cp -af /usr/local/cpanel/whostmgr/docroot/cgi/configserver/qhtlfirewall/Driver/* /usr/local/cpanel/Cpanel/Config/ConfigObj/Driver/
+    # Copy only the canonical QhtLinkFirewall driver into cPanel's driver path
+    /bin/cp -af /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/Driver/QhtLinkFirewall* /usr/local/cpanel/Cpanel/Config/ConfigObj/Driver/
     /bin/touch /usr/local/cpanel/Cpanel/Config/ConfigObj/Driver
 
-    /usr/local/cpanel/bin/register_appconfig /usr/local/cpanel/whostmgr/docroot/cgi/configserver/qhtlfirewall/qhtlfirewall.conf
+    /usr/local/cpanel/bin/register_appconfig /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/qhtlfirewall.conf
     /bin/rm -f /usr/local/cpanel/whostmgr/docroot/cgi/addon_qhtlfirewall.cgi
     /bin/rm -Rf /usr/local/cpanel/whostmgr/docroot/cgi/qhtlfirewall
 else

@@ -1,21 +1,8 @@
 #!/usr/bin/perl
 ###############################################################################
-# Copyright (C) 2006-2025 Jonathan Michaelson
+# Copyright (C) 2025 Daniel Nowakowski
 #
-# https://github.com/waytotheweb/scripts
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, see <https://www.gnu.org/licenses>.
+# https://qhtlf.danpol.co.uk
 ###############################################################################
 ## no critic (RequireUseWarnings, ProhibitExplicitReturnUndef, ProhibitMixedBooleanOperators, RequireBriefOpen)
 # start main
@@ -25,12 +12,12 @@ use Fcntl qw(:DEFAULT :flock);
 use Sys::Hostname qw(hostname);
 use IPC::Open3;
 use lib '/usr/local/qhtlfirewall/lib';
-use ConfigServer::DisplayUI;
-use ConfigServer::Config;
+use QhtLink::DisplayUI;
+use QhtLink::Config;
 
 our ($script, $images, $myv, %FORM, %in);
 
-my $config = ConfigServer::Config->loadconfig();
+my $config = QhtLink::Config->loadconfig();
 my %config = $config->config;
 
 open (my $IN, "<", "/etc/qhtlfirewall/version.txt") or die $!;
@@ -103,11 +90,11 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	print "<!doctype html>\n";
 	print "<html lang='en' $htmltag>\n";
 	print "<head>\n";
-	print "	<title>ConfigServer Security &amp; Firewall</title>\n";
-	print "	<meta charset='utf-8'>\n";
+		print "\t<title>QhtLink Firewall</title>\n";
+		print "\t<meta charset='utf-8'>\n";
 	print "	<meta name='viewport' content='width=device-width, initial-scale=1'>\n";
 	print "	$bootstrapcss\n";
-	print "	<link href='$images/configserver.css' rel='stylesheet' type='text/css'>\n";
+	print "	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>\n";
 	print "	$jqueryjs\n";
 	print "	$bootstrapjs\n";
 	print "<style>\n";
@@ -130,17 +117,16 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	print "</style>\n";
 	print @header;
 	print "</head>\n";
-	print "<body $bodytag>\n";
 	print @body;
 	print "<div id='loader'></div>\n";
 	print "<a id='toplink' class='toplink' title='Go to bottom'><span class='glyphicon glyphicon-hand-down'></span></a>\n";
 	print "<div class='container-fluid'>\n";
 	print "<div class='panel panel-default'>\n";
-	print "<h4><img src='$images/qhtlfirewall_small.png' style='padding-left: 10px'> ConfigServer Security &amp; Firewall - qhtlfirewall v$myv</h4>\n";
+		print "<h4><img src='$images/qhtlfirewall_small.png' style='padding-left: 10px'> QhtLink Firewall - qhtlfirewall v$myv</h4>\n";
 	print "</div>\n";
 }
 
-ConfigServer::DisplayUI::main(\%FORM, $script, 0, $images, $myv);
+QhtLink::DisplayUI::main(\%FORM, $script, 0, $images, $myv);
 
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
 	print "<a class='botlink' id='botlink' title='Go to top'><span class='glyphicon glyphicon-hand-up'></span></a>\n";

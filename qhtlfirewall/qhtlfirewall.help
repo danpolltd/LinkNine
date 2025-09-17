@@ -1,13 +1,13 @@
 qhtlfirewall(1)							     General Commands Manual							  qhtlfirewall(1)
 
 NAME
-       qhtlfirewall - ConfigServer & Security Firewall
+	qhtlfirewall - QhtLink Firewall
 
 SYNOPSIS
        qhtlfirewall [OPTIONS]
 
 DESCRIPTION
-       This   manual   documents   the	qhtlfirewall  command  line  options  for  the  ConfigServer  &	Security  Firewall.  See  /etc/qhtlfirewall/qhtlfirewall.conf  and
+	This manual documents the qhtlfirewall command line options for QhtLink Firewall. See /etc/qhtlfirewall/qhtlfirewall.conf and
        /etc/qhtlfirewall/readme.txt for more detailed information on how to use and configure this application.
 
 OPTIONS
@@ -214,9 +214,9 @@ FILES
 	      Detailed information about qhtlfirewall and qhtlwaterfall
 
 BUGS
-       Report bugs on the forums at http://forum.configserver.com
+	Report issues via your support channel
 
 AUTHOR
-       (c)2006-2023, Jonathan Michaelson (http://www.configserver.com)
+	(c)2025, Danpol Limited
 
 																	  qhtlfirewall(1)

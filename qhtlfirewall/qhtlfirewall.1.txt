@@ -1,10 +1,10 @@
 .TH qhtlfirewall 1
 .SH NAME
-qhtlfirewall \- ConfigServer & Security Firewall
+qhtlfirewall \- QhtLink Firewall
 .SH SYNOPSIS
 .B qhtlfirewall [OPTIONS]
 .SH DESCRIPTION
-This manual documents the qhtlfirewall command line options for the ConfigServer & Security Firewall. See /etc/qhtlfirewall/qhtlfirewall.conf and /etc/qhtlfirewall/readme.txt for more detailed information on how to use and configure this application.
+This manual documents the qhtlfirewall command line options for QhtLink Firewall. See /etc/qhtlfirewall/qhtlfirewall.conf and /etc/qhtlfirewall/readme.txt for more detailed information on how to use and configure this application.
 .SH OPTIONS
 .TP
 .B
@@ -279,6 +279,6 @@ The system wide configuration file
 .RS
 Detailed information about qhtlfirewall and qhtlwaterfall
 .SH BUGS
-Report bugs on the forums at http://forum.configserver.com
+Report issues via your support channel
 .SH AUTHOR
-(c)2006-2023, Jonathan Michaelson (http://www.configserver.com)
+(c)2025, Daniel Nowakowski, Danpol Limited (https://www.qhtlf.danpol.co.uk)

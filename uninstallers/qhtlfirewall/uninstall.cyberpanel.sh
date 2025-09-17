@@ -52,15 +52,13 @@ rm -fv /etc/cron.d/qhtlfirewall-cron
 rm -fv /etc/logrotate.d/qhtlwaterfall
 rm -fv /usr/local/man/man1/qhtlfirewall.man.1
 
-rm -Rfv /usr/local/CyberCP/configserverqhtlfirewall
-rm -fv /home/cyberpanel/plugins/configserverqhtlfirewall
-rm -Rfv /usr/local/CyberCP/public/static/configserverqhtlfirewall
+rm -Rfv /usr/local/CyberCP/qhtlfirewall
+rm -fv /home/cyberpanel/plugins/qhtlfirewall
+rm -Rfv /usr/local/CyberCP/public/static/qhtlfirewall
 
-sed -i "/configserverqhtlfirewall/d" /usr/local/CyberCP/CyberCP/settings.py
-sed -i "/configserverqhtlfirewall/d" /usr/local/CyberCP/CyberCP/urls.py
-if [ ! -e /etc/cxs/cxs.pl ]; then
-    sed -i "/configserver/d" /usr/local/CyberCP/baseTemplate/templates/baseTemplate/index.html
-fi
+sed -i "/qhtlfirewall/d" /usr/local/CyberCP/CyberCP/settings.py
+sed -i "/qhtlfirewall/d" /usr/local/CyberCP/CyberCP/urls.py
+sed -i "/qhtlfirewall/d" /usr/local/CyberCP/baseTemplate/templates/baseTemplate/index.html
 
 service lscpd restart
 

@@ -52,8 +52,8 @@ rm -fv /etc/cron.d/qhtlfirewall-cron
 rm -fv /etc/logrotate.d/qhtlwaterfall
 rm -fv /usr/local/man/man1/qhtlfirewall.man.1
 
-/usr/local/interworx/bin/nodeworx.pex -u --controller Plugins --action edit --plugin_name configserverqhtlfirewall --status 0 -n
-rm -Rfv /etc/qhtlfirewall /usr/local/qhtlfirewall /var/lib/qhtlfirewall /usr/local/interworx/plugins/configserverqhtlfirewall /usr/local/interworx/html/configserver/qhtlfirewall
+/usr/local/interworx/bin/nodeworx.pex -u --controller Plugins --action edit --plugin_name qhtlfirewall --status 0 -n
+rm -Rfv /etc/qhtlfirewall /usr/local/qhtlfirewall /var/lib/qhtlfirewall /usr/local/interworx/plugins/qhtlfirewall /usr/local/interworx/html/qhtlfirewall
 chattr -ia /etc/apf/apf
 if [ -e "/etc/apf/apf.old" ]; then
     cp -avf /etc/apf/apf.old /etc/apf/apf

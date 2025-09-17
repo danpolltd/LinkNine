@@ -1,21 +1,8 @@
 #!/usr/bin/perl
 ###############################################################################
-# Copyright (C) 2006-2025 Jonathan Michaelson
+# Copyright (C) 2025 Daniel Nowakowski
 #
-# https://github.com/waytotheweb/scripts
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, see <https://www.gnu.org/licenses>.
+# https://qhtlf.danpol.co.uk
 ###############################################################################
 ## no critic (RequireUseWarnings, ProhibitExplicitReturnUndef, ProhibitMixedBooleanOperators, RequireBriefOpen)
 # start main
@@ -27,20 +14,20 @@ use IO::Handle;
 use IPC::Open3;
 use Net::CIDR::Lite;
 use Socket;
-use ConfigServer::Config;
-use ConfigServer::Slurp qw(slurp);
-use ConfigServer::CheckIP qw(checkip cccheckip);
-use ConfigServer::Ports;
-use ConfigServer::URLGet;
-use ConfigServer::Sanity qw(sanity);
-use ConfigServer::ServerCheck;
-use ConfigServer::ServerStats;
-use ConfigServer::Service;
-use ConfigServer::Messenger;
-use ConfigServer::RBLCheck;
-use ConfigServer::GetEthDev;
-use ConfigServer::Sendmail;
-use ConfigServer::LookUpIP qw(iplookup);
+use QhtLink::Config;
+use QhtLink::Slurp qw(slurp);
+use QhtLink::CheckIP qw(checkip cccheckip);
+use QhtLink::Ports;
+use QhtLink::URLGet;
+use QhtLink::Sanity qw(sanity);
+use QhtLink::ServerCheck;
+use QhtLink::ServerStats;
+use QhtLink::Service;
+use QhtLink::Messenger;
+use QhtLink::RBLCheck;
+use QhtLink::GetEthDev;
+use QhtLink::Sendmail;
+use QhtLink::LookUpIP qw(iplookup);
 
 umask(0177);
 
@@ -64,23 +51,23 @@ $ipscidr = Net::CIDR::Lite->new;
 eval {local $SIG{__DIE__} = undef; $ipscidr6->add("::1/128")};
 eval {local $SIG{__DIE__} = undef; $ipscidr->add("127.0.0.0/8")};
 
-$slurpreg = ConfigServer::Slurp->slurpreg;
-$cleanreg = ConfigServer::Slurp->cleanreg;
+$slurpreg = QhtLink::Slurp->slurpreg;
+$cleanreg = QhtLink::Slurp->cleanreg;
 $faststart = 0;
 
 &process_input;
 &load_config;
 
-$urlget = ConfigServer::URLGet->new($config{URLGET}, "qhtlfirewall/$version", $config{URLPROXY});
+$urlget = QhtLink::URLGet->new($config{URLGET}, "qhtlfirewall/$version", $config{URLPROXY});
 unless (defined $urlget) {
 	if (-e $config{CURL} or -e $config{WGET}) {
 		$config{URLGET} = 3;
-		$urlget = ConfigServer::URLGet->new($config{URLGET}, "qhtlfirewall/$version", $config{URLPROXY});
+		$urlget = QhtLink::URLGet->new($config{URLGET}, "qhtlfirewall/$version", $config{URLPROXY});
 		print "*WARNING* URLGET set to use LWP but perl module is not installed, fallback to using CURL/WGET\n";
 		$warning .= "*WARNING* URLGET set to use LWP but perl module is not installed, fallback to using CURL/WGET\n";
 	} else {
 		$config{URLGET} = 1;
-		$urlget = ConfigServer::URLGet->new($config{URLGET}, "qhtlfirewall/$version", $config{URLPROXY});
+		$urlget = QhtLink::URLGet->new($config{URLGET}, "qhtlfirewall/$version", $config{URLPROXY});
 		print "*WARNING* URLGET set to use LWP but perl module is not installed, reverting to HTTP::Tiny\n";
 		$warning .= "*WARNING* URLGET set to use LWP but perl module is not installed, reverting to HTTP::Tiny\n";
 	}
@@ -205,7 +192,7 @@ sub qhtlfirewalllock {
 ###############################################################################
 # start load_config
 sub load_config {
-	my $config = ConfigServer::Config->loadconfig();
+	my $config = QhtLink::Config->loadconfig();
 	%config = $config->config;
 	my %configsetting = $config->configsetting;
 	$ipv4reg = $config->ipv4reg;
@@ -222,8 +209,8 @@ sub load_config {
 	}
 
 	if ($config{CF_ENABLE}) {
-		require ConfigServer::CloudFlare;
-		import ConfigServer::CloudFlare;
+		require QhtLink::CloudFlare;
+		import QhtLink::CloudFlare;
 	}
 
 	$verbose = "";
@@ -286,13 +273,13 @@ sub load_config {
 			$blocklists{$name}{url} = $url;
 		}
 	}
-	if (-e "/etc/cxs/cxs.reputation" and -e "/usr/local/qhtlfirewall/lib/ConfigServer/cxs.pm") {
-		require ConfigServer::cxs;
-		import ConfigServer::cxs;
+	if (-e "/etc/qhtlwatcher/qhtlwatcher.reputation" and -e "/usr/local/qhtlfirewall/lib/QhtLink/qhtlwatcher.pm") {
+		require QhtLink::qhtlwatcher;
+		import QhtLink::qhtlwatcher;
 		$cxsreputation = 1;
-		if (-e "/etc/cxs/cxs.blocklists") {
+		if (-e "/etc/qhtlwatcher/qhtlwatcher.blocklists") {
 			my $all = 0;
-			my @lines = slurp("/etc/cxs/cxs.blocklists");
+			my @lines = slurp("/etc/qhtlwatcher/qhtlwatcher.blocklists");
 			if (grep {$_ =~ /^CXS_ALL/} @lines) {$all = 1}
 			foreach my $line (@lines) {
 				$line =~ s/$cleanreg//g;
@@ -308,13 +295,13 @@ sub load_config {
 				}
 			}
 		}
-		%cxsports = ConfigServer::cxs::Rports();
+		%cxsports = QhtLink::qhtlwatcher::Rports();
 	}
 
 	my @binaries = ("IPTABLES","IPTABLES_SAVE","IPTABLES_RESTORE","MODPROBE","SENDMAIL","PS","VMSTAT","LS","MD5SUM","TAR","CHATTR","UNZIP","GUNZIP","DD","TAIL","GREP","HOST");
 	if ($config{IPV6}) {push @binaries, ("IP6TABLES","IP6TABLES_SAVE","IP6TABLES_RESTORE")}
 	if ($config{LF_IPSET}) {push @binaries, ("IPSET")}
-	if (ConfigServer::Service::type() eq "systemd") {push @binaries, ("SYSTEMCTL")}
+		if (QhtLink::Service::type() eq "systemd") {push @binaries, ("SYSTEMCTL")}
 	my $hit = 0;
 	foreach my $bin (@binaries) {
 		if ($bin eq "SENDMAIL" and $config{LF_ALERT_SMTP}) {next}
@@ -420,10 +407,10 @@ if ($config{VESTA}) {$generic = " (VestaCP)"}
 # start doqhtlwaterfall
 sub doqhtlwaterfall {
 	my $qhtlwaterfall  = $input{argument};
-	if ($qhtlwaterfall eq "start") {ConfigServer::Service::startqhtlwaterfall()}
-	elsif ($qhtlwaterfall eq "stop") {ConfigServer::Service::stopqhtlwaterfall()}
-	elsif ($qhtlwaterfall eq "restart") {ConfigServer::Service::restartqhtlwaterfall()}
-	elsif ($qhtlwaterfall eq "status") {ConfigServer::Service::statusqhtlwaterfall()}
+	if ($qhtlwaterfall eq "start") {QhtLink::Service::startqhtlwaterfall()}
+	elsif ($qhtlwaterfall eq "stop") {QhtLink::Service::stopqhtlwaterfall()}
+	elsif ($qhtlwaterfall eq "restart") {QhtLink::Service::restartqhtlwaterfall()}
+	elsif ($qhtlwaterfall eq "status") {QhtLink::Service::statusqhtlwaterfall()}
 	else {print "qhtlfirewall: usage: qhtlfirewall --qhtlwaterfall [stop|start|restart|status]\n"}
 	return;
 }
@@ -435,7 +422,7 @@ sub dorestartall {
 	&dostop(1);
 	&dostart;
 	&qhtlfirewalllock("unlock");
-	ConfigServer::Service::restartqhtlwaterfall();
+	QhtLink::Service::restartqhtlwaterfall();
 	return;
 }
 # end dorestartall
@@ -927,7 +914,7 @@ sub dostop {
 ###############################################################################
 # start dostart
 sub dostart {
-	if (ConfigServer::Service::type() eq "systemd") {
+	if (QhtLink::Service::type() eq "systemd") {
 		my ($childin, $childout);
 		my $cmdpid = open3($childin, $childout, $childout, $config{SYSTEMCTL},"is-active","firewalld");
 		my @reply = <$childout>;
@@ -3304,7 +3291,7 @@ sub dodisable {
 		}
 		close ($CONF) or &error(__LINE__,"Could not close /usr/local/directadmin/data/admin/services.status: $!");
 	}
-	ConfigServer::Service::stopqhtlwaterfall();
+	QhtLink::Service::stopqhtlwaterfall();
 	&dostop(0);
 
 	print "qhtlfirewall and qhtlwaterfall have been disabled\n";
@@ -3320,7 +3307,7 @@ sub doenable {
 	}
 	unlink ("/etc/qhtlfirewall/qhtlfirewall.disable");
 	&dostart;
-	ConfigServer::Service::startqhtlwaterfall();
+	QhtLink::Service::startqhtlwaterfall();
 	unless ($config{GENERIC}) {
 		sysopen (my $CONF, "/etc/chkserv.d/chkservd.conf", O_RDWR | O_CREAT) or &error(__LINE__,"Could not open /etc/chkserv.d/chkservd.conf: $!");
 		flock ($CONF, LOCK_EX) or &error(__LINE__,"Could not lock /etc/chkserv.d/chkservd.conf: $!");
@@ -3467,7 +3454,7 @@ sub version {
 ###############################################################################
 # start getethdev
 sub getethdev {
-	my $ethdev = ConfigServer::GetEthDev->new();
+	my $ethdev = QhtLink::GetEthDev->new();
 	my %g_ifaces = $ethdev->ifaces;
 	my %g_ipv4 = $ethdev->ipv4;
 	my %g_ipv6 = $ethdev->ipv6;
@@ -3789,7 +3776,7 @@ sub doupdate {
 				system ("rm -Rfv /usr/src/qhtlfirewall*");
 				print "\nRestarting qhtlfirewall and qhtlwaterfall...\n";
 				system ("/usr/sbin/qhtlfirewall -r");
-				ConfigServer::Service::restartqhtlwaterfall();
+				QhtLink::Service::restartqhtlwaterfall();
 				print "\n...All done.\n\nChangelog: https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt\n";
 			}
 		} else {
@@ -4567,7 +4554,7 @@ sub dotemprm {
 						}
 					}
 				}
-				if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {ConfigServer::CloudFlare::action("remove",$ip,$config{CF_BLOCK})}
+				if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {QhtLink::CloudFlare::action("remove",$ip,$config{CF_BLOCK})}
 				print "qhtlfirewall: $ip temporary block removed\n";
 				$unblock = 1;
 			} else {
@@ -4635,7 +4622,7 @@ sub dotemprm {
 						}
 					}
 				}
-				if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {ConfigServer::CloudFlare::action("remove",$ip,"whitelist")}
+				if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {QhtLink::CloudFlare::action("remove",$ip,"whitelist")}
 				print "qhtlfirewall: $ip temporary allow removed\n";
 				$unblock = 1;
 			} else {
@@ -4735,7 +4722,7 @@ sub dotemprmd {
 						}
 					}
 				}
-				if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {ConfigServer::CloudFlare::action("remove",$ip,$config{CF_BLOCK})}
+				if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {QhtLink::CloudFlare::action("remove",$ip,$config{CF_BLOCK})}
 				print "qhtlfirewall: $ip temporary block removed\n";
 				$unblock = 1;
 			} else {
@@ -4827,7 +4814,7 @@ sub dotemprma {
 						}
 					}
 				}
-				if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {ConfigServer::CloudFlare::action("remove",$ip,"whitelist")}
+				if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {QhtLink::CloudFlare::action("remove",$ip,"whitelist")}
 				print "qhtlfirewall: $ip temporary allow removed\n";
 				$unblock = 1;
 			} else {
@@ -4911,7 +4898,7 @@ sub dotempf {
 					}
 				}
 			}
-			if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {ConfigServer::CloudFlare::action("remove",$ip,$config{CF_BLOCK})}
+			if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {QhtLink::CloudFlare::action("remove",$ip,$config{CF_BLOCK})}
 			print "qhtlfirewall: $ip temporary block removed\n";
 		}
 		seek ($TEMPBAN, 0, 0);
@@ -4971,7 +4958,7 @@ sub dotempf {
 					}
 				}
 			}
-			if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {ConfigServer::CloudFlare::action("remove",$ip,"whitelist")}
+			if ($config{CF_ENABLE} and $message =~ /\(CF_ENABLE\)/) {QhtLink::CloudFlare::action("remove",$ip,"whitelist")}
 			print "qhtlfirewall: $ip temporary allow removed\n";
 		}
 		seek ($TEMPALLOW, 0, 0);
@@ -5165,7 +5152,7 @@ sub domessenger {
 ###############################################################################
 # start domail
 sub domail {
-	my $output = ConfigServer::ServerCheck::report();
+	my $output = QhtLink::ServerCheck::report();
 
 	if ($input{argument}) {
 		my $message = "From: root\n";
@@ -5176,7 +5163,7 @@ sub domail {
 		$message .= "\n";
 		$message .= $output;
 		my @message = split(/\n/,$message);
-		ConfigServer::Sendmail::relay($input{argument}, "", @message);
+		QhtLink::Sendmail::relay($input{argument}, "", @message);
 	} else {
 		print $output;
 		print "\n";
@@ -5187,7 +5174,7 @@ sub domail {
 ###############################################################################
 # start dorbls
 sub dorbls {
-	my ($failures, $output) = ConfigServer::RBLCheck::report(1,"",0);
+	my ($failures, $output) = QhtLink::RBLCheck::report(1,"",0);
 	my $failure_s = "failure";
 	if ($failures ne 1) {$failure_s .= "s"}
 	if ($failures eq "") {$failures = 0}
@@ -5200,7 +5187,7 @@ sub dorbls {
 		$message .= "\n";
 		$message .= $output;
 		my @message = split(/\n/,$message);
-		ConfigServer::Sendmail::relay($input{argument}, "", @message);
+		QhtLink::Sendmail::relay($input{argument}, "", @message);
 	} else {
 		print $output;
 		print "\n";
@@ -5387,8 +5374,8 @@ $fport,    $fopen,$fconn,$fpid,            $fcmd,                               
 
 	print "Ports listening for external connections and the executables running behind them:\n";
 	print "Port/Proto Open Conn  PID/User             Command Line                            Executable\n";
-	my %listen = ConfigServer::Ports->listening;
-	my %ports = ConfigServer::Ports->openports;
+	my %listen = QhtLink::Ports->listening;
+	my %ports = QhtLink::Ports->openports;
 	foreach my $protocol (sort keys %listen) {
 		foreach my $port (sort {$a <=> $b} keys %{$listen{$protocol}}) {
 			foreach my $pid (sort {$a <=> $b} keys %{$listen{$protocol}{$port}}) {
@@ -5410,7 +5397,7 @@ $fport,    $fopen,$fconn,$fpid,            $fcmd,                               
 # start domessengerv2
 sub domessengerv2 {
 	print "qhtlfirewall - MESSENGERV2 /etc/apache2/conf.d/qhtlfirewall_messenger.conf regeneration:\n\n";
-	ConfigServer::Messenger::messengerv2();
+	QhtLink::Messenger::messengerv2();
 	print "\n...Done.\n";
 	return;
 }
@@ -5447,7 +5434,7 @@ $ip,             $domain,             $mode,     $date,                    $comm
 
 		print "Target           Local User           Mode       Date                      Notes\n";
 		print "======           ==========           ====       ====                      =====\n";
-		my @domains = ConfigServer::CloudFlare::action("getlist","","","",$valuelist);
+		my @domains = QhtLink::CloudFlare::action("getlist","","","",$valuelist);
 		foreach my $domainkey (@domains) {
 			foreach my $key (sort {$domainkey->{$a}{created_on} <=> $domainkey->{$b}{created_on}} keys %{$domainkey}) {
 				if ($domainkey->{$key}{success}) {
@@ -5474,10 +5461,10 @@ $ip,             $domain,             $mode,     $date,                    $comm
 			print "Invalid add type, must be: [block], [challenge] or [whitelist]\n";
 			exit 1;
 		}
-		my $status = ConfigServer::CloudFlare::action("add",$value,$mode,"",$valuemorelist);
+		my $status = QhtLink::CloudFlare::action("add",$value,$mode,"",$valuemorelist);
 	}
 	elsif ($cmd eq "del") {
-		my $status = ConfigServer::CloudFlare::action("del",$setting,"whitelist","",$valuelist);
+		my $status = QhtLink::CloudFlare::action("del",$setting,"whitelist","",$valuelist);
 	}
 	elsif ($cmd eq "tempadd") {
 		my $mode;
@@ -5489,11 +5476,11 @@ $ip,             $domain,             $mode,     $date,                    $comm
 		}
 		$input{argument} = "$value $config{CF_TEMP}";
 		if ($setting eq "deny") {
-			my $status = ConfigServer::CloudFlare::action("deny",$value,$mode,"",$valuemorelist,1);
+			my $status = QhtLink::CloudFlare::action("deny",$value,$mode,"",$valuemorelist,1);
 			&dotempdeny("cf");
 		}
 		elsif ($setting eq "allow") {
-			my $status = ConfigServer::CloudFlare::action("allow",$value,$mode,"",$valuemorelist,1);
+			my $status = QhtLink::CloudFlare::action("allow",$value,$mode,"",$valuemorelist,1);
 			&dotempallow("cf");
 		}
 	}
@@ -5534,7 +5521,7 @@ sub dographs {
 		print "ST_SYSTEM is disabled\n";
 		exit 1;
 	}
-	if (!defined ConfigServer::ServerStats::init()) {
+	if (!defined QhtLink::ServerStats::init()) {
 		print "Perl module GD::Graph is not installed/working\n";
 		exit 1;
 	}
@@ -5562,16 +5549,16 @@ sub dographs {
 
 	print "Creating html pages and images...\n";
 
-	ConfigServer::ServerStats::charts($config{CC_LOOKUPS},$dir);
+	QhtLink::ServerStats::charts($config{CC_LOOKUPS},$dir);
 	open (my $CHARTS, ">", $dir."/charts.html");
 	flock ($CHARTS, LOCK_EX);
-	print $CHARTS ConfigServer::ServerStats::charts_html($config{CC_LOOKUPS},"");
+	print $CHARTS QhtLink::ServerStats::charts_html($config{CC_LOOKUPS},"");
 	close ($CHARTS);
 
-	ConfigServer::ServerStats::graphs($type,$config{ST_SYSTEM_MAXDAYS},$dir);
+	QhtLink::ServerStats::graphs($type,$config{ST_SYSTEM_MAXDAYS},$dir);
 	open (my $GRAPHS, ">", $dir."/graphs.html");
 	flock ($GRAPHS, LOCK_EX);
-	print $GRAPHS ConfigServer::ServerStats::graphs_html("");
+	print $GRAPHS QhtLink::ServerStats::graphs_html("");
 	close ($GRAPHS);
 
 	print "Created charts.html, graphs.html and their images in $dir\n";

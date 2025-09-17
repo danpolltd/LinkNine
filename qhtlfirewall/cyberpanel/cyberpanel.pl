@@ -1,21 +1,8 @@
 #!/usr/bin/perl
 ###############################################################################
-# Copyright (C) 2006-2025 Jonathan Michaelson
+# Copyright (C) 2025 Daniel Nowakowski
 #
-# https://github.com/waytotheweb/scripts
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, see <https://www.gnu.org/licenses>.
+# https://qhtlf.danpol.co.uk
 ###############################################################################
 # start main
 use strict;
@@ -24,12 +11,12 @@ use Fcntl qw(:DEFAULT :flock);
 use Sys::Hostname qw(hostname);
 use IPC::Open3;
 use lib '/usr/local/qhtlfirewall/lib';
-use ConfigServer::DisplayUI;
-use ConfigServer::Config;
+use QhtLink::DisplayUI;
+use QhtLink::Config;
 
 our ($script, $images, $myv, %FORM, %in);
 
-my $config = ConfigServer::Config->loadconfig();
+my $config = QhtLink::Config->loadconfig();
 my %config = $config->config;
 
 open (my $IN, "<", "/etc/qhtlfirewall/version.txt");
@@ -37,8 +24,8 @@ $myv = <$IN>;
 close ($IN);
 chomp $myv;
 
-$script = "/configserverqhtlfirewall/iframe/";
-$images = "/static/configserverqhtlfirewall";
+$script = "/qhtlfirewall/iframe/";
+$images = "/static/qhtlfirewall";
 
 my $file = $ARGV[0];
 unless (-e $file) {die "Cannot find tempfile [$file]"}
@@ -58,10 +45,7 @@ foreach my $pair (@pairs) {
 	$FORM{$name} = $value;
 }
 
-#print "<pre>$ARGV[0]:$ARGV[1]:[[$buffer]]</pre>\n";
-#foreach my $key (keys %ENV) {
-#	print "$key = [$ENV{$key}]<br>\n";
-#}
+# Debug logger intentionally disabled/removed
 
 my $bootstrapcss = "<link rel='stylesheet' href='$images/bootstrap/css/bootstrap.min.css'>";
 my $jqueryjs = "<script src='$images/jquery.min.js'></script>";
@@ -72,11 +56,11 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 <!doctype html>
 <html lang='en'>
 <head>
-	<title>ConfigServer Security &amp; Firewall</title>
+	<title>QhtLink Firewall</title>
 	<meta charset='utf-8'>
 	<meta name='viewport' content='width=device-width, initial-scale=1'>
 	$bootstrapcss
-	<link href='$images/configserver.css' rel='stylesheet' type='text/css'>
+	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
 	$jqueryjs
 	$bootstrapjs
 
@@ -109,7 +93,7 @@ EOF
 <div class='container-fluid'>
 <br>
 <div class='panel panel-default'>
-<h4><img src='$images/qhtlfirewall_small.png' style='padding-left: 10px'> ConfigServer Security &amp; Firewall - qhtlfirewall v$myv</h4>
+<h4><img src='$images/qhtlfirewall_small.png' style='padding-left: 10px'> QhtLink Firewall - qhtlfirewall v$myv</h4>
 </div>
 EOF
 }
@@ -118,7 +102,7 @@ EOF
 #open (my $SCRIPTOUT, '>', \$templatehtml);
 #select $SCRIPTOUT;
 
-ConfigServer::DisplayUI::main(\%FORM, $script, $script, $images, $myv);
+QhtLink::DisplayUI::main(\%FORM, $script, $script, $images, $myv);
 
 #close ($SCRIPTOUT);
 #select STDOUT;

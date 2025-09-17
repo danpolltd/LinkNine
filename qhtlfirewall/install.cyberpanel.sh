@@ -1,21 +1,8 @@
 #!/bin/sh
 ###############################################################################
-# Copyright (C) 2006-2025 Jonathan Michaelson
+# Copyright (C) 2025 Daniel Nowakowski
 #
-# https://github.com/waytotheweb/scripts
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, see <https://www.gnu.org/licenses>.
+# https://qhtlf.danpol.co.uk
 ###############################################################################
 
 umask 0177
@@ -391,7 +378,7 @@ cp -avf install.txt /etc/qhtlfirewall/
 cp -avf version.txt /etc/qhtlfirewall/
 cp -avf license.txt /etc/qhtlfirewall/
 cp -avf webmin /usr/local/qhtlfirewall/lib/
-cp -avf ConfigServer /usr/local/qhtlfirewall/lib/
+cp -avf QhtLink /usr/local/qhtlfirewall/lib/
 cp -avf Net /usr/local/qhtlfirewall/lib/
 cp -avf Geo /usr/local/qhtlfirewall/lib/
 cp -avf Crypt /usr/local/qhtlfirewall/lib/
@@ -517,29 +504,27 @@ fi
 chown -Rf root:root /etc/qhtlfirewall /var/lib/qhtlfirewall /usr/local/qhtlfirewall
 chown -f root:root /usr/sbin/qhtlfirewall /usr/sbin/qhtlwaterfall /etc/logrotate.d/qhtlwaterfall /etc/cron.d/qhtlfirewall-cron /etc/cron.d/qhtlwaterfall-cron /usr/local/man/man1/qhtlfirewall.1 /usr/lib/systemd/system/qhtlwaterfall.service /usr/lib/systemd/system/qhtlfirewall.service /etc/init.d/qhtlwaterfall /etc/init.d/qhtlfirewall
 
-mkdir -vp /usr/local/CyberCP/public/static/configserverqhtlfirewall/
-cp -avf qhtlfirewall/* /usr/local/CyberCP/public/static/configserverqhtlfirewall/
-cp -avf qhtlfirewall/* cyberpanel/configserverqhtlfirewall/static/configserverqhtlfirewall/
-chmod 755 /usr/local/CyberCP/public/static/configserverqhtlfirewall/
+# Install CyberPanel static assets and Django app for qhtlfirewall
+mkdir -vp /usr/local/CyberCP/public/static/qhtlfirewall/
+cp -avf qhtlfirewall/* /usr/local/CyberCP/public/static/qhtlfirewall/
+chmod 755 /usr/local/CyberCP/public/static/qhtlfirewall/
 
 cp cyberpanel/cyberpanel.pl /usr/local/qhtlfirewall/bin/
 chmod 700 /usr/local/qhtlfirewall/bin/cyberpanel.pl
-cp -avf cyberpanel/configserverqhtlfirewall /usr/local/CyberCP/
+cp -avf cyberpanel/qhtlfirewall /usr/local/CyberCP/
 
-mkdir /home/cyberpanel/plugins
-touch /home/cyberpanel/plugins/configserverqhtlfirewall
+mkdir -p /home/cyberpanel/plugins
+touch /home/cyberpanel/plugins/qhtlfirewall
 
-if ! cat /usr/local/CyberCP/CyberCP/settings.py | grep -q configserverqhtlfirewall; then
-    sed -i "/pluginHolder/ i \ \ \ \ 'configserverqhtlfirewall'," /usr/local/CyberCP/CyberCP/settings.py
+if ! cat /usr/local/CyberCP/CyberCP/settings.py | grep -q qhtlfirewall; then
+	sed -i "/pluginHolder/ i \ \ \ \ 'qhtlfirewall'," /usr/local/CyberCP/CyberCP/settings.py
 fi
-if ! cat /usr/local/CyberCP/CyberCP/urls.py | grep -q configserverqhtlfirewall; then
-    sed -i "/pluginHolder/ i \ \ \ \ url(r'^configserverqhtlfirewall/',include('configserverqhtlfirewall.urls'))," /usr/local/CyberCP/CyberCP/urls.py
+if ! cat /usr/local/CyberCP/CyberCP/urls.py | grep -q qhtlfirewall; then
+	sed -i "/pluginHolder/ i \ \ \ \ url(r'^qhtlfirewall/',include('qhtlfirewall.urls'))," /usr/local/CyberCP/CyberCP/urls.py
 fi
-#if ! cat /usr/local/CyberCP/baseTemplate/templates/baseTemplate/index.html | grep -q configserverqhtlfirewall; then
-#    sed -i "/url 'qhtlfirewall'/ i <li><a href='/configserverqhtlfirewall/' title='ConfigServer Security and Firewall'><span>ConfigServer Security \&amp; Firewall</span></a></li>" /usr/local/CyberCP/baseTemplate/templates/baseTemplate/index.html
-#fi
-if ! cat /usr/local/CyberCP/baseTemplate/templates/baseTemplate/index.html | grep -q configserver; then
-    sed -i "/trans 'Plugins'/ i \{\% include \"/usr/local/CyberCP/configserverqhtlfirewall/templates/configserverqhtlfirewall/menu.html\" \%\}" /usr/local/CyberCP/baseTemplate/templates/baseTemplate/index.html
+# Add sidebar menu include for qhtlfirewall if not already present
+if ! cat /usr/local/CyberCP/baseTemplate/templates/baseTemplate/index.html | grep -q qhtlfirewall; then
+	sed -i "/trans 'Plugins'/ i \{\% include \"/usr/local/CyberCP/qhtlfirewall/templates/qhtlfirewall/menu.html\" \%\}" /usr/local/CyberCP/baseTemplate/templates/baseTemplate/index.html
 fi
 
 service lscpd restart

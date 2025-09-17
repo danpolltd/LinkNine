@@ -52,14 +52,17 @@ rm -fv /etc/cron.d/qhtlfirewall-cron
 rm -fv /etc/logrotate.d/qhtlwaterfall
 rm -fv /usr/local/man/man1/qhtlfirewall.man.1
 
-rm -Rfv /usr/local/CyberCP/configserverqhtlfirewall
-rm -fv /home/cyberpanel/plugins/configserverqhtlfirewall
-rm -Rfv /usr/local/CyberCP/public/static/configserverqhtlfirewall
+rm -Rfv /usr/local/CyberCP/qhtlfirewall
+rm -fv /home/cyberpanel/plugins/qhtlfirewall
+rm -Rfv /usr/local/CyberCP/public/static/qhtlfirewall
 
-sed -i "/configserverqhtlfirewall/d" /usr/local/CyberCP/CyberCP/settings.py
-sed -i "/configserverqhtlfirewall/d" /usr/local/CyberCP/CyberCP/urls.py
-if [ ! -e /etc/cxs/cxs.pl ]; then
-    sed -i "/configserver/d" /usr/local/CyberCP/baseTemplate/templates/baseTemplate/index.html
+# Remove qhtlfirewall wiring from CyberPanel (only if files exist)
+[ -f /usr/local/CyberCP/CyberCP/settings.py ] && sed -i "/qhtlfirewall/d" /usr/local/CyberCP/CyberCP/settings.py
+[ -f /usr/local/CyberCP/CyberCP/urls.py ] && sed -i "/qhtlfirewall/d" /usr/local/CyberCP/CyberCP/urls.py
+
+# If qhtlwatcher is NOT installed, it's safe to also clean menu entries from index.html
+if [ ! -e /etc/qhtlwatcher/qhtlwatcher.pl ]; then
+    [ -f /usr/local/CyberCP/baseTemplate/templates/baseTemplate/index.html ] && sed -i "/qhtlfirewall/d" /usr/local/CyberCP/baseTemplate/templates/baseTemplate/index.html
 fi
 
 service lscpd restart

@@ -1,21 +1,8 @@
 #!/usr/bin/perl
 ###############################################################################
-# Copyright (C) 2006-2025 Jonathan Michaelson
+# Copyright (C) 2025 Daniel Nowakowski
 #
-# https://github.com/waytotheweb/scripts
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, see <https://www.gnu.org/licenses>.
+# https://qhtlf.danpol.co.uk
 ###############################################################################
 ## no critic (ProhibitBarewordFileHandles, ProhibitExplicitReturnUndef, ProhibitMixedBooleanOperators, RequireBriefOpen)
 use strict;
@@ -76,14 +63,14 @@ if (-e "/usr/local/cwpsrv") {
 	flock ($CWP, LOCK_EX);
 	my @data = <$CWP>;
 	chomp @data;
-	if (!(grep {$_ =~ /configserver/} @data)) {
+	if (!(grep {$_ =~ /qhtlfirewall/} @data)) {
 
 		seek ($CWP, 0, 0);
 		truncate ($CWP, 0);
 		foreach my $line (@data) {
 			print $CWP $line."\n";
 		}
-		print $CWP "<?php include('/usr/local/cwpsrv/htdocs/resources/admin/include/configserver.php'); ?>\n";
+		print $CWP "<?php include('/usr/local/cwpsrv/htdocs/resources/admin/include/qhtlfirewall.php'); ?>\n";
 	}
 	close ($CWP);
 }

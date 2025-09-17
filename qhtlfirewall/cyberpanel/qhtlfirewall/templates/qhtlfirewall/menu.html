@@ -1,0 +1,19 @@
+                        <a href="#" title="QhtLink Firewall">
+                            <i class="glyph-icon icon-bug"></i>
+                            <span>QhtLink Firewall</span>
+                        </a>
+                        <div class="sidebar-submenu">
+
+                            <ul>
+							{% url 'qhtlfirewall' as the_url %}
+							{% if the_url %}
+                    <li><a href="{% url 'qhtlfirewall' %}"
+                        title="QhtLink Firewall"><span>QhtLink Firewall</span></a>
+                                </li>
+							{% endif %}
+                            </ul>
+
+                        </div><!-- .sidebar-submenu -->
+                    </li>
+
+                    <li class="serverACL">

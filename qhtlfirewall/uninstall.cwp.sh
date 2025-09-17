@@ -2,6 +2,7 @@
 echo "Uninstalling qhtlfirewall and qhtlwaterfall..."
 echo
 
+
 /usr/sbin/qhtlfirewall -f
 
 if test `cat /proc/1/comm` = "systemd"
@@ -56,6 +57,8 @@ rm -fv /usr/local/cwpsrv/htdocs/resources/admin/modules/qhtlfirewallofficial.php
 rm -fv /usr/local/cwpsrv/htdocs/resources/admin/modules/qhtlfirewall.pl
 rm -fv /usr/local/cwpsrv/htdocs/resources/admin/addons/ajax/ajax_qhtlfirewallframe.php
 rm -Rfv /usr/local/cwpsrv/htdocs/admin/design/qhtlfirewall/
+rm -fv /usr/local/cwpsrv/htdocs/resources/admin/include/qhtlfirewall.php
+## Do not touch legacy include anymore; legacy removal has been dropped as part of the no-fallback policy
 
 echo
 echo "...Done"

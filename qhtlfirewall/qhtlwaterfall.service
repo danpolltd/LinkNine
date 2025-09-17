@@ -1,5 +1,5 @@
 [Unit]
-Description=ConfigServer Firewall & Security - qhtlwaterfall
+Description=QhtLink Firewall - qhtlwaterfall
 After=network.target qhtlfirewall.service
 
 [Service]

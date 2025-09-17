@@ -57,14 +57,13 @@ rm -fv /etc/cron.d/qhtlfirewall-cron
 rm -fv /etc/logrotate.d/qhtlwaterfall
 rm -fv /usr/local/man/man1/qhtlfirewall.man.1
 
-/bin/rm -fv /usr/local/cpanel/whostmgr/docroot/cgi/addon_qhtlfirewall.cgi
-/bin/rm -Rfv /usr/local/cpanel/whostmgr/docroot/cgi/qhtlfirewall
+## Intentionally do not remove legacy addon/old paths
 
-/bin/rm -fv /usr/local/cpanel/whostmgr/docroot/cgi/configserver/qhtlfirewall.cgi
-/bin/rm -Rfv /usr/local/cpanel/whostmgr/docroot/cgi/configserver/qhtlfirewall
+/bin/rm -fv /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall.cgi
+/bin/rm -Rfv /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall
 
-/bin/rm -fv /usr/local/cpanel/Cpanel/Config/ConfigObj/Driver/ConfigServerqhtlfirewall.pm
-/bin/rm -Rfv /usr/local/cpanel/Cpanel/Config/ConfigObj/Driver/ConfigServerqhtlfirewall
+/bin/rm -fv /usr/local/cpanel/Cpanel/Config/ConfigObj/Driver/QhtLinkFirewall.pm
+/bin/rm -Rfv /usr/local/cpanel/Cpanel/Config/ConfigObj/Driver/QhtLinkFirewall
 /bin/touch /usr/local/cpanel/Cpanel/Config/ConfigObj/Driver
 
 rm -fv /var/run/chkservd/qhtlwaterfall

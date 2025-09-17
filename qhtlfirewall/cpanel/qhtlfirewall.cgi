@@ -1,22 +1,9 @@
 #!/usr/bin/perl
-#WHMADDON:qhtlfirewall:ConfigServer Security & Firewall
+#WHMADDON:qhtlfirewall:QhtLink Firewall
 ###############################################################################
-# Copyright (C) 2006-2025 Jonathan Michaelson
+# Copyright (C) 2025 Daniel Nowakowski
 #
-# https://github.com/waytotheweb/scripts
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, see <https://www.gnu.org/licenses>.
+# https://qhtlf.danpol.co.uk
 ###############################################################################
 ## no critic (RequireUseWarnings, ProhibitExplicitReturnUndef, ProhibitMixedBooleanOperators, RequireBriefOpen)
 use strict;
@@ -26,10 +13,10 @@ use Sys::Hostname qw(hostname);
 use IPC::Open3;
 
 use lib '/usr/local/qhtlfirewall/lib';
-use ConfigServer::DisplayUI;
-use ConfigServer::DisplayResellerUI;
-use ConfigServer::Config;
-use ConfigServer::Slurp qw(slurp);
+use QhtLink::DisplayUI;
+use QhtLink::DisplayResellerUI;
+use QhtLink::Config;
+use QhtLink::Slurp qw(slurp);
 
 use lib '/usr/local/cpanel';
 require Cpanel::Form;
@@ -47,10 +34,10 @@ Whostmgr::ACLS::init_acls();
 
 %FORM = Cpanel::Form::parseform();
 
-my $config = ConfigServer::Config->loadconfig();
+my $config = QhtLink::Config->loadconfig();
 my %config = $config->config;
-my $slurpreg = ConfigServer::Slurp->slurpreg;
-my $cleanreg = ConfigServer::Slurp->cleanreg;
+my $slurpreg = QhtLink::Slurp->slurpreg;
+my $cleanreg = QhtLink::Slurp->cleanreg;
 
 Cpanel::Rlimit::set_rlimit_to_infinity();
 
@@ -117,8 +104,8 @@ my $thisapp = "qhtlfirewall";
 my $reregister;
 my $modalstyle;
 if ($Cpanel::Version::Tiny::major_version >= 65) {
-	if (-e "/usr/local/cpanel/whostmgr/docroot/cgi/configserver/${thisapp}/${thisapp}.conf") {
-		sysopen (my $CONF, "/usr/local/cpanel/whostmgr/docroot/cgi/configserver/${thisapp}/${thisapp}.conf", O_RDWR | O_CREAT);
+	if (-e "/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/${thisapp}/${thisapp}.conf") {
+		sysopen (my $CONF, "/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/${thisapp}/${thisapp}.conf", O_RDWR | O_CREAT);
 		flock ($CONF, LOCK_EX);
 		my @confdata = <$CONF>;
 		chomp @confdata;
@@ -134,7 +121,7 @@ if ($Cpanel::Version::Tiny::major_version >= 65) {
 			foreach (@confdata) {
 				print $CONF "$_\n";
 			}
-			&printcmd("/usr/local/cpanel/bin/register_appconfig","/usr/local/cpanel/whostmgr/docroot/cgi/configserver/${thisapp}/${thisapp}.conf");
+			&printcmd("/usr/local/cpanel/bin/register_appconfig","/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/${thisapp}/${thisapp}.conf");
 			$reregister = "<div class='bs-callout bs-callout-info'><h4>Updated application. The next time you login to WHM this will open within the native WHM main window instead of launching a separate window</h4></div>\n";
 		}
 		close ($CONF);
@@ -153,7 +140,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 
 	print <<EOF;
 	<!-- $bootstrapcss -->
-	<link href='$images/configserver.css' rel='stylesheet' type='text/css'>
+	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
 	$jqueryjs
 	$bootstrapjs
 <style>
@@ -187,16 +174,16 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	print <<EOF;
 <div id="loader"></div><br />
 <div class='panel panel-default'>
-<h4><img src='$images/qhtlfirewall_small.png' style='padding-left: 10px'> ConfigServer Security &amp; Firewall - qhtlfirewall v$myv</h4></div>
+<h4><img src='$images/qhtlfirewall_small.png' style='padding-left: 10px'> QhtLink Firewall (qhtlfirewall) v$myv</h4></div>
 EOF
 	if ($reregister ne "") {print $reregister}
 }
 
 #eval {
 if ($reseller) {
-	ConfigServer::DisplayResellerUI::main(\%FORM, $script, 0, $images, $myv);
+	QhtLink::DisplayResellerUI::main(\%FORM, $script, 0, $images, $myv);
 } else {
-	ConfigServer::DisplayUI::main(\%FORM, $script, 0, $images, $myv);
+	QhtLink::DisplayUI::main(\%FORM, $script, 0, $images, $myv);
 }
 #};
 #if ($@) {

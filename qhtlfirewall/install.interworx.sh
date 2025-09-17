@@ -1,21 +1,8 @@
 #!/bin/sh
 ###############################################################################
-# Copyright (C) 2006-2025 Jonathan Michaelson
+# Copyright (C) 2025 Daniel Nowakowski
 #
-# https://github.com/waytotheweb/scripts
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, see <https://www.gnu.org/licenses>.
+# https://qhtlf.danpol.co.uk
 ###############################################################################
 
 umask 0177
@@ -391,7 +378,7 @@ cp -avf install.txt /etc/qhtlfirewall/
 cp -avf version.txt /etc/qhtlfirewall/
 cp -avf license.txt /etc/qhtlfirewall/
 cp -avf webmin /usr/local/qhtlfirewall/lib/
-cp -avf ConfigServer /usr/local/qhtlfirewall/lib/
+cp -avf QhtLink /usr/local/qhtlfirewall/lib/
 cp -avf Net /usr/local/qhtlfirewall/lib/
 cp -avf Geo /usr/local/qhtlfirewall/lib/
 cp -avf Crypt /usr/local/qhtlfirewall/lib/
@@ -521,14 +508,14 @@ fi
 chown -Rf root:root /etc/qhtlfirewall /var/lib/qhtlfirewall /usr/local/qhtlfirewall
 chown -f root:root /usr/sbin/qhtlfirewall /usr/sbin/qhtlwaterfall /etc/logrotate.d/qhtlwaterfall /etc/cron.d/qhtlfirewall-cron /etc/cron.d/qhtlwaterfall-cron /usr/local/man/man1/qhtlfirewall.1 /usr/lib/systemd/system/qhtlwaterfall.service /usr/lib/systemd/system/qhtlfirewall.service /etc/init.d/qhtlwaterfall /etc/init.d/qhtlfirewall
 
-mkdir -v -m 0600 /usr/local/interworx/plugins/configserverqhtlfirewall /usr/local/interworx/html/configserver
-chmod -v 0711 /usr/local/interworx/html/configserver
-cp -avf interworx/* /usr/local/interworx/plugins/configserverqhtlfirewall
-cp -avf qhtlfirewall /usr/local/interworx/html/configserver/
-chown -R iworx:iworx /usr/local/interworx/plugins/configserverqhtlfirewall /usr/local/interworx/html/configserver
-find /usr/local/interworx/plugins/configserverqhtlfirewall -type d -exec chmod -v 700 {} \;
-find /usr/local/interworx/plugins/configserverqhtlfirewall -type f -exec chmod -v 600 {} \;
-/usr/local/interworx/bin/nodeworx.pex -u --controller Plugins --action edit --plugin_name configserverqhtlfirewall --status 1 -n
+mkdir -v -m 0600 /usr/local/interworx/plugins/qhtlfirewall /usr/local/interworx/html/qhtlfirewall
+chmod -v 0711 /usr/local/interworx/html/qhtlfirewall
+cp -avf interworx/* /usr/local/interworx/plugins/qhtlfirewall
+cp -avf qhtlfirewall /usr/local/interworx/html/
+chown -R iworx:iworx /usr/local/interworx/plugins/qhtlfirewall /usr/local/interworx/html/qhtlfirewall
+find /usr/local/interworx/plugins/qhtlfirewall -type d -exec chmod -v 700 {} \;
+find /usr/local/interworx/plugins/qhtlfirewall -type f -exec chmod -v 600 {} \;
+/usr/local/interworx/bin/nodeworx.pex -u --controller Plugins --action edit --plugin_name qhtlfirewall --status 1 -n
 
 if [ -e "/usr/local/interworx/include/Ctrl/Nodeworx/Firewall.php.orig" ]; then
     mv /usr/local/interworx/include/Ctrl/Nodeworx/Firewall.php.orig /usr/local/interworx/include/Ctrl/Nodeworx/Firewall.php 

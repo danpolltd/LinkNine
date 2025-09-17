@@ -1,24 +1,21 @@
-# Scripts for former Way to the Web Limited Products
+# Uninstallers for legacy products (external)
 
 ### The scripts in this repository will uninstall each product
 
 ## MailScanner and MSFE (MailScanner Front-End):
 
-```
-curl -sL -o msuninstall.pl  https://github.com/waytotheweb/scripts/blob/main/uninstallers/MailScanner/msuninstall.pl?raw=true
-curl -sL https://github.com/waytotheweb/scripts/blob/main/uninstallers/MailScanner/msuninstall.sh?raw=true | bash
-```
+Note: These external uninstallers are maintained outside this project. Review the scripts before running.
 
-## cxs:
+## qhtlwatcher:
 
 ```
-bash /etc/cxs/uninstall.sh
+bash /etc/qhtlwatcher/uninstall.sh
 ```
 
-## osm:
+## qhtlmoderator:
 
 ```
-bash /etc/osm/uninstall.sh
+bash /etc/qhtlmoderator/uninstall.sh
 ```
 
 ## qhtlfirewall:
@@ -29,24 +26,16 @@ bash /etc/qhtlfirewall/uninstall.sh
 
 ## cmc:
 
-```
-curl -sL https://github.com/waytotheweb/scripts/blob/main/uninstallers/cmc/cmc_uninstall.sh?raw=true | bash
-```
+See vendor documentation for uninstall steps.
 
 ## cmm:
 
-```
-curl -sL https://github.com/waytotheweb/scripts/blob/main/uninstallers/cmm/cmm_uninstall.sh?raw=true | bash
-```
+See vendor documentation for uninstall steps.
 
 ## cmq:
 
-```
-curl -sL https://github.com/waytotheweb/scripts/blob/main/uninstallers/cmq/cmq_uninstall.sh?raw=true | bash
-```
+See vendor documentation for uninstall steps.
 
 ## cse:
 
-```
-curl -sL https://github.com/waytotheweb/scripts/blob/main/uninstallers/cse/cse_uninstall.sh?raw=true | bash
-```
+See vendor documentation for uninstall steps.

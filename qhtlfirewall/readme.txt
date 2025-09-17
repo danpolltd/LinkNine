@@ -1,25 +1,12 @@
 ###############################################################################
-# Copyright (C) 2006-2025 Jonathan Michaelson
+# Copyright (C) 2025 Daniel Nowakowski
 #
-# https://github.com/waytotheweb/scripts
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, see <https://www.gnu.org/licenses>.
+# https://qhtlf.danpol.co.uk
 ###############################################################################
 
 
-ConfigServer Security & Firewall
-################################
+QhtLink Firewall
+##############
 
 This suite of scripts provides:
 
@@ -99,7 +86,7 @@ This document contains:
 ###############
 
 
-ConfigServer Firewall (qhtlfirewall)
+QhtLink Firewall (qhtlfirewall)
 ===========================
 
 We have developed an SPI iptables firewall that is straight-forward, easy and
@@ -122,7 +109,7 @@ Directory structure:
 Login Failure Daemon (qhtlwaterfall)
 ==========================
 
-To complement the ConfigServer Firewall, we have developed a daemon process
+To complement QhtLink Firewall, we have developed a daemon process
 that runs all the time and periodically (every X seconds) scans the latest log
 file entries for login attempts against your server that continually fail
 within a short period of time. Such attempts are often called "Brute-force
@@ -606,8 +593,8 @@ tcp|out|d=80||u=99
 icmp|in|d=ping|s=44.33.22.11
 
 # TCP connections inbound to port 22 from Dynamic DNS address
-# www.configserver.com (for use in qhtlfirewall.dyndns only)
-tcp|in|d=22|s=www.configserver.com
+# www.qhtlf.danpol.co.uk (for use in qhtlfirewall.dyndns only)
+tcp|in|d=22|s=www.qhtlf.danpol.co.uk
 
 # TCP connections inbound to port 22,80,443 from IP 44.33.22.11
 d=22,80,443|s=44.33.22.11
@@ -1593,7 +1580,7 @@ There are several restrictions to using this feature:
 1.  All qhtlwaterfall blocks will be temporary blocks so that qhtlfirewall/qhtlwaterfall can keep blocks in
     sync with CloudFlare
 
-2.  Automatic blocks via qhtlwaterfall are limited to LF_MODSEC and LF_CXS triggers as
+2.  Automatic blocks via qhtlwaterfall are limited to LF_MODSEC and LF_QHTLWATCHER triggers as
     only through these can the domain name be determined. Any users that own
     domains that are involved in the trigger will get a block in their
     CloudFlare Firewall. Additionally, any users with the special case "any"
@@ -1627,7 +1614,7 @@ CF_TEMP should be configured taking into account the maximum number of rules
 that the CloudFlare account allows: https://goo.gl/ssGu7v
 
 All CloudFlare users for the domains that are involved in LF_MODSEC and
-LF_CXS triggers will have a CloudFlare rule added. Any CloudFlare account
+LF_QHTLWATCHER triggers will have a CloudFlare rule added. Any CloudFlare account
 configured to use the special case "any" field value in qhtlfirewall.cloudflare will
 have a CloudFlare rule added regardless of domain.
 
@@ -1710,15 +1697,14 @@ Note: None of the apf conf files are used and are ignored by qhtlfirewall.
 The Firewall UI option in NodeWorx should now not be used and any changes made
 there will not be reflected in iptables.
 
-There is a UI option under "ConfigServer Services" for "ConfigServer Firewall &
-Security" that should now be used.
+There is a UI option for "QhtLink Firewall" that should now be used.
 
 The installation will also replace the Firewall page in NodeWorx with a dummy
 page stating that qhtlfirewall should be used instead. qhtlwaterfall will replace the page upon
 restart incase of upgrades to InterWorx. If you want to disable this behaviour,
 create an empty file as follows:
 
-touch /etc/cxs/interworx.firewall
+touch /etc/qhtlwatcher/interworx.firewall
 
 The InterWorx plugin for qhtlfirewall is auto-enabled. Enabling or Disabling the
 InterWorx plugin has no effect on qhtlfirewall itself, only the UI plugin presence.
@@ -1734,7 +1720,7 @@ qhtlwaterfall.
 
 CWP integration is available for qhtlfirewall. Since CWP already has some custom
 modifications, these have been taken into account. To access the now inbuilt UI
-in CWP, there is a new menu option in CWP > ConfigServer Scripts > ConfigServer
+in CWP, there is a new menu option in CWP > Quantum Host Translator Link
 Firewall.
 
 There is now an option in /etc/qhtlfirewall/qhtlfirewall.conf for LF_CWP for login failure

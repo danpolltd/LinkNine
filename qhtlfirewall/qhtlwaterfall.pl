@@ -1,21 +1,8 @@
 #!/usr/bin/perl
 ###############################################################################
-# Copyright (C) 2006-2025 Jonathan Michaelson
+# Copyright (C) 2025 Daniel Nowakowski
 #
-# https://github.com/waytotheweb/scripts
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, see <https://www.gnu.org/licenses>.
+# https://qhtlf.danpol.co.uk
 ###############################################################################
 ## no critic (RequireUseWarnings, ProhibitExplicitReturnUndef, ProhibitMixedBooleanOperators, RequireBriefOpen, RequireLocalizedPunctuationVars)
 # start main
@@ -27,18 +14,18 @@ use IPC::Open3;
 use Net::CIDR::Lite;
 use POSIX qw(:sys_wait_h sysconf strftime setsid);
 use Socket;
-use ConfigServer::Config;
-use ConfigServer::Slurp qw(slurp);
-use ConfigServer::CheckIP qw(checkip cccheckip);
-use ConfigServer::URLGet;
-use ConfigServer::GetIPs qw(getips);
-use ConfigServer::Service;
-use ConfigServer::AbuseIP qw(abuseip);
-use ConfigServer::GetEthDev;
-use ConfigServer::Sendmail;
-use ConfigServer::Logger qw(logfile);
-use ConfigServer::KillSSH;
-use ConfigServer::LookUpIP qw(iplookup);
+use QhtLink::Config;
+use QhtLink::Slurp qw(slurp);
+use QhtLink::CheckIP qw(checkip cccheckip);
+use QhtLink::URLGet;
+use QhtLink::GetIPs qw(getips);
+use QhtLink::Service;
+use QhtLink::AbuseIP qw(abuseip);
+use QhtLink::GetEthDev;
+use QhtLink::Sendmail;
+use QhtLink::Logger qw(logfile);
+use QhtLink::KillSSH;
+use QhtLink::LookUpIP qw(iplookup);
 
 umask(0177);
 
@@ -84,22 +71,22 @@ if (-e "/etc/qhtlfirewall/qhtlfirewall.error") {
 	exit 1;
 }
 
-my $config = ConfigServer::Config->loadconfig();
+my $config = QhtLink::Config->loadconfig();
 %config = $config->config();
 my %configsetting = $config->configsetting();
 $ipv4reg = $config->ipv4reg;
 $ipv6reg = $config->ipv6reg;
-$slurpreg = ConfigServer::Slurp->slurpreg;
-$cleanreg = ConfigServer::Slurp->cleanreg;
+$slurpreg = QhtLink::Slurp->slurpreg;
+$cleanreg = QhtLink::Slurp->cleanreg;
 
 unless ($config{LF_DAEMON}) {&cleanup(__LINE__,"*Error* LF_DAEMON not enabled in /etc/qhtlfirewall/qhtlfirewall.conf")}
 if ($config{TESTING}) {&cleanup(__LINE__,"*Error* qhtlwaterfall will not run with TESTING enabled in /etc/qhtlfirewall/qhtlfirewall.conf")}
 
 if ($config{UI}) {
-	require ConfigServer::DisplayUI;
-	import ConfigServer::DisplayUI;
-	require ConfigServer::cseUI;
-	import ConfigServer::cseUI;
+	require QhtLink::DisplayUI;
+	import QhtLink::DisplayUI;
+	require QhtLink::cseUI;
+	import QhtLink::cseUI;
 	eval {
 		local $SIG{__DIE__} = undef;
 		require IO::Socket::SSL;
@@ -133,18 +120,18 @@ if ($config{CLUSTER_SENDTO} or $config{CLUSTER_RECVFROM}) {
 	import IO::Socket::INET;
 }
 if ($config{MESSENGER}) {
-	require ConfigServer::Messenger;
-	import ConfigServer::Messenger;
+	require QhtLink::Messenger;
+	import QhtLink::Messenger;
 }
 if ($config{CF_ENABLE}) {
-	require ConfigServer::CloudFlare;
-	import ConfigServer::CloudFlare;
+	require QhtLink::CloudFlare;
+	import QhtLink::CloudFlare;
 }
-if (-e "/etc/cxs/cxs.reputation" and -e "/usr/local/qhtlfirewall/lib/ConfigServer/cxs.pm") {
-	require ConfigServer::cxs;
-	import ConfigServer::cxs;
+if (-e "/etc/qhtlwatcher/qhtlwatcher.reputation" and -e "/usr/local/qhtlfirewall/lib/QhtLink/qhtlwatcher.pm") {
+	require QhtLink::qhtlwatcher;
+	import QhtLink::qhtlwatcher;
 	$cxsreputation = 1;
-	%cxsports = ConfigServer::cxs::Rports();
+	%cxsports = QhtLink::qhtlwatcher::Rports();
 }
 $SIG{CHLD} = 'IGNORE';
 
@@ -218,16 +205,16 @@ $faststart = 0;
 
 eval {
 	local $SIG{__DIE__} = undef;
-	$urlget = ConfigServer::URLGet->new($config{URLGET}, "qhtlfirewall/$version", $config{URLPROXY});
+	$urlget = QhtLink::URLGet->new($config{URLGET}, "qhtlfirewall/$version", $config{URLPROXY});
 };
 unless (defined $urlget) {
 	if (-e $config{CURL} or -e $config{WGET}) {
 		$config{URLGET} = 3;
-		$urlget = ConfigServer::URLGet->new($config{URLGET}, "qhtlfirewall/$version", $config{URLPROXY});
+		$urlget = QhtLink::URLGet->new($config{URLGET}, "qhtlfirewall/$version", $config{URLPROXY});
 		logfile("*WARNING* URLGET set to use LWP but perl module is not installed, fallback to using CURL/WGET");
 	} else {
 		$config{URLGET} = 1;
-		$urlget = ConfigServer::URLGet->new($config{URLGET}, "qhtlfirewall/$version", $config{URLPROXY});
+		$urlget = QhtLink::URLGet->new($config{URLGET}, "qhtlfirewall/$version", $config{URLPROXY});
 		logfile("*WARNING* URLGET set to use LWP but perl module is not installed, CURL and WGET not installed - reverting to HTTP::Tiny");
 	}
 }
@@ -279,7 +266,7 @@ unless (-e $config{SENDMAIL}) {
 	logfile("*WARNING* Unable to send email reports - [$config{SENDMAIL}] not found");
 }
 
-if (ConfigServer::Service::type() eq "systemd") {
+if (QhtLink::Service::type() eq "systemd") {
 	my @reply = &syscommand(__LINE__,$config{SYSTEMCTL},"is-active","firewalld");
 	chomp @reply;
 	if ($reply[0] eq "active" or $reply[0] eq "activating") {
@@ -288,8 +275,8 @@ if (ConfigServer::Service::type() eq "systemd") {
 	}
 }
 
-require ConfigServer::RegexMain;
-import ConfigServer::RegexMain;
+require QhtLink::RegexMain;
+import QhtLink::RegexMain;
 
 if ($config{RESTRICT_SYSLOG} == 1) {
 	logfile("Restricted log file access (RESTRICT_SYSLOG)");
@@ -339,15 +326,15 @@ if (-e "/etc/qhtlfirewall/qhtlfirewall.blocklists") {
 		}
 	}
 }
-if ($cxsreputation and -e "/etc/cxs/cxs.blocklists") {
+if ($cxsreputation and -e "/etc/qhtlwatcher/qhtlwatcher.blocklists") {
 	my $all = 0;
-	my @lines = slurp("/etc/cxs/cxs.blocklists");
+	my @lines = slurp("/etc/qhtlwatcher/qhtlwatcher.blocklists");
 	if (grep {$_ =~ /^CXS_ALL/} @lines) {$all = 1}
 	foreach my $line (@lines) {
 		$line =~ s/$cleanreg//g;
 		if ($line =~ /^(\s|\#|$)/) {next}
 		my ($name,$interval,$max,$url) = split(/\|/,$line);
-		$url =~ s/download\.configserver\.com/$config{DOWNLOADSERVER}/g;
+		$url =~ s/download\.qhtlf\.danpol\.co\.uk/$config{DOWNLOADSERVER}/g;
 		if ($all and $name ne "CXS_ALL") {next}
 		if ($name =~ /^\w+$/) {
 			$name = substr(uc $name, 0, 25);
@@ -434,7 +421,7 @@ if ($config{IGNORE_ALLOW} and -e "/etc/qhtlfirewall/qhtlfirewall.allow") {
 }
 
 if ($config{LF_HTACCESS} or $config{LF_APACHE_404} or $config{LF_APACHE_403} or $config{LF_APACHE_401} or $config{LF_QOS} or $config{LF_SYMLINK}) {&globlog("HTACCESS_LOG")}
-if ($config{LF_MODSEC} or $config{LF_CXS}) {&globlog("MODSEC_LOG")}
+if ($config{LF_MODSEC} or $config{LF_QHTLWATCHER}) {&globlog("MODSEC_LOG")}
 if ($config{LF_SUHOSIN}) {&globlog("SUHOSIN_LOG}")}
 if ($config{LF_SMTPAUTH} or $config{LF_EXIMSYNTAX}) {&globlog("SMTPAUTH_LOG")}
 if ($config{LF_POP3D} or $config{LT_POP3D}) {&globlog("POP3D_LOG")}
@@ -485,7 +472,7 @@ if (-e "/usr/local/cpanel/version" and -e "/etc/cpanel/ea4/is_ea4" and -e "/etc/
 				$logfiles{"$value/error_log"} = 1;
 				logfile("EasyApache4, using $value/error_log instead of $config{HTACCESS_LOG} (Web Server)");
 			}
-			if ($config{LF_MODSEC} or $config{LF_CXS}) {
+			if ($config{LF_MODSEC} or $config{LF_QHTLWATCHER}) {
 				delete $globlogs{MODSEC_LOG}{$config{MODSEC_LOG}};
 				delete $logfiles{$config{MODSEC_LOG}};
 				$globlogs{MODSEC_LOG}{"$value/error_log"} = 1;
@@ -571,7 +558,7 @@ if ($config{IPV6}) {
 }
 
 if ($cxsreputation) {
-	logfile("cxs Reputation Enabled...");
+	logfile("qhtlwatcher Reputation Enabled...");
 }
 
 if ($config{PT_LOAD}) {
@@ -583,7 +570,7 @@ if ($config{PT_LOAD}) {
 if ($config{CF_ENABLE} and -e "/etc/qhtlfirewall/qhtlfirewall.cloudflare") {
 	logfile("CloudFlare Firewall...");
 	$cfblocks{LF_MODSEC} = 1;
-	$cfblocks{LF_CXS} = 1;
+	$cfblocks{LF_QHTLWATCHER} = 1;
 #	$cfblocks{LF_CPANEL} = 1;
 #	$cfblocks{LF_DIRECTADMIN} = 1;
 #	$cfblocks{LF_WEBMIN} = 1;
@@ -608,7 +595,7 @@ if ($config{MESSENGER}) {
 			logfile($config{MESSENGER_HTTPS_DISABLED});
 		}
 		if ($config{MESSENGERV3}) {
-			$messenger3 = ConfigServer::Messenger->init(3);
+			$messenger3 = QhtLink::Messenger->init(3);
 			if (-e "/var/cpanel/users/$config{MESSENGER_USER}") {
 				logfile("*MESSENGERV3* - Cannot run service using a cPanel account:[$config{MESSENGER_USER}], MESSENGER service disabled");
 				$config{MESSENGER} = 0;
@@ -627,7 +614,7 @@ if ($config{MESSENGER}) {
 			}
 		}
 		elsif ($config{MESSENGERV2}) {
-			$messenger2 = ConfigServer::Messenger->init(2);
+			$messenger2 = QhtLink::Messenger->init(2);
 			if (-e "/var/cpanel/users/$config{MESSENGER_USER}") {
 				logfile("*MESSENGERV2* - Cannot run service using a cPanel account:[$config{MESSENGER_USER}], MESSENGER service disabled");
 				$config{MESSENGER} = 0;
@@ -646,7 +633,7 @@ if ($config{MESSENGER}) {
 			}
 		}
 		else {
-			$messenger1 = ConfigServer::Messenger->init(1);
+			$messenger1 = QhtLink::Messenger->init(1);
 			if ($config{MESSENGER_HTTPS_IN} ne "") {
 				foreach my $port (split(/\,/,$config{MESSENGER_HTTPS_IN})) {$messengerports{$port} = 1}
 				logfile("Messenger HTTPS Service starting...");
@@ -660,7 +647,7 @@ if ($config{MESSENGER}) {
 		}
 		if ($config{MESSENGER_TEXT_IN} ne "") {
 			unless (defined $messenger1) {
-				$messenger1 = ConfigServer::Messenger->init(1);
+				$messenger1 = QhtLink::Messenger->init(1);
 			}
 			foreach my $port (split(/\,/,$config{MESSENGER_TEXT_IN})) {$messengerports{$port} = 1}
 			logfile("Messenger TEXT Service starting...");
@@ -676,9 +663,8 @@ if ($config{MESSENGER}) {
 }
 
 if ($config{UI}) {
-	if ($config{UI_CXS}) {
-	use lib '/etc/cxs';
-	require ConfigServer::cxsUI;
+	if ($config{UI_QHTLWATCHER}) {
+	require QhtLink::qhtlwatcherUI;
 	}
 	if ($config{UI_USER} eq "" or $config{UI_USER} eq "username") {
 		logfile("*Error* Cannot run qhtlfirewall Integrated UI - UI_USER must set");
@@ -1114,7 +1100,7 @@ $ports{htpasswd} = $config{PORTS_htpasswd};
 $ports{mod_security} = $config{PORTS_mod_security};
 $ports{mod_qos} = $config{PORTS_mod_qos};
 $ports{symlink} = $config{PORTS_symlink};
-$ports{cxs} = $config{PORTS_cxs};
+$ports{qhtlwatcher} = $config{PORTS_qhtlwatcher};
 $ports{bind} = $config{PORTS_bind};
 $ports{suhosin} = $config{PORTS_suhosin};
 $ports{cpanel} = $config{PORTS_cpanel};
@@ -1694,7 +1680,7 @@ sub dochecks {
 	my $timenow = time;
 	my $logscanner_skip = 0;
 
-	my ($reason, $ip, $app, $customtrigger, $customports, $customperm, $customcf) = ConfigServer::RegexMain::processline ($line,$lgfile,\%globlogs);
+	my ($reason, $ip, $app, $customtrigger, $customports, $customperm, $customcf) = QhtLink::RegexMain::processline ($line,$lgfile,\%globlogs);
 
 	my ($gip,$account,$domain) = split (/\|/,$ip,3);
 	unless ($account =~ /^[a-zA-Z0-9\-\_\.\@\%\+]+$/) {
@@ -1766,7 +1752,7 @@ sub dochecks {
 					elsif ($app eq "webmail") {$trigger = "LF_CPANEL"}
 					elsif ($app eq "mod_qos") {$trigger = "LF_QOS"}
 					elsif ($app eq "symlink") {$trigger = "LF_SYMLINK"}
-					elsif ($app eq "cxs") {$trigger = "LF_CXS"}
+					elsif ($app eq "qhtlwatcher") {$trigger = "LF_QHTLWATCHER"}
 				}
 
 				my $newtimes;
@@ -1802,7 +1788,7 @@ sub dochecks {
 						delete $db{$ip};
 					}
 					if ($cxsreputation) {
-						ConfigServer::cxs::Rreport($trigger,$ip,"$reason $ip - $hits failure(s) in the last $config{LF_INTERVAL} secs",$trigger);
+						QhtLink::qhtlwatcher::Rreport($trigger,$ip,"$reason $ip - $hits failure(s) in the last $config{LF_INTERVAL} secs",$trigger);
 					}
 					$0 = "qhtlwaterfall - scanning $lgfile";
 				}
@@ -1833,7 +1819,7 @@ sub dochecks {
 	}
 
 	if ($config{LF_DISTFTP} and ($globlogs{FTPD_LOG}{$lgfile})) {
-		my ($ip, $account) = ConfigServer::RegexMain::processdistftpline ($line);
+	my ($ip, $account) = QhtLink::RegexMain::processdistftpline ($line);
 		unless ($account =~ /^[a-zA-Z0-9\-\_\.\@\%\+]+$/) {
 			if ($account and $config{DEBUG} >= 1) {logfile("debug: (processdistftpline) Account name [$account] is invalid")}
 			$account = "";
@@ -1866,7 +1852,7 @@ sub dochecks {
 	}
 
 	if ($config{LF_DISTSMTP} and ($globlogs{SMTPAUTH_LOG}{$lgfile})) {
-		my ($ip, $account) = ConfigServer::RegexMain::processdistsmtpline ($line);
+	my ($ip, $account) = QhtLink::RegexMain::processdistsmtpline ($line);
 		unless ($account =~ /^[a-zA-Z0-9\-\_\.\@\%\+]+$/) {
 			if ($account and $config{DEBUG} >= 1) {logfile("debug: (processdistsmtpline) Account name [$account] is invalid")}
 			$account = "";
@@ -1899,7 +1885,7 @@ sub dochecks {
 	}
 
 	if ($config{LF_APACHE_404} and ($globlogs{HTACCESS_LOG}{$lgfile})) {
-		my ($ip) = ConfigServer::RegexMain::loginline404($line);
+	my ($ip) = QhtLink::RegexMain::loginline404($line);
 		if ($ip and !&ignoreip($ip)) {
 			$apache404{$ip}{count}++;
 			$apache404{$ip}{text} .= "$line\n";
@@ -1911,7 +1897,7 @@ sub dochecks {
 	}
 
 	if ($config{LF_APACHE_403} and ($globlogs{HTACCESS_LOG}{$lgfile})) {
-		my ($ip) = ConfigServer::RegexMain::loginline403($line);
+	my ($ip) = QhtLink::RegexMain::loginline403($line);
 		if ($ip and !&ignoreip($ip)) {
 			$apache403{$ip}{count}++;
 			$apache403{$ip}{text} .= "$line\n";
@@ -1923,7 +1909,7 @@ sub dochecks {
 	}
 
 	if ($config{LF_APACHE_401} and ($globlogs{HTACCESS_LOG}{$lgfile})) {
-		my ($ip) = ConfigServer::RegexMain::loginline401($line);
+	my ($ip) = QhtLink::RegexMain::loginline401($line);
 		if ($ip and !&ignoreip($ip)) {
 			$apache401{$ip}{count}++;
 			$apache401{$ip}{text} .= "$line\n";
@@ -1935,7 +1921,7 @@ sub dochecks {
 	}
 
 	if (($config{LT_POP3D} or $config{LT_IMAPD}) and (($globlogs{POP3D_LOG}{$lgfile}) or ($globlogs{IMAPD_LOG}{$lgfile}))) {
-		my ($app, $account, $ip) = ConfigServer::RegexMain::processloginline ($line);
+	my ($app, $account, $ip) = QhtLink::RegexMain::processloginline ($line);
 		unless ($account =~ /^[a-zA-Z0-9\-\_\.\@\%\+]+$/) {
 			if ($account and $config{DEBUG} >= 1) {logfile("debug: (processloginline) Account name [$account] is invalid")}
 			$account = "";
@@ -1953,7 +1939,7 @@ sub dochecks {
 	}
 
 	if ($config{LF_SSH_EMAIL_ALERT} and (($lgfile eq "/var/log/messages") or ($lgfile eq "/var/log/secure") or ($lgfile eq "/var/log/auth.log") or ($globlogs{SSHD_LOG}{$lgfile}))) {
-		my ($account, $ip, $method) = ConfigServer::RegexMain::processsshline ($line);
+	my ($account, $ip, $method) = QhtLink::RegexMain::processsshline ($line);
 		unless ($account =~ /^[a-zA-Z0-9\-\_\.\@\%\+]+$/) {
 			if ($account and $config{DEBUG} >= 1) {logfile("debug: (processsshline) Account name [$account] is invalid")}
 			$account = "";
@@ -1965,28 +1951,28 @@ sub dochecks {
 	}
 
 	if ($config{LF_SU_EMAIL_ALERT} and (($lgfile eq "/var/log/messages") or ($lgfile eq "/var/log/secure") or ($lgfile eq "/var/log/auth.log") or ($globlogs{SU_LOG}{$lgfile}))) {
-		my ($to, $from, $status) = ConfigServer::RegexMain::processsuline ($line);
+	my ($to, $from, $status) = QhtLink::RegexMain::processsuline ($line);
 		if (($to and $from) and ($from ne "root") and ($from ne 'root(uid=0)') and ($from ne '(uid=0)')) {
 			&sualert($to, $from, $status, $line);
 		}
 	}
 
 	if ($config{LF_SUDO_EMAIL_ALERT} and (($lgfile eq "/var/log/messages") or ($lgfile eq "/var/log/secure") or ($lgfile eq "/var/log/auth.log") or ($globlogs{SUDO_LOG}{$lgfile}))) {
-		my ($to, $from, $status) = ConfigServer::RegexMain::processsudoline ($line);
+	my ($to, $from, $status) = QhtLink::RegexMain::processsudoline ($line);
 		if (($to and $from) and ($from ne "root") and ($from ne 'root(uid=0)') and ($from ne '(uid=0)')) {
 			&sudoalert($to, $from, $status, $line);
 		}
 	}
 
 	if ($config{LF_CONSOLE_EMAIL_ALERT} and (($lgfile eq "/var/log/messages") or ($lgfile eq "/var/log/secure") or ($lgfile eq "/var/log/auth.log") or ($globlogs{SU_LOG}{$lgfile}))) {
-		my ($status) = ConfigServer::RegexMain::processconsoleline ($line);
+	my ($status) = QhtLink::RegexMain::processconsoleline ($line);
 		if ($status) {
 			&consolealert($line);
 		}
 	}
 
 	if ($config{LF_CPANEL_ALERT} and ($globlogs{CPANEL_ACCESSLOG}{$lgfile})) {
-		my ($ip,$user) = ConfigServer::RegexMain::processcpanelline ($line);
+	my ($ip,$user) = QhtLink::RegexMain::processcpanelline ($line);
 		unless ($user =~ /^[a-zA-Z0-9\-\_\.\@\%\+]+$/) {
 			if ($user and $config{DEBUG} >= 1) {logfile("debug: (processcpanelline) Account name [$user] is invalid")}
 			$user = "";
@@ -2002,14 +1988,14 @@ sub dochecks {
 	}
 
 	if ($config{LF_WEBMIN_EMAIL_ALERT} and ($globlogs{WEBMIN_LOG}{$lgfile})) {
-		my ($account, $ip) = ConfigServer::RegexMain::processwebminline ($line);
+	my ($account, $ip) = QhtLink::RegexMain::processwebminline ($line);
 		if ($account) {
 			&webminalert($account,$ip, $line);
 		}
 	}
 
 	if ($config{LF_SCRIPT_ALERT} and ($globlogs{SCRIPT_LOG}{$lgfile})) {
-		my $path = ConfigServer::RegexMain::scriptlinecheck($line);
+	my $path = QhtLink::RegexMain::scriptlinecheck($line);
 		if ($path ne "") {
 			$scripts{$path}{cnt}++;
 			if ($scripts{$path}{cnt} <= 10) {
@@ -2023,7 +2009,7 @@ sub dochecks {
 	}
 
 	if ($config{PS_INTERVAL} and ($globlogs{IPTABLES_LOG}{$lgfile})) {
-		my ($ip, $port) = ConfigServer::RegexMain::pslinecheck($line);
+	my ($ip, $port) = QhtLink::RegexMain::pslinecheck($line);
 		if ($port and $ip and !&ignoreip($ip)) {
 			my $hit = 0;
 			foreach my $ports (split(/\,/,$config{PS_PORTS})) {
@@ -2060,7 +2046,7 @@ sub dochecks {
 	}
 
 	if ($config{UID_INTERVAL} and ($globlogs{IPTABLES_LOG}{$lgfile})) {
-		my ($port, $uid) = ConfigServer::RegexMain::uidlinecheck($line);
+	my ($port, $uid) = QhtLink::RegexMain::uidlinecheck($line);
 		if ($port and $uid and !$uidignore{$uid}) {
 			my $hit = 0;
 			foreach my $ports (split(/\,/,$config{UID_PORTS})) {
@@ -2086,13 +2072,13 @@ sub dochecks {
 	}
 
 	if ($config{ST_ENABLE} and ($globlogs{IPTABLES_LOG}{$lgfile})) {
-		if (ConfigServer::RegexMain::statscheck($line)) {
+	if (QhtLink::RegexMain::statscheck($line)) {
 			&stats($line,"iptables");
 		}
 	}
 
 	if ($config{SYSLOG_CHECK} and $sys_syslog and $syslogcheckcode and ($globlogs{SYSLOG_LOG}{$lgfile})) {
-		if (ConfigServer::RegexMain::syslogcheckline($line,$syslogcheckcode)) {
+	if (QhtLink::RegexMain::syslogcheckline($line,$syslogcheckcode)) {
 			if ($config{DEBUG} >= 2) {logfile("debug: SYSLOG_CHECK match [$syslogcheckcode]")}
 			$syslogcheckcode = "";
 			$logscanner_skip = 1;
@@ -2100,7 +2086,7 @@ sub dochecks {
 	}
 
 	if ($config{PORTKNOCKING} and $config{PORTKNOCKING_ALERT} and ($globlogs{IPTABLES_LOG}{$lgfile})) {
-		my ($ip, $port) = ConfigServer::RegexMain::portknockingcheck($line);
+	my ($ip, $port) = QhtLink::RegexMain::portknockingcheck($line);
 		if ($port and $ip and !&ignoreip($ip)) {
 			&portknocking($ip, $port);
 		}
@@ -2134,7 +2120,7 @@ sub dochecks {
 	}
 
 	if ((($config{RT_RELAY_ALERT} or $config{RT_AUTHRELAY_ALERT} or $config{RT_POPRELAY_ALERT} or $config{RT_LOCALRELAY_ALERT} or $config{RT_LOCALHOSTRELAY_ALERT})) and ($globlogs{SMTPRELAY_LOG}{$lgfile})) {
-		my ($ip,$check) = ConfigServer::RegexMain::relaycheck($line);
+	my ($ip,$check) = QhtLink::RegexMain::relaycheck($line);
 		if ($ip) {
 			if ($check eq "RELAY" and !$relays{$ip}{check}) {
 				open (my $RELAYHOSTS, "<", "/etc/relayhosts");
@@ -2245,7 +2231,7 @@ sub getlogfile {
 				$line =~ s/\[text\]/$text/ig;
 				push @message, $line;
 			}
-			ConfigServer::Sendmail::relay("", "", @message);
+			QhtLink::Sendmail::relay("", "", @message);
 		}
 		if (&openlogfile($logfile,$lfn)) {return undef}
 	    return "reopen";
@@ -2518,7 +2504,7 @@ sub block {
 			&cloudflare("deny",$ip,$config{CF_BLOCK},$domains);
 			$cfid = " (CF_ENABLE)";
 		}
-		if ($config{PT_SSHDKILL} and $logapps{sshd}) {ConfigServer::KillSSH::find($ip,$ports{sshd})}
+		if ($config{PT_SSHDKILL} and $logapps{sshd}) {QhtLink::KillSSH::find($ip,$ports{sshd})}
 
 		my $blocked = 0;
 		if ($config{LF_SELECT} and !$config{LF_TRIGGER}) {
@@ -2552,7 +2538,7 @@ sub block {
 					$line =~ s/\[text\]/$text/ig;
 					push @message, $line;
 				}
-				ConfigServer::Sendmail::relay("", "", @message);
+				QhtLink::Sendmail::relay("", "", @message);
 
 				if ($config{DEBUG} >= 1) {logfile("debug: alert email sent for $ip")}
 			}
@@ -2601,7 +2587,7 @@ sub block {
 					$line =~ s/\[RFC3339\]/$rfc3339/ig;
 					push @message, $line;
 				}
-				ConfigServer::Sendmail::relay($config{LF_ALERT_TO}, $config{LF_ALERT_FROM}, @message);
+				QhtLink::Sendmail::relay($config{LF_ALERT_TO}, $config{LF_ALERT_FROM}, @message);
 
 				if ($config{DEBUG} >= 1) {logfile("debug: X-ARF email sent for $ip")}
 			}
@@ -2646,7 +2632,7 @@ sub blockaccount {
 		foreach my $ip (@ips) {
 			$0 = "qhtlwaterfall - (child) blocking $ip";
 
-			if ($config{PT_SSHDKILL} and $app eq "sshd") {ConfigServer::KillSSH::find($ip,$ports{sshd})}
+			if ($config{PT_SSHDKILL} and $app eq "sshd") {QhtLink::KillSSH::find($ip,$ports{sshd})}
 
 			my $tip = iplookup($ip);
 			if ($config{LF_SELECT} and !$config{LF_TRIGGER}) {
@@ -2660,7 +2646,7 @@ sub blockaccount {
 			}
 			$text .= "$tip\n";
 			if ($cxsreputation) {
-				ConfigServer::cxs::Rreport($trigger,$ip,"$ipcount distributed $trigger attacks in the last $config{LF_INTERVAL} secs",$trigger);
+				QhtLink::qhtlwatcher::Rreport($trigger,$ip,"$ipcount distributed $trigger attacks in the last $config{LF_INTERVAL} secs",$trigger);
 			}
 		}
 
@@ -2678,7 +2664,7 @@ sub blockaccount {
 				$line =~ s/\[text\]/$text/ig;
 				push @message, $line;
 			}
-			ConfigServer::Sendmail::relay("", "", @message);
+			QhtLink::Sendmail::relay("", "", @message);
 		}
 
 		if ($config{DEBUG} >= 3) {$timer = &timer("stop","blockaccount",$timer)}
@@ -2733,7 +2719,7 @@ sub blockdistftp {
 				$line =~ s/\[text\]/$text/ig;
 				push @message, $line;
 			}
-			ConfigServer::Sendmail::relay("", "", @message);
+			QhtLink::Sendmail::relay("", "", @message);
 		}
 
 		if ($config{LF_DIST_ACTION} and -e $config{LF_DIST_ACTION} and -x $config{LF_DIST_ACTION}) {
@@ -2793,7 +2779,7 @@ sub blockdistsmtp {
 				$line =~ s/\[text\]/$text/ig;
 				push @message, $line;
 			}
-			ConfigServer::Sendmail::relay("", "", @message);
+			QhtLink::Sendmail::relay("", "", @message);
 		}
 
 		if ($config{LF_DIST_ACTION} and -e $config{LF_DIST_ACTION} and -x $config{LF_DIST_ACTION}) {
@@ -2844,7 +2830,7 @@ sub disable404 {
 					$line =~ s/\[text\]/$text/ig;
 					push @message, $line;
 				}
-				ConfigServer::Sendmail::relay("", "", @message);
+				QhtLink::Sendmail::relay("", "", @message);
 			}
 		}
 
@@ -2891,7 +2877,7 @@ sub disable403 {
 					$line =~ s/\[text\]/$text/ig;
 					push @message, $line;
 				}
-				ConfigServer::Sendmail::relay("", "", @message);
+				QhtLink::Sendmail::relay("", "", @message);
 			}
 		}
 
@@ -2938,7 +2924,7 @@ sub disable401 {
 					$line =~ s/\[text\]/$text/ig;
 					push @message, $line;
 				}
-				ConfigServer::Sendmail::relay("", "", @message);
+				QhtLink::Sendmail::relay("", "", @message);
 			}
 		}
 
@@ -2992,7 +2978,7 @@ sub logindisable {
 					$line =~ s/\[rate\]/$loginproto{$app}/ig;
 					push @message, $line;
 				}
-				ConfigServer::Sendmail::relay("", "", @message);
+				QhtLink::Sendmail::relay("", "", @message);
 
 				logfile("tracking email sent for $account");
 			}
@@ -3044,7 +3030,7 @@ sub portscans {
 					$line =~ s/\[temp\]/$block/ig;
 					push @message, $line;
 				}
-				ConfigServer::Sendmail::relay("", "", @message);
+				QhtLink::Sendmail::relay("", "", @message);
 				if ($config{DEBUG} >= 1) {logfile("debug: alert email sent for $ip")}
 
 				if ($config{X_ARF}) {
@@ -3091,7 +3077,7 @@ sub portscans {
 						$line =~ s/\[RFC3339\]/$rfc3339/ig;
 						push @message, $line;
 					}
-					ConfigServer::Sendmail::relay($config{LF_ALERT_TO}, $config{LF_ALERT_FROM}, @message);
+					QhtLink::Sendmail::relay($config{LF_ALERT_TO}, $config{LF_ALERT_FROM}, @message);
 
 					if ($config{DEBUG} >= 1) {logfile("debug: X-ARF email sent for $ip")}
 				}
@@ -3135,7 +3121,7 @@ sub uidscans {
 			$line =~ s/\[ports\]/$blocks/ig;
 			push @message, $line;
 		}
-		ConfigServer::Sendmail::relay("", "", @message);
+				QhtLink::Sendmail::relay("", "", @message);
 		if ($config{DEBUG} >= 1) {logfile("debug: alert email sent for UID $uid ($user)")}
 
 		if ($config{DEBUG} >= 3) {$timer = &timer("stop","uidscans",$timer)}
@@ -3251,7 +3237,7 @@ sub qhtlfirewallcheck {
 						flock ($THISLOCK, LOCK_EX | LOCK_NB) or &childcleanup("*Lock Error* [$lockstr] still active - section skipped");
 						print $THISLOCK time;
 
-						logfile("cPanel upgrade detected, restarting ConfigServer services...");
+						logfile("cPanel upgrade detected, restarting firewall services...");
 
 						if (-e "/var/lib/qhtlfirewall/cpanel.new") {unlink "/var/lib/qhtlfirewall/cpanel.new"}
 						open (my $CPANELNEW, ">", "/var/lib/qhtlfirewall/cpanel.new");
@@ -3259,29 +3245,15 @@ sub qhtlfirewallcheck {
 						print $CPANELNEW time;
 						close ($CPANELNEW);
 
-						if (-e "/etc/cxs/cxs.pl") {
-							logfile("cPanel upgrade detected, restarting cxs Watch (if running)");
-							open (my $OUT, ">", "/etc/cxs/newusers/cxswatchrestart");
-							close ($OUT);
-							logfile("cPanel upgrade detected, restarting cxs pure-uploadscript (if running)");
-							eval {
-								local $SIG{__DIE__} = undef;
-								local $SIG{'ALRM'} = sub {die};
-								alarm(30);
-								&syscommand(__LINE__,"/sbin/service","pure-uploadscript","restart");
-								&syscommand(__LINE__,"/scripts/restartsrv_ftpserver");
-								alarm(0);
-							};
-							alarm(0);
-						}
+						# watcher restart logic adjusted during qhtlwatcher migration
 
-						if (-e "/etc/osm/osmd.pl") {
-							logfile("cPanel upgrade detected, restarting osmd");
+						if (-e "/etc/qhtlmoderator/qhtlmoderator.pl") {
+							logfile("cPanel upgrade detected, restarting qhtlmoderatord");
 							eval {
 								local $SIG{__DIE__} = undef;
 								local $SIG{'ALRM'} = sub {die};
 								alarm(30);
-								&syscommand(__LINE__,"/sbin/service","osmd","restart");
+								&syscommand(__LINE__,"/sbin/service","qhtlmoderatord","restart");
 								alarm(0);
 							};
 							alarm(0);
@@ -3433,7 +3405,7 @@ sub loadcheck {
 				$line =~ s/\[boundary\]/$boundary/ig;
 				push @message, $line;
 			}
-			ConfigServer::Sendmail::relay("", "", @message);
+				QhtLink::Sendmail::relay("", "", @message);
 		}
 
 		close ($THISLOCK );
@@ -3553,7 +3525,7 @@ sub queuecheck {
 				$line =~ s/\[text\]/$report/ig;
 				push @message, $line;
 			}
-			ConfigServer::Sendmail::relay("", "", @message);
+			QhtLink::Sendmail::relay("", "", @message);
 		}
 
 		close ($THISLOCK );
@@ -3613,7 +3585,7 @@ sub modsecipdbcheck {
 				$line =~ s/\[text\]/$report/ig;
 				push @message, $line;
 			}
-			ConfigServer::Sendmail::relay("", "", @message);
+			QhtLink::Sendmail::relay("", "", @message);
 		}
 
 		close ($THISLOCK );
@@ -3758,7 +3730,7 @@ sub connectiontracking {
 							$line =~ s/\[temp\]/$block/ig;
 							push @message, $line;
 						}
-						ConfigServer::Sendmail::relay("", "", @message);
+						QhtLink::Sendmail::relay("", "", @message);
 
 						if ($config{X_ARF}) {
 							$0 = "qhtlwaterfall - (child) sending X-ARF email for $ip";
@@ -3804,7 +3776,7 @@ sub connectiontracking {
 								$line =~ s/\[RFC3339\]/$rfc3339/ig;
 								push @message, $line;
 							}
-							ConfigServer::Sendmail::relay($config{LF_ALERT_TO}, $config{LF_ALERT_FROM}, @message);
+							QhtLink::Sendmail::relay($config{LF_ALERT_TO}, $config{LF_ALERT_FROM}, @message);
 
 							if ($config{DEBUG} >= 1) {logfile("debug: CT X-ARF email sent for $ip")}
 						}
@@ -3842,7 +3814,7 @@ sub connectiontracking {
 							$line =~ s/\[temp\]/$block/ig;
 							push @message, $line;
 						}
-						ConfigServer::Sendmail::relay("", "", @message);
+						QhtLink::Sendmail::relay("", "", @message);
 
 						if ($config{DEBUG} >= 1) {logfile("debug: CT alert email sent for $fullsubnet")}
 					}
@@ -3925,7 +3897,7 @@ sub accounttracking {
 				$line =~ s/\[report\]/$report/ig;
 				push @message, $line;
 			}
-			ConfigServer::Sendmail::relay("", "", @message);
+			QhtLink::Sendmail::relay("", "", @message);
 		}			
 
 		close ($THISLOCK );
@@ -3963,7 +3935,7 @@ sub syslogcheck {
 			$line =~ s/\[log\]/$config{SYSLOG_LOG}/ig;
 			push @message, $line;
 		}
-		ConfigServer::Sendmail::relay("", "", @message);
+		QhtLink::Sendmail::relay("", "", @message);
 
 		close ($THISLOCK );
 		if ($config{DEBUG} >= 3) {$timer = &timer("stop","syslogcheck",$timer)}
@@ -4227,7 +4199,7 @@ sub processtracking {
 								$line =~ s/\[text\]/$text/ig;
 								push @message, $line;
 							}
-							ConfigServer::Sendmail::relay("", "", @message);
+							QhtLink::Sendmail::relay("", "", @message);
 							next;
 						}
 					}
@@ -4331,7 +4303,7 @@ sub processtracking {
 							$line =~ s/\[cmdline\]/$cmdline/ig;
 							push @message, $line;
 						}
-						ConfigServer::Sendmail::relay("", "", @message);
+						QhtLink::Sendmail::relay("", "", @message);
 
 						if ($deleted and $config{PT_DELETED_ACTION} and -e "$config{PT_DELETED_ACTION}" and -x "$config{PT_DELETED_ACTION}") {
 							$SIG{CHLD} = 'IGNORE';
@@ -4379,7 +4351,7 @@ sub processtracking {
 							$line =~ s/\[kill\]/$kill/ig;
 							push @message, $line;
 						}
-						ConfigServer::Sendmail::relay("", "", @message);
+						QhtLink::Sendmail::relay("", "", @message);
 					}
 					if ($config{PT_USER_ACTION} and -e "$config{PT_USER_ACTION}" and -x "$config{PT_USER_ACTION}") {
 						$SIG{CHLD} = 'IGNORE';
@@ -4445,7 +4417,7 @@ sub processtracking {
 							$line =~ s/\[pid\]/$pid (Parent PID:$procres{$pid}{ppid})/ig;
 							push @message, $line;
 						}
-						ConfigServer::Sendmail::relay("", "", @message);
+						QhtLink::Sendmail::relay("", "", @message);
 					}
 
 					if ($config{PT_USER_ACTION} and -e "$config{PT_USER_ACTION}" and -x "$config{PT_USER_ACTION}") {
@@ -4500,7 +4472,7 @@ sub sshalert {
 			$line =~ s/\[text\]/$text/ig;
 			push @message, $line;
 		}
-		ConfigServer::Sendmail::relay("", "", @message);
+		QhtLink::Sendmail::relay("", "", @message);
 
 		if ($config{DEBUG} >= 3) {$timer = &timer("stop","sshalert",$timer)}
 		$0 = "qhtlwaterfall - child closing";
@@ -4538,7 +4510,7 @@ sub sualert {
 			$line =~ s/\[text\]/$text/ig;
 			push @message, $line;
 		}
-		ConfigServer::Sendmail::relay("", "", @message);
+		QhtLink::Sendmail::relay("", "", @message);
 
 		if ($config{DEBUG} >= 3) {$timer = &timer("stop","sualert",$timer)}
 		$0 = "qhtlwaterfall - child closing";
@@ -4576,7 +4548,7 @@ sub sudoalert {
 			$line =~ s/\[text\]/$text/ig;
 			push @message, $line;
 		}
-		ConfigServer::Sendmail::relay("", "", @message);
+		QhtLink::Sendmail::relay("", "", @message);
 
 		if ($config{DEBUG} >= 3) {$timer = &timer("stop","sudoalert",$timer)}
 		$0 = "qhtlwaterfall - child closing";
@@ -4613,7 +4585,7 @@ sub webminalert {
 			$line =~ s/\[text\]/$text/ig;
 			push @message, $line;
 		}
-		ConfigServer::Sendmail::relay("", "", @message);
+		QhtLink::Sendmail::relay("", "", @message);
 
 		if ($config{DEBUG} >= 3) {$timer = &timer("stop","webminalert",$timer)}
 		$0 = "qhtlwaterfall - child closing";
@@ -4645,7 +4617,7 @@ sub consolealert {
 			$line =~ s/\[line\]/$logline/ig;
 			push @message, $line;
 		}
-		ConfigServer::Sendmail::relay("", "", @message);
+		QhtLink::Sendmail::relay("", "", @message);
 
 		if ($config{DEBUG} >= 3) {$timer = &timer("stop","consolealert",$timer)}
 		$0 = "qhtlwaterfall - child closing";
@@ -4682,7 +4654,7 @@ sub cpanelalert {
 			$line =~ s/\[text\]/$text/ig;
 			push @message, $line;
 		}
-		ConfigServer::Sendmail::relay("", "", @message);
+		QhtLink::Sendmail::relay("", "", @message);
 
 		if ($config{LF_CPANEL_ALERT_ACTION} and -e "$config{LF_CPANEL_ALERT_ACTION}" and -x "$config{LF_CPANEL_ALERT_ACTION}") {
 			$0 = "qhtlwaterfall - (child) running LF_CPANEL_ALERT_ACTION";
@@ -4761,7 +4733,7 @@ sub scriptalert {
 			$line =~ s/\[scripts\]/$files/ig;
 			push @message, $line;
 		}
-		ConfigServer::Sendmail::relay("", "", @message);
+		QhtLink::Sendmail::relay("", "", @message);
 
 		if ($config{LF_SCRIPT_ACTION} and -e $config{LF_SCRIPT_ACTION} and -x $config{LF_SCRIPT_ACTION}) {
 			$0 = "qhtlwaterfall - (child) running LF_SCRIPT_ACTION";
@@ -4838,7 +4810,7 @@ sub relayalert {
 			$line =~ s/\[emails\]/$mails/ig;
 			push @message, $line;
 		}
-		ConfigServer::Sendmail::relay("", "", @message);
+		QhtLink::Sendmail::relay("", "", @message);
 
 		if ($config{RT_ACTION} and -e "$config{RT_ACTION}" and -x "$config{RT_ACTION}") {
 			$0 = "qhtlwaterfall - (child) running RT_ACTION";
@@ -4878,7 +4850,7 @@ sub portknocking {
 			$line =~ s/\[port\]/$port/ig;
 			push @message, $line;
 		}
-		ConfigServer::Sendmail::relay("", "", @message);
+		QhtLink::Sendmail::relay("", "", @message);
 
 		if ($config{DEBUG} >= 3) {$timer = &timer("stop","portknocking",$timer)}
 		$0 = "qhtlwaterfall - child closing";
@@ -4914,7 +4886,7 @@ sub blocklist {
 			my $getlist = 0;
 			my $verbose = 1;
 
-			if ($name =~ /^CXS_/ and $blocklists{$name}{url} =~ /download\.configserver\.com/) {
+			if ($name =~ /^CXS_/ and $blocklists{$name}{url} =~ /download\.qhtlf\.danpol)\.co\.uk/) {
 				$blocklists{$name}{interval} = 600;
 				$verbose = 0;
 			}
@@ -4947,9 +4919,9 @@ sub blocklist {
 				if ($status) {
 					logfile("Unable to retrieve blocklist $name - $text");
 					if ($name =~ /^CXS_/ and $text =~ /Forbidden/) {
-						logfile("CXS Reputation service disabled [$text]");
+						logfile("QHTLWATCHER Reputation service disabled [$text]");
 						$skipcxs = 1;
-						unlink "/etc/cxs/cxs.reputation";
+						unlink "/etc/qhtlwatcher/qhtlwatcher.reputation";
 					}
 					next;
 				}
@@ -7185,7 +7157,7 @@ sub dirwatch {
 							$line =~ s/\[action\]/Too many hits for \*LF_DIRWATCH\* - Directory Watching disabled/ig;
 							push @message, $line;
 						}
-						ConfigServer::Sendmail::relay("", "", @message);
+						QhtLink::Sendmail::relay("", "", @message);
 						
 						exit;
 					}
@@ -7221,7 +7193,7 @@ sub dirwatch {
 						$line =~ s/\[action\]/$action/ig;
 						push @message, $line;
 					}
-					ConfigServer::Sendmail::relay("", "", @message);
+					QhtLink::Sendmail::relay("", "", @message);
 
 					if (! $config{LF_DIRWATCH_DISABLE}) {
 						sysopen (my $TEMPFILES, "/var/lib/qhtlfirewall/qhtlfirewall.tempfiles", O_WRONLY | O_APPEND | O_CREAT) or &childcleanup(__LINE__,"*Error* Cannot append out file: $!");
@@ -7397,7 +7369,7 @@ sub dirwatchfile {
 						$line =~ s/\[output\]/$output/ig;
 						push @message, $line;
 					}
-					ConfigServer::Sendmail::relay("", "", @message);
+					QhtLink::Sendmail::relay("", "", @message);
 				}
 			} else {
 				$dirwatchfile{$file} = $md5sum;
@@ -7497,7 +7469,7 @@ sub integrity {
 						$line =~ s/\[text\]/$report/ig;
 						push @message, $line;
 					}
-					ConfigServer::Sendmail::relay("", "", @message);
+					QhtLink::Sendmail::relay("", "", @message);
 					unlink "/var/lib/qhtlfirewall/qhtlfirewall.tempint";
 
 					eval {
@@ -7602,7 +7574,7 @@ sub logscanner {
 				$line =~ s/\[hour\]/$hour/ig;
 				push @message, $line;
 			}
-			ConfigServer::Sendmail::relay("", "", @message);
+			QhtLink::Sendmail::relay("", "", @message);
 
 			if ($config{DEBUG} >= 1) {logfile("LOGSCANNER report sent")}
 		}
@@ -7661,7 +7633,7 @@ sub exploit {
 				$line =~ s/\[text\]/$report/ig;
 				push @message, $line;
 			}
-			ConfigServer::Sendmail::relay("", "", @message);
+			QhtLink::Sendmail::relay("", "", @message);
 			unlink "/var/lib/qhtlfirewall/qhtlfirewall.tempexp";
 		}
 
@@ -7676,7 +7648,7 @@ sub exploit {
 ###############################################################################
 # start getethdev
 sub getethdev {
-	my $ethdev = ConfigServer::GetEthDev->new();
+	my $ethdev = QhtLink::GetEthDev->new();
 	my %g_ifaces = $ethdev->ifaces;
 	my %g_ipv4 = $ethdev->ipv4;
 	my %g_ipv6 = $ethdev->ipv6;
@@ -8486,7 +8458,7 @@ sub ipblock {
 						$line =~ s/\[ips\]/$ntext/ig;
 						push @message, $line;
 					}
-					ConfigServer::Sendmail::relay("", "", @message);
+					QhtLink::Sendmail::relay("", "", @message);
 				}
 
 				$ip = $ipblock;
@@ -8521,7 +8493,7 @@ sub ipblock {
 						$line =~ s/\[blocks\]/$ptext/ig;
 						push @message, $line;
 					}
-					ConfigServer::Sendmail::relay("", "", @message);
+					QhtLink::Sendmail::relay("", "", @message);
 				}
 				$perm = 1;
 				$blocked = 1;
@@ -8878,10 +8850,10 @@ sub cloudflare {
 		$0 = "qhtlwaterfall - (child) CloudFlare $action...";
 
 		if ($action eq "remove") {
-			ConfigServer::CloudFlare::action("remove",$ip,$mode);
+			QhtLink::CloudFlare::action("remove",$ip,$mode);
 		}
 		elsif ($action eq "deny") {
-			ConfigServer::CloudFlare::action("deny",$ip,$config{CF_BLOCK},"",$domains,1);
+			QhtLink::CloudFlare::action("deny",$ip,$config{CF_BLOCK},"",$domains,1);
 		}
 
 		if ($config{DEBUG} >= 3) {$timer = &timer("stop","cloudflare",$timer)}
@@ -9183,7 +9155,7 @@ sub messengerrecaptcha {
 							$line =~ s/\[host\]/$host ($hostip)/ig;
 							push @message, $line;
 						}
-						ConfigServer::Sendmail::relay("", "", @message);
+						QhtLink::Sendmail::relay("", "", @message);
 
 						if ($config{DEBUG} >= 1) {logfile("debug: recaptcha email sent for $unblockip")}
 					}
@@ -9540,7 +9512,7 @@ sub ui {
 								$line =~ s/\[text\]/Login attempt from local IP address $tip - denied/ig;
 								push @message, $line;
 							}
-							ConfigServer::Sendmail::relay("", "", @message);
+							QhtLink::Sendmail::relay("", "", @message);
 						}
 						close ($client);
 						alarm(0);
@@ -9567,7 +9539,7 @@ sub ui {
 										$line =~ s/\[text\]/Access attempt from a banned IP $tip in \/etc\/qhtlfirewall\/ui\/ui\.ban - denied/ig;
 										push @message, $line;
 									}
-									ConfigServer::Sendmail::relay("", "", @message);
+									QhtLink::Sendmail::relay("", "", @message);
 								}
 								close ($client);
 								alarm(0);
@@ -9611,7 +9583,7 @@ sub ui {
 									$line =~ s/\[text\]/Access attempt from an IP $tip not in \/etc\/qhtlfirewall\/ui\/ui\.allow - denied/ig;
 									push @message, $line;
 								}
-								ConfigServer::Sendmail::relay("", "", @message);
+								QhtLink::Sendmail::relay("", "", @message);
 							}
 							close ($client);
 							alarm(0);
@@ -9830,7 +9802,7 @@ sub ui {
 									$line =~ s/\[text\]/Login failure from IP address $tip \[$fails{$peeraddress}\/$config{UI_RETRY}] - $text/ig;
 									push @message, $line;
 								}
-								ConfigServer::Sendmail::relay("", "", @message);
+								QhtLink::Sendmail::relay("", "", @message);
 							}
 							&ui_403;
 							close ($client);
@@ -9853,7 +9825,7 @@ sub ui {
 									$line =~ s/\[text\]/Login failure from IP address $tip \[$fails{$peeraddress}\/$config{UI_RETRY}] - denied/ig;
 									push @message, $line;
 								}
-								ConfigServer::Sendmail::relay("", "", @message);
+								QhtLink::Sendmail::relay("", "", @message);
 							}
 						}
 					}
@@ -9895,7 +9867,7 @@ sub ui {
 								$line =~ s/\[text\]/Login success from IP address $tip/ig;
 								push @message, $line;
 							}
-							ConfigServer::Sendmail::relay("", "", @message);
+							QhtLink::Sendmail::relay("", "", @message);
 						}
 					}
 					if ($valid eq "login") {
@@ -9903,7 +9875,7 @@ sub ui {
 						print "Content-type: text/html\r\n";
 						print "\r\n";
 						print "<!DOCTYPE html>\n";
-						print "<HTML>\n<TITLE>ConfigServer Security & Firewall</TITLE>\n<BODY style='font-family:Arial, Helvetica, sans-serif;' onload='document.getElementById(\"user\").focus()'>\n";
+						print "<HTML>\n<TITLE>Quantum Host Translator Link  Firewall</TITLE>\n<BODY style='font-family:Arial, Helvetica, sans-serif;' onload='document.getElementById(\"user\").focus()'>\n";
 						if ($valid eq "failed") {print "<div align='center'><h2>Login Failed</h2></div>\n"}
 						print "<form action='/' method='post'><div align='center'>\n";
 						print "<table align='center' border='0' cellspacing='0' cellpadding='4' bgcolor='#FFFFFF' style='border:1px solid #990000'>\n";
@@ -9917,7 +9889,7 @@ sub ui {
 						if (defined $FORM{qhtlfirewallapp} and ($FORM{qhtlfirewallapp} ne $application)) {
 							my $newapp = $application;
 							if ($FORM{qhtlfirewallapp} eq "qhtlfirewall") {$newapp = "qhtlfirewall"}
-							elsif ($FORM{qhtlfirewallapp} eq "cxs" and $config{UI_CXS}) {$newapp = "cxs"}
+							elsif ($FORM{qhtlfirewallapp} eq "qhtlwatcher" and $config{UI_QHTLWATCHER}) {$newapp = "qhtlwatcher"}
 							elsif ($FORM{qhtlfirewallapp} eq "cse" and $config{UI_CSE}) {$newapp = "cse"}
 							if ($newapp ne $application) {
 								sysopen (my $SESSION,"/var/lib/qhtlfirewall/ui/ui.session", O_RDWR | O_CREAT) or &childcleanup(__LINE__,"UI: unable to open qhtlfirewall.session: $!");
@@ -9979,11 +9951,11 @@ sub ui {
 <!doctype html>
 <html lang='en' $htmltag>
 <head>
-<title>ConfigServer Security &amp; Firewall</title>
+<title>QhtLink Firewall</title>
 <meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'>
 $bootstrapcss
-<link href='$images/configserver.css' rel='stylesheet' type='text/css'>
+<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
 $jqueryjs
 $bootstrapjs
 
@@ -10019,9 +9991,9 @@ EOF
 								}
 								unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
 									print "<div class='pull-right' style='margin:8px'>\n";
-									if ($config{UI_CXS} or $config{UI_CSE}) {
+									if ($config{UI_QHTLWATCHER} or $config{UI_CSE}) {
 										print "<form action='$script' method='post'><select name='qhtlfirewallapp'><option>qhtlfirewall</option>";
-										if ($config{UI_CXS}) {print "<option>cxs</option>"}
+										if ($config{UI_QHTLWATCHER}) {print "<option>qhtlwatcher</option>"}
 										if ($config{UI_CSE}) {print "<option>cse</option>"}
 										print "<", "/select> <input class='btn btn-default' type='submit' value='Switch'></form>\n";
 									}
@@ -10029,12 +10001,12 @@ EOF
 									print "</div>\n";
 									print <<EOF;
 <div class='panel panel-default panel-body'>
-<img align='absmiddle' src='$images/qhtlfirewall_small.png' alt='ConfigServer Firewall &amp; Security' style='float:left'>
-<h3>ConfigServer Security &amp; Firewall - qhtlfirewall v$myv</h3>
+<img align='absmiddle' src='$images/qhtlfirewall_small.png' alt='QhtLink Firewall' style='float:left'>
+<h3>QhtLink Firewall - qhtlfirewall v$myv</h3>
 </div>
 EOF
 								}
-								ConfigServer::DisplayUI::main(\%FORM, $script, 0, $images, $myv, $config{THIS_UI});
+								QhtLink::DisplayUI::main(\%FORM, $script, 0, $images, $myv, $config{THIS_UI});
 								unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
 									print <<EOF;
 <a class='botlink' id='botlink' title='Go to top'><span class='glyphicon glyphicon-hand-up'></span></a>
@@ -10115,8 +10087,8 @@ EOF
 									print "</html>\n";
 								}
 							}
-							elsif ($application eq "cxs" and $config{UI_CXS}) {
-								my @data = &syscommand(__LINE__,"/usr/sbin/cxs","--version");
+							elsif ($application eq "qhtlwatcher" and $config{UI_QHTLWATCHER}) {
+									my @data = &syscommand(__LINE__,"/etc/qhtlwatcher/qhtlwatcher.pl","--version");
 								chomp @data;
 								if ($data[0] =~ /v(.*)$/) {$myv = $1}
 								my %ajaxsubs = (
@@ -10147,7 +10119,7 @@ EOF
 								);
 
 								$script = "/$session/";
-								$images = "/$session/images/cxs";
+								$images = "/$session/images";
 								$config{THIS_UI} = 1;
 								my $bootstrapcss = "<link rel='stylesheet' href='$images/bootstrap/css/bootstrap.min.css'>";
 								my $jqueryjs = "<script src='$images/jquery.min.js'></script>";
@@ -10163,12 +10135,12 @@ EOF
 <!doctype html>
 <html lang='en'>
 <head>
-<title>ConfigServer eXploit Scanner</title>
+<title>Exploit Scanner</title>
 <meta charset='utf-8'>
 <meta name='viewport' content='width=device-width, initial-scale=1'>
 $bootstrapcss
 $fontawesome
-<link href='$images/configserver.css' rel='stylesheet' type='text/css'>
+<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
 $jqueryjs
 $bootstrapjs
 <link href='https://fonts.googleapis.com/css?family=Raleway:400,700' rel='stylesheet' type='text/css'>
@@ -10179,18 +10151,18 @@ $bootstrapjs
 <div class='container-fluid'>
 EOF
 										print "<div class='pull-right' style='margin:8px'>\n";
-										if ($config{UI_CXS} or $config{UI_CSE}) {
+										if ($config{UI_QHTLWATCHER} or $config{UI_CSE}) {
 											print "<form action='$script' method='post'><select name='qhtlfirewallapp'><option>qhtlfirewall</option>";
-											if ($config{UI_CXS}) {print "<option selected>cxs</option>"}
+											if ($config{UI_QHTLWATCHER}) {print "<option selected>qhtlwatcher</option>"}
 											if ($config{UI_CSE}) {print "<option>cse</option>"}
 											print "<", "/select> <input class='btn btn-default' type='submit' value='Switch'></form>\n";
 										}
-										print " <a class='btn btn-default' href='/$session/?qhtlfirewallaction=qhtlfirewalllogout'>cxs Logout</a>\n";
+										print " <a class='btn btn-default' href='/$session/?qhtlfirewallaction=qhtlfirewalllogout'>qhtlwatcher Logout</a>\n";
 										print "</div>\n";
 										print <<EOF;
 <div class='panel panel-default panel-body'>
-<img align='absmiddle' src='$images/cxs_small.png' alt='ConfigServer eXploit Scanner' style='float:left'>
-<h3>ConfigServer eXploit Scanner - cxs v$myv</h3>
+<img align='absmiddle' src='$images/qhtlfirewall_small.png' alt='QhtLink Watcher' style='float:left'>
+<h3>QhtLink Watcher - qhtlwatcher v$myv</h3>
 </div>
 EOF
 									} else {
@@ -10199,7 +10171,7 @@ EOF
 <html lang='en'>
 <head>
 	$bootstrapcss
-	<link href='$images/configserver.css' rel='stylesheet' type='text/css'>
+	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
 	$jqueryjs
 	$bootstrapjs
 </head>
@@ -10213,7 +10185,7 @@ pre {
 EOF
 									}
 								}
-								ConfigServer::cxsUI::displayUI(\%FORM,\%ajaxsubs,$script,"",$images,$myv, "cpsess".$session);
+								QhtLink::qhtlwatcherUI::displayUI(\%FORM,\%ajaxsubs,$script,"",$images,$myv, "cpsess".$session);
 
 								unless ($ajaxsubs{$FORM{action}}) {
 									print <<EOF;
@@ -10229,7 +10201,7 @@ EOF
 								$script = "/$session/";
 								$images = "/$session/images";
 								$config{THIS_UI} = 1;
-								ConfigServer::cseUI::main(\%FORM, $fileinc, $script, 0, $images, $myv, $config{THIS_UI});
+								QhtLink::cseUI::main(\%FORM, $fileinc, $script, 0, $images, $myv, $config{THIS_UI});
 							}
 						}
 						elsif ($file =~ /^\/images\/(\w+\/)?(\w+\/)?(\w+\/)?([\w\-]+\.(gif|png|jpg|[\w\-]+\.js|[\w\-]+\.css|css|[\w\-]+\.woff2|woff2|[\w\-]+\.woff|woff|[\w\-]+\.tff|tff))/i) {

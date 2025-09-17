@@ -1,0 +1,34 @@
+/* Webmin CSS for QhtLink Firewall */
+.icon-qhtlfirewall { color: #990000; }
+.btn-default:active,
+.btn-default:visited,
+.btn-default:focus,
+.btn-default { background:#FFFFFF; border-radius:3px; border:1px solid #A6C150; color:#990000 !important; }
+.btn-default:hover { border:1px solid #A6C150; background: #F5F5F5; }
+.btn-qhtlfirewall-config:focus,
+.btn-qhtlfirewall-config:hover,
+.btn-qhtlfirewall-config:active,
+.btn-qhtlfirewall-config.active { background-color:#BDECB6 !important; transition: all 0.30s ease-in-out; }
+input[type=text], select { transition: all 0.30s ease-in-out; border-radius:3px; outline: none; padding: 3px 0 3px 3px; margin: 5px 1px 3px 0; border: 1px solid #990000; }
+input[type=text]:focus, select:focus { box-shadow: 0 0 5px #CC0000; padding: 3px 0 3px 3px; margin: 5px 1px 3px 0; border: 1px solid #990000; }
+.td-btn { width: 200px; }
+.td-text { display: inline-block; }
+th { background: #F4F4EA; }
+.table tbody>tr>td { vertical-align: middle; }
+.panel-default > .panel-heading-qhtlwatcher { font-weight: bold; background: #F4F4EA; }
+.panel-default > .panel-footer-qhtlwatcher { font-weight: bold; background: #F4F4EA; }
+#loader { position: absolute; left: 50%; top: 50%; z-index: 1; margin: -75px 0 0 -75px; border: 16px solid #F4F4EA; border-radius: 50%; border-top: 16px solid #990000; border-bottom: 16px solid #990000; width: 120px; height: 120px; animation: spin 2s linear infinite; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.bs-callout { padding: 20px; margin: 20px 0; border: 1px solid #eee; border-left-width: 5px; border-radius: 3px; }
+.bs-callout-success { border-left-color: #5cb85c; background-color: #edf7ed; }
+.bs-callout-info { border-left-color: #5bc0de; background-color: #eaf7fb; }
+.bs-callout-warning { border-left-color: #f0ad4e; background-color: #fdf4e8; }
+.bs-callout-danger { border-left-color: #d9534f; background-color: #faebea; }
+.comment { border-radius:5px; border: 1px solid #DDDDDD; padding: 10px; font-family: Courier New, Courier; font-size: 14px; }
+.value-default { background:#F5F5F5; padding:2px; border-radius:5px; }
+.value-other { background:#F4F4EA; padding:2px; border-radius:5px; }
+.value-disabled { background:#F5F5F5; padding:2px; border-radius:5px; }
+.value-warning { background:#FFC0CB; padding:2px; border-radius:5px; }
+.section { border-radius:5px; border: 2px solid #990000; padding: 10px; font-size:16px; font-weight:bold; }
+.toplink { cursor: pointer; position: fixed; top: 20px; right: 20px; z-index: 9999 !important; font-size: 36px; opacity: 0.5; display:none; }
+.botlink { cursor: pointer; position:fixed; bottom:20px; right:20px; z-index: 9999 !important; font-size: 36px; opacity: 0.5; display:none; }

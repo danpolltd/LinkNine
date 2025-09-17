@@ -1,21 +1,8 @@
 #!/usr/bin/perl
 ###############################################################################
-# Copyright (C) 2006-2025 Jonathan Michaelson
+# Copyright (C) 2025 Daniel Nowakowski
 #
-# https://github.com/waytotheweb/scripts
-#
-# This program is free software; you can redistribute it and/or modify it under
-# the terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
-#
-# This program is distributed in the hope that it will be useful, but WITHOUT
-# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
-# details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program; if not, see <https://www.gnu.org/licenses>.
+# https://qhtlf.danpol.co.uk
 ###############################################################################
 use strict;
 use warnings;
@@ -36,18 +23,65 @@ open STDIN, "<","/dev/null";
 open STDOUT, ">","/dev/null";
 open STDERR, ">","/dev/null";
 
-$0 = "ConfigServer Version Check";
+$0 = "QhtLink Firewall Version Check";
 
-my @downloadservers = ""; # ("https://download.configserver.com", "https://download2.configserver.com");
+# Load download servers from /etc/qhtlfirewall/downloadservers with sane defaults
+sub load_downloadservers {
+	my @defaults = (
+		'https://download.qhtlf.danpol.co.uk',
+		'https://download2.qhtlf.danpol.co.uk',
+	);
 
-system("mkdir -p /var/lib/configserver/");
-system("rm -f /var/lib/configserver/*.txt /var/lib/configserver/*error");
+	my %seen;
+	my @servers;
+
+	my $list = '/etc/qhtlfirewall/downloadservers';
+	if (-r $list) {
+		if (open my $fh, '<', $list) {
+			while (my $line = <$fh>) {
+				chomp $line;
+				$line =~ s/[\r\n]+$//;             # strip CRLF
+				$line =~ s/#.*$//;                   # drop comments
+				$line =~ s/^\s+|\s+$//g;            # trim
+				next unless length $line;
+				# If no scheme provided, assume https
+				if ($line !~ m{^https?://}i) {
+					$line = 'https://' . $line;
+				}
+				# Remove trailing slash
+				$line =~ s{/+\z}{};
+				next if $seen{lc $line}++;
+				push @servers, $line;
+			}
+			close $fh;
+		}
+	}
+
+	# Fallback to defaults if none loaded
+	if (!@servers) {
+		for my $d (@defaults) {
+			my $s = $d;
+			$s =~ s{/+\z}{};
+			next if $seen{lc $s}++;
+			push @servers, $s;
+		}
+	}
+
+	return @servers;
+}
+
+my @downloadservers = load_downloadservers();
+
+system("mkdir -p /var/lib/qhtlfirewall/");
+system("rm -f /var/lib/qhtlfirewall/*.txt /var/lib/qhtlfirewall/*error");
 
 my $cmd;
-if (-e "/usr/bin/curl") {$cmd = "/usr/bin/curl -skLf -m 120 -o"}
-elsif (-e "/usr/bin/wget") {$cmd = "/usr/bin/wget -q -T 120 -O"}
+# Use a consistent User-Agent for outbound requests
+my $UA = 'QHTL';
+if (-e "/usr/bin/curl") {$cmd = "/usr/bin/curl -A $UA -skLf -m 120 -o"}
+elsif (-e "/usr/bin/wget") {$cmd = "/usr/bin/wget --user-agent=$UA -q -T 120 -O"}
 else {
-	open (my $ERROR, ">", "/var/lib/configserver/error");
+	open (my $ERROR, ">", "/var/lib/qhtlfirewall/error");
 	print $ERROR "Cannot find /usr/bin/curl or /usr/bin/wget to retrieve product versions\n";
 	close ($ERROR);
 	exit;
@@ -56,15 +90,11 @@ my $GET;
 if (-e "/usr/bin/GET") {$GET = "/usr/bin/GET -sd -t 120"}
 
 my %versions;
-if (-e "/etc/qhtlfirewall/qhtlfirewall.pl") {$versions{"/qhtlfirewall/version.txt"} = "/var/lib/configserver/qhtlfirewall.txt"}
-if (-e "/etc/cxs/cxs.pl") {$versions{"/cxs/version.txt"} = "/var/lib/configserver/cxs.txt"}
-if (-e "/usr/local/cpanel/whostmgr/docroot/cgi/configserver/cmm.cgi") {$versions{"/cmm/cmmversion.txt"} = "/var/lib/configserver/cmm.txt"}
-if (-e "/usr/local/cpanel/whostmgr/docroot/cgi/configserver/cse.cgi") {$versions{"/cse/cseversion.txt"} = "/var/lib/configserver/cse.txt"}
-if (-e "/usr/local/cpanel/whostmgr/docroot/cgi/configserver/cmq.cgi") {$versions{"/cmq/cmqversion.txt"} = "/var/lib/configserver/cmq.txt"}
-if (-e "/usr/local/cpanel/whostmgr/docroot/cgi/configserver/cmc.cgi") {$versions{"/cmc/cmcversion.txt"} = "/var/lib/configserver/cmc.txt"}
-if (-e "/etc/osm/osmd.pl") {$versions{"/osm/osmversion.txt"} = "/var/lib/configserver/osm.txt"}
-if (-e "/usr/msfe/version.txt") {$versions{"/version.txt"} = "/var/lib/configserver/msinstall.txt"}
-if (-e "/usr/msfe/msfeversion.txt") {$versions{"/msfeversion.txt"} = "/var/lib/configserver/msfe.txt"}
+if (-e "/etc/qhtlfirewall/qhtlfirewall.pl") {$versions{"/qhtlfirewall/version.txt"} = "/var/lib/qhtlfirewall/qhtlfirewall.txt"}
+if (-e "/etc/qhtlwatcher/qhtlwatcher.pl") {$versions{"/qhtlwatcher/version.txt"} = "/var/lib/qhtlfirewall/qhtlwatcher.txt"}
+if (-e "/etc/qhtlmoderator/qhtlmoderator.pl") {$versions{"/qhtlmoderator/version.txt"} = "/var/lib/qhtlfirewall/qhtlmoderator.txt"}
+if (-e "/usr/msfe/version.txt") {$versions{"/version.txt"} = "/var/lib/qhtlfirewall/msinstall.txt"}
+if (-e "/usr/msfe/msfeversion.txt") {$versions{"/msfeversion.txt"} = "/var/lib/qhtlfirewall/msfe.txt"}
 
 if (scalar(keys %versions) == 0) {
 	unlink $0;
@@ -94,7 +124,7 @@ foreach my $server (@downloadservers) {
 					my $GETstatus = system("$GET $server$version >> $versions{$version}".".error");
 				} else {
 					open (my $ERROR, ">", $versions{$version}.".error");
-					print $ERROR "Failed to retrieve latest version from ConfigServer";
+					print $ERROR "Failed to retrieve latest version from Danpol update server";
 					close ($ERROR);
 				}
 			}
