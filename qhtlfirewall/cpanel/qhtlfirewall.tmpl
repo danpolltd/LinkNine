@@ -1,7 +1,7 @@
 [%
 USE Whostmgr;
 USE JSON;
- 
+
 WRAPPER 'master_templates/master.tmpl'
 	header = 'QhtLink Firewall'
 	skipsupport = 1
@@ -20,10 +20,12 @@ WRAPPER 'master_templates/master.tmpl'
 		}
 		],
 		name = 'QhtLink Firewall',
-	url = '/cgi/qhtlink/qhtlfirewall.cgi',
+		url = '/cgi/qhtlink/qhtlfirewall.cgi',
 	};
 %]
- 
+
+<div id="qhtlf-app">
 [% qhtlfirewall_output %]
+</div>
 
 [% END %]

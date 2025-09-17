@@ -65,148 +65,21 @@ if (!Whostmgr::ACLS::hasroot()) {
 		$reseller = 1;
 	} else {
 		print "Content-type: text/html\r\n\r\n";
+	my $plugin_css = "<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>";
+	my $plugin_js  = "<script src='$images/qhtlfirewall.js'></script>";
 		print "You do not have access to this feature\n";
 		exit();
-	}
-}
-
-open (my $IN, "<", "/etc/qhtlfirewall/version.txt") or die $!;
-$myv = <$IN>;
-close ($IN);
-chomp $myv;
-
-my $bootstrapcss = "<link rel='stylesheet' href='$images/bootstrap/css/bootstrap.min.css'>";
-my $jqueryjs = "<script src='$images/jquery.min.js'></script>";
-my $bootstrapjs = "<script src='$images/bootstrap/js/bootstrap.min.js'></script>";
-
-my @header;
-my @footer;
-my $htmltag = "data-post='$FORM{action}'";
-if (-e "/etc/qhtlfirewall/qhtlfirewall.header") {
-	open (my $HEADER, "<", "/etc/qhtlfirewall/qhtlfirewall.header");
-	flock ($HEADER, LOCK_SH);
-	@header = <$HEADER>;
-	close ($HEADER);
-}
-if (-e "/etc/qhtlfirewall/qhtlfirewall.footer") {
-	open (my $FOOTER, "<", "/etc/qhtlfirewall/qhtlfirewall.footer");
-	flock ($FOOTER, LOCK_SH);
-	@footer = <$FOOTER>;
-	close ($FOOTER);
-}
-unless ($config{STYLE_CUSTOM}) {
-	undef @header;
-	undef @footer;
+		print $plugin_css;
+		print "\n";
+		print @header;
 	$htmltag = "";
 }
 
 my $thisapp = "qhtlfirewall";
 my $reregister;
-my $modalstyle;
-if ($Cpanel::Version::Tiny::major_version >= 65) {
-	if (-e "/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/${thisapp}/${thisapp}.conf") {
-		sysopen (my $CONF, "/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/${thisapp}/${thisapp}.conf", O_RDWR | O_CREAT);
-		flock ($CONF, LOCK_EX);
-		my @confdata = <$CONF>;
-		chomp @confdata;
-		for (0..scalar(@confdata)) {
-			if ($confdata[$_] =~ /^target=mainFrame/) {
-				$confdata[$_] = "target=_self";
-				$reregister = 1;
-			}
-		}
-		if ($reregister) {
-			seek ($CONF, 0, 0);
-			truncate ($CONF, 0);
-			foreach (@confdata) {
-				print $CONF "$_\n";
-			}
-			&printcmd("/usr/local/cpanel/bin/register_appconfig","/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/${thisapp}/${thisapp}.conf");
-			$reregister = "<div class='bs-callout bs-callout-info'><h4>Updated application. The next time you login to WHM this will open within the native WHM main window instead of launching a separate window</h4></div>\n";
-		}
-		close ($CONF);
-	}
-}
-
-print "Content-type: text/html\r\n\r\n";
-#if ($Cpanel::Version::Tiny::major_version < 65) {$modalstyle = "style='top:120px'"}
-
-my $templatehtml;
-my $SCRIPTOUT;
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
-#	open(STDERR, ">&STDOUT");
-	open ($SCRIPTOUT, '>', \$templatehtml);
-	select $SCRIPTOUT;
-
-	print <<EOF;
-	<!-- $bootstrapcss -->
-	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
-	$jqueryjs
-	$bootstrapjs
-<style>
-.toplink {
-top: 140px;
-}
-.mobilecontainer {
-display:none;
-}
-.normalcontainer {
-display:block;
-}
-EOF
-	if ($config{STYLE_MOBILE} or $reseller) {
-		print <<EOF;
-\@media (max-width: 600px) {
-.mobilecontainer {
-	display:block;
-}
-.normalcontainer {
-	display:none;
-}
-}
-EOF
-	}
-	print "</style>\n";
-	print @header;
-}
-
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
-	print <<EOF;
-<div id="loader"></div><br />
-<div class='panel panel-default'>
-<h4><img src='$images/qhtlfirewall_small.png' style='padding-left: 10px'> QhtLink Firewall (qhtlfirewall) v$myv</h4></div>
-EOF
-	if ($reregister ne "") {print $reregister}
-}
-
-#eval {
-if ($reseller) {
-	QhtLink::DisplayResellerUI::main(\%FORM, $script, 0, $images, $myv);
-} else {
-	QhtLink::DisplayUI::main(\%FORM, $script, 0, $images, $myv);
-}
-#};
-#if ($@) {
-#	print "Error during UI output generation: [$@]\n";
-#	warn "Error during UI output generation: [$@]\n";
-#}
-
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
-	print <<EOF;
-<script>
-function getCookie(cname) {
-	var name = cname + "=";
-	var ca = document.cookie.split(';');
-	for(var i = 0; i <ca.length; i++) {
-		var c = ca[i];
-		while (c.charAt(0)==' ') {
-			c = c.substring(1);
-		}
-		if (c.indexOf(name) == 0) {
-			return c.substring(name.length,c.length);
-		}
-	}
-	return "";
+	    print $plugin_js;
+	    print "\n";
+	    print @footer;
 } 
 \$("#loader").hide();
 \$("#docs-link").hide();
