@@ -7,10 +7,7 @@ fn main() -> Result<()> {
     let version_file = "/etc/qhtlfirewall/version.txt";
     let version = read_version_file(version_file).unwrap_or_else(|_| "0.0".to_string());
     let cfg_path = "/etc/qhtlfirewall/qhtlfirewall.conf";
-    let cfg = match parse_config_file(cfg_path) {
-        Ok(m) => m,
-        Err(_) => Default::default(),
-    };
+    let cfg = parse_config_file(cfg_path).unwrap_or_default();
 
     // Compose a simple startup log line similar to Perl
     let hostname = hostname::get().unwrap_or_default().to_string_lossy().to_string();

@@ -21,7 +21,7 @@ pub fn parse_config_str(s: &str) -> Result<HashMap<String, String>> {
     //   KEY = value                      -> group3 = value
     let re = Regex::new(r##"^\s*([A-Za-z0-9_]+)\s*=\s*(?:"([^"]*)"|([^#\s]+))\s*(?:#.*)?$"##).unwrap();
     let mut map = HashMap::new();
-    for (_idx, line) in s.lines().enumerate() {
+    for line in s.lines() {
         let t = line.trim();
         if t.is_empty() || t.starts_with('#') { continue; }
         if let Some(cap) = re.captures(t) {
