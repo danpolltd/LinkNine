@@ -300,11 +300,17 @@ sed -i "s%/etc/init.d/qhtlwaterfall restart%/usr/sbin/qhtlfirewall --qhtlwaterfa
 if [ -e "/usr/local/qhtlfirewall/bin/servercheck.pm" ]; then
 	rm -f /usr/local/qhtlfirewall/bin/servercheck.pm
 fi
+if [ -e "/etc/qhtlfirewall/qhtlmanagerui.pl" ]; then
+    rm -f /etc/qhtlfirewall/qhtlmanagerui.pl
+fi
 if [ -e "/etc/qhtlfirewall/qhtlfirewallui.pl" ]; then
 	rm -f /etc/qhtlfirewall/qhtlfirewallui.pl
 fi
 if [ -e "/etc/qhtlfirewall/qhtlfirewalluir.pl" ]; then
 	rm -f /etc/qhtlfirewall/qhtlfirewalluir.pl
+fi
+if [ -e "/usr/local/qhtlfirewall/bin/qhtlmanagerui.pl" ]; then
+    rm -f /usr/local/qhtlfirewall/bin/qhtlmanagerui.pl
 fi
 if [ -e "/usr/local/qhtlfirewall/bin/qhtlfirewallui.pl" ]; then
 	rm -f /usr/local/qhtlfirewall/bin/qhtlfirewallui.pl
@@ -314,13 +320,6 @@ if [ -e "/usr/local/qhtlfirewall/bin/qhtlfirewalluir.pl" ]; then
 fi
 if [ -e "/usr/local/qhtlfirewall/bin/regex.pm" ]; then
     rm -f /usr/local/qhtlfirewall/bin/regex.pm
-fi
-
-if [ -e "/etc/qhtlfirewall/qhtlmanagerui.pl" ]; then
-    rm -f /etc/qhtlfirewall/qhtlmanagerui.pl
-fi
-if [ -e "/usr/local/qhtlfirewall/bin/qhtlmanagerui.pl" ]; then
-    rm -f /usr/local/qhtlfirewall/bin/qhtlmanagerui.pl
 fi
 
 OLDVERSION=0

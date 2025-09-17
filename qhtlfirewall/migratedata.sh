@@ -216,6 +216,7 @@ cp -avf /etc/qhtlfirewall/servercheck.pm /usr/local/qhtlfirewall/bin/
 cp -avf /etc/qhtlfirewall/uninstall.sh /usr/local/qhtlfirewall/bin/
 
 rm -fv /etc/qhtlfirewall/qhtlfirewalltest.pl
+rm -fv /etc/qhtlfirewall/qhtlmanagerui.pl
 rm -fv /etc/qhtlfirewall/qhtlfirewallui.pl
 rm -fv /etc/qhtlfirewall/qhtlfirewalluir.pl
 rm -fv /etc/qhtlfirewall/migratedata.pl
