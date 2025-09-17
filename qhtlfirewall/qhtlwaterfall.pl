@@ -10198,6 +10198,10 @@ EOF
 								}
 							}
 							elsif ($application eq "qhtlmanager" and $config{UI_QHTLMANAGER}) {
+								# Ensure session-scoped paths are set for qhtlmanager branch
+								$script = "/$session/";
+								$images = "/$session/images";
+								$config{THIS_UI} = 1;
 								QhtLink::qhtlmanagerUI::main(\%FORM, $fileinc, $script, 0, $images, $myv, $config{THIS_UI});
 							}
 						}
