@@ -9,6 +9,8 @@ description = "Core library for QhtLink Firewall (Rust port WIP)"
 anyhow = "1"
 get_if_addrs = "0.5"
 regex = "1"
+ureq = { version = "2", default-features = true }
 
 [dev-dependencies]
 tempfile = "3"
+tiny_http = "0.12"
