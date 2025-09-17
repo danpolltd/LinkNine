@@ -1,6 +1,5 @@
 use anyhow::Result;
 use qhtlcore::{config::parse_config_file, version::read_version_file};
-use std::path::Path;
 use time::OffsetDateTime;
 
 fn main() -> Result<()> {

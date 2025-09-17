@@ -9,3 +9,4 @@ description = "Daemon scaffold for qhtlwaterfall Rust rewrite (WIP)"
 anyhow = "1"
 qhtlcore = { path = "../qhtlcore" }
 time = { version = "0.3", features = ["formatting"] }
+hostname = "0.3"

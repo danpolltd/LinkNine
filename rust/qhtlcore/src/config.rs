@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use regex::Regex;
 use std::collections::HashMap;
 use std::fs;
@@ -14,20 +14,30 @@ pub fn parse_config_file<P: AsRef<Path>>(path: P) -> Result<HashMap<String, Stri
 
 /// Parse configuration from a string.
 pub fn parse_config_str(s: &str) -> Result<HashMap<String, String>> {
-    let re = Regex::new(r#"^\s*([A-Za-z0-9_]+)\s*=\s*\"?([^\"#]*)\"?\s*(?:#.*)?$"#).unwrap();
+    // Pattern supports either a quoted value (captures group 2, can include '#')
+    // or an unquoted value (captures group 3, stops at whitespace or '#').
+    // Example matches:
+    //   KEY = "value # not a comment"   -> group2 = value # not a comment
+    //   KEY = value                      -> group3 = value
+    let re = Regex::new(r##"^\s*([A-Za-z0-9_]+)\s*=\s*(?:"([^"]*)"|([^#\s]+))\s*(?:#.*)?$"##).unwrap();
     let mut map = HashMap::new();
-    for (idx, line) in s.lines().enumerate() {
+    for (_idx, line) in s.lines().enumerate() {
         let t = line.trim();
         if t.is_empty() || t.starts_with('#') { continue; }
         if let Some(cap) = re.captures(t) {
             let key = cap.get(1).unwrap().as_str().to_string();
-            let mut val = cap.get(2).unwrap().as_str().trim().to_string();
-            // Unescape common sequences
-            val = val.replace("\\\"", "\"");
+            let val = if let Some(v) = cap.get(2) {
+                v.as_str().to_string()
+            } else if let Some(v) = cap.get(3) {
+                v.as_str().to_string()
+            } else {
+                String::new()
+            };
             map.insert(key, val);
         } else {
-            // Non-matching non-comment lines are considered format errors
-            bail!("invalid config line {}: {}", idx + 1, line);
+            // Non-matching non-comment lines are ignored to be permissive
+            // of commented-out or legacy formats that don't follow key=value.
+            continue;
         }
     }
     Ok(map)
