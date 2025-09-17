@@ -197,3 +197,18 @@ th { background: var(--qhtlf-bg-soft-2); }
 	opacity: 0.5;
 	display:none;
 }
+
+/* Sparkle effect */
+.qhtlf-sparkle {
+	position: relative;
+	overflow: visible;
+}
+.qhtlf-sparkle-particle {
+	position: absolute;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	pointer-events: none;
+	opacity: 0.9;
+	will-change: transform, opacity;
+}
