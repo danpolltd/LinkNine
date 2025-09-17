@@ -320,18 +320,15 @@ fi
 if [ -e "/usr/local/qhtlfirewall/bin/qhtlfirewalluir.pl" ]; then
 	rm -f /usr/local/qhtlfirewall/bin/qhtlfirewalluir.pl
 fi
-if [ -e "/usr/local/qhtlfirewall/bin/qhtlmanagerui.pl" ]; then
-	rm -f /usr/local/qhtlfirewall/bin/qhtlmanagerui.pl
-fi
 if [ -e "/usr/local/qhtlfirewall/bin/regex.pm" ]; then
 	rm -f /usr/local/qhtlfirewall/bin/regex.pm
 fi
 
-# Ensure qhtlmanager UI is enabled on CyberPanel installs (safe sed)
-if [ -f /etc/qhtlfirewall/qhtlfirewall.conf ]; then
-	if ! grep -q '^UI_QHTLMANAGER = "1"' /etc/qhtlfirewall/qhtlfirewall.conf; then
-		sed -i 's/^UI_QHTLMANAGER = "0"/UI_QHTLMANAGER = "1"/' /etc/qhtlfirewall/qhtlfirewall.conf
-	fi
+if [ -e "/etc/qhtlfirewall/qhtlmanagerui.pl" ]; then
+	rm -f /etc/qhtlfirewall/qhtlmanagerui.pl
+fi
+if [ -e "/usr/local/qhtlfirewall/bin/qhtlmanagerui.pl" ]; then
+	rm -f /usr/local/qhtlfirewall/bin/qhtlmanagerui.pl
 fi
 
 OLDVERSION=0
