@@ -71,6 +71,20 @@ if (!Whostmgr::ACLS::hasroot()) {
 		exit();
 		print $plugin_css;
 		print "\n";
+		# Inject dynamic theme CSS variables and flags before header
+		my $primary = $config{STYLE_BRAND_PRIMARY} // '';
+		my $accent  = $config{STYLE_BRAND_ACCENT} // '';
+		if ($primary ne '' or $accent ne '') {
+			$primary =~ s/[^#a-fA-F0-9]//g;
+			$accent  =~ s/[^#a-fA-F0-9]//g;
+			my $cssvars = ":root {";
+			if ($primary ne '') { $cssvars .= " --qhtlf-color-primary: $primary;" }
+			if ($accent  ne '') { $cssvars .= " --qhtlf-color-accent: $accent;" }
+			$cssvars .= " }";
+			print "<style>".$cssvars."</style>\n";
+		}
+		my $sparkles = ($config{STYLE_SPARKLES} && $config{STYLE_SPARKLES} =~ /^1$/) ? 1 : 0;
+		print "<script>window.QHTLF_THEME = { sparkles: $sparkles };</script>\n";
 		print @header;
 	$htmltag = "";
 }

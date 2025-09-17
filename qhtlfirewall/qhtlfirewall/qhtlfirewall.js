@@ -111,6 +111,9 @@
   }
 
   onReady(function () {
+    var enable = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (window.QHTLF_THEME && window.QHTLF_THEME.sparkles === 0) enable = false;
+    if (!enable) return;
     var sparkles = document.querySelectorAll('.qhtlf-sparkle');
     for (var i = 0; i < sparkles.length; i++) sparkle(sparkles[i]);
   });

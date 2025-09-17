@@ -116,6 +116,68 @@ sub main {
 		print "</div>\n";
 		&printreturn;
 	}
+	elsif ($FORM{action} eq "themesettings") {
+		print "<div class='panel panel-default'>\n";
+		print "<div class='panel-heading panel-heading'>Theming Settings</div>\n";
+		print "<div class='panel-body'>\n";
+		print "<form action='$script' method='post'>\n";
+		print "<input type='hidden' name='action' value='savethemesettings'>\n";
+		my $brand_primary = $config{STYLE_BRAND_PRIMARY} // '#990000';
+		my $brand_accent  = $config{STYLE_BRAND_ACCENT}  // '#A6C150';
+		my $sparkles      = ($config{STYLE_SPARKLES} && $config{STYLE_SPARKLES} =~ /^1$/) ? 1 : 0;
+		print "<div class='form-group'><label>Brand Primary Color</label> <input type='text' class='form-control' name='STYLE_BRAND_PRIMARY' value='$brand_primary' placeholder='#990000'></div>\n";
+		print "<div class='form-group'><label>Brand Accent Color</label> <input type='text' class='form-control' name='STYLE_BRAND_ACCENT' value='$brand_accent' placeholder='#A6C150'></div>\n";
+		my $spark_on  = $sparkles ? 'checked' : '';
+		my $spark_off = $sparkles ? '' : 'checked';
+		print "<div class='form-group'><label>Sparkle Effects</label> <div class='btn-group' data-toggle='buttons'>\n";
+		print "<label class='btn btn-default btn-qhtlfirewall-config "> <input type='radio' name='STYLE_SPARKLES' value='1' $spark_on> On</label>\n";
+		print "<label class='btn btn-default btn-qhtlfirewall-config "> <input type='radio' name='STYLE_SPARKLES' value='0' $spark_off> Off</label>\n";
+		print "</div></div>\n";
+		print "<div class='text-center'><input type='submit' class='btn btn-default' value='Save Theming Settings'></div>\n";
+		print "</form>\n";
+		print "</div>\n";
+		print "</div>\n";
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "savethemesettings") {
+		# persist theming keys into /etc/qhtlfirewall/qhtlfirewall.conf preserving other lines
+		copy("/etc/qhtlfirewall/qhtlfirewall.conf","/var/lib/qhtlfirewall/backup/".time."_theming");
+		sysopen (my $QCONF, "/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
+		flock ($QCONF, LOCK_EX);
+		my @lines = <$QCONF>;
+		chomp @lines;
+		seek ($QCONF, 0, 0);
+		truncate ($QCONF, 0);
+		my %updates = (
+			'STYLE_BRAND_PRIMARY' => $FORM{STYLE_BRAND_PRIMARY} // '',
+			'STYLE_BRAND_ACCENT'  => $FORM{STYLE_BRAND_ACCENT}  // '',
+			'STYLE_SPARKLES'      => defined $FORM{STYLE_SPARKLES} ? $FORM{STYLE_SPARKLES} : '0',
+		);
+		my %done;
+		foreach my $line (@lines) {
+			if ($line =~ /^\s*#/) { print $QCONF $line."\n"; next; }
+			if ($line =~ /^(STYLE_BRAND_PRIMARY|STYLE_BRAND_ACCENT|STYLE_SPARKLES)\s*=/) {
+				my ($k) = ($1);
+				my $v = $updates{$k};
+				$v =~ s/"//g; # sanitize quotes
+				print $QCONF $k." = \"$v\"\n";
+				$done{$k} = 1;
+			} else {
+				print $QCONF $line."\n";
+			}
+		}
+		for my $k (keys %updates) {
+			unless ($done{$k}) {
+				my $v = $updates{$k};
+				$v =~ s/"//g;
+				print $QCONF $k." = \"$v\"\n";
+			}
+		}
+		close ($QCONF);
+		QhtLink::Config::resetconfig();
+		print "<div class='bs-callout bs-callout-success'><h4>Theming settings saved</h4><p>Reload the page to see changes. Some changes may require a browser cache refresh.</p></div>\n";
+		&printreturn;
+	}
 	elsif ($FORM{action} eq "qhtlwaterfallstatus") {
 		print "<div><p>Show qhtlwaterfall status...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 		QhtLink::Service::statusqhtlwaterfall();
@@ -2102,6 +2164,7 @@ EOF
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
 	print "<tr><td><button id='btn-servercheck' name='action' value='servercheck' type='submit' class='btn btn-default qhtlf-sparkle'>Check Server Security</button></td><td style='width:100%'>Perform a basic security, stability and settings check on the server</td></tr>\n";
+	print "<tr><td><button name='action' value='themesettings' type='submit' class='btn btn-default'>Theming Settings</button></td><td style='width:100%'>Configure UI theming options on a dedicated page</td></tr>\n";
 		print "<tr><td><button name='action' value='readme' type='submit' class='btn btn-default'>Firewall Information</button></td><td style='width:100%'>View the qhtlfirewall+qhtlwaterfall readme.txt file</td></tr>\n";
 		print "<tr><td><button name='action' value='logtail' type='submit' class='btn btn-default'>Watch System Logs</button></td><td style='width:100%'>Watch (tail) various system log files (listed in qhtlfirewall.syslogs)</td></tr>\n";
 		print "<tr><td><button name='action' value='loggrep' type='submit' class='btn btn-default'>Search System Logs</button></td><td style='width:100%'>Search (grep) various system log files (listed in qhtlfirewall.syslogs)</td></tr>\n";
