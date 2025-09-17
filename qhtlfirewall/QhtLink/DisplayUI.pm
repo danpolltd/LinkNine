@@ -2779,7 +2779,6 @@ sub cloudflare {
 	print "		if (this.id == 'cftempdenybtn') {myurl = '$script?action=cftempdeny&do='+\$(\"#cftempdeny #do\").val()+'&target='+\$(\"#cftempdeny #target\").val().replace(/\\s/g,'')+'&domains='+\$(\"#domains\").val();}\n";
 	print "		if (this.id == 'cfaddbtn') {myurl = '$script?action=cfadd&type='+\$(\"#cfadd #type\").val()+'&target='+\$(\"#cfadd #target\").val().replace(/\\s/g,'')+'&domains='+\$(\"#domains\").val();}\n";
 	print "		if (this.id == 'cfremovebtn') {myurl = '$script?action=cfremove&target='+\$(\"#cfremove #target\").val().replace(/\\s/g,'')+'&domains='+\$(\"#domains\").val();}\n";
-#	print "		alert('URL:'+myurl);\n";
 	print "		\$('#CFajax').html('<div id=\"loader\"></div><div class=\"panel panel-info\"><div class=\"panel-heading\">Loading...</div></div>');\n";
 	print "		\$('#CFajax').load(myurl);\n";
 	print "		\$('body').css('cursor', 'default');\n";
