@@ -2838,8 +2838,6 @@ sub printreturn {
 # end printreturn
 ###############################################################################
 # start confirmmodal
-#	print "<button type='button' class='btn btn-default confirmButton' data-query='Are you sure?' data-href='$script?action=fix' data-toggle='modal' data-target='#confirmmodal'>Submit</button>\n";
-#	&confirmmodal;
 sub confirmmodal {
 	print "<div class='modal fade' id='confirmmodal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
 	print "<div class='modal-dialog modal-sm'>\n";
