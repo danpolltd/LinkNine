@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "qhtlcore",
+    "qhtlcli",
+]
+resolver = "2"

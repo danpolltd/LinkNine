@@ -1,0 +1,14 @@
+[package]
+name = "qhtlcore"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "Core library for QhtLink Firewall (Rust port WIP)"
+
+[dependencies]
+anyhow = "1"
+get_if_addrs = "0.5"
+regex = "1"
+
+[dev-dependencies]
+tempfile = "3"
