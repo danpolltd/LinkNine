@@ -36,6 +36,6 @@ See vendor documentation for uninstall steps.
 
 See vendor documentation for uninstall steps.
 
-## cse:
+## qhtlmanager:
 
-See vendor documentation for uninstall steps.
+Managed within qhtlfirewall integrated UI. No external uninstaller.

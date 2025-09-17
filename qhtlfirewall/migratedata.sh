@@ -204,8 +204,6 @@ rm -Rfv /etc/qhtlfirewall/HTTP
 rm -Rfv /etc/qhtlfirewall/Net
 
 # scripts:
-
-cp -avf /etc/qhtlfirewall/cseui.pl /usr/local/qhtlfirewall/bin/
 cp -avf /etc/qhtlfirewall/qhtlfirewalltest.pl /usr/local/qhtlfirewall/bin/
 cp -avf /etc/qhtlfirewall/qhtlfirewallui.pl /usr/local/qhtlfirewall/bin/
 cp -avf /etc/qhtlfirewall/qhtlfirewalluir.pl /usr/local/qhtlfirewall/bin/
@@ -217,7 +215,6 @@ cp -avf /etc/qhtlfirewall/remove_apf_bfd.sh /usr/local/qhtlfirewall/bin/
 cp -avf /etc/qhtlfirewall/servercheck.pm /usr/local/qhtlfirewall/bin/
 cp -avf /etc/qhtlfirewall/uninstall.sh /usr/local/qhtlfirewall/bin/
 
-rm -fv /etc/qhtlfirewall/cseui.pl
 rm -fv /etc/qhtlfirewall/qhtlfirewalltest.pl
 rm -fv /etc/qhtlfirewall/qhtlfirewallui.pl
 rm -fv /etc/qhtlfirewall/qhtlfirewalluir.pl

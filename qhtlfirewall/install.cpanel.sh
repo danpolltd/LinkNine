@@ -300,17 +300,11 @@ sed -i "s%/etc/init.d/qhtlwaterfall restart%/usr/sbin/qhtlfirewall --qhtlwaterfa
 if [ -e "/usr/local/qhtlfirewall/bin/servercheck.pm" ]; then
 	rm -f /usr/local/qhtlfirewall/bin/servercheck.pm
 fi
-if [ -e "/etc/qhtlfirewall/cseui.pl" ]; then
-	rm -f /etc/qhtlfirewall/cseui.pl
-fi
 if [ -e "/etc/qhtlfirewall/qhtlfirewallui.pl" ]; then
 	rm -f /etc/qhtlfirewall/qhtlfirewallui.pl
 fi
 if [ -e "/etc/qhtlfirewall/qhtlfirewalluir.pl" ]; then
 	rm -f /etc/qhtlfirewall/qhtlfirewalluir.pl
-fi
-if [ -e "/usr/local/qhtlfirewall/bin/cseui.pl" ]; then
-	rm -f /usr/local/qhtlfirewall/bin/cseui.pl
 fi
 if [ -e "/usr/local/qhtlfirewall/bin/qhtlfirewallui.pl" ]; then
 	rm -f /usr/local/qhtlfirewall/bin/qhtlfirewallui.pl
@@ -320,6 +314,17 @@ if [ -e "/usr/local/qhtlfirewall/bin/qhtlfirewalluir.pl" ]; then
 fi
 if [ -e "/usr/local/qhtlfirewall/bin/regex.pm" ]; then
 	rm -f /usr/local/qhtlfirewall/bin/regex.pm
+fi
+
+# Legacy cleanup: remove any obsolete cse artifacts from previous installs
+if [ -e "/etc/qhtlfirewall/cseui.pl" ]; then
+    rm -f /etc/qhtlfirewall/cseui.pl
+fi
+if [ -e "/usr/local/qhtlfirewall/bin/cseui.pl" ]; then
+    rm -f /usr/local/qhtlfirewall/bin/cseui.pl
+fi
+if [ -e "/usr/local/qhtlfirewall/lib/QhtLink/cseUI.pm" ]; then
+    rm -f /usr/local/qhtlfirewall/lib/QhtLink/cseUI.pm
 fi
 
 OLDVERSION=0

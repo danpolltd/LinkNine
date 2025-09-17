@@ -85,8 +85,8 @@ if ($config{TESTING}) {&cleanup(__LINE__,"*Error* qhtlwaterfall will not run wit
 if ($config{UI}) {
 	require QhtLink::DisplayUI;
 	import QhtLink::DisplayUI;
-	require QhtLink::cseUI;
-	import QhtLink::cseUI;
+require QhtLink::qhtlmanagerUI;
+import QhtLink::qhtlmanagerUI;
 	eval {
 		local $SIG{__DIE__} = undef;
 		require IO::Socket::SSL;
@@ -9890,7 +9890,7 @@ sub ui {
 							my $newapp = $application;
 							if ($FORM{qhtlfirewallapp} eq "qhtlfirewall") {$newapp = "qhtlfirewall"}
 							elsif ($FORM{qhtlfirewallapp} eq "qhtlwatcher" and $config{UI_QHTLWATCHER}) {$newapp = "qhtlwatcher"}
-							elsif ($FORM{qhtlfirewallapp} eq "cse" and $config{UI_CSE}) {$newapp = "cse"}
+							elsif ($FORM{qhtlfirewallapp} eq "qhtlmanager" and $config{UI_QHTLMANAGER}) {$newapp = "qhtlmanager"}
 							if ($newapp ne $application) {
 								sysopen (my $SESSION,"/var/lib/qhtlfirewall/ui/ui.session", O_RDWR | O_CREAT) or &childcleanup(__LINE__,"UI: unable to open qhtlfirewall.session: $!");
 								flock ($SESSION, LOCK_EX);
@@ -9991,10 +9991,10 @@ EOF
 								}
 								unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
 									print "<div class='pull-right' style='margin:8px'>\n";
-									if ($config{UI_QHTLWATCHER} or $config{UI_CSE}) {
+									if ($config{UI_QHTLWATCHER} or $config{UI_QHTLMANAGER}) {
 										print "<form action='$script' method='post'><select name='qhtlfirewallapp'><option>qhtlfirewall</option>";
 										if ($config{UI_QHTLWATCHER}) {print "<option>qhtlwatcher</option>"}
-										if ($config{UI_CSE}) {print "<option>cse</option>"}
+										if ($config{UI_QHTLMANAGER}) {print "<option>qhtlmanager</option>"}
 										print "<", "/select> <input class='btn btn-default' type='submit' value='Switch'></form>\n";
 									}
 									print " <a class='btn btn-default' href='/$session/?qhtlfirewallaction=qhtlfirewalllogout'>qhtlfirewall Logout</a>\n";
@@ -10151,10 +10151,10 @@ $bootstrapjs
 <div class='container-fluid'>
 EOF
 										print "<div class='pull-right' style='margin:8px'>\n";
-										if ($config{UI_QHTLWATCHER} or $config{UI_CSE}) {
+										if ($config{UI_QHTLWATCHER} or $config{UI_QHTLMANAGER}) {
 											print "<form action='$script' method='post'><select name='qhtlfirewallapp'><option>qhtlfirewall</option>";
 											if ($config{UI_QHTLWATCHER}) {print "<option selected>qhtlwatcher</option>"}
-											if ($config{UI_CSE}) {print "<option>cse</option>"}
+											if ($config{UI_QHTLMANAGER}) {print "<option>qhtlmanager</option>"}
 											print "<", "/select> <input class='btn btn-default' type='submit' value='Switch'></form>\n";
 										}
 										print " <a class='btn btn-default' href='/$session/?qhtlfirewallaction=qhtlfirewalllogout'>qhtlwatcher Logout</a>\n";
@@ -10197,11 +10197,8 @@ EOF
 EOF
 								}
 							}
-							elsif ($application eq "cse" and $config{UI_CSE}) {
-								$script = "/$session/";
-								$images = "/$session/images";
-								$config{THIS_UI} = 1;
-								QhtLink::cseUI::main(\%FORM, $fileinc, $script, 0, $images, $myv, $config{THIS_UI});
+							elsif ($application eq "qhtlmanager" and $config{UI_QHTLMANAGER}) {
+								QhtLink::qhtlmanagerUI::main(\%FORM, $fileinc, $script, 0, $images, $myv, $config{THIS_UI});
 							}
 						}
 						elsif ($file =~ /^\/images\/(\w+\/)?(\w+\/)?(\w+\/)?([\w\-]+\.(gif|png|jpg|[\w\-]+\.js|[\w\-]+\.css|css|[\w\-]+\.woff2|woff2|[\w\-]+\.woff|woff|[\w\-]+\.tff|tff))/i) {

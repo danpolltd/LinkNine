@@ -11,7 +11,7 @@ Modules overview (non-exhaustive):
 - QhtLink::Slurp — safe file slurping utilities
 - QhtLink::URLGet — HTTP download helper with fallback to curl/wget
 - QhtLink::DisplayUI / DisplayResellerUI — WHM/UI renderers
-- QhtLink::cseUI — simplified file explorer used by panels
+- QhtLink::qhtlmanagerUI — QhtLink File Manager used by panels
 
 Conventions:
 - Use `use lib '/usr/local/qhtlfirewall/lib';` to locate installed libs on target systems.
