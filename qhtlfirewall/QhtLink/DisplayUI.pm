@@ -909,6 +909,33 @@ EOF
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
+	elsif ($FORM{action} eq "viewlist") {
+		my $which = $FORM{which} || '';
+		my %map = (
+			allow  => { path => "/etc/qhtlfirewall/qhtlfirewall.allow",  title => "qhtlfirewall.allow" },
+			deny   => { path => "/etc/qhtlfirewall/qhtlfirewall.deny",   title => "qhtlfirewall.deny" },
+			ignore => { path => "/etc/qhtlfirewall/qhtlfirewall.ignore", title => "qhtlfirewall.ignore" },
+		);
+		if (!$map{$which}) {
+			print "<div class='bs-callout bs-callout-danger'><h4>Unknown list requested</h4></div>";
+			&printreturn;
+		} else {
+			my $path = $map{$which}{path};
+			my $title = $map{$which}{title};
+			print "<div class='panel panel-default'><div class='panel-heading'><b>Quick View:</b> $title (comments omitted)</div><div class='panel-body'>";
+			print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both'>\n";
+			foreach my $line (slurp($path)) {
+				$line =~ s/$cleanreg//g;        # strip comments/blank
+				$line =~ s/^\s+|\s+$//g;        # trim
+				next if $line eq '';
+				$line =~ s/&/&amp;/g; $line =~ s/</&lt;/g; $line =~ s/>/&gt;/g;  # escape
+				print "$line\n";
+			}
+			print "</pre>";
+			print "<div class='text-right'><button class='btn btn-default' onclick='window.close()'>Close</button></div>";
+			print "</div></div>";
+		}
+	}
 	elsif ($FORM{action} eq "qdeny") {
 		print "<div><p>Blocking $FORM{ip}...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 		&printcmd("/usr/sbin/qhtlfirewall","-d",$FORM{ip},$FORM{comment});
@@ -2196,9 +2223,9 @@ EOF
 		print "<div id='quickactions' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Quick Actions</th></tr></thead>";
-		print "<tr><td><button onClick='$(\"#qallow\").submit();' class='btn btn-default'>Quick Allow</button></td><td style='width:100%'><form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>Allow IP address <a href='javascript:fillfield(\"allowip\",\"$ENV{REMOTE_ADDR}\")'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='allowip' value='' size='18' style='background-color: #BDECB6'> through the firewall and add to the allow file (qhtlfirewall.allow).<br>Comment for Allow: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
-		print "<tr><td><button onClick='$(\"#qdeny\").submit();' class='btn btn-default'>Quick Deny</button></td><td style='width:100%'><form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>Block IP address <a href='javascript:fillfield(\"denyip\",\"$ENV{REMOTE_ADDR}\")'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='denyip' value='' size='18' style='background-color: #FFD1DC'> in the firewall and add to the deny file (qhtlfirewall.deny).<br>Comment for Block: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
-		print "<tr><td><button onClick='$(\"#qignore\").submit();' class='btn btn-default'>Quick Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>Ignore IP address <a href='javascript:fillfield(\"ignoreip\",\"$ENV{REMOTE_ADDR}\")'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='ignoreip' value='' size='18' style='background-color: #D9EDF7'> in qhtlwaterfall, add to the ignore file (qhtlfirewall.ignore) and restart qhtlwaterfall</form></td></tr>\n";
+		print "<tr><td><button onClick='$(\"#qallow\").submit();' class='btn btn-default'>Quick Allow</button></td><td style='width:100%'><form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>Allow IP address <a href=\"javascript:presetAndOpen('allowip','allow');\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='allowip' value='' size='18' style='background-color: #BDECB6'> through the firewall and add to the allow file (qhtlfirewall.allow).<br>Comment for Allow: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
+		print "<tr><td><button onClick='$(\"#qdeny\").submit();' class='btn btn-default'>Quick Deny</button></td><td style='width:100%'><form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>Block IP address <a href=\"javascript:presetAndOpen('denyip','deny');\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='denyip' value='' size='18' style='background-color: #FFD1DC'> in the firewall and add to the deny file (qhtlfirewall.deny).<br>Comment for Block: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
+		print "<tr><td><button onClick='$(\"#qignore\").submit();' class='btn btn-default'>Quick Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>Ignore IP address <a href=\"javascript:presetAndOpen('ignoreip','ignore');\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='ignoreip' value='' size='18' style='background-color: #D9EDF7'> in qhtlwaterfall, add to the ignore file (qhtlfirewall.ignore) and restart qhtlwaterfall</form></td></tr>\n";
 		print "<tr><td><button onClick='$(\"#kill\").submit();' class='btn btn-default'>Quick Unblock</button></td><td style='width:100%'><form action='$script' method='post' id='kill'><input type='submit' class='hide'><input type='hidden' name='action' value='kill'>Remove IP address <input type='text' name='ip' value='' size='18'> from the firewall (temp and perm blocks)</form></td></tr>\n";
 		print "</table>\n";
 		print "</div>\n";
@@ -2250,7 +2277,7 @@ EOF
 		print "<tr><td><form action='$script' method='post'><button name='action' value='redirect' type='submit' class='btn btn-default'>Firewall Redirect</button></form></td><td style='width:100%'>Redirect connections to this server to other ports/IP addresses</td></tr>\n";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='fix' type='submit' class='btn btn-default'>Fix Common Problems</button></form></td><td style='width:100%'>Offers solutions to some common problems when using an SPI firewall</td></tr>\n";
 		print "</table>\n";
-		print "<script>function fillfield (myitem,myip) {document.getElementById(myitem).value = myip;}</script>\n";
+		print "<script>\nfunction fillfield (myitem,myip) {document.getElementById(myitem).value = myip;}\nfunction presetAndOpen(inputId, which) {\n  try { fillfield(inputId, '$ENV{REMOTE_ADDR}'); } catch(e) {}\n  var url = '$script?action=viewlist&which=' + encodeURIComponent(which);\n  window.open(url, 'qhtlQuickView_' + which, 'width=800,height=600,scrollbars=yes,resizable=yes');\n}\n</script>\n";
 		print "</div>\n";
 
 	print "<div id='qhtlwaterfall' class='tab-pane'>\n";
