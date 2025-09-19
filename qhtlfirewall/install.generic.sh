@@ -461,20 +461,20 @@ then
 
     mkdir -p /etc/systemd/system/
     mkdir -p /usr/lib/systemd/system/
-	cp -avf qhtlwaterfall.service /usr/lib/systemd/system/
-	cp -avf qhtlfirewall.service /usr/lib/systemd/system/
+	cp -af qhtlwaterfall.service /usr/lib/systemd/system/
+	cp -af qhtlfirewall.service /usr/lib/systemd/system/
 
 	chcon -h system_u:object_r:systemd_unit_file_t:s0 /usr/lib/systemd/system/qhtlwaterfall.service
 	chcon -h system_u:object_r:systemd_unit_file_t:s0 /usr/lib/systemd/system/qhtlfirewall.service
 
-    systemctl daemon-reload
+	systemctl daemon-reload >/dev/null 2>&1 || true
 
-	systemctl enable qhtlfirewall.service
-	systemctl enable qhtlwaterfall.service
+	systemctl enable qhtlfirewall.service >/dev/null 2>&1 || true
+	systemctl enable qhtlwaterfall.service >/dev/null 2>&1 || true
 
-    systemctl disable firewalld
-    systemctl stop firewalld
-    systemctl mask firewalld
+	systemctl disable firewalld >/dev/null 2>&1 || true
+	systemctl stop firewalld >/dev/null 2>&1 || true
+	systemctl mask firewalld >/dev/null 2>&1 || true
 else
     cp -avf qhtlwaterfall.sh /etc/init.d/qhtlwaterfall
     cp -avf qhtlfirewall.sh /etc/init.d/qhtlfirewall
@@ -509,7 +509,7 @@ chown -Rf root:root /etc/qhtlfirewall /var/lib/qhtlfirewall /usr/local/qhtlfirew
 chown -f root:root /usr/sbin/qhtlfirewall /usr/sbin/qhtlwaterfall /etc/logrotate.d/qhtlwaterfall /etc/cron.d/qhtlfirewall-cron /etc/cron.d/qhtlwaterfall-cron /usr/local/man/man1/qhtlfirewall.1 /usr/lib/systemd/system/qhtlwaterfall.service /usr/lib/systemd/system/qhtlfirewall.service /etc/init.d/qhtlwaterfall /etc/init.d/qhtlfirewall
 
 cd webmin ; tar -czf /usr/local/qhtlfirewall/qhtlfirewallwebmin.tgz ./*
-ln -svf /usr/local/qhtlfirewall/qhtlfirewallwebmin.tgz /etc/qhtlfirewall/
+ln -sf /usr/local/qhtlfirewall/qhtlfirewallwebmin.tgz /etc/qhtlfirewall/
 
 echo
 echo "Installation Completed"
