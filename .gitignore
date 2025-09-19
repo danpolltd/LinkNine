@@ -1,0 +1,10 @@
+# Ignore embedded upstream repo
+_upstream_scripts/scripts
+
+# Common editors/OS files
+.DS_Store
+Thumbs.db
+
+# Logs and temp
+*.log
+*.tmp

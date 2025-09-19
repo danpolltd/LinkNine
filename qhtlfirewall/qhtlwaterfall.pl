@@ -4886,7 +4886,7 @@ sub blocklist {
 			my $getlist = 0;
 			my $verbose = 1;
 
-			if ($name =~ /^CXS_/ and $blocklists{$name}{url} =~ /download\.qhtlf\.danpol)\.co\.uk/) {
+			if ($name =~ /^CXS_/ and $blocklists{$name}{url} =~ /download\.qhtlf\.danpol\.co\.uk/) {
 				$blocklists{$name}{interval} = 600;
 				$verbose = 0;
 			}

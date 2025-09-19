@@ -61,6 +61,14 @@ sub loadconfig {
 		} else {
 			croak "*Error* Invalid configuration line [$line] in $configfile";
 		}
+		# Backward-compatibility: map upstream keys to rebranded equivalents
+		# LFDSTART (upstream) -> QHTLWATERFALLSTART (local)
+		if ($name eq 'LFDSTART') { $name = 'QHTLWATERFALLSTART'; }
+		# LF_CXS (upstream) -> LF_QHTLWATCHER (local)
+		if ($name eq 'LF_CXS') { $name = 'LF_QHTLWATCHER'; }
+		# LF_CXS_PERM (upstream) -> LF_QHTLWATCHER_PERM (local)
+		if ($name eq 'LF_CXS_PERM') { $name = 'LF_QHTLWATCHER_PERM'; }
+
 		if ($configsetting{$name}) {
 			croak "*Error* Setting $name is repeated in $configfile - you must remove the duplicates and then restart qhtlfirewall and qhtlwaterfall";
 		}

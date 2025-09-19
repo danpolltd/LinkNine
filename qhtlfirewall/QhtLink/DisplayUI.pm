@@ -140,7 +140,7 @@ sub main {
 	elsif ($FORM{action} eq "qhtlwaterfallrestart") {
 		if ($config{THIS_UI}) {
 			print "<div><p>Signal qhtlwaterfall to <i>restart</i>...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-			sysopen (my $OUT, "/var/lib/qhtlfirewall/qhtlwaterfall.restart",, O_WRONLY | O_CREAT) or die "Unable to open file: $!";
+			open (my $OUT, ">", "/var/lib/qhtlfirewall/qhtlwaterfall.restart") or die "Unable to open file: $!";
 			close ($OUT);
 		} else {
 			print "<div><p>Restarting qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
@@ -846,7 +846,7 @@ EOF
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		if ($config{THIS_UI}) {
 			print "<div><p>Signal qhtlwaterfall to <i>restart</i>...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-			sysopen (my $OUT, "/var/lib/qhtlfirewall/qhtlwaterfall.restart",, O_WRONLY | O_CREAT) or die "Unable to open file: $!";
+			open (my $OUT, ">", "/var/lib/qhtlfirewall/qhtlwaterfall.restart") or die "Unable to open file: $!";
 			close ($OUT);
 		} else {
 			print "<div><p>Restarting qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
@@ -884,7 +884,7 @@ EOF
 		print "<b>Done</b>.</p></div>\n";
 		if ($config{THIS_UI}) {
 			print "<div><p>Signal qhtlwaterfall to <i>restart</i>...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-			sysopen (my $OUT, "/var/lib/qhtlfirewall/qhtlwaterfall.restart",, O_WRONLY | O_CREAT) or die "Unable to open file: $!";
+			open (my $OUT, ">", "/var/lib/qhtlfirewall/qhtlwaterfall.restart") or die "Unable to open file: $!";
 			close ($OUT);
 		} else {
 			print "<div><p>Restarting qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
@@ -1035,7 +1035,7 @@ EOF
 					print "</pre><pre class='comment' style='white-space: pre-wrap;background:#F4F4EA'>$line";
 					$start = 1;
 				}
-						$imghddir = "/usr/local/interworx/html/qhtlfirewall/";
+						# Removed stray assignment to $imghddir; not used in this context and caused a compile-time error
 				print $line;
 			}
 		}
@@ -2173,7 +2173,7 @@ EOF
 		print "</table>\n";
 
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>qhtlfirewall - QHTL "Firewall</th></tr></thead>";
+		print "<thead><tr><th colspan='2'>qhtlfirewall - QHTL \"Firewall\"</th></tr></thead>";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='conf' type='submit' class='btn btn-default'>Firewall Configuration</button></form></td><td style='width:100%'>Edit the configuration file for the qhtlfirewall firewall and qhtlwaterfall</td></tr>\n";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='profiles' type='submit' class='btn btn-default'>Firewall Profiles</button></form></td><td style='width:100%'>Apply pre-configured qhtlfirewall.conf profiles and backup/restore qhtlfirewall.conf</td></tr>\n";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='status' type='submit' class='btn btn-default'>View iptables Rules</button></form></td><td style='width:100%'>Display the active iptables rules</td></tr>\n";
