@@ -2116,7 +2116,8 @@ EOF
 		print "<div class='bs-callout bs-callout-info text-center collapse' id='upgradebs'><h4>A new version of qhtlfirewall is <a href='#upgradetable'>available</a></h4></div>";
 
 		print "<ul class='nav nav-tabs' id='myTabs' style='font-weight:bold'>\n";
-	print "<li class='active'><a data-toggle='tab' href='#home'>General Options</a></li>\n";
+		print "<li class='active'><a data-toggle='tab' href='#upgrade'>Upgrade</a></li>\n";
+		print "<li><a data-toggle='tab' href='#home'>General Options</a></li>\n";
 	print "<li><a data-toggle='tab' href='#qhtlfirewall'>QhtLink Firewall</a></li>\n";
 	print "<li><a data-toggle='tab' href='#qhtlwaterfall'>QhtLink Waterfall</a></li>\n";
 		if ($config{CLUSTER_SENDTO}) {
@@ -2126,7 +2127,28 @@ EOF
 		print "</ul><br>\n";
 
 		print "<div class='tab-content'>\n";
-	print "<div id='home' class='tab-pane active'>\n";
+		print "<div id='upgrade' class='tab-pane active'>\n";
+		print "<form action='$script' method='post'>\n";
+		print "<table class='table table-bordered table-striped' id='upgradetable'>\n";
+		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
+	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
+		if ($upgrade) {
+			print "<tr><td><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button></td><td style='width:100%'><b>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings<br><a href='https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt' target='_blank'>View ChangeLog</a></b></td></tr>\n";
+		} else {
+			print "<tr><td><button name='action' value='manualcheck' type='submit' class='btn btn-default'>Manual Check</button></td><td>";
+			if ($actv ne "") {
+				print "(qhtlfirewallget cron check) $actv</td></tr>\n";
+			}
+			else {
+				print "You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (qhtlfirewallget)</td></tr>\n";
+			}
+		}
+		print "</table>\n";
+		print "</form>\n";
+		if ($upgrade) {print "<script>\$('\#upgradebs').show();</script>\n"}
+		print "</div>\n";
+
+		print "<div id='home' class='tab-pane'>\n";
 		print "<form action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
@@ -2147,22 +2169,6 @@ EOF
 		}
 		print "</table>\n";
 		print "</form>\n";
-
-		print "<form action='$script' method='post'>\n";
-		print "<table class='table table-bordered table-striped' id='upgradetable'>\n";
-		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
-	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
-		if ($upgrade) {
-			print "<tr><td><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button></td><td style='width:100%'><b>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings<br><a href='https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt' target='_blank'>View ChangeLog</a></b></td></tr>\n";
-		} else {
-			print "<tr><td><button name='action' value='manualcheck' type='submit' class='btn btn-default'>Manual Check</button></td><td>";
-			if ($actv ne "") {
-				print "(qhtlfirewallget cron check) $actv</td></tr>\n";
-			}
-			else {
-				print "You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (qhtlfirewallget)</td></tr>\n";
-			}
-		}
 		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
 			print "<tr><td><button name='action' value='remapf' type='submit' class='btn btn-default'>Remove APF/BFD</button></td><td style='width:100%'>Remove APF/BFD from the server. You must not run both APF or BFD with qhtlfirewall on the same server</td></tr>\n";
 		}
@@ -2187,9 +2193,6 @@ EOF
 				print "</td></tr>\n";
 			}
 		}
-		print "</table>\n";
-		print "</form>\n";
-		if ($upgrade) {print "<script>\$('\#upgradebs').show();</script>\n"}
 		print "</div>\n";
 
 	print "<div id='qhtlfirewall' class='tab-pane'>\n";
