@@ -104,7 +104,7 @@ sub main {
 .table.table-bordered.table-striped > thead + tbody > tr > td:first-child .btn.btn-default,
 .table.table-bordered.table-striped > tbody > tr > td:first-child input.btn.btn-default[type="submit"] {
 	width: 100%;           /* fill the fixed-width column */
-	text-align: left;      /* align text consistently */
+	text-align: center;    /* center button labels per request */
 	white-space: normal;   /* allow wrapping for long labels */
 	display: block;        /* ensure full-width rendering */
 	box-sizing: border-box;
