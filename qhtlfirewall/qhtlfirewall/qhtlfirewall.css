@@ -209,9 +209,21 @@ th {
 /* Full-width, no-wrap buttons within table cells */
 .table td .btn,
 .td-btn .btn {
-	display: block;
-	width: 100%;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
+	display: block !important;
+	width: 100% !important;
+	white-space: nowrap !important;
+	overflow: hidden !important;
+	text-overflow: ellipsis !important;
 }
+/* Fallback: any button inside tables should not wrap */
+.table .btn { white-space: nowrap !important; }
+/* Also cover buttons in any table cell even if the table lacks the .table class */
+td .btn, th .btn { 
+	display: block !important; 
+	width: 100% !important; 
+	white-space: nowrap !important; 
+	overflow: hidden !important; 
+	text-overflow: ellipsis !important; 
+}
+/* Ensure nested elements inside buttons don\'t force wrapping */
+.btn * { white-space: inherit !important; }
