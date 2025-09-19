@@ -2353,7 +2353,7 @@ EOF
 
 		print "<div class='panel panel-info'>\n";
 		print "<div class='panel-heading'>About</div>";
-		print "<div class='panel-body'>This software is rebranded and maintained by Danpol Limited. Visit <a href='https://www.qhtlf.danpol.co.uk' target='_blank'>www.danpol.co.uk</a> for updates and support.</div>\n";
+		print "<div class='panel-body'>This software is maintained by Danpol Community. Visit <a href='https://www.forum.danpol.co.uk' target='_blank'>www.forum.danpol.co.uk</a> for updates and support.</div>\n";
 		print "</div>\n";
 
 	}
