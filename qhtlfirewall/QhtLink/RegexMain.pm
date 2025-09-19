@@ -359,7 +359,7 @@ sub processline {
 		if ($line =~ /\] \[hostname "([^\"]+)"\] \[/) {$domain = $1}
 		$ip =~ s/^::ffff://;
 		if ($config{LF_APACHE_ERRPORT} == 2 and $ip =~ /(.*):\d+$/) {$ip = $1}
-	if (checkip(\$ip)) {return ("qhtlwatcher mod_security triggered by","$ip|$acc|$domain","qhtlwatcher")} else {return}
+		if (checkip(\$ip)) {return ("qhtlwatcher mod_security triggered by","$ip|$acc|$domain","qhtlwatcher")} else {return}
 	}
 
 #mod_security v1
@@ -824,8 +824,8 @@ sub pslinecheck {
 		if ($config{PS_PORTS} !~ /BRD/ and $proto eq "UDP" and $brd{$dst} and !$ips{$dst}) {return}
 		if ($config{PS_PORTS} !~ /OPEN/) {
 			my $hit = 0;
-			if ($proto eq "TCP" and $line =~ /kernel:\s(\[[^\]]+\]\s)?Firewall: \*TCP_IN Blocked\*/) {
-				foreach my $ports (split(/\,/,$config{TCP_IN})) {
+#qhtlwatcher Litespeed
+	if (($config{LF_QHTLWATCHER}) and ($globlogs{MODSEC_LOG}{$lgfile}) and ($line =~ /^\[\S+\s+\S+\s+\S+\s+\S+\s+\S+\] \[(\S*:)?error\] (\[pid \d+(:tid \d+)?\] )?\[(client|remote) (\S+)\]( \[client \S+\])? (\w+: )?ModSecurity:(( \[[^]]+\])*)? Access denied with code \d\d\d, \[Rule: 'FILES_TMPNAMES' '\\@inspectFile \/qhtlwatcher\/qhtlwatcher\.sh'\] \[id \"1010101\"\]/)) {
 					if ($ports =~ /\:/) {
 						my ($start,$end) = split(/\:/,$ports);
 						if ($port >= $start and $port <= $end) {$hit = 1}
