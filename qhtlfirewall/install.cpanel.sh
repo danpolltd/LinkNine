@@ -24,13 +24,6 @@ if [ ! -e "install.sh" ]; then
 	exit
 fi
 
-# Determine Perl interpreter (prefer cPanel Perl if present)
-if [ -x "/usr/local/cpanel/3rdparty/bin/perl" ]; then
-    PERL="/usr/local/cpanel/3rdparty/bin/perl"
-else
-    PERL="/usr/bin/perl"
-fi
-
 #First replace:
 if [ -e "/usr/local/cpanel/3rdparty/bin/perl" ]; then
     sed -i 's%^#\!/usr/bin/perl%#\!/usr/local/cpanel/3rdparty/bin/perl%' auto.pl
@@ -51,8 +44,7 @@ cp -af install.txt /etc/qhtlfirewall/
 echo
 echo "Checking Perl modules..."
 chmod 700 os.pl
-# Run via Perl to avoid issues when running from a noexec filesystem like /tmp
-RETURN=`"$PERL" os.pl`
+RETURN=`./os.pl`
 if [ "$RETURN" = 1 ]; then
 	echo
 	echo "FAILED: You MUST install the missing perl modules above before you can install qhtlfirewall. See /etc/qhtlfirewall/install.txt for installation details."
@@ -379,8 +371,7 @@ cp -avf license.txt /etc/qhtlfirewall/
 cp -avf webmin /usr/local/qhtlfirewall/lib/
 cp -avf QhtLink /usr/local/qhtlfirewall/lib/
 cp -avf Net /usr/local/qhtlfirewall/lib/
-# Optional: Geo library if present
-if [ -d Geo ]; then cp -avf Geo /usr/local/qhtlfirewall/lib/; fi
+cp -avf Geo /usr/local/qhtlfirewall/lib/
 cp -avf Crypt /usr/local/qhtlfirewall/lib/
 cp -avf HTTP /usr/local/qhtlfirewall/lib/
 cp -avf JSON /usr/local/qhtlfirewall/lib/
@@ -424,8 +415,7 @@ chmod -v 644 /etc/cron.d/qhtlwaterfall-cron 2>/dev/null || true
 chmod -v 644 /etc/cron.d/qhtlfirewall-cron 2>/dev/null || true
 
 chmod -v 700 auto.pl
-# Run via Perl to avoid noexec issues
-"$PERL" auto.pl $OLDVERSION
+./auto.pl $OLDVERSION
 
 mkdir -p /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink
 chmod 700 /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink
