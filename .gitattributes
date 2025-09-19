@@ -1,0 +1,2 @@
+# Exclude maintenance/upstream helper scripts from release/source archives
+_upstream_scripts/ export-ignore
