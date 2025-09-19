@@ -1,5 +1,21 @@
 /* InterWorx CSS for QhtLink Firewall */
 .icon-qhtlfirewall { color: #990000; }
+/* Button sizing normalization: ensure all buttons/anchors/inputs with .btn share a consistent height */
+/* Default-size buttons only (don't override .btn-sm/.btn-xs/.btn-lg variations) */
+.btn,
+button.btn,
+input.btn,
+a.btn {
+	line-height: 1.42857143; /* match Bootstrap default */
+	padding: 6px 12px;       /* match Bootstrap .btn default */
+}
+.btn:not(.btn-xs):not(.btn-sm):not(.btn-lg) {
+	min-height: 34px;        /* enforce consistent control height */
+}
+/* When a glyphicon class is placed on the button element itself, keep height consistent */
+.btn.glyphicon {
+	line-height: 1.42857143; /* avoid extra tall buttons due to icon fonts */
+}
 .btn-default:active,
 .btn-default:visited,
 .btn-default:focus,
