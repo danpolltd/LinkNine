@@ -133,7 +133,7 @@ print "Content-type: text/html\r\n\r\n";
 
 my $templatehtml;
 my $SCRIPTOUT;
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
+unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist") {
 #	open(STDERR, ">&STDOUT");
 	open ($SCRIPTOUT, '>', \$templatehtml);
 	select $SCRIPTOUT;
@@ -170,7 +170,7 @@ EOF
 	print @header;
 }
 
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
+unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist") {
 	print <<EOF;
 <div id="loader"></div><br />
 <div class='panel panel-default'>
