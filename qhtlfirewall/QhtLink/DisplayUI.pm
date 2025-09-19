@@ -923,7 +923,7 @@ EOF
 			my $path = $map{$which}{path};
 			my $title = $map{$which}{title};
 			print "<div class='panel panel-default'><div class='panel-heading'><b>Quick View:</b> $title (comments omitted)</div><div class='panel-body'>";
-			print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both'>\n";
+			print "<pre class='comment' style='white-space: pre-wrap; height: 66vh; max-height: 66vh; overflow: auto; resize: none; clear: both'>\n";
 			foreach my $line (slurp($path)) {
 				$line =~ s/$cleanreg//g;        # strip comments/blank
 				$line =~ s/^\s+|\s+$//g;        # trim
