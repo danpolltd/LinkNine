@@ -5,8 +5,12 @@ After=network.target qhtlfirewall.service
 [Service]
 LimitNOFILE=4096
 ExecStart=/usr/sbin/qhtlwaterfall
+ExecStartPre=/bin/rm -f /var/run/qhtlwaterfall.pid
 Type=forking
 PIDFile=/var/run/qhtlwaterfall.pid
+KillMode=process
+TimeoutStartSec=30s
+TimeoutStopSec=30s
 Restart=on-failure
 RestartSec=5s
 
