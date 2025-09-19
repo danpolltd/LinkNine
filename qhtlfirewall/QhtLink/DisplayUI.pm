@@ -2162,17 +2162,17 @@ EOF
 		# Moved informational callouts from General Options to Upgrade tab
 		unless (-e "/etc/qhtlwatcher/qhtlwatcher.pl") {
 			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN} or $config{INTERWORX} or $config{VESTA} or $config{CWP} or $config{CYBERPANEL}) {
-				print "<div class='bs-callout bs-callout-info h4'>Add server and user data protection against exploits using <a href='https://qhtlf.danpol.co.uk' target='_blank'>QHTL eXploit Scanner (qhtlscanner)</a></div>\n";
+				print "<div class='bs-callout bs-callout-info h4'>Add server and user data protection against exploits using <a href='https://danpol.co.uk' target='_blank'>QHTL eXploit Scanner (qhtlscanner)</a></div>\n";
 			}
 		}
 		unless (-e "/etc/qhtlmoderator/qhtlmoderator.pl") {
 			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
-				print "<div class='bs-callout bs-callout-info h4'>Add outgoing spam monitoring and prevention using <a href='https://qhtlf.danpol.co.uk' target='_blank'>QHTL Outgoing Mail Moderator (qhtlmoderator)</a></div>\n";
+				print "<div class='bs-callout bs-callout-info h4'>Add outgoing spam monitoring and prevention using <a href='https://danpol.co.uk' target='_blank'>QHTL Outgoing Mail Moderator (qhtlmoderator)</a></div>\n";
 			}
 		}
 		unless (-e "/usr/msfe/mschange.pl") {
 			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
-				print "<div class='bs-callout bs-callout-info h4'>Add effective incoming virus and spam detection and user level processing using <a href='https://qhtlf.danpol.co.uk' target='_blank'>QHTL MailScanner Front-End (qhtlscanner)</a></div>\n";
+				print "<div class='bs-callout bs-callout-info h4'>Add effective incoming virus and spam detection and user level processing using <a href='https://danpol.co.uk' target='_blank'>QHTL MailScanner Front-End (qhtlscanner)</a></div>\n";
 			}
 		}
 
