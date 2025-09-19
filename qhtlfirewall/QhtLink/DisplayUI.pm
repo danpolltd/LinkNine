@@ -89,6 +89,36 @@ sub main {
 		exit;
 	}
 
+	# Consistent button sizing for WHM/cPanel UI: make the primary action
+	# buttons in the first column of action tables a uniform width, while
+	# avoiding small toolbar/pagination controls.
+	print <<'QHTLBTNSTYLE';
+<style>
+/* First column gets a fixed width so all action buttons align */
+.table.table-bordered.table-striped > tbody > tr > td:first-child,
+.table.table-bordered.table-striped > thead + tbody > tr > td:first-child {
+	width: 260px;          /* adjust to taste for your layout */
+}
+/* Primary action buttons fill the first column */
+.table.table-bordered.table-striped > tbody > tr > td:first-child .btn.btn-default,
+.table.table-bordered.table-striped > thead + tbody > tr > td:first-child .btn.btn-default,
+.table.table-bordered.table-striped > tbody > tr > td:first-child input.btn.btn-default[type="submit"] {
+	width: 100%;           /* fill the fixed-width column */
+	text-align: left;      /* align text consistently */
+	white-space: normal;   /* allow wrapping for long labels */
+	display: block;        /* ensure full-width rendering */
+	box-sizing: border-box;
+}
+/* Don't widen small utility controls in button groups/toolbars */
+.btn-group .btn.btn-default { width: auto; }
+/* Explicit exclusions for known tiny controls */
+#fontminus-btn, #fontplus-btn, #toggletextarea-btn, #QHTLFIREWALLpauseID,
+#cflistbtn, #cfaddbtn, #cfremovebtn, #cftempdenybtn { width: auto; }
+/* Keep pagination anchors reasonable without forcing full width */
+#paginatediv a.btn.btn-default { width: 120px; }
+</style>
+QHTLBTNSTYLE
+
 	if ($FORM{ip} ne "") {$FORM{ip} =~ s/(^\s+)|(\s+$)//g}
 
 	if (($FORM{ip} ne "") and ($FORM{ip} ne "all") and (!checkip(\$FORM{ip}))) {
