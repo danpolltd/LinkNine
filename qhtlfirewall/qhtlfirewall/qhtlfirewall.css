@@ -205,3 +205,13 @@ th {
 	opacity: 0.5;
 	display:none;
 }
+
+/* Full-width, no-wrap buttons within table cells */
+.table td .btn,
+.td-btn .btn {
+	display: block;
+	width: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
