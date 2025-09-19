@@ -2134,7 +2134,8 @@ EOF
 		if ($config{CLUSTER_SENDTO}) {
 			print "<li><a data-toggle='tab' href='#cluster'>Cluster</a></li>\n";
 		}
-	print "<li><a data-toggle='tab' href='#other'>Additional</a></li>\n";
+	print "<li><a data-toggle='tab' href='#other'>More</a></li>\n";
+	print "<li><a data-toggle='tab' href='#extra'>Extra</a></li>\n";
 		print "</ul><br>\n";
 
 		print "<div class='tab-content'>\n";
@@ -2345,13 +2346,18 @@ EOF
 			print "</table>\n";
 		}
 
+		# Extra section moved to its own tab below
+#		if ($config{DIRECTADMIN} and !$config{THIS_UI}) {
+#			print "<a href='/' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> DirectAdmin Main Page</a>\n";
+#		}
+		print "</div>\n";
+
+		# New Extra tab-pane at the end
+		print "<div id='extra' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Extra</th></tr></thead>";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='qhtlfirewalltest' type='submit' class='btn btn-default'>Test iptables</button></form></td><td style='width:100%'>Check that iptables has the required modules to run qhtlfirewall</td></tr>\n";
 		print "</table>\n";
-#		if ($config{DIRECTADMIN} and !$config{THIS_UI}) {
-#			print "<a href='/' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> DirectAdmin Main Page</a>\n";
-#		}
 		print "</div>\n</div>\n";
 
 		# Note: Mobile View panel moved to Upgrade tab above
