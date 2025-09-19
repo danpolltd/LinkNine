@@ -2146,6 +2146,23 @@ EOF
 		print "</table>\n";
 		print "</form>\n";
 		if ($upgrade) {print "<script>\$('\#upgradebs').show();</script>\n"}
+
+		# Moved informational callouts from General Options to Upgrade tab
+		unless (-e "/etc/qhtlwatcher/qhtlwatcher.pl") {
+			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN} or $config{INTERWORX} or $config{VESTA} or $config{CWP} or $config{CYBERPANEL}) {
+				print "<div class='bs-callout bs-callout-info h4'>Add server and user data protection against exploits using <a href='https://qhtlf.danpol.co.uk' target='_blank'>QHTL eXploit Scanner (qhtlscanner)</a></div>\n";
+			}
+		}
+		unless (-e "/etc/qhtlmoderator/qhtlmoderator.pl") {
+			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
+				print "<div class='bs-callout bs-callout-info h4'>Add outgoing spam monitoring and prevention using <a href='https://qhtlf.danpol.co.uk' target='_blank'>QHTL Outgoing Mail Moderator (qhtlmoderator)</a></div>\n";
+			}
+		}
+		unless (-e "/usr/msfe/mschange.pl") {
+			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
+				print "<div class='bs-callout bs-callout-info h4'>Add effective incoming virus and spam detection and user level processing using <a href='https://qhtlf.danpol.co.uk' target='_blank'>QHTL MailScanner Front-End (qhtlscanner)</a></div>\n";
+			}
+		}
 		print "</div>\n";
 
 		print "<div id='home' class='tab-pane'>\n";
@@ -2171,27 +2188,6 @@ EOF
 		print "</form>\n";
 		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
 			print "<tr><td><button name='action' value='remapf' type='submit' class='btn btn-default'>Remove APF/BFD</button></td><td style='width:100%'>Remove APF/BFD from the server. You must not run both APF or BFD with qhtlfirewall on the same server</td></tr>\n";
-		}
-		unless (-e "/etc/qhtlwatcher/qhtlwatcher.pl") {
-			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN} or $config{INTERWORX} or $config{VESTA} or $config{CWP} or $config{CYBERPANEL}) {
-				print "<tr><td colspan='2'>\n";
-				print "<div class='bs-callout bs-callout-info h4'>Add server and user data protection against exploits using <a href='https://qhtlf.danpol.co.uk' target='_blank'>QHTL eXploit Scanner (qhtlscanner)</a></div>\n";
-				print "</td></tr>\n";
-			}
-		}
-		unless (-e "/etc/qhtlmoderator/qhtlmoderator.pl") {
-			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
-				print "<tr><td colspan='2'>\n";
-				print "<div class='bs-callout bs-callout-info h4'>Add outgoing spam monitoring and prevention using <a href='https://qhtlf.danpol.co.uk' target='_blank'>QHTL Outgoing Mail Moderator (qhtlmoderator)</a></div>\n";
-				print "</td></tr>\n";
-			}
-		}
-		unless (-e "/usr/msfe/mschange.pl") {
-			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
-				print "<tr><td colspan='2'>\n";
-				print "<div class='bs-callout bs-callout-info h4'>Add effective incoming virus and spam detection and user level processing using <a href='https://qhtlf.danpol.co.uk' target='_blank'>QHTL MailScanner Front-End (qhtlscanner)</a></div>\n";
-				print "</td></tr>\n";
-			}
 		}
 		print "</div>\n";
 
