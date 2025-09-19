@@ -2277,7 +2277,7 @@ EOF
 		print "<tr><td><form action='$script' method='post'><button name='action' value='redirect' type='submit' class='btn btn-default'>Firewall Redirect</button></form></td><td style='width:100%'>Redirect connections to this server to other ports/IP addresses</td></tr>\n";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='fix' type='submit' class='btn btn-default'>Fix Common Problems</button></form></td><td style='width:100%'>Offers solutions to some common problems when using an SPI firewall</td></tr>\n";
 		print "</table>\n";
-		print "<script>\nfunction fillfield (myitem,myip) {document.getElementById(myitem).value = myip;}\nfunction presetAndOpen(inputId, which) {\n  try { fillfield(inputId, '$ENV{REMOTE_ADDR}'); } catch(e) {}\n  var url = '$script?action=viewlist&which=' + encodeURIComponent(which);\n  window.open(url, 'qhtlQuickView_' + which, 'width=800,height=600,scrollbars=yes,resizable=yes');\n}\n</script>\n";
+		print "<script>\nfunction fillfield (myitem,myip) {document.getElementById(myitem).value = myip;}\nfunction presetAndOpen(inputId, which) {\n  var url = '$script?action=viewlist&which=' + encodeURIComponent(which);\n  window.open(url, 'qhtlQuickView_' + which, 'width=800,height=600,scrollbars=yes,resizable=yes');\n}\n</script>\n";
 		print "</div>\n";
 
 	print "<div id='qhtlwaterfall' class='tab-pane'>\n";
