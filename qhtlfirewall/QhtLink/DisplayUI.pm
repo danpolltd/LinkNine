@@ -2116,13 +2116,13 @@ EOF
 		print "<div class='bs-callout bs-callout-info text-center collapse' id='upgradebs'><h4>A new version of qhtlfirewall is <a href='#upgradetable'>available</a></h4></div>";
 
 		print "<ul class='nav nav-tabs' id='myTabs' style='font-weight:bold'>\n";
-		print "<li class='active'><a data-toggle='tab' href='#home'>Info</a></li>\n";
-		print "<li><a data-toggle='tab' href='#qhtlfirewall'>qhtlfirewall</a></li>\n";
-		print "<li><a data-toggle='tab' href='#qhtlwaterfall'>qhtlwaterfall</a></li>\n";
+	print "<li class='active'><a data-toggle='tab' href='#home'>General Options</a></li>\n";
+	print "<li><a data-toggle='tab' href='#qhtlfirewall'>QhtLink Firewall</a></li>\n";
+	print "<li><a data-toggle='tab' href='#qhtlwaterfall'>QhtLink Waterfall</a></li>\n";
 		if ($config{CLUSTER_SENDTO}) {
 			print "<li><a data-toggle='tab' href='#cluster'>Cluster</a></li>\n";
 		}
-		print "<li><a data-toggle='tab' href='#other'>Other</a></li>\n";
+	print "<li><a data-toggle='tab' href='#other'>Additional</a></li>\n";
 		print "</ul><br>\n";
 
 		print "<div class='tab-content'>\n";
