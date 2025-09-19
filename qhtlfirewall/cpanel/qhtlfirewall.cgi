@@ -221,13 +221,7 @@ function getCookie(cname) {
 	var document_height = \$(document).height();
 	\$('html,body').animate({ scrollTop: window_height + document_height }, 'slow', function () {});
 });
-\$('#tabAll').click(function(){
-	\$('#tabAll').addClass('active');  
-	\$('.tab-pane').each(function(i,t){
-		\$('#myTabs li').removeClass('active'); 
-		\$(this).addClass('active');  
-	});
-});
+/* Removed All-tab handler: tabAll no longer present */
 \$(document).ready(function(){
 	\$('[data-tooltip="tooltip"]').tooltip();
 	\$(window).scroll(function () {

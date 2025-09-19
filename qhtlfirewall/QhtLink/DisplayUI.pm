@@ -2116,8 +2116,7 @@ EOF
 		print "<div class='bs-callout bs-callout-info text-center collapse' id='upgradebs'><h4>A new version of qhtlfirewall is <a href='#upgradetable'>available</a></h4></div>";
 
 		print "<ul class='nav nav-tabs' id='myTabs' style='font-weight:bold'>\n";
-		print "<li class='active'><a data-toggle='tab' href='#' id='tabAll'>All</a></li>\n";
-		print "<li><a data-toggle='tab' href='#home'>Info</a></li>\n";
+		print "<li class='active'><a data-toggle='tab' href='#home'>Info</a></li>\n";
 		print "<li><a data-toggle='tab' href='#qhtlfirewall'>qhtlfirewall</a></li>\n";
 		print "<li><a data-toggle='tab' href='#qhtlwaterfall'>qhtlwaterfall</a></li>\n";
 		if ($config{CLUSTER_SENDTO}) {
@@ -2127,7 +2126,7 @@ EOF
 		print "</ul><br>\n";
 
 		print "<div class='tab-content'>\n";
-		print "<div id='home' class='tab-pane active'>\n";
+	print "<div id='home' class='tab-pane active'>\n";
 		print "<form action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
@@ -2193,7 +2192,7 @@ EOF
 		if ($upgrade) {print "<script>\$('\#upgradebs').show();</script>\n"}
 		print "</div>\n";
 
-		print "<div id='qhtlfirewall' class='tab-pane active'>\n";
+	print "<div id='qhtlfirewall' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>qhtlfirewall - Quick Actions</th></tr></thead>";
 		print "<tr><td><button onClick='\$(\"#qallow\").submit();' class='btn btn-default'>Quick Allow</button></td><td style='width:100%'><form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>Allow IP address <a href='javascript:fillfield(\"allowip\",\"$ENV{REMOTE_ADDR}\")'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='allowip' value='' size='18' style='background-color: #BDECB6'> through the firewall and add to the allow file (qhtlfirewall.allow).<br>Comment for Allow: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
@@ -2224,7 +2223,7 @@ EOF
 		print "<script>function fillfield (myitem,myip) {document.getElementById(myitem).value = myip;}</script>\n";
 		print "</div>\n";
 
-		print "<div id='qhtlwaterfall' class='tab-pane active'>\n";
+	print "<div id='qhtlwaterfall' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
 		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallstatus'><input type='submit' class='btn btn-default' value='qhtlwaterfall Status'></form></td><td style='width:100%'>Display qhtlwaterfall status</td></tr>\n";
@@ -2252,7 +2251,7 @@ EOF
 		print "</div>\n";
 
 		if ($config{CLUSTER_SENDTO}) {
-			print "<div id='cluster' class='tab-pane active'>\n";
+			print "<div id='cluster' class='tab-pane'>\n";
 			print "<table class='table table-bordered table-striped'>\n";
 			print "<thead><tr><th colspan='2'>qhtlfirewall - qhtlwaterfall Cluster</th></tr></thead>";
 
@@ -2292,7 +2291,7 @@ EOF
 			print "</div>\n";
 		}
 
-		print "<div id='other' class='tab-pane active'>\n";
+	print "<div id='other' class='tab-pane'>\n";
 		if ($config{CF_ENABLE}) {
 			print "<table class='table table-bordered table-striped'>\n";
 			print "<thead><tr><th colspan='2'>CloudFlare Firewall</th></tr></thead>";

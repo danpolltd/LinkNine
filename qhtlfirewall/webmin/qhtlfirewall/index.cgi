@@ -157,13 +157,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	print "		var document_height = \$(document).height();\n";
 	print "		\$('html,body').animate({ scrollTop: window_height + document_height }, 'slow', function () {});\n";
 	print "	});\n";
-	print "	\$('#tabAll').click(function(){\n";
-	print "		\$('#tabAll').addClass('active');\n";
-	print "		\$('.tab-pane').each(function(i,t){\n";
-	print "			\$('#myTabs li').removeClass('active');\n";
-	print "			\$(this).addClass('active');\n";
-	print "		});\n";
-	print "	});\n";
+	print "\t/* Removed All-tab handler: tabAll no longer present */\n";
 	print "	\$(document).ready(function(){\n";
 	print "		\$('[data-tooltip=\"tooltip\"]').tooltip();\n";
 	print "		\$(window).scroll(function () {;\n";
