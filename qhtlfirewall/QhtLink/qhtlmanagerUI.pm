@@ -146,7 +146,7 @@ sub browse {
     }
     if ($FORM{m}) {
         if (-e "$webpath$FORM{m}") {
-            $extra = "&m=$FORM{m}"
+            $extra = "&m=$FORM{m}";
         } else {
             $FORM{m} = "";
         }
@@ -159,7 +159,7 @@ sub browse {
     $thisdir = $webpath;
     if ($thisdir !~ /\/$/) {$thisdir .= "/"}
     $thisdir .= $FORM{p};
-    $thisdir =~ s\/\/+\/\/g;
+           $thisdir =~ s/\/+/\//g;
     @months = ("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec");
 
     my $errordir = 0;
@@ -781,7 +781,7 @@ sub view {
 # start console
 sub console {
     my $thisdir = "$webpath$FORM{p}";
-    $thisdir =~ s\/\/+\/\/g;
+        $thisdir =~ s/\/+/\//g;
 
     print "<p><pre style='white-space:pre-wrap;'>\n";
     print "root [$thisdir]# $FORM{cmd}\n";

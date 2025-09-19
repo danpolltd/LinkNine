@@ -12,7 +12,6 @@ use lib '/usr/local/qhtlfirewall/lib';
 use Carp;
 use Fcntl qw(:DEFAULT :flock);
 use JSON::Tiny();
-use LWP::UserAgent;
 use Time::Local();
 use QhtLink::Config;
 use QhtLink::Slurp qw(slurp);
@@ -28,6 +27,23 @@ my %config = $config->config();
 
 my $slurpreg = QhtLink::Slurp->slurpreg;
 my $cleanreg = QhtLink::Slurp->cleanreg;
+
+# Try to load LWP::UserAgent at runtime so this module still compiles
+# even if the dependency isn't installed. We'll guard usages below.
+my $has_lwp = eval {
+	require LWP::UserAgent;
+	LWP::UserAgent->import();
+	1;
+} || 0;
+
+sub _ua {
+	# Return a user agent if LWP is available; otherwise, log and undef
+	unless ($has_lwp) {
+		logfile("CloudFlare: LWP::UserAgent is not installed - install libwww-perl or set URLGET=0 to disable CloudFlare API calls");
+		return;
+	}
+	return LWP::UserAgent->new;
+}
 
 my %args;
 $args{"content-type"} = "application/json";
@@ -58,6 +74,11 @@ sub action {
 	if ($config{DEBUG} == 1) {logfile("Debug: CloudFlare - [$action] [$ip] [$mode] [$id] [$domainlist] [$allowany]")}
 	unless ($config{URLGET}) {
 		logfile("CloudFlare: URLGET must be set to 1 to use LWP for this feature");
+		return;
+	}
+
+	unless ($has_lwp) {
+		logfile("CloudFlare: LWP::UserAgent is not installed - CloudFlare API disabled");
 		return;
 	}
 
@@ -182,7 +203,8 @@ sub block {
 		$content = JSON::Tiny::encode_json($block);
 	};
 
-	my $ua = LWP::UserAgent->new;
+	my $ua = _ua();
+	return "CloudFlare: LWP::UserAgent missing" unless $ua;
 	my $res = $ua->post('https://api.cloudflare.com/client/v4/user/firewall/access_rules/rules', %args, Content => $content);
 
 	if ($res->is_success) {
@@ -217,7 +239,8 @@ sub whitelist {
 		$content = JSON::Tiny::encode_json($whitelist);
 	};
 
-	my $ua = LWP::UserAgent->new;
+	my $ua = _ua();
+	return "CloudFlare: LWP::UserAgent missing" unless $ua;
 	my $res = $ua->post('https://api.cloudflare.com/client/v4/user/firewall/access_rules/rules', %args, Content => $content);
 
 	if ($res->is_success) {
@@ -252,7 +275,8 @@ sub challenge {
 		$content = JSON::Tiny::encode_json($challenge);
 	};
 
-	my $ua = LWP::UserAgent->new;
+	my $ua = _ua();
+	return "CloudFlare: LWP::UserAgent missing" unless $ua;
 	my $res = $ua->post('https://api.cloudflare.com/client/v4/user/firewall/access_rules/rules', %args, Content => $content);
 
 	if ($res->is_success) {
@@ -287,7 +311,8 @@ sub add {
 		$content = JSON::Tiny::encode_json($add);
 	};
 
-	my $ua = LWP::UserAgent->new;
+	my $ua = _ua();
+	return "CloudFlare: LWP::UserAgent missing" unless $ua;
 	my $res = $ua->post('https://api.cloudflare.com/client/v4/user/firewall/access_rules/rules', %args, Content => $content);
 
 	if ($res->is_success) {
@@ -319,7 +344,8 @@ sub remove {
 		if ($id eq "") {return "CloudFlare: [$ip] remove failed: id not found"}
 	}
 
-	my $ua = LWP::UserAgent->new;
+	my $ua = _ua();
+	return "CloudFlare: LWP::UserAgent missing" unless $ua;
 	my $res = $ua->delete('https://api.cloudflare.com/client/v4/user/firewall/access_rules/rules/'.$id, %args);
 
 	if ($res->is_success) {
@@ -343,7 +369,8 @@ sub getid {
 	my $mode = shift;
 	my $target = &checktarget($ip);
 
-	my $ua = LWP::UserAgent->new;
+	my $ua = _ua();
+	return "CloudFlare: LWP::UserAgent missing" unless $ua;
 	my $res = $ua->get('https://api.cloudflare.com/client/v4/user/firewall/access_rules/rules?page=1&per_page=100&configuration.target='.$target.'&configuration.value='.$ip.'&match=all&order=mode&direction=desc', %args);
 
 	if ($res->is_success) {
@@ -372,7 +399,8 @@ sub getlist {
 	my $pages = 1;
 	my $result;
 
-	my $ua = LWP::UserAgent->new;
+	my $ua = _ua();
+	return "CloudFlare: LWP::UserAgent missing" unless $ua;
 
 	while (1) {
 		my $res = $ua->get('https://api.cloudflare.com/client/v4/user/firewall/access_rules/rules?page='.$page.'&per_page=100&order=created_on&direction=asc&match=all', %args);
