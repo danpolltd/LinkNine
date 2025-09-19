@@ -860,7 +860,6 @@ sub pslinecheck {
 				}
 			}
 		}
-		}
 		if (checkip(\$ip)) {return ($ip,$port)} else {return}
 	}
 	if ($line =~ /IN=\S+.*SRC=(\S+).*PROTO=(ICMP)/) {
