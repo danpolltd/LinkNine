@@ -116,6 +116,16 @@ sub main {
 #cflistbtn, #cfaddbtn, #cfremovebtn, #cftempdenybtn { width: auto; }
 /* Keep pagination anchors reasonable without forcing full width */
 #paginatediv a.btn.btn-default { width: 120px; }
+
+/* Ensure only active tab content is visible
+	This defends against stray displays of non-active panes (e.g. Mobile View panel)
+	if a theme overrides Bootstrap defaults. Use !important to beat external skins. */
+.tab-content > .tab-pane { display: none !important; }
+.tab-content > .tab-pane.active { display: block !important; }
+
+/* Belt-and-braces: explicitly hide the Mobile View panel unless Upgrade is active */
+#mobileview-upgrade-panel { display: none !important; }
+#upgrade.tab-pane.active #mobileview-upgrade-panel { display: block !important; }
 </style>
 QHTLBTNSTYLE
 
@@ -2163,6 +2173,21 @@ EOF
 				print "<div class='bs-callout bs-callout-info h4'>Add effective incoming virus and spam detection and user level processing using <a href='https://qhtlf.danpol.co.uk' target='_blank'>QHTL MailScanner Front-End (qhtlscanner)</a></div>\n";
 			}
 		}
+
+		# Move Mobile View panel so it appears only on the Upgrade tab
+		if ($config{STYLE_MOBILE}) {
+			if (-e "/usr/local/cpanel/version" and !$config{THIS_UI}) {
+				require Cpanel::Version::Tiny;
+				if ($Cpanel::Version::Tiny::major_version < 65) {
+					print "<a id='cpframetr2' href='$ENV{cp_security_token}' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> cPanel Main Page</a>\n";
+				}
+			}
+			if  (defined $ENV{WEBMIN_VAR} and defined $ENV{WEBMIN_CONFIG} and !$config{THIS_UI}) {
+				print "<a id='webmintr2' href='/' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> Webmin Main Page</a>\n";
+			}
+			print "<div id='mobileview-upgrade-panel' class='panel panel-default'><div class='panel-heading panel-heading-qhtlwatcher'>Shows a subset of functions suitable for viewing on mobile devices</div>\n";
+			print "<div class='panel-body text-center'><a class='btn btn-primary btn-block' style='margin:10px;padding: 18px 28px;font-size: 22px; line-height: normal;border-radius: 8px;' id='MobileView'>Mobile View</a></div></div>\n";
+		}
 		print "</div>\n";
 
 		print "<div id='home' class='tab-pane'>\n";
@@ -2324,54 +2349,7 @@ EOF
 #		}
 		print "</div>\n</div>\n";
 
-		if ($config{STYLE_MOBILE}) {
-			if (-e "/usr/local/cpanel/version" and !$config{THIS_UI}) {
-				require Cpanel::Version::Tiny;
-				if ($Cpanel::Version::Tiny::major_version < 65) {
-					print "<a id='cpframetr2' href='$ENV{cp_security_token}' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> cPanel Main Page</a>\n";
-				}
-			}
-			if  (defined $ENV{WEBMIN_VAR} and defined $ENV{WEBMIN_CONFIG} and !$config{THIS_UI}) {
-				print "<a id='webmintr2' href='/' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> Webmin Main Page</a>\n";
-			}
-			print "<div class='panel panel-default'><div class='panel-heading panel-heading-qhtlwatcher'>Shows a subset of functions suitable for viewing on mobile devices</div>\n";
-			print "<div class='panel-body text-center'><a class='btn btn-primary btn-block' style='margin:10px;padding: 18px 28px;font-size: 22px; line-height: normal;border-radius: 8px;' id='MobileView'>Mobile View</a></div></div>\n";
-
-			print "</div>\n<div class='mobilecontainer'>\n";
-
-			print "<form action='$script' method='post'>\n";
-			print "<div class='form-group' style='width:100%'>\n";
-			print "<p><label>IP address:</label><input id='ip' type='text' class='form-control' name='ip'></p>\n";
-			print "<p><button class='btn btn-primary btn-lg btn-block' type='submit' name='action' value='qallow'>Quick Allow IP</button></p>\n";
-			print "<p><button class='btn btn-primary btn-lg btn-block' type='submit' name='action' value='qdeny'>Quick Deny IP</button></p>\n";
-			print "<p><button class='btn btn-primary btn-lg btn-block' type='submit' name='action' value='qignore'>Quick Ignore IP</button></p>\n";
-			print "<p><button class='btn btn-primary btn-lg btn-block' type='submit' name='action' value='kill'>Quick Unblock IP</button></p>\n";
-			print "<p><button class='btn btn-primary btn-lg btn-block' type='submit' name='action' value='grep'>Search for IP</button></p>\n";
-			print "</div>\n";
-			print "<br><div class='form-group'>\n";
-			print "<p><button class='btn btn-success btn-lg btn-block' type='submit' name='action' value='enable'>Firewall Enable</button></p>\n";
-			print "<p><button class='btn btn-danger btn-lg btn-block' type='submit' name='action' value='disable'>Firewall Disable</button></p>\n";
-			print "<p><br></p>\n";
-			print "<p><button class='btn btn-warning btn-lg btn-block' type='submit' name='action' value='restart'>Firewall Restart</button></p>\n";
-			print "<p><button class='btn btn-primary btn-lg btn-block' type='submit' name='action' value='denyf'>Flush all Blocks</button></p>\n";
-			print "</div>\n";
-			print "</form>\n";
-
-			if (-e "/usr/local/cpanel/version" and !$config{THIS_UI}) {
-				if ($Cpanel::Version::Tiny::major_version < 65) {
-					print "<br><p><a href='$ENV{cp_security_token}' class='btn btn-info btn-lg btn-block'><span class='glyphicon glyphicon-home'></span> cPanel Main Page</a></p>\n";
-				}
-			}
-#			if  ($config{DIRECTADMIN} and !$config{THIS_UI}) {
-#				print "<br><p id='cpframe'><a href='/' class='btn btn-info btn-lg btn-block'><span class='glyphicon glyphicon-home'></span> DirectAdmin Main Page</a></p>\n";
-#			}
-			if (defined $ENV{WEBMIN_VAR} and defined $ENV{WEBMIN_CONFIG} and !$config{THIS_UI}) {
-				print "<br><p><a href='/' class='btn btn-info btn-lg btn-block'><span class='glyphicon glyphicon-home'></span> Webmin Main Page</a></p>\n";
-			}
-
-			print "<br><p><button class='btn btn-info btn-lg btn-block' id='NormalView'>Desktop View</button></p>\n";
-			print "</div>\n<div><br>\n";
-		}
+		# Note: Mobile View panel moved to Upgrade tab above
 
 		print "<div class='panel panel-info'>\n";
 		print "<div class='panel-heading'>About</div>";
