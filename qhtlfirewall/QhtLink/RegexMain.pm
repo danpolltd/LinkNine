@@ -352,7 +352,7 @@ sub processline {
 	if (checkip(\$ip)) {return ("qhtlwatcher mod_security triggered by","$ip|$acc|$domain","qhtlwatcher")} else {return}
 	}
 #qhtlwatcher Litespeed
-	if (($config{LF_QHTLWATCHER}) and ($globlogs{MODSEC_LOG}{$lgfile}) and ($line =~ /^\[\S+\s+\S+\s+\S+\s+\S+\s+\S+\] \[(\S*:)?error\] (\[pid \d+(:tid \d+)?\] )?\[(client|remote) (\S+)\]( \[client \S+\])? (\w+: )?ModSecurity:(( \[[^]]+\])*)? Access denied with code \d\d\d, \[Rule: 'FILES_TMPNAMES' '\\@inspectFile \/qhtlwatcher\/qhtlwatcher\.sh'\] \[id \"1010101\"\]/)) {
+	if (($config{LF_QHTLWATCHER}) and ($globlogs{MODSEC_LOG}{$lgfile}) and ($line =~ /^\[\S+\s+\S+\s+\S+\s+\S+\s+\S+\] \[(\S*:)?error\] (\[pid \d+(:tid \d+)?\] )?\[(client|remote) (\S+)\]( \[client \S+\])? (\w+: )?ModSecurity:(( \[[^]]+\])*)? Access denied with code \d\d\d, \[Rule: 'FILES_TMPNAMES' '\\\\[@]inspectFile \/qhtlwatcher\/qhtlwatcher\.sh'\] \[id \"1010101\"\]/)) {
         my $ip = $5;
 		my $acc = "";
 		my $domain = "";
