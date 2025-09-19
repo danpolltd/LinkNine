@@ -26,36 +26,41 @@ our (%config, %cpconfig, $slurpreg, $cleanreg, %globlogs, %brd, %ips);
 my $config = QhtLink::Config->loadconfig();
 %config = $config->config;
 
-$slurpreg = QhtLink::Slurp->slurpreg;
-$cleanreg = QhtLink::Slurp->cleanreg;
-
-if (-e "/etc/wwwacct.conf") {
-	foreach my $line (slurp("/etc/wwwacct.conf")) {
-		$line =~ s/$cleanreg//g;
-		if ($line =~ /^(\s|\#|$)/) {next}
-		my ($name,$value) = split (/ /,$line,2);
-		$cpconfig{$name} = $value;
-	}
-}
-if (-e "/usr/local/cpanel/version") {
-	foreach my $line (slurp("/usr/local/cpanel/version")) {
-		$line =~ s/$cleanreg//g;
-		if ($line =~ /\d/) {$cpconfig{version} = $line}
-	}
-}
-
-if ($config{LF_APACHE_ERRPORT} == 0) {
-	my $apachebin = "";
-	if (-e "/usr/local/apache/bin/httpd") {$apachebin = "/usr/local/apache/bin/httpd"}
-	elsif (-e "/usr/sbin/httpd") {$apachebin = "/usr/sbin/httpd"}
-	elsif (-e "/usr/sbin/apache2") {$apachebin = "/usr/sbin/apache2"}
-	elsif (-e "/usr/sbin/httpd2") {$apachebin = "/usr/sbin/httpd2"}
-	if (-e $apachebin) {
-		my ($childin, $childout);
-		my $mypid = open3($childin, $childout, $childout, $apachebin,"-v");
-		my @version = <$childout>;
-		waitpid ($mypid, 0);
-		chomp @version;
+		# If configured, ignore ports that are already OPEN in the firewall to reduce false-positive Port Scan alerts
+		if ($config{PS_PORTS} !~ /OPEN/) {
+			# TCP blocked messages and TCP_IN allowlist
+			if ($proto eq "TCP" and $line =~ /kernel:\s(\[[^\]]+\]\s)?Firewall: \*TCP_IN Blocked\*/) {
+				my $hit = 0;
+				foreach my $ports (split(/\,/, $config{TCP_IN})) {
+					if ($ports =~ /\:/) {
+						my ($start,$end) = split(/\:/,$ports);
+						if ($port >= $start and $port <= $end) { $hit = 1 }
+					}
+					elsif ($port == $ports) { $hit = 1 }
+					if ($hit) { last }
+				}
+				if ($hit) {
+					if ($config{DEBUG} >= 1) { QhtLink::Logger::logfile("debug: *Port Scan* ignored TCP_IN port: $ip:$port") }
+					return;
+				}
+			}
+			# UDP blocked messages and UDP_IN allowlist
+			elsif ($proto eq "UDP" and $line =~ /kernel:\s(\[[^\]]+\]\s)?Firewall: \*UDP_IN Blocked\*/) {
+				my $hit = 0;
+				foreach my $ports (split(/\,/, $config{UDP_IN})) {
+					if ($ports =~ /\:/) {
+						my ($start,$end) = split(/\:/,$ports);
+						if ($port >= $start and $port <= $end) { $hit = 1 }
+					}
+					elsif ($port == $ports) { $hit = 1 }
+					if ($hit) { last }
+				}
+				if ($hit) {
+					if ($config{DEBUG} >= 1) { QhtLink::Logger::logfile("debug: *Port Scan* ignored UDP_IN port: $ip:$port") }
+					return;
+				}
+			}
+		}
 		$version[0] =~ /Apache\/(\d+)\.(\d+)\.(\d+)/;
 		my $mas = $1;
 		my $maj = $2;
@@ -822,36 +827,41 @@ sub pslinecheck {
 		my $port = $4;
 		$ip =~ s/^::ffff://;
 		if ($config{PS_PORTS} !~ /BRD/ and $proto eq "UDP" and $brd{$dst} and !$ips{$dst}) {return}
+		# If configured, ignore ports that are already OPEN in the firewall to reduce false-positive Port Scan alerts
 		if ($config{PS_PORTS} !~ /OPEN/) {
-			my $hit = 0;
-#qhtlwatcher Litespeed
-	if (($config{LF_QHTLWATCHER}) and ($globlogs{MODSEC_LOG}{$lgfile}) and ($line =~ /^\[\S+\s+\S+\s+\S+\s+\S+\s+\S+\] \[(\S*:)?error\] (\[pid \d+(:tid \d+)?\] )?\[(client|remote) (\S+)\]( \[client \S+\])? (\w+: )?ModSecurity:(( \[[^]]+\])*)? Access denied with code \d\d\d, \[Rule: 'FILES_TMPNAMES' '\\@inspectFile \/qhtlwatcher\/qhtlwatcher\.sh'\] \[id \"1010101\"\]/)) {
+			# TCP blocked messages and TCP_IN allowlist
+			if ($proto eq "TCP" and $line =~ /kernel:\s(\[[^\]]+\]\s)?Firewall: \*TCP_IN Blocked\*/) {
+				my $hit = 0;
+				foreach my $ports (split(/\,/, $config{TCP_IN})) {
 					if ($ports =~ /\:/) {
 						my ($start,$end) = split(/\:/,$ports);
-						if ($port >= $start and $port <= $end) {$hit = 1}
+						if ($port >= $start and $port <= $end) { $hit = 1 }
 					}
-					elsif ($port == $ports) {$hit = 1}
-					if ($hit) {last}
+					elsif ($port == $ports) { $hit = 1 }
+					if ($hit) { last }
 				}
 				if ($hit) {
-					if ($config{DEBUG} >= 1) {QhtLink::Logger::logfile("debug: *Port Scan* ignored TCP_IN port: $ip:$port")}
+					if ($config{DEBUG} >= 1) { QhtLink::Logger::logfile("debug: *Port Scan* ignored TCP_IN port: $ip:$port") }
 					return;
 				}
 			}
+			# UDP blocked messages and UDP_IN allowlist
 			elsif ($proto eq "UDP" and $line =~ /kernel:\s(\[[^\]]+\]\s)?Firewall: \*UDP_IN Blocked\*/) {
-				foreach my $ports (split(/\,/,$config{UDP_IN})) {
+				my $hit = 0;
+				foreach my $ports (split(/\,/, $config{UDP_IN})) {
 					if ($ports =~ /\:/) {
 						my ($start,$end) = split(/\:/,$ports);
-						if ($port >= $start and $port <= $end) {$hit = 1}
+						if ($port >= $start and $port <= $end) { $hit = 1 }
 					}
-					elsif ($port == $ports) {$hit = 1}
-					if ($hit) {last}
+					elsif ($port == $ports) { $hit = 1 }
+					if ($hit) { last }
 				}
 				if ($hit) {
-					if ($config{DEBUG} >= 1) {QhtLink::Logger::logfile("debug: *Port Scan* ignored UDP_IN port: $ip:$port")}
+					if ($config{DEBUG} >= 1) { QhtLink::Logger::logfile("debug: *Port Scan* ignored UDP_IN port: $ip:$port") }
 					return;
 				}
 			}
+		}
 		}
 		if (checkip(\$ip)) {return ($ip,$port)} else {return}
 	}
