@@ -37,8 +37,9 @@ if [ -e "/usr/local/cpanel/3rdparty/bin/perl" ]; then
     sed -i 's%^#\!/usr/bin/perl%#\!/usr/local/cpanel/3rdparty/bin/perl%' webmin/qhtlfirewall/index.cgi
 fi
 
-mkdir -v -m 0600 /etc/qhtlfirewall
-cp -avf install.txt /etc/qhtlfirewall/
+# Make sure target dirs exist without noisy errors
+mkdir -p -m 0600 /etc/qhtlfirewall
+cp -af install.txt /etc/qhtlfirewall/
 
 echo
 echo "Checking Perl modules..."
@@ -52,18 +53,17 @@ else
     echo "...Perl modules OK"
 fi
 
-mkdir -v -m 0600 /var/lib/qhtlfirewall
-mkdir -v -m 0600 /var/lib/qhtlfirewall/backup
-mkdir -v -m 0600 /var/lib/qhtlfirewall/Geo
-mkdir -v -m 0600 /var/lib/qhtlfirewall/ui
-mkdir -v -m 0600 /var/lib/qhtlfirewall/stats
-mkdir -v -m 0600 /var/lib/qhtlfirewall/lock
-mkdir -v -m 0600 /var/lib/qhtlfirewall/webmin
-mkdir -v -m 0600 /var/lib/qhtlfirewall/zone
-mkdir -v -m 0600 /usr/local/qhtlfirewall
-mkdir -v -m 0600 /usr/local/qhtlfirewall/bin
-mkdir -v -m 0600 /usr/local/qhtlfirewall/lib
-mkdir -v -m 0600 /usr/local/qhtlfirewall/tpl
+# Create runtime directories (idempotent, quiet)
+mkdir -p -m 0600 /var/lib/qhtlfirewall
+    # Install and run daily updater under new name
+    cp -af qhtlfirewallget.pl /etc/cron.daily/qhtlfirewallget
+    chmod 700 /etc/cron.daily/qhtlfirewallget
+    /etc/cron.daily/qhtlfirewallget --nosleep || true
+mkdir -p -m 0600 /var/lib/qhtlfirewall/webmin
+mkdir -p -m 0600 /var/lib/qhtlfirewall/zone
+mkdir -p -m 0600 /usr/local/qhtlfirewall
+mkdir -p -m 0600 /usr/local/qhtlfirewall/lib
+mkdir -p -m 0600 /usr/local/qhtlfirewall/tpl
 
 if [ -e "/etc/qhtlfirewall/alert.txt" ]; then
 	sh migratedata.sh
@@ -332,29 +332,27 @@ chmod 700 qhtlfirewall.pl qhtlwaterfall.pl
 cp -avf qhtlfirewall.pl /usr/sbin/qhtlfirewall
 cp -avf qhtlwaterfall.pl /usr/sbin/qhtlwaterfall
 chmod 700 /usr/sbin/qhtlfirewall /usr/sbin/qhtlwaterfall
-ln -svf /usr/sbin/qhtlfirewall /etc/qhtlfirewall/qhtlfirewall.pl
-ln -svf /usr/sbin/qhtlwaterfall /etc/qhtlfirewall/qhtlwaterfall.pl
-ln -svf /usr/local/qhtlfirewall/bin/qhtlfirewalltest.pl /etc/qhtlfirewall/
-ln -svf /usr/local/qhtlfirewall/bin/pt_deleted_action.pl /etc/qhtlfirewall/
-ln -svf /usr/local/qhtlfirewall/bin/remove_apf_bfd.sh /etc/qhtlfirewall/
-ln -svf /usr/local/qhtlfirewall/bin/uninstall.sh /etc/qhtlfirewall/
-ln -svf /usr/local/qhtlfirewall/bin/regex.custom.pm /etc/qhtlfirewall/
-ln -svf /usr/local/qhtlfirewall/lib/webmin /etc/qhtlfirewall/
-if [ ! -e "/etc/qhtlfirewall/alerts" ]; then
-    ln -svf /usr/local/qhtlfirewall/tpl /etc/qhtlfirewall/alerts
-fi
-chcon -h system_u:object_r:bin_t:s0 /usr/sbin/qhtlwaterfall
-chcon -h system_u:object_r:bin_t:s0 /usr/sbin/qhtlfirewall
+ln -sf /usr/sbin/qhtlfirewall /etc/qhtlfirewall/qhtlfirewall.pl
+ln -sf /usr/sbin/qhtlwaterfall /etc/qhtlfirewall/qhtlwaterfall.pl
+ln -sf /usr/local/qhtlfirewall/bin/qhtlfirewalltest.pl /etc/qhtlfirewall/
+ln -sf /usr/local/qhtlfirewall/bin/pt_deleted_action.pl /etc/qhtlfirewall/
+ln -sf /usr/local/qhtlfirewall/bin/remove_apf_bfd.sh /etc/qhtlfirewall/
+ln -sf /usr/local/qhtlfirewall/bin/uninstall.sh /etc/qhtlfirewall/
+ln -sf /usr/local/qhtlfirewall/bin/regex.custom.pm /etc/qhtlfirewall/
+ln -sf /usr/local/qhtlfirewall/lib/webmin /etc/qhtlfirewall/
 
-mkdir webmin/qhtlfirewall/images
-mkdir ui/images
-mkdir da/images
-mkdir interworx/images
+# ...existing code...
+# Ensure UI asset dirs exist (quiet)
+mkdir -p webmin/qhtlfirewall/images
+mkdir -p ui/images
+mkdir -p da/images
+mkdir -p interworx/images
 
-cp -avf qhtlfirewall/* webmin/qhtlfirewall/images/
-cp -avf qhtlfirewall/* ui/images/
-cp -avf qhtlfirewall/* da/images/
-cp -avf qhtlfirewall/* interworx/images/
+# Quiet copies of UI assets
+cp -af qhtlfirewall/* webmin/qhtlfirewall/images/
+cp -af qhtlfirewall/* ui/images/
+cp -af qhtlfirewall/* da/images/
+cp -af qhtlfirewall/* interworx/images/
 
 cp -avf messenger/*.php /etc/qhtlfirewall/messenger/
 cp -avf qhtlfirewall/qhtlfirewall_small.png /usr/local/cpanel/whostmgr/docroot/addon_plugins/
@@ -393,9 +391,11 @@ cp -avf qhtlwaterfall.logrotate /etc/logrotate.d/qhtlwaterfall
 rm -fv /etc/qhtlfirewall/qhtlfirewall.spamhaus /etc/qhtlfirewall/qhtlfirewall.dshield /etc/qhtlfirewall/qhtlfirewall.tor /etc/qhtlfirewall/qhtlfirewall.bogon
 
 mkdir -p /usr/local/man/man1/
-cp -avf qhtlfirewall.1.txt /usr/local/man/man1/qhtlfirewall.1
-man qhtlfirewall | col -b > qhtlfirewall.help
-cp -avf qhtlfirewall.help /usr/local/qhtlfirewall/lib/
+cp -af qhtlfirewall.1.txt /usr/local/man/man1/qhtlfirewall.1
+if man -w qhtlfirewall >/dev/null 2>&1; then
+  man qhtlfirewall | col -b > qhtlfirewall.help && cp -af qhtlfirewall.help /usr/local/qhtlfirewall/lib/
+fi
+
 chmod 755 /usr/local/man/
 chmod 755 /usr/local/man/man1/
 chmod 644 /usr/local/man/man1/qhtlfirewall.1
@@ -408,15 +408,11 @@ chmod -R 600 /usr/local/qhtlfirewall/tpl
 chmod -R 600 /usr/local/qhtlfirewall/profiles
 chmod 600 /var/log/qhtlwaterfall.log*
 
-chmod -v 700 /usr/local/qhtlfirewall/bin/*.pl /usr/local/qhtlfirewall/bin/*.sh /usr/local/qhtlfirewall/bin/*.pm
-chmod -v 700 /etc/qhtlfirewall/*.pl /etc/qhtlfirewall/*.cgi /etc/qhtlfirewall/*.sh /etc/qhtlfirewall/*.php /etc/qhtlfirewall/*.py
-chmod -v 700 /etc/qhtlfirewall/webmin/qhtlfirewall/index.cgi
-chmod -v 644 /etc/cron.d/qhtlwaterfall-cron
-chmod -v 644 /etc/cron.d/qhtlfirewall-cron
-
-cp -avf csget.pl /etc/cron.daily/csget
-chmod 700 /etc/cron.daily/csget
-/etc/cron.daily/csget --nosleep
+chmod -v 700 /usr/local/qhtlfirewall/bin/*.pl /usr/local/qhtlfirewall/bin/*.sh /usr/local/qhtlfirewall/bin/*.pm 2>/dev/null || true
+chmod -v 700 /etc/qhtlfirewall/*.pl /etc/qhtlfirewall/*.cgi /etc/qhtlfirewall/*.sh /etc/qhtlfirewall/*.php /etc/qhtlfirewall/*.py 2>/dev/null || true
+chmod -v 700 /etc/qhtlfirewall/webmin/qhtlfirewall/index.cgi 2>/dev/null || true
+chmod -v 644 /etc/cron.d/qhtlwaterfall-cron 2>/dev/null || true
+chmod -v 644 /etc/cron.d/qhtlfirewall-cron 2>/dev/null || true
 
 chmod -v 700 auto.pl
 ./auto.pl $OLDVERSION
@@ -434,7 +430,8 @@ mkdir -p /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/Driver
 # Install only the canonical QhtLinkFirewall driver
 cp -avf cpanel/Driver/QhtLinkFirewall.pm /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/Driver/
 cp -avf cpanel/Driver/QhtLinkFirewall /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/Driver/
-cp -avf ui/images/icon.gif /usr/local/cpanel/whostmgr/docroot/themes/x/icons/qhtlfirewall.gif
+if [ -d Geo ]; then cp -af Geo /usr/local/qhtlfirewall/lib/; fi
+if [ -f ui/images/icon.gif ]; then cp -af ui/images/icon.gif /usr/local/cpanel/whostmgr/docroot/themes/x/icons/qhtlfirewall.gif; fi
 cp -avf cpanel/qhtlfirewall.tmpl /usr/local/cpanel/whostmgr/docroot/templates/
 
 VERSION=`cat /usr/local/cpanel/version | cut -d '.' -f2`
@@ -446,8 +443,8 @@ else
     echo "cPanel v$VERSION, target set to _self"
 fi
 
-cp -avf cpanel/qhtlfirewall.conf /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/qhtlfirewall.conf
-cp -avf cpanel/upgrade.sh /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/upgrade.sh
+cp -af cpanel/qhtlfirewall.conf /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/qhtlfirewall.conf
+cp -af cpanel/upgrade.sh /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/upgrade.sh
 chmod 700 /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/upgrade.sh
 
 if [ -e "/usr/local/cpanel/bin/register_appconfig" ]; then
@@ -504,12 +501,12 @@ then
     mkdir -p /etc/systemd/system/
     mkdir -p /usr/lib/systemd/system/
     cp -af qhtlwaterfall.service /usr/lib/systemd/system/
-    cp -avf qhtlfirewall.service /usr/lib/systemd/system/
+    cp -af qhtlfirewall.service /usr/lib/systemd/system/
 
     chcon -h system_u:object_r:systemd_unit_file_t:s0 /usr/lib/systemd/system/qhtlwaterfall.service
     chcon -h system_u:object_r:systemd_unit_file_t:s0 /usr/lib/systemd/system/qhtlfirewall.service
 
-    systemctl daemon-reload
+    systemctl daemon-reload >/dev/null 2>&1 || true
 
     systemctl enable qhtlfirewall.service >/dev/null 2>&1 || true
     systemctl enable qhtlwaterfall.service >/dev/null 2>&1 || true
@@ -518,8 +515,8 @@ then
     systemctl stop firewalld >/dev/null 2>&1 || true
     systemctl mask firewalld >/dev/null 2>&1 || true
 else
-    cp -avf qhtlwaterfall.sh /etc/init.d/qhtlwaterfall
-    cp -avf qhtlfirewall.sh /etc/init.d/qhtlfirewall
+    cp -af qhtlwaterfall.sh /etc/init.d/qhtlwaterfall
+    cp -af qhtlfirewall.sh /etc/init.d/qhtlfirewall
     chmod -v 755 /etc/init.d/qhtlwaterfall
     chmod -v 755 /etc/init.d/qhtlfirewall
 
@@ -535,12 +532,12 @@ else
         rc-update add qhtlwaterfall default
         rc-update add qhtlfirewall default
     elif [ -f /etc/slackware-version ]; then
-        ln -svf /etc/init.d/qhtlfirewall /etc/rc.d/rc3.d/S80qhtlfirewall
-        ln -svf /etc/init.d/qhtlfirewall /etc/rc.d/rc4.d/S80qhtlfirewall
-        ln -svf /etc/init.d/qhtlfirewall /etc/rc.d/rc5.d/S80qhtlfirewall
-        ln -svf /etc/init.d/qhtlwaterfall /etc/rc.d/rc3.d/S85qhtlwaterfall
-        ln -svf /etc/init.d/qhtlwaterfall /etc/rc.d/rc4.d/S85qhtlwaterfall
-        ln -svf /etc/init.d/qhtlwaterfall /etc/rc.d/rc5.d/S85qhtlwaterfall
+    ln -sf /etc/init.d/qhtlfirewall /etc/rc.d/rc3.d/S80qhtlfirewall
+    ln -sf /etc/init.d/qhtlfirewall /etc/rc.d/rc4.d/S80qhtlfirewall
+    ln -sf /etc/init.d/qhtlfirewall /etc/rc.d/rc5.d/S80qhtlfirewall
+    ln -sf /etc/init.d/qhtlwaterfall /etc/rc.d/rc3.d/S85qhtlwaterfall
+    ln -sf /etc/init.d/qhtlwaterfall /etc/rc.d/rc4.d/S85qhtlwaterfall
+    ln -sf /etc/init.d/qhtlwaterfall /etc/rc.d/rc5.d/S85qhtlwaterfall
     else
         /sbin/chkconfig qhtlwaterfall on
         /sbin/chkconfig qhtlfirewall on
@@ -564,7 +561,7 @@ chown -Rf root:root /etc/qhtlfirewall /var/lib/qhtlfirewall /usr/local/qhtlfirew
 chown -f root:root /usr/sbin/qhtlfirewall /usr/sbin/qhtlwaterfall /etc/logrotate.d/qhtlwaterfall /etc/cron.d/qhtlfirewall-cron /etc/cron.d/qhtlwaterfall-cron /usr/local/man/man1/qhtlfirewall.1 /usr/lib/systemd/system/qhtlwaterfall.service /usr/lib/systemd/system/qhtlfirewall.service /etc/init.d/qhtlwaterfall /etc/init.d/qhtlfirewall
 
 cd webmin ; tar -czf /usr/local/qhtlfirewall/qhtlfirewallwebmin.tgz ./*
-ln -svf /usr/local/qhtlfirewall/qhtlfirewallwebmin.tgz /etc/qhtlfirewall/
+ln -sf /usr/local/qhtlfirewall/qhtlfirewallwebmin.tgz /etc/qhtlfirewall/
 
 echo
 echo "Installation Completed"

@@ -433,7 +433,7 @@ ChangeLog:
 	by Firewall.php stub
 
 	Created cronjob to check for new product versions for the UI
-	(/etc/cron.daily/csget). A manual check is still available if needed.
+	(/etc/cron.daily/qhtlfirewallget). A manual check is still available if needed.
 	This does not affect the daily upgrade check if enabled
 
 13.00 - Added InterWorx integration and InterWorx panel specific configuration.

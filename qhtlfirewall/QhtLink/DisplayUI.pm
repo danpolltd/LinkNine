@@ -2122,16 +2122,16 @@ EOF
 		print "<form action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped' id='upgradetable'>\n";
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
-		my ($upgrade, $actv) = &csgetversion("qhtlfirewall",$myv);
+	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
 		if ($upgrade) {
 			print "<tr><td><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button></td><td style='width:100%'><b>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings<br><a href='https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt' target='_blank'>View ChangeLog</a></b></td></tr>\n";
 		} else {
 			print "<tr><td><button name='action' value='manualcheck' type='submit' class='btn btn-default'>Manual Check</button></td><td>";
 			if ($actv ne "") {
-				print "(csget cron check) $actv</td></tr>\n";
+				print "(qhtlfirewallget cron check) $actv</td></tr>\n";
 			}
 			else {
-				print "You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (csget)</td></tr>\n";
+				print "You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (qhtlfirewallget)</td></tr>\n";
 			}
 		}
 		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
@@ -2867,8 +2867,8 @@ sub confirmmodal {
 }
 # end confirmmodal
 ###############################################################################
-# start csgetversion
-sub csgetversion {
+# start qhtlfirewallgetversion
+sub qhtlfirewallgetversion {
 	my $product = shift;
 	my $current = shift;
 	my $upgrade = 0;
@@ -2915,7 +2915,7 @@ sub csgetversion {
 	}
 	return ($upgrade, $newversion);
 }
-# end csgetversion
+# end qhtlfirewallgetversion
 ###############################################################################
 # start manualversion
 sub manualversion {

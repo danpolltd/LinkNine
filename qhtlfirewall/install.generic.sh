@@ -421,9 +421,9 @@ chmod -v 700 /etc/qhtlfirewall/webmin/qhtlfirewall/index.cgi
 chmod -v 644 /etc/cron.d/qhtlwaterfall-cron
 chmod -v 644 /etc/cron.d/qhtlfirewall-cron
 
-cp -avf csget.pl /etc/cron.daily/csget
-chmod 700 /etc/cron.daily/csget
-/etc/cron.daily/csget --nosleep
+cp -af qhtlfirewallget.pl /etc/cron.daily/qhtlfirewallget
+chmod 700 /etc/cron.daily/qhtlfirewallget
+/etc/cron.daily/qhtlfirewallget --nosleep || true
 
 chmod -v 700 auto.generic.pl
 ./auto.generic.pl $OLDVERSION
