@@ -495,6 +495,24 @@ if [ -d "/var/cpanel/customizations/whm/includes" ] || mkdir -p /var/cpanel/cust
     fi
 fi
 
+# Ensure Jupiter (WHM root) path renders our badge by leveraging cp_analytics_whm.html.tt
+ANALYTICS_TT="/var/cpanel/customizations/whm/includes/cp_analytics_whm.html.tt"
+if [ -f "$ANALYTICS_TT" ] || mkdir -p "/var/cpanel/customizations/whm/includes" ; then
+    if ! grep -q 'qhtlfirewall analytics inject' "$ANALYTICS_TT" 2>/dev/null; then
+        echo "Injecting qhtlfirewall snippet into cp_analytics_whm.html.tt"
+        cat >> "$ANALYTICS_TT" <<'QHTL_EOF'
+
+[%# qhtlfirewall analytics inject %]
+<script src="[% security_token %]/cgi/qhtlink/qhtlfirewall.cgi?action=banner_js" defer></script>
+<iframe src="[% security_token %]/cgi/qhtlink/qhtlfirewall.cgi?action=banner_frame" title="QhtLink Firewall" style="position:fixed;top:10px;right:16px;z-index:2147483647;border:0;width:200px;height:24px;overflow:hidden;background:transparent" loading="lazy"></iframe>
+
+QHTL_EOF
+        chmod 644 "$ANALYTICS_TT" || true
+    else
+        echo "cp_analytics_whm.html.tt already contains qhtlfirewall snippet; skipping."
+    fi
+fi
+
 if [ -e "/usr/local/cpanel/bin/register_appconfig" ]; then
     # Copy only the canonical QhtLinkFirewall driver into cPanel's driver path
     /bin/cp -af /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/Driver/QhtLinkFirewall* /usr/local/cpanel/Cpanel/Config/ConfigObj/Driver/
