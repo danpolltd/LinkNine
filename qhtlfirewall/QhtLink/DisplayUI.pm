@@ -885,7 +885,7 @@ EOF
 			my $path = $map{$which}{path};
 			my $title = $map{$which}{title};
 			print "<div class='panel panel-default'><div class='panel-heading'><b>Quick View:</b> $title (comments omitted)</div><div class='panel-body'>";
-			print "<pre class='comment' style='white-space: pre-wrap;'>\n";
+			print "<pre class='comment' style='white-space: pre; overflow-x: hidden; overflow-y: auto;'>\n";
 			foreach my $line (slurp($path)) {
 				$line =~ s/$cleanreg//g;        # strip comments/blank
 				$line =~ s/^\s+|\s+$//g;        # trim
@@ -2193,7 +2193,7 @@ EOF
 		print "      cancelBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; showQuickView(window.currentQuickWhich); });\n";
 		print "      return modal;\n";
 		print "    }\n";
-		print "    function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ var html=x.responseText; try{ if(url.indexOf('action=viewlist')!==-1){ var mm=html.match(/<pre[\\s\\S]*?<\\/pre>/i); if(mm){ html=mm[0]; } } }catch(e){} b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to load content</div>'; } } }; x.send(); m.style.display='block'; }\n";
+		print "    function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ var html=x.responseText; try{ if(url.indexOf('action=viewlist')!==-1){ var mm=html.match(/<pre[\\s\\S]*?<\\/pre>/i); if(mm){ html=mm[0]; html=html.replace('<pre','<pre style=\\'white-space: pre; overflow-x: hidden; overflow-y: auto;\\''); } } }catch(e){} b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to load content</div>'; } } }; x.send(); m.style.display='block'; }\n";
 		print "    function quickViewPost(url, body, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBody'); b.innerHTML='Saving...'; var x=new XMLHttpRequest(); x.open('POST', url, true); x.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to save changes</div>'; } } }; x.send(body); m.style.display='block'; }\n";
 		print "    function openQuickView(url, which){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var b=document.getElementById('quickViewBodyShim'); window.currentQuickWhich=which; var map={allow:'qhtlfirewall.allow',deny:'qhtlfirewall.deny',ignore:'qhtlfirewall.ignore'}; t.textContent='Quick View: '+(map[which]||which); var e=document.getElementById('quickViewEditBtnShim'), s=document.getElementById('quickViewSaveBtnShim'), c=document.getElementById('quickViewCancelBtnShim'); if(e&&s&&c){ e.style.display='inline-block'; s.style.display='none'; c.style.display='none'; } quickViewLoad(url); }\n";
 		print "    window.showQuickView = function(which){ var url = '$script?action=viewlist&which=' + encodeURIComponent(which); openQuickView(url, which); return false; };\n";
@@ -2316,6 +2316,7 @@ EOF
 	print "#quickViewModal .modal-dialog { margin: 10vh auto !important; }\n";
 	print "#quickViewModal #quickViewTitle { margin:0 0 8px 0 !important; }\n";
 	print "#quickViewModal #quickViewBody pre { max-height: 300px; overflow: auto; }\n";
+	print "#quickViewModal #quickViewBody pre { white-space: pre; overflow-x: hidden; overflow-y: auto; }\n";
 	print "</style>\n";
 	# Add a Bootstrap modal for inline quick-view (no address bar)
 	print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
