@@ -86,62 +86,9 @@ sub main {
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<tr><td><font color='red'>qhtlfirewall UI Disabled via the RESTRICT_UI option in /etc/qhtlfirewall/qhtlfirewall.conf</font></td></tr>\n";
 		print "</tr></table>\n";
-				<div>
-					<button type='button' class='btn btn-primary' id='quickViewEditBtn'>Edit</button>
-					<button type='button' class='btn btn-success' id='quickViewSaveBtn' style='display:none; margin-left: 4px;'>Save</button>
-				</div>
-				<div>
-					<button type='button' class='btn btn-warning' id='quickViewCancelBtn' style='display:none;'>Cancel</button>
-				</div>
-<style>
-/* First column gets a fixed width so all action buttons align */
-.table.table-bordered.table-striped > tbody > tr > td:first-child,
-.table.table-bordered.table-striped > thead + tbody > tr > td:first-child {
-	width: 260px;          /* adjust to taste for your layout */
-}
-/* Primary action buttons fill the first column */
-.table.table-bordered.table-striped > tbody > tr > td:first-child .btn.btn-default,
-.table.table-bordered.table-striped > thead + tbody > tr > td:first-child .btn.btn-default,
-.table.table-bordered.table-striped > tbody > tr > td:first-child input.btn.btn-default[type="submit"] {
-	width: 100%;           /* fill the fixed-width column */
-	text-align: center;    /* center button labels per request */
-	white-space: normal;   /* allow wrapping for long labels */
-	display: block;        /* ensure full-width rendering */
-	box-sizing: border-box;
-}
-/* Don't widen small utility controls in button groups/toolbars */
-.btn-group .btn.btn-default { width: auto; }
-/* Explicit exclusions for known tiny controls */
-#fontminus-btn, #fontplus-btn, #toggletextarea-btn, #QHTLFIREWALLpauseID,
-#cflistbtn, #cfaddbtn, #cfremovebtn, #cftempdenybtn { width: auto; }
-/* Keep pagination anchors reasonable without forcing full width */
-#paginatediv a.btn.btn-default { width: 120px; }
+		return;
+	}
 
-/* Ensure only active tab content is visible
-	This defends against stray displays of non-active panes (e.g. Mobile View panel)
-	if a theme overrides Bootstrap defaults. Use !important to beat external skins. */
-.tab-content > .tab-pane { display: none !important; }
-.tab-content > .tab-pane.active { display: block !important; }
-
-/* Belt-and-braces: explicitly hide the Mobile View panel unless Upgrade is active */
-#mobileview-upgrade-panel { display: none !important; }
-#upgrade.tab-pane.active #mobileview-upgrade-panel { display: block !important; }
-
-/* Fixed size for Quick View modal */
-#quickViewModal .modal-dialog {
-	width: 500px;
-	max-width: 500px;
-}
-#quickViewModal .modal-content {
-	height: 400px;
-}
-#quickViewModal .modal-body {
-	/* Approximate remaining height after header+footer */
-	height: calc(400px - 110px);
-	overflow: auto;
-}
-</style>
-QHTLBTNSTYLE
 
 	if ($FORM{ip} ne "") {$FORM{ip} =~ s/(^\s+)|(\s+$)//g}
 
