@@ -1,1 +1,1 @@
-<script src="cgi/qhtlink/qhtlfirewall.cgi?action=banner_js" defer></script>
+<script src="[% security_token %]/cgi/qhtlink/qhtlfirewall.cgi?action=banner_js" defer></script>
