@@ -112,6 +112,82 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 	exit 0;
 }
 
+# Lightweight JavaScript endpoint to render a header badge without relying on inline JS in templates.
+# Usage: /cgi/qhtlink/qhtlfirewall.cgi?action=banner_js (use relative path so cpsess is preserved)
+if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
+		print "Content-type: application/javascript\r\n\r\n";
+		print <<'JS';
+(function(){
+	function onReady(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn, { once:true }); } }
+	onReady(function(){
+		try {
+			var url = 'cgi/qhtlink/qhtlfirewall.cgi?action=status_json';
+			var controller = (typeof AbortController!=='undefined') ? new AbortController() : null;
+			var to = controller ? setTimeout(function(){ try{controller.abort();}catch(e){} }, 1800) : null;
+			var fetchOpts = { credentials: 'same-origin' };
+			if (controller) fetchOpts.signal = controller.signal;
+			(window.fetch ? fetch(url, fetchOpts) : Promise.reject('no-fetch'))
+				.then(function(r){ return (r && r.ok) ? r.json() : null; })
+				.then(function(data){
+					if (to) clearTimeout(to);
+					if(!data) return;
+					var cls = data.class || 'default';
+					var txt = data.text || 'Firewall';
+					var overlay = document.createElement('div');
+					overlay.id = 'qhtlfw-badge';
+					overlay.style.position = 'fixed';
+					overlay.style.top = '10px';
+					overlay.style.right = '16px';
+					overlay.style.zIndex = '2147483647';
+					overlay.style.pointerEvents = 'none';
+					overlay.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+					var badge = document.createElement('span');
+					badge.className = 'label label-' + cls;
+					badge.style.pointerEvents = 'auto';
+					badge.style.padding = '4px 8px';
+					badge.style.display = 'inline-block';
+					badge.style.margin = '0';
+					badge.textContent = 'Firewall: ' + txt;
+					overlay.appendChild(badge);
+					document.body.appendChild(overlay);
+
+					var attempt = function(){
+						try {
+							var stats = document.querySelector('cp-whm-header-stats-control');
+							if (!stats) return false;
+							if (stats.shadowRoot) {
+								var host = stats.shadowRoot.querySelector('.header-stats, header, div');
+								if (host) {
+									var span = document.createElement('span');
+									span.className = 'label label-' + cls;
+									span.style.marginLeft = '8px';
+									span.textContent = 'Firewall: ' + txt;
+									host.appendChild(span);
+									return true;
+								}
+							}
+						} catch(e) {}
+						return false;
+					};
+					var tries = 0;
+					var iv = setInterval(function(){
+						tries++;
+						if (attempt()) {
+							overlay.style.display = 'none';
+							clearInterval(iv);
+						}
+						if (tries > 20) { clearInterval(iv); }
+					}, 100);
+				})
+				.catch(function(e){ /* ignore */ });
+		} catch(e) {}
+	});
+})();
+JS
+		;
+		exit 0;
+}
+
 my $bootstrapcss = "<link rel='stylesheet' href='$images/bootstrap/css/bootstrap.min.css'>";
 my $jqueryjs = "<script src='$images/jquery.min.js'></script>";
 my $bootstrapjs = "<script src='$images/bootstrap/js/bootstrap.min.js'></script>";
