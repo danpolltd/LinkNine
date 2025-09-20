@@ -2202,17 +2202,18 @@ EOF
 		print "      footer.appendChild(left); footer.appendChild(mid); footer.appendChild(right);\n";
 		print "      dialog.appendChild(inner); dialog.appendChild(footer); modal.appendChild(dialog); document.body.appendChild(modal);\n";
 		print "      // basic close handlers\n";
-		print "      closeBtn.addEventListener('click', function(){ modal.style.display='none'; });\n";
+		print "      closeBtn.addEventListener('click', function(){ modal.style.display='none'; dialog.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny'); });\n";
 		print "      modal.addEventListener('click', function(e){ if(e.target===modal){ modal.style.display='none'; } });\n";
+		print "      modal.addEventListener('click', function(e){ if(e.target===modal){ dialog.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny'); } });\n";
 		print "      // wire buttons\n";
-		print "      editBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; quickViewLoad('$script?action=editlist&which='+encodeURIComponent(window.currentQuickWhich), function(){ editBtn.style.display='none'; saveBtn.style.display='inline-block'; cancelBtn.style.display='inline-block'; }); });\n";
-		print "      saveBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; var ta=document.getElementById('quickEditArea'); var content=ta?ta.value:''; quickViewPost('$script?action=savelist&which='+encodeURIComponent(window.currentQuickWhich), 'formdata='+encodeURIComponent(content), function(){ showQuickView(window.currentQuickWhich); editBtn.style.display='inline-block'; saveBtn.style.display='none'; cancelBtn.style.display='none'; }); });\n";
-		print "      cancelBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; showQuickView(window.currentQuickWhich); });\n";
+		print "      editBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; quickViewLoad('$script?action=editlist&which='+encodeURIComponent(window.currentQuickWhich), function(){ editBtn.style.display='none'; saveBtn.style.display='inline-block'; cancelBtn.style.display='inline-block'; var c=(window.currentQuickWhich==='allow')?'fire-allow':(window.currentQuickWhich==='ignore'?'fire-ignore':'fire-deny'); dialog.classList.remove('fire-allow','fire-ignore','fire-deny'); dialog.classList.add('fire-border'); dialog.classList.add(c); }); });\n";
+		print "      saveBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; var ta=document.getElementById('quickEditArea'); var content=ta?ta.value:''; quickViewPost('$script?action=savelist&which='+encodeURIComponent(window.currentQuickWhich), 'formdata='+encodeURIComponent(content), function(){ showQuickView(window.currentQuickWhich); editBtn.style.display='inline-block'; saveBtn.style.display='none'; cancelBtn.style.display='none'; dialog.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny'); }); });\n";
+		print "      cancelBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; showQuickView(window.currentQuickWhich); dialog.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny'); });\n";
 		print "      return modal;\n";
 		print "    }\n";
 		print "    function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ var html=x.responseText; try{ if(url.indexOf('action=viewlist')!==-1){ var mm=html.match(/<pre[\\s\\S]*?<\\/pre>/i); if(mm){ html=mm[0]; var bg=''; if(url.indexOf('which=allow')!==-1){ bg = 'background: linear-gradient(180deg, #d4edda 0%, #c3e6cb 100%);'; } else if(url.indexOf('which=ignore')!==-1){ bg = 'background: linear-gradient(180deg, #ffe0b2 0%, #ffcc80 100%);'; } else if(url.indexOf('which=deny')!==-1){ bg = 'background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%);'; } html=html.replace('<pre','<pre style=\\'white-space: pre; overflow-x: hidden; overflow-y: auto; height:100%; max-height:100%; '+bg+'\\'' ); } } }catch(e){} b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to load content</div>'; } } }; x.send(); m.style.display='block'; }\n";
 		print "    function quickViewPost(url, body, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBody'); b.innerHTML='Saving...'; var x=new XMLHttpRequest(); x.open('POST', url, true); x.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to save changes</div>'; } } }; x.send(body); m.style.display='block'; }\n";
-		print "    function openQuickView(url, which){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var b=document.getElementById('quickViewBodyShim'); window.currentQuickWhich=which; var map={allow:'qhtlfirewall.allow',deny:'qhtlfirewall.deny',ignore:'qhtlfirewall.ignore'}; t.textContent='Quick View: '+(map[which]||which); var e=document.getElementById('quickViewEditBtnShim'), s=document.getElementById('quickViewSaveBtnShim'), c=document.getElementById('quickViewCancelBtnShim'); if(e&&s&&c){ e.style.display='inline-block'; s.style.display='none'; c.style.display='none'; } quickViewLoad(url); }\n";
+		print "    function openQuickView(url, which){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var b=document.getElementById('quickViewBodyShim'); window.currentQuickWhich=which; var map={allow:'qhtlfirewall.allow',deny:'qhtlfirewall.deny',ignore:'qhtlfirewall.ignore'}; t.textContent='Quick View: '+(map[which]||which); var e=document.getElementById('quickViewEditBtnShim'), s=document.getElementById('quickViewSaveBtnShim'), c=document.getElementById('quickViewCancelBtnShim'); if(e&&s&&c){ e.style.display='inline-block'; s.style.display='none'; c.style.display='none'; } var d=m.querySelector('div'); if(d){ d.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny'); } quickViewLoad(url); }\n";
 		print "    window.showQuickView = function(which){ var url = '$script?action=viewlist&which=' + encodeURIComponent(which); openQuickView(url, which); return false; };\n";
 		print "  }\n";
 		print "})();\n";
@@ -2338,6 +2339,15 @@ EOF
 	print "#quickViewModal #quickEditArea { resize: none !important; }\n";
 	print ".btn-close-red { background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%); color: #721c24 !important; border-color: #f1b0b7 !important; }\n";
 	print ".btn-close-red:hover { background: #dc3545 !important; color: #fff !important; border-color: #dc3545 !important; }\n";
+	# Fire border effect (applies around ~15px from edges) for Edit mode
+	print ".fire-border { position: relative; }\n";
+	print ".fire-border::after { content: ''; position: absolute; inset: 0; border-radius: 6px; pointer-events: none; }\n";
+	print ".fire-allow::after { box-shadow: inset 0 0 28px 15px rgba(40,167,69,0.85), 0 0 26px 8px rgba(40,167,69,0.55); animation: flicker-allow 1.4s infinite ease-in-out; }\n";
+	print ".fire-ignore::after { box-shadow: inset 0 0 28px 15px rgba(255,152,0,0.9), 0 0 26px 8px rgba(255,152,0,0.6); animation: flicker-ignore 1.4s infinite ease-in-out; }\n";
+	print ".fire-deny::after { box-shadow: inset 0 0 28px 15px rgba(220,53,69,0.9), 0 0 26px 8px rgba(220,53,69,0.6); animation: flicker-deny 1.4s infinite ease-in-out; }\n";
+	print "@keyframes flicker-allow { 0%,100% { box-shadow: inset 0 0 24px 12px rgba(40,167,69,0.75), 0 0 20px 6px rgba(40,167,69,0.45); } 50% { box-shadow: inset 0 0 36px 18px rgba(40,167,69,0.95), 0 0 34px 12px rgba(40,167,69,0.75); } }\n";
+	print "@keyframes flicker-ignore { 0%,100% { box-shadow: inset 0 0 24px 12px rgba(255,152,0,0.75), 0 0 20px 6px rgba(255,152,0,0.45); } 50% { box-shadow: inset 0 0 36px 18px rgba(255,152,0,0.98), 0 0 34px 12px rgba(255,152,0,0.78); } }\n";
+	print "@keyframes flicker-deny { 0%,100% { box-shadow: inset 0 0 24px 12px rgba(220,53,69,0.75), 0 0 20px 6px rgba(220,53,69,0.45); } 50% { box-shadow: inset 0 0 36px 18px rgba(220,53,69,0.98), 0 0 34px 12px rgba(220,53,69,0.78); } }\n";
 	print "</style>\n";
 	# Add a Bootstrap modal for inline quick-view (no address bar)
 	print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
@@ -2376,6 +2386,8 @@ EOF
 	print "  \\\$('#quickViewEditBtn').show();\n";
 	print "  \\\$('#quickViewSaveBtn').hide();\n";
 	print "  \\\$('#quickViewCancelBtn').hide();\n";
+	print "  // ensure fire effect is removed in view mode\n";
+	print "  \\\$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny');\n";
 	print "  \\\$.ajax({ url: url, method: 'GET' })\n";
 	print "    .done(function(data){\n";
 	print "      var body = data;\n";
@@ -2409,6 +2421,9 @@ EOF
 	print "      \\\$('#quickViewEditBtn').hide();\n";
 	print "      \\\$('#quickViewSaveBtn').show();\n";
 	print "      \\\$('#quickViewCancelBtn').show();\n";
+	print "      // add fire effect according to which list is being edited\n";
+	print "      var cls = (currentQuickWhich==='allow') ? 'fire-allow' : (currentQuickWhich==='ignore' ? 'fire-ignore' : 'fire-deny');\n";
+	print "      var \\\$mc = \\\$('#quickViewModal .modal-content'); \\\$mc.removeClass('fire-allow fire-ignore fire-deny').addClass('fire-border').addClass(cls);\n";
 	print "    })\n";
 	print "    .fail(function(){\n";
 	print "      \\\$('#quickViewBody').html('<div class=\\\\\\'alert alert-danger\\\\\\'>Failed to load editor</div>');\n";
@@ -2421,6 +2436,7 @@ EOF
 	print "  \\\$('#quickViewEditBtn').show();\n";
 	print "  \\\$('#quickViewSaveBtn').hide();\n";
 	print "  \\\$('#quickViewCancelBtn').hide();\n";
+	print "  \\\$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny');\n";
 	print "  showQuickView(currentQuickWhich);\n";
 	print "});\n";
 	print "  var content = '';\n";
@@ -2433,11 +2449,13 @@ EOF
 	print "      \\\$('#quickViewEditBtn').show();\n";
 	print "      \\\$('#quickViewSaveBtn').hide();\n";
 	print "      \\\$('#quickViewCancelBtn').hide();\n";
+	print "      \\\$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny');\n";
 	print "    })\n";
 	print "    .fail(function(){\n";
 	print "      \\\$('#quickViewBody').html('<div class=\\\\\\'alert alert-danger\\\\\\'>Failed to save changes</div>');\n";
 	print "    });\n";
 	print "});\n";
+	print "\\\$('#quickViewModal').on('hidden.bs.modal', function(){ \\\$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny'); });\n";
 	print "</script>\n";
 	print "</div>\n";
 		print "</div>\n";
