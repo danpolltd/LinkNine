@@ -2429,7 +2429,7 @@ EOF
 
 	}
 
-	unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
+	unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
 		print "<br>\n";
 		print "<div class='well well-sm'>qhtlfirewall: v$myv</div>";
 		print "<p>&copy;2025, <a href='https://www.qhtlf.danpol.co.uk' target='_blank'>Danpol Limited</a> (Daniel Nowakowski</p>\n";
