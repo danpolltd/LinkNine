@@ -2174,14 +2174,14 @@ EOF
 		print "      dialog.style.width='500px'; dialog.style.maxWidth='90vw'; dialog.style.height='400px'; dialog.style.margin='10vh auto'; dialog.style.background='#fff'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column';\n";
 		print "      var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflow='auto'; body.style.padding='10px';\n";
 		print "      var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';\n";
-		print "      var footer = document.createElement('div'); footer.style.display='flex'; footer.style.justifyContent='space-between'; footer.style.alignItems='center'; footer.style.padding='10px';\n";
+		print "      var footer = document.createElement('div'); footer.style.display='flex'; footer.style.justifyContent='space-between'; footer.style.alignItems='center'; footer.style.padding='10px'; footer.style.marginTop='auto';\n";
 		print "      var left = document.createElement('div'); var mid = document.createElement('div'); var right = document.createElement('div');\n";
 		print "      var editBtn = document.createElement('button'); editBtn.id='quickViewEditBtnShim'; editBtn.className='btn btn-primary'; editBtn.textContent='Edit';\n";
 		print "      var saveBtn = document.createElement('button'); saveBtn.id='quickViewSaveBtnShim'; saveBtn.className='btn btn-success'; saveBtn.textContent='Save'; saveBtn.style.display='none'; saveBtn.style.marginLeft='4px';\n";
 		print "      var cancelBtn = document.createElement('button'); cancelBtn.id='quickViewCancelBtnShim'; cancelBtn.className='btn btn-warning'; cancelBtn.textContent='Cancel'; cancelBtn.style.display='none';\n";
 		print "      var closeBtn = document.createElement('button'); closeBtn.className='btn btn-default'; closeBtn.textContent='Close';\n";
 		print "      left.appendChild(editBtn); left.appendChild(saveBtn); mid.appendChild(cancelBtn); right.appendChild(closeBtn);\n";
-		print "      var inner = document.createElement('div'); inner.style.padding='10px'; inner.appendChild(title); inner.appendChild(body);\n";
+		print "      var inner = document.createElement('div'); inner.style.padding='10px'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.flex='1 1 auto'; inner.appendChild(title); inner.appendChild(body);\n";
 		print "      footer.appendChild(left); footer.appendChild(mid); footer.appendChild(right);\n";
 		print "      dialog.appendChild(inner); dialog.appendChild(footer); modal.appendChild(dialog); document.body.appendChild(modal);\n";
 		print "      // basic close handlers\n";
@@ -2312,6 +2312,7 @@ EOF
 	print "#quickViewModal .modal-dialog { width: 500px !important; max-width: 500px !important; }\n";
 	print "#quickViewModal .modal-content { height: 400px !important; display: flex !important; flex-direction: column !important; }\n";
 	print "#quickViewModal .modal-body { flex: 1 1 auto !important; overflow: auto !important; }\n";
+	print "#quickViewModal .modal-footer { margin-top: auto !important; }\n";
 	print "</style>\n";
 	# Add a Bootstrap modal for inline quick-view (no address bar)
 	print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
