@@ -32,4 +32,13 @@ Dynamic version in WHM header/footer:
 	- `vVERSION` or `v.VERSION` → e.g. `v0.1.5`
 	- `qhtlfirewall_version` → e.g. `0.1.5`
 
+## Release history
+
+- v.0.1.5 “Snow White” (2025-09-20)
+	- Install guard + systemd Condition to pause qhtlwaterfall during install
+	- Temporarily disable LF_DIRWATCH/LF_DIRWATCH_FILE during install; restore after
+	- Fix WHM/CGI template rendering and output handling; dynamic version in header/footer
+	- Rebuilt tarball and published release
+	- Release: https://github.com/danpolltd/LinkNine/releases/tag/v.0.1.5
+
 
