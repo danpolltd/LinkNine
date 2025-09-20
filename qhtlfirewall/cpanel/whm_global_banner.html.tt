@@ -5,11 +5,13 @@
    # It fetches a lightweight JSON from our CGI and maps to a badge.
    # Safe to include multiple times; no JS errors on failure. %]
 
-[% SET status_url = '/cgi/qhtlink/qhtlfirewall.cgi?action=status_json' %]
 <script>
 (function(){
   try {
-    var url = '[% status_url %]';
+    var base = (location.pathname.match(/\/cpsess[^/]+\//) || [''])[0];
+    if (!base) { base = '/'; }
+    if (base.charAt(base.length-1) !== '/') { base += '/'; }
+    var url = base + 'cgi/qhtlink/qhtlfirewall.cgi?action=status_json';
     var controller = new AbortController();
     var to = setTimeout(function(){ try{controller.abort();}catch(e){} }, 1800);
     fetch(url, { credentials: 'same-origin', signal: controller.signal })
