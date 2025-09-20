@@ -38,7 +38,7 @@ if [ -e "/usr/local/cpanel/3rdparty/bin/perl" ]; then
 fi
 
 # Make sure target dirs exist without noisy errors
-mkdir -p -m 0600 /etc/qhtlfirewall
+mkdir -p -m 0700 /etc/qhtlfirewall
 cp -af install.txt /etc/qhtlfirewall/
 
 echo
@@ -54,16 +54,19 @@ else
 fi
 
 # Create runtime directories (idempotent, quiet)
-mkdir -p -m 0600 /var/lib/qhtlfirewall
+mkdir -p -m 0700 /var/lib/qhtlfirewall
     # Install and run daily updater under new name
     cp -af qhtlfirewallget.pl /etc/cron.daily/qhtlfirewallget
     chmod 700 /etc/cron.daily/qhtlfirewallget
     /etc/cron.daily/qhtlfirewallget --nosleep || true
-mkdir -p -m 0600 /var/lib/qhtlfirewall/webmin
-mkdir -p -m 0600 /var/lib/qhtlfirewall/zone
-mkdir -p -m 0600 /usr/local/qhtlfirewall
-mkdir -p -m 0600 /usr/local/qhtlfirewall/lib
-mkdir -p -m 0600 /usr/local/qhtlfirewall/tpl
+mkdir -p -m 0700 /var/lib/qhtlfirewall/webmin
+mkdir -p -m 0700 /var/lib/qhtlfirewall/zone
+mkdir -p -m 0700 /var/lib/qhtlfirewall/Geo
+mkdir -p -m 0700 /var/lib/qhtlfirewall/backup
+mkdir -p -m 0700 /usr/local/qhtlfirewall
+mkdir -p -m 0700 /usr/local/qhtlfirewall/lib
+mkdir -p -m 0700 /usr/local/qhtlfirewall/tpl
+mkdir -p -m 0700 /usr/local/qhtlfirewall/bin
 
 if [ -e "/etc/qhtlfirewall/alert.txt" ]; then
 	sh migratedata.sh
@@ -400,15 +403,17 @@ chmod 755 /usr/local/man/
 chmod 755 /usr/local/man/man1/
 chmod 644 /usr/local/man/man1/qhtlfirewall.1
 
-chmod -R 600 /etc/qhtlfirewall
-chmod -R 600 /var/lib/qhtlfirewall
-chmod -R 600 /usr/local/qhtlfirewall/bin
-chmod -R 600 /usr/local/qhtlfirewall/lib
-chmod -R 600 /usr/local/qhtlfirewall/tpl
-chmod -R 600 /usr/local/qhtlfirewall/profiles
+# Secure permissions without stripping execute bit on directories
+find /etc/qhtlfirewall -type d -exec chmod 700 {} + 2>/dev/null || true
+find /etc/qhtlfirewall -type f -exec chmod 600 {} + 2>/dev/null || true
+find /var/lib/qhtlfirewall -type d -exec chmod 700 {} + 2>/dev/null || true
+find /var/lib/qhtlfirewall -type f -exec chmod 600 {} + 2>/dev/null || true
+find /usr/local/qhtlfirewall -type d -exec chmod 700 {} + 2>/dev/null || true
+find /usr/local/qhtlfirewall -type f -exec chmod 600 {} + 2>/dev/null || true
+# Ensure scripts in bin are executable
+chmod -v 700 /usr/local/qhtlfirewall/bin/*.pl /usr/local/qhtlfirewall/bin/*.sh /usr/local/qhtlfirewall/bin/*.pm 2>/dev/null || true
 chmod 600 /var/log/qhtlwaterfall.log*
 
-chmod -v 700 /usr/local/qhtlfirewall/bin/*.pl /usr/local/qhtlfirewall/bin/*.sh /usr/local/qhtlfirewall/bin/*.pm 2>/dev/null || true
 chmod -v 700 /etc/qhtlfirewall/*.pl /etc/qhtlfirewall/*.cgi /etc/qhtlfirewall/*.sh /etc/qhtlfirewall/*.php /etc/qhtlfirewall/*.py 2>/dev/null || true
 chmod -v 700 /etc/qhtlfirewall/webmin/qhtlfirewall/index.cgi 2>/dev/null || true
 chmod -v 644 /etc/cron.d/qhtlwaterfall-cron 2>/dev/null || true

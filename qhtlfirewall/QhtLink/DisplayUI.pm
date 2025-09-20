@@ -86,8 +86,10 @@ sub main {
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<tr><td><font color='red'>qhtlfirewall UI Disabled via the RESTRICT_UI option in /etc/qhtlfirewall/qhtlfirewall.conf</font></td></tr>\n";
 		print "</tr></table>\n";
-		exit;
+
+		return;
 	}
+
 
 	if ($FORM{ip} ne "") {$FORM{ip} =~ s/(^\s+)|(\s+$)//g}
 
@@ -409,6 +411,7 @@ sub main {
 		\$('#QHTLFIREWALLajax').css("font-size",myFont+"px");
 	});
 </script>
+<!-- Quick View modal handlers are defined once in the main UI script below -->
 EOF
 		if ($config{DIRECTADMIN}) {$script = $script_safe}
 		&printreturn;
@@ -471,7 +474,6 @@ EOF
 					alarm(0);
 				};
 				alarm(0);
-				if ($@) {print "TIMEOUT: tail command took too long. Timed out after $timeout seconds\n"}
 			} else {
 				print "Executable [$config{TAIL}] invalid";
 			}
@@ -617,6 +619,7 @@ EOF
 				eval {
 					local $SIG{__DIE__} = undef;
 					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
 					my $total;
 					if ($FORM{grepZ}) {
 						foreach my $file (glob $logfile."\*") {
@@ -869,6 +872,84 @@ EOF
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
+	elsif ($FORM{action} eq "viewlist") {
+		my $which = $FORM{which} || '';
+		my %map = (
+			allow  => { path => "/etc/qhtlfirewall/qhtlfirewall.allow",  title => "qhtlfirewall.allow" },
+			deny   => { path => "/etc/qhtlfirewall/qhtlfirewall.deny",   title => "qhtlfirewall.deny" },
+			ignore => { path => "/etc/qhtlfirewall/qhtlfirewall.ignore", title => "qhtlfirewall.ignore" },
+		);
+		if (!$map{$which}) {
+			print "<div class='bs-callout bs-callout-danger'><h4>Unknown list requested</h4></div>";
+			&printreturn;
+		} else {
+			my $path = $map{$which}{path};
+			my $title = $map{$which}{title};
+			my $bgstyle = '';
+			if ($which eq 'allow') {
+				$bgstyle = 'background: linear-gradient(180deg, #d4edda 0%, #c3e6cb 100%);';
+			} elsif ($which eq 'ignore') {
+				$bgstyle = 'background: linear-gradient(180deg, #ffe0b2 0%, #ffcc80 100%);';
+			} elsif ($which eq 'deny') {
+				$bgstyle = 'background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%);';
+			}
+			print "<div class='panel panel-default'><div class='panel-heading'><b>Quick View:</b> $title (comments omitted)</div><div class='panel-body'>";
+			print "<pre class='comment' style='white-space: pre; overflow-x: hidden; overflow-y: auto; $bgstyle'>\n";
+			foreach my $line (slurp($path)) {
+				$line =~ s/$cleanreg//g;        # strip comments/blank
+				$line =~ s/^\s+|\s+$//g;        # trim
+				next if $line eq '';
+				$line =~ s/&/&amp;/g; $line =~ s/</&lt;/g; $line =~ s/>/&gt;/g;  # escape
+				print "$line\n";
+			}
+			print "</pre>";
+			print "</div></div>";
+		}
+	}
+	elsif ($FORM{action} eq "editlist") {
+		my $which = $FORM{which} || '';
+		my %map = (
+			allow  => { path => "/etc/qhtlfirewall/qhtlfirewall.allow",  title => "qhtlfirewall.allow" },
+			deny   => { path => "/etc/qhtlfirewall/qhtlfirewall.deny",   title => "qhtlfirewall.deny" },
+			ignore => { path => "/etc/qhtlfirewall/qhtlfirewall.ignore", title => "qhtlfirewall.ignore" },
+		);
+		if (!$map{$which}) {
+			print "<div class='bs-callout bs-callout-danger'><h4>Unknown list requested</h4></div>";
+		} else {
+			my $path = $map{$which}{path};
+			my @lines = slurp($path);
+			my $bgstyle = '';
+			if ($which eq 'allow') {
+				$bgstyle = 'background: linear-gradient(180deg, rgba(212,237,218,0.5) 0%, rgba(195,230,203,0.5) 100%);';
+			} elsif ($which eq 'ignore') {
+				$bgstyle = 'background: linear-gradient(180deg, rgba(255,224,178,0.5) 0%, rgba(255,204,128,0.5) 100%);';
+			} elsif ($which eq 'deny') {
+				$bgstyle = 'background: linear-gradient(180deg, rgba(248,215,218,0.5) 0%, rgba(245,198,203,0.5) 100%);';
+			}
+			print "<div style='display:flex; flex-direction:column; height:100%'>";
+			print "<div class='small text-muted' style='margin-bottom:6px; flex:0 0 auto'>Editing: $path</div>";
+			print "<textarea id='quickEditArea' style='width:100%; flex:1 1 auto; border:1px solid #000; font-family: \"Courier New\", Courier; font-size: 13px; line-height: 1.15; box-sizing:border-box; overflow:auto; resize:none; $bgstyle' wrap='off'>";
+			foreach my $line (@lines) {
+				$line =~ s/&/&amp;/g; $line =~ s/</&lt;/g; $line =~ s/>/&gt;/g;
+				print $line."\n"; # ensure newline between lines in textarea
+			}
+			print "</textarea></div>";
+		}
+	}
+	elsif ($FORM{action} eq "savelist") {
+		my $which = $FORM{which} || '';
+		my %map = (
+			allow  => { path => "/etc/qhtlfirewall/qhtlfirewall.allow" },
+			deny   => { path => "/etc/qhtlfirewall/qhtlfirewall.deny" },
+			ignore => { path => "/etc/qhtlfirewall/qhtlfirewall.ignore" },
+		);
+		if (!$map{$which}) {
+			print "<div class='bs-callout bs-callout-danger'><h4>Unknown list requested</h4></div>";
+		} else {
+			my $path = $map{$which}{path};
+			&savefile($path, "");
+		}
+	}
 	elsif ($FORM{action} eq "qdeny") {
 		print "<div><p>Blocking $FORM{ip}...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 		&printcmd("/usr/sbin/qhtlfirewall","-d",$FORM{ip},$FORM{comment});
@@ -1035,8 +1116,6 @@ EOF
 					print "</pre><pre class='comment' style='white-space: pre-wrap;background:#F4F4EA'>$line";
 					$start = 1;
 				}
-						# Removed stray assignment to $imghddir; not used in this context and caused a compile-time error
-				print $line;
 			}
 		}
 		waitpid ($pid, 0);
@@ -1497,7 +1576,7 @@ EOD
 	}
 	elsif ($FORM{action} eq "upgrade") {
 		if ($config{THIS_UI}) {
-			print "<div>You cannot upgrade through the UI as restarting qhtlwaterfall will interrupt this session. You must login to the root shell to upgrade qhtlfirewall using:\n<p><b>qhtlfirewall -u</b></div>\n";
+			print "<div>You cannot upgrade through the UI as restarting qhtlwaterfall will interrupt this session. You must login to the root shell to upgrade qhtlfirewall using:\n<p><b>qhtlfirewall -u</b></p>\n";
 		} else {
 			print "<div><p>Upgrading qhtlfirewall...</p>\n";
 			&resize("top");
@@ -1539,7 +1618,7 @@ EOD
 
 		print "<form action='$script' method='post'><input type='hidden' name='action' value='profileapply'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th>Preconfigured Profiles</th><th style='border-left:1px solid #990000'>&nbsp;</th></tr></thead>\n";
+		print "<thead><tr><th colspan='2'>Preconfigured Profiles</th><th style='border-left:1px solid #990000'>&nbsp;</th></tr></thead>\n";
 		foreach my $profile (@profiles) {
 			my ($file, undef) = fileparse($profile);
 			$file =~ s/\.conf$//;
@@ -1589,7 +1668,7 @@ EOD
 
 		print "<br><form action='$script' method='post'><input type='hidden' name='action' value='profilediff'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th>Compare Configurations</th></tr></thead>\n";
+		print "<thead><tr><th colspan='2'>Compare Configurations</th></tr></thead>";
 		print "<tr><td>Select first configuration:<br>\n<select name='profile1' size='10' style='min-width:400px'>\n";
 		print "<optgroup label='Profiles:'>\n";
 		foreach my $profile (@profiles) {
@@ -2086,39 +2165,63 @@ EOF
 		print "<div class='bs-callout bs-callout-info text-center collapse' id='upgradebs'><h4>A new version of qhtlfirewall is <a href='#upgradetable'>available</a></h4></div>";
 
 		print "<ul class='nav nav-tabs' id='myTabs' style='font-weight:bold'>\n";
-		print "<li class='active'><a data-toggle='tab' href='#' id='tabAll'>All</a></li>\n";
-		print "<li><a data-toggle='tab' href='#home'>Info</a></li>\n";
-		print "<li><a data-toggle='tab' href='#qhtlfirewall'>qhtlfirewall</a></li>\n";
-		print "<li><a data-toggle='tab' href='#qhtlwaterfall'>qhtlwaterfall</a></li>\n";
+		print "<li class='active'><a data-toggle='tab' href='#upgrade'>Upgrade</a></li>\n";
+		print "<li><a data-toggle='tab' href='#quickactions'>Quick Actions</a></li>\n";
+		print "<li><a data-toggle='tab' href='#home'>General Options</a></li>\n";
+	print "<li><a data-toggle='tab' href='#qhtlfirewall'>QhtLink Firewall</a></li>\n";
+	print "<li><a data-toggle='tab' href='#qhtlwaterfall'>QhtLink Waterfall</a></li>\n";
 		if ($config{CLUSTER_SENDTO}) {
 			print "<li><a data-toggle='tab' href='#cluster'>Cluster</a></li>\n";
 		}
-		print "<li><a data-toggle='tab' href='#other'>Other</a></li>\n";
+	print "<li><a data-toggle='tab' href='#other'>More</a></li>\n";
+	print "<li><a data-toggle='tab' href='#extra'>Extra</a></li>\n";
 		print "</ul><br>\n";
 
-		print "<div class='tab-content'>\n";
-		print "<div id='home' class='tab-pane active'>\n";
-		print "<form action='$script' method='post'>\n";
-		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
-		print "<tr><td><button name='action' value='servercheck' type='submit' class='btn btn-default'>Check Server Security</button></td><td style='width:100%'>Perform a basic security, stability and settings check on the server</td></tr>\n";
-		print "<tr><td><button name='action' value='readme' type='submit' class='btn btn-default'>Firewall Information</button></td><td style='width:100%'>View the qhtlfirewall+qhtlwaterfall readme.txt file</td></tr>\n";
-		print "<tr><td><button name='action' value='logtail' type='submit' class='btn btn-default'>Watch System Logs</button></td><td style='width:100%'>Watch (tail) various system log files (listed in qhtlfirewall.syslogs)</td></tr>\n";
-		print "<tr><td><button name='action' value='loggrep' type='submit' class='btn btn-default'>Search System Logs</button></td><td style='width:100%'>Search (grep) various system log files (listed in qhtlfirewall.syslogs)</td></tr>\n";
-		print "<tr><td><button name='action' value='viewports' type='submit' class='btn btn-default'>View Listening Ports</button></td><td style='width:100%'>View ports on the server that have a running process behind them listening for external connections</td></tr>\n";
-		print "<tr><td><button name='action' value='rblcheck' type='submit' class='btn btn-default'>Check for IPs in RBLs</button></td><td style='width:100%'>Check whether any of the servers IP addresses are listed in RBLs</td></tr>\n";
-		if ($config{ST_ENABLE}) {
-			print "<tr><td><button name='action' value='viewlogs' type='submit' class='btn btn-default'>View iptables Log</button></td><td style='width:100%'>View the last $config{ST_IPTABLES} iptables log lines</td></tr>\n";
-			if ($chart) {
-				print "<tr><td><button name='action' value='chart' type='submit' class='btn btn-default'>View qhtlwaterfall Statistics</button></td><td style='width:100%'>View qhtlwaterfall blocking statistics</td></tr>\n";
-				if ($config{ST_SYSTEM}) {
-					print "<tr><td><button name='action' value='systemstats' type='submit' class='btn btn-default'>View System Statistics</button></td><td style='width:100%'>View basic system statistics</td></tr>\n";
-				}
-			}
-		}
-		print "</table>\n";
-		print "</form>\n";
+		# Early Quick View modal shim (no jQuery required) to guarantee popup availability
+		print "<script>\n";
+		print "(function(){\n";
+		print "  if (typeof window.showQuickView !== 'function') {\n";
+		print "    function ensureQuickViewModal(){\n";
+		print "      var modal = document.getElementById('quickViewModalShim');\n";
+		print "      if (modal) return modal;\n";
+		print "      modal = document.createElement('div');\n";
+		print "      modal.id = 'quickViewModalShim';\n";
+		print "      modal.setAttribute('role','dialog');\n";
+		print "      modal.style.position='fixed'; modal.style.inset='0'; modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='none'; modal.style.zIndex='9999';\n";
+		print "      var dialog = document.createElement('div');\n";
+		print "      dialog.style.width='660px'; dialog.style.maxWidth='95vw'; dialog.style.height='500px'; dialog.style.margin='10vh auto'; dialog.style.background='#fff'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box';\n";
+		print "      var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflow='hidden'; body.style.padding='10px'; body.style.minHeight='0';\n";
+		print "      var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';\n";
+		print "      var footer = document.createElement('div'); footer.style.display='flex'; footer.style.justifyContent='space-between'; footer.style.alignItems='center'; footer.style.padding='10px'; footer.style.marginTop='auto';\n";
+		print "      var left = document.createElement('div'); var mid = document.createElement('div'); var right = document.createElement('div');\n";
+		print "      var editBtn = document.createElement('button'); editBtn.id='quickViewEditBtnShim'; editBtn.className='btn btn-primary'; editBtn.textContent='Edit';\n";
+		print "      var saveBtn = document.createElement('button'); saveBtn.id='quickViewSaveBtnShim'; saveBtn.className='btn btn-success'; saveBtn.textContent='Save'; saveBtn.style.display='none'; saveBtn.style.marginLeft='4px';\n";
+		print "      var cancelBtn = document.createElement('button'); cancelBtn.id='quickViewCancelBtnShim'; cancelBtn.className='btn btn-warning'; cancelBtn.textContent='Cancel'; cancelBtn.style.display='none';\n";
+		print "      var closeBtn = document.createElement('button'); closeBtn.className='btn btn-default'; closeBtn.textContent='Close'; closeBtn.style.background='linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%)'; closeBtn.style.color='#721c24'; closeBtn.style.borderColor='#f1b0b7';\n";
+		print "      left.appendChild(editBtn); left.appendChild(saveBtn); mid.appendChild(cancelBtn); right.appendChild(closeBtn);\n";
+		print "      var inner = document.createElement('div'); inner.style.padding='10px'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.flex='1 1 auto'; inner.style.minHeight='0'; inner.appendChild(title); inner.appendChild(body);\n";
+		print "      footer.appendChild(left); footer.appendChild(mid); footer.appendChild(right);\n";
+		print "      dialog.appendChild(inner); dialog.appendChild(footer); modal.appendChild(dialog); document.body.appendChild(modal);\n";
+		print "      // basic close handlers\n";
+		print "      closeBtn.addEventListener('click', function(){ modal.style.display='none'; dialog.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny'); });\n";
+		print "      modal.addEventListener('click', function(e){ if(e.target===modal){ modal.style.display='none'; } });\n";
+		print "      modal.addEventListener('click', function(e){ if(e.target===modal){ dialog.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny'); } });\n";
+		print "      // wire buttons\n";
+		print "      editBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; quickViewLoad('$script?action=editlist&which='+encodeURIComponent(window.currentQuickWhich), function(){ editBtn.style.display='none'; saveBtn.style.display='inline-block'; cancelBtn.style.display='inline-block'; var c=(window.currentQuickWhich==='allow')?'fire-allow':(window.currentQuickWhich==='ignore'?'fire-ignore':'fire-deny'); dialog.classList.remove('fire-allow','fire-ignore','fire-deny'); dialog.classList.add('fire-border'); dialog.classList.add(c); }); });\n";
+		print "      saveBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; var ta=document.getElementById('quickEditArea'); var content=ta?ta.value:''; quickViewPost('$script?action=savelist&which='+encodeURIComponent(window.currentQuickWhich), 'formdata='+encodeURIComponent(content), function(){ showQuickView(window.currentQuickWhich); editBtn.style.display='inline-block'; saveBtn.style.display='none'; cancelBtn.style.display='none'; dialog.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny'); }); });\n";
+		print "      cancelBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; showQuickView(window.currentQuickWhich); dialog.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny'); });\n";
+		print "      return modal;\n";
+		print "    }\n";
+		print "    function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ var html=x.responseText; try{ if(url.indexOf('action=viewlist')!==-1){ var mm=html.match(/<pre[\\s\\S]*?<\\/pre>/i); if(mm){ html=mm[0]; var bg=''; if(url.indexOf('which=allow')!==-1){ bg = 'background: linear-gradient(180deg, #d4edda 0%, #c3e6cb 100%);'; } else if(url.indexOf('which=ignore')!==-1){ bg = 'background: linear-gradient(180deg, #ffe0b2 0%, #ffcc80 100%);'; } else if(url.indexOf('which=deny')!==-1){ bg = 'background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%);'; } html=html.replace('<pre','<pre style=\\'white-space: pre; overflow-x: hidden; overflow-y: auto; height:100%; max-height:100%; '+bg+'\\'' ); } } }catch(e){} b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to load content</div>'; } } }; x.send(); m.style.display='block'; }\n";
+		print "    function quickViewPost(url, body, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBody'); b.innerHTML='Saving...'; var x=new XMLHttpRequest(); x.open('POST', url, true); x.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to save changes</div>'; } } }; x.send(body); m.style.display='block'; }\n";
+		print "    function openQuickView(url, which){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var b=document.getElementById('quickViewBodyShim'); window.currentQuickWhich=which; var map={allow:'qhtlfirewall.allow',deny:'qhtlfirewall.deny',ignore:'qhtlfirewall.ignore'}; t.textContent='Quick View: '+(map[which]||which); var e=document.getElementById('quickViewEditBtnShim'), s=document.getElementById('quickViewSaveBtnShim'), c=document.getElementById('quickViewCancelBtnShim'); if(e&&s&&c){ e.style.display='inline-block'; s.style.display='none'; c.style.display='none'; } var d=m.querySelector('div'); if(d){ d.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny','fire-allow-view','fire-ignore-view','fire-deny-view'); d.classList.add('fire-border'); if(which==='allow'){ d.classList.add('fire-allow-view'); } else if(which==='ignore'){ d.classList.add('fire-ignore-view'); } else if(which==='deny'){ d.classList.add('fire-deny-view'); } } quickViewLoad(url); }\n";
+		print "    window.showQuickView = function(which){ var url = '$script?action=viewlist&which=' + encodeURIComponent(which); openQuickView(url, which); return false; };\n";
+		print "  }\n";
+		print "})();\n";
+		print "</script>\n";
 
+		print "<div class='tab-content'>\n";
+		print "<div id='upgrade' class='tab-pane active'>\n";
 		print "<form action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped' id='upgradetable'>\n";
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
@@ -2134,46 +2237,107 @@ EOF
 				print "You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (qhtlfirewallget)</td></tr>\n";
 			}
 		}
-		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
-			print "<tr><td><button name='action' value='remapf' type='submit' class='btn btn-default'>Remove APF/BFD</button></td><td style='width:100%'>Remove APF/BFD from the server. You must not run both APF or BFD with qhtlfirewall on the same server</td></tr>\n";
-		}
+		print "</table>\n";
+		print "</form>\n";
+		if ($upgrade) {print "<script>\$('\#upgradebs').show();</script>\n"}
+
+		# Moved informational callouts from General Options to Upgrade tab
 		unless (-e "/etc/qhtlwatcher/qhtlwatcher.pl") {
 			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN} or $config{INTERWORX} or $config{VESTA} or $config{CWP} or $config{CYBERPANEL}) {
-				print "<tr><td colspan='2'>\n";
-				print "<div class='bs-callout bs-callout-info h4'>Add server and user data protection against exploits using <a href='https://qhtlf.danpol.co.uk' target='_blank'>QHTL eXploit Scanner (qhtlscanner)</a></div>\n";
-				print "</td></tr>\n";
+				print "<div class='bs-callout bs-callout-info h4'>Add server and user data protection against exploits using <a href='https://danpol.co.uk' target='_blank'>QHTL eXploit Scanner (qhtlscanner)</a></div>\n";
 			}
 		}
 		unless (-e "/etc/qhtlmoderator/qhtlmoderator.pl") {
 			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
-				print "<tr><td colspan='2'>\n";
-				print "<div class='bs-callout bs-callout-info h4'>Add outgoing spam monitoring and prevention using <a href='https://qhtlf.danpol.co.uk' target='_blank'>QHTL Outgoing Mail Moderator (qhtlmoderator)</a></div>\n";
-				print "</td></tr>\n";
+				print "<div class='bs-callout bs-callout-info h4'>Add outgoing spam monitoring and prevention using <a href='https://danpol.co.uk' target='_blank'>QHTL Outgoing Mail Moderator (qhtlmoderator)</a></div>\n";
 			}
 		}
 		unless (-e "/usr/msfe/mschange.pl") {
 			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
-				print "<tr><td colspan='2'>\n";
-				print "<div class='bs-callout bs-callout-info h4'>Add effective incoming virus and spam detection and user level processing using <a href='https://qhtlf.danpol.co.uk' target='_blank'>QHTL MailScanner Front-End (qhtlscanner)</a></div>\n";
-				print "</td></tr>\n";
+				print "<div class='bs-callout bs-callout-info h4'>Add effective incoming virus and spam detection and user level processing using <a href='https://danpol.co.uk' target='_blank'>QHTL MailScanner Front-End (qhtlscanner)</a></div>\n";
 			}
 		}
-		print "</table>\n";
-		print "</form>\n";
-		if ($upgrade) {print "<script>\$('\#upgradebs').show();</script>\n"}
+
+		# Move Mobile View panel so it appears only on the Upgrade tab
+		if ($config{STYLE_MOBILE}) {
+			if (-e "/usr/local/cpanel/version" and !$config{THIS_UI}) {
+				require Cpanel::Version::Tiny;
+				if ($Cpanel::Version::Tiny::major_version < 65) {
+					print "<a id='cpframetr2' href='$ENV{cp_security_token}' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> cPanel Main Page</a>\n";
+				}
+			}
+			if  (defined $ENV{WEBMIN_VAR} and defined $ENV{WEBMIN_CONFIG} and !$config{THIS_UI}) {
+				print "<a id='webmintr2' href='/' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> Webmin Main Page</a>\n";
+			}
+			print "<div id='mobileview-upgrade-panel' class='panel panel-default'><div class='panel-heading panel-heading-qhtlwatcher'>Shows a subset of functions suitable for viewing on mobile devices</div>\n";
+			print "<div class='panel-body text-center'><a class='btn btn-primary btn-block' style='margin:10px;padding: 18px 28px;font-size: 22px; line-height: normal;border-radius: 8px;' id='MobileView'>Mobile View</a></div></div>\n";
+		}
 		print "</div>\n";
 
-		print "<div id='qhtlfirewall' class='tab-pane active'>\n";
+		# New Quick Actions tab content (moved from QhtLink Firewall tab)
+		print "<div id='quickactions' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>qhtlfirewall - Quick Actions</th></tr></thead>";
-		print "<tr><td><button onClick='\$(\"#qallow\").submit();' class='btn btn-default'>Quick Allow</button></td><td style='width:100%'><form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>Allow IP address <a href='javascript:fillfield(\"allowip\",\"$ENV{REMOTE_ADDR}\")'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='allowip' value='' size='18' style='background-color: #BDECB6'> through the firewall and add to the allow file (qhtlfirewall.allow).<br>Comment for Allow: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
-		print "<tr><td><button onClick='\$(\"#qdeny\").submit();' class='btn btn-default'>Quick Deny</button></td><td style='width:100%'><form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>Block IP address <input type='text' name='ip' value='' size='18' style='background-color: #FFD1DC'> in the firewall and add to the deny file (qhtlfirewall.deny).<br>Comment for Block: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
-		print "<tr><td><button onClick='\$(\"#qignore\").submit();' class='btn btn-default'>Quick Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>Ignore IP address <a href='javascript:fillfield(\"ignoreip\",\"$ENV{REMOTE_ADDR}\")'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='ignoreip' value='' size='18' style='background-color: #D9EDF7'> in qhtlwaterfall, add to the ignore file (qhtlfirewall.ignore) and restart qhtlwaterfall</form></td></tr>\n";
-		print "<tr><td><button onClick='\$(\"#kill\").submit();' class='btn btn-default'>Quick Unblock</button></td><td style='width:100%'><form action='$script' method='post' id='kill'><input type='submit' class='hide'><input type='hidden' name='action' value='kill'>Remove IP address <input type='text' name='ip' value='' size='18'> from the firewall (temp and perm blocks)</form></td></tr>\n";
+		print "<thead><tr><th colspan='2'>Quick Actions</th></tr></thead>";
+	print "<tr><td><button onClick='$(\"#qallow\").submit();' class='btn btn-default'>Quick Allow</button></td><td style='width:100%'>";
+	print "<form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>";
+	print "<div style='width:100%'>";
+	print "  <div style='display:flex; align-items:center; gap:12px; width:100%'>";
+	print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' href='$script?action=viewlist&which=allow' onclick=\"if(typeof showQuickView==='function'){showQuickView('allow'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
+	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' id='allowip' value='' size='36' style='background-color: #BDECB6; width:100%;'></div>";
+	print "  </div>";
+	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
+	print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Allow:</div>";
+	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
+	print "  </div>";
+	print "</div></form></td></tr>\n";
+	print "<tr><td><button onClick='$(\"#qdeny\").submit();' class='btn btn-default'>Quick Deny</button></td><td style='width:100%'>";
+	print "<form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>";
+	print "<div style='width:100%'>";
+	print "  <div style='display:flex; align-items:center; gap:12px; width:100%'>";
+	print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' href='$script?action=viewlist&which=deny' onclick=\"if(typeof showQuickView==='function'){showQuickView('deny'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
+	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' id='denyip' value='' size='36' style='background-color: #FFD1DC; width:100%;'></div>";
+	print "  </div>";
+	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
+	print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Block:</div>";
+	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
+	print "  </div>";
+	print "</div></form></td></tr>\n";
+	print "<tr><td><button onClick='$(\"#qignore\").submit();' class='btn btn-default'>Quick Ignore</button></td><td style='width:100%'>";
+	print "<form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>";
+	print "<div style='width:100%'>";
+	print "  <div style='display:flex; align-items:center; gap:12px; width:100%'>";
+	print "    <div style='flex:0 0 30%; max-width:30%'>Ignore IP address <a class='quickview-link' data-which='ignore' href='$script?action=viewlist&which=ignore' onclick=\"if(typeof showQuickView==='function'){showQuickView('ignore'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
+	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' id='ignoreip' value='' size='36' style='background-color: #D9EDF7; width:100%;'></div>";
+	print "  </div>";
+	print "</div></form></td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='kill' type='submit' class='btn btn-default'>Quick Unblock</button></form></td><td style='width:100%'>Remove IP address from the firewall (temp and perm blocks)</td></tr>\n";
 		print "</table>\n";
+		print "</div>\n";
+
+		print "<div id='home' class='tab-pane'>\n";
+		print "<form action='$script' method='post'>\n";
+		print "<table class='table table-bordered table-striped'>\n";
+		print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
+		print "<tr><td><button name='action' value='servercheck' type='submit' class='btn btn-default'>Check Server Security</button></td><td style='width:100%'>Perform a basic security, stability and settings check on the server</td></tr>\n";
+		print "<tr><td><button name='action' value='readme' type='submit' class='btn btn-default'>Firewall Information</button></td><td style='width:100%'>View the qhtlfirewall+qhtlwaterfall readme.txt file</td></tr>\n";
+		print "<tr><td><button name='action' value='logtail' type='submit' class='btn btn-default'>Watch System Logs</button></td><td style='width:100%'>Watch (tail) various system log files (listed in qhtlfirewall.syslogs)</td></tr>\n";
+		print "<tr><td><button name='action' value='loggrep' type='submit' class='btn btn-default'>Search System Logs</button></td><td style='width:100%'>Search (grep) various system log files (listed in qhtlfirewall.syslogs)</td></tr>\n";
+		print "<tr><td><button name='action' value='viewports' type='submit' class='btn btn-default'>View Listening Ports</button></td><td style='width:100%'>View ports on the server that have a running process behind them listening for external connections</td></tr>\n";
+		print "<tr><td><button name='action' value='rblcheck' type='submit' class='btn btn-default'>Check for IPs in RBLs</button></td><td style='width:100%'>Check whether any of the servers IP addresses are listed in RBLs</td></tr>\n";
+		print "<tr><td><button name='action' value='viewlogs' type='submit' class='btn btn-default'>View iptables Log</button></td><td style='width:100%'>View the last $config{ST_IPTABLES} iptables log lines</td></tr>\n";
+		print "<tr><td><button name='action' value='chart' type='submit' class='btn btn-default'>View qhtlwaterfall Statistics</button></td><td style='width:100%'>View qhtlwaterfall blocking statistics</td></tr>\n";
+		print "<tr><td><button name='action' value='systemstats' type='submit' class='btn btn-default'>View System Statistics</button></td><td style='width:100%'>View basic system statistics</td></tr>\n";
+		print "</table>\n";
+		print "</form>\n";
+		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
+			print "<tr><td><button name='action' value='remapf' type='submit' class='btn btn-default'>Remove APF/BFD</button></td><td style='width:100%'>Remove APF/BFD from the server. You must not run both APF or BFD with qhtlfirewall on the same server</td></tr>\n";
+		}
+		print "</div>\n";
+
+	print "<div id='qhtlfirewall' class='tab-pane'>\n";
 
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>qhtlfirewall - QHTL \"Firewall\"</th></tr></thead>";
+		print "<thead><tr><th colspan='2'>QHTL \"Firewall\"</th></tr></thead>";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='conf' type='submit' class='btn btn-default'>Firewall Configuration</button></form></td><td style='width:100%'>Edit the configuration file for the qhtlfirewall firewall and qhtlwaterfall</td></tr>\n";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='profiles' type='submit' class='btn btn-default'>Firewall Profiles</button></form></td><td style='width:100%'>Apply pre-configured qhtlfirewall.conf profiles and backup/restore qhtlfirewall.conf</td></tr>\n";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='status' type='submit' class='btn btn-default'>View iptables Rules</button></form></td><td style='width:100%'>Display the active iptables rules</td></tr>\n";
@@ -2191,10 +2355,148 @@ EOF
 		print "<tr><td><form action='$script' method='post'><button name='action' value='redirect' type='submit' class='btn btn-default'>Firewall Redirect</button></form></td><td style='width:100%'>Redirect connections to this server to other ports/IP addresses</td></tr>\n";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='fix' type='submit' class='btn btn-default'>Fix Common Problems</button></form></td><td style='width:100%'>Offers solutions to some common problems when using an SPI firewall</td></tr>\n";
 		print "</table>\n";
-		print "<script>function fillfield (myitem,myip) {document.getElementById(myitem).value = myip;}</script>\n";
+	# Enforce Quick View modal sizing (500x400) with scrollable body
+	print "<style>\n";
+	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 660px !important; }\n";
+	print "#quickViewModal .modal-content { height: 500px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
+	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow: hidden !important; min-height:0 !important; padding:10px !important; }\n";
+	print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; }\n";
+	print "#quickViewModal .modal-dialog { margin: 10vh auto !important; }\n";
+	print "#quickViewModal #quickViewTitle { margin:0 0 8px 0 !important; }\n";
+	print "#quickViewBody { flex:1 1 auto !important; min-height:0 !important; overflow:hidden !important; }\n";
+	print "#quickViewModal #quickViewBody pre { height: 100%; max-height: 100%; white-space: pre; overflow-x: hidden; overflow-y: auto; }\n";
+	print "#quickEditArea { height: 100% !important; max-height: 100% !important; }\n";
+	print "#quickViewModal #quickEditArea { resize: none !important; }\n";
+	print ".btn-close-red { background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%); color: #721c24 !important; border-color: #f1b0b7 !important; }\n";
+	print ".btn-close-red:hover { background: #dc3545 !important; color: #fff !important; border-color: #dc3545 !important; }\n";
+	# Fire border effect radiating OUTSIDE the edges for Edit mode
+	print ".fire-border { position: relative; }\n";
+	print ".fire-allow { box-shadow: 0 0 20px 10px rgba(40,167,69,0.75), 0 0 40px 18px rgba(40,167,69,0.45); animation: flicker-allow 1.4s infinite ease-in-out; }\n";
+	print ".fire-ignore { box-shadow: 0 0 20px 10px rgba(255,152,0,0.78), 0 0 40px 18px rgba(255,152,0,0.48); animation: flicker-ignore 1.4s infinite ease-in-out; }\n";
+	print ".fire-deny { box-shadow: 0 0 20px 10px rgba(220,53,69,0.78), 0 0 40px 18px rgba(220,53,69,0.5); animation: flicker-deny 1.4s infinite ease-in-out; }\n";
+	# View-mode: half intensity, 50% slower animation
+	print ".fire-allow-view { box-shadow: 0 0 20px 10px rgba(40,167,69,0.38), 0 0 40px 18px rgba(40,167,69,0.225); animation: flicker-allow 2.8s infinite ease-in-out; }\n";
+	print ".fire-ignore-view { box-shadow: 0 0 20px 10px rgba(255,152,0,0.39), 0 0 40px 18px rgba(255,152,0,0.24); animation: flicker-ignore 2.8s infinite ease-in-out; }\n";
+	print ".fire-deny-view { box-shadow: 0 0 20px 10px rgba(220,53,69,0.39), 0 0 40px 18px rgba(220,53,69,0.25); animation: flicker-deny 2.8s infinite ease-in-out; }\n";
+	print "\@keyframes flicker-allow { 0%,100% { box-shadow: 0 0 14px 6px rgba(40,167,69,0.6), 0 0 24px 10px rgba(40,167,69,0.35); } 50% { box-shadow: 0 0 28px 14px rgba(40,167,69,0.9), 0 0 46px 20px rgba(40,167,69,0.65); } }\n";
+	print "\@keyframes flicker-ignore { 0%,100% { box-shadow: 0 0 14px 6px rgba(255,152,0,0.62), 0 0 24px 10px rgba(255,152,0,0.35); } 50% { box-shadow: 0 0 28px 14px rgba(255,152,0,0.98), 0 0 46px 20px rgba(255,152,0,0.6); } }\n";
+	print "\@keyframes flicker-deny { 0%,100% { box-shadow: 0 0 14px 6px rgba(220,53,69,0.62), 0 0 24px 10px rgba(220,53,69,0.35); } 50% { box-shadow: 0 0 28px 14px rgba(220,53,69,0.98), 0 0 46px 20px rgba(220,53,69,0.62); } }\n";
+	print "</style>\n";
+	# Add a Bootstrap modal for inline quick-view (no address bar)
+	print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
+	print "<div class='modal-dialog'>\n";
+	print "<div class='modal-content'>\n";
+	print "<div class='modal-body'>\n";
+	print "<h4 id='quickViewTitle'>Quick View</h4>\n";
+	print "<div id='quickViewBody'>Loading...</div>\n";
+	print "</div>\n";
+	print "<div class='modal-footer' style='display:flex; justify-content:space-between; align-items:center;'>\n";
+	print "  <div>\n";
+	print "    <button type='button' class='btn btn-primary' id='quickViewEditBtn'>Edit</button>\n";
+	print "    <button type='button' class='btn btn-success' id='quickViewSaveBtn' style='display:none; margin-left: 4px;'>Save</button>\n";
+	print "  </div>\n";
+	print "  <div>\n";
+	print "    <button type='button' class='btn btn-warning' id='quickViewCancelBtn' style='display:none;'>Cancel</button>\n";
+	print "  </div>\n";
+	print "  <div>\n";
+	print "    <button type='button' class='btn btn-default btn-close-red' data-dismiss='modal'>Close</button>\n";
+	print "  </div>\n";
+	print "</div>\n";
+	print "</div>\n";
+	print "</div>\n";
+
+	# Inline script to wire up Quick View modal behavior (escaped jQuery $)
+	print "<script>\n";
+	print "var currentQuickWhich = null;\n";
+	print "function openQuickView(url, which) {\n";
+	print "  var titleMap = {allow:'qhtlfirewall.allow', deny:'qhtlfirewall.deny', ignore:'qhtlfirewall.ignore'};\n";
+	print "  \\\$('#quickViewTitle').text('Quick View: ' + (titleMap[which]||which));\n";
+	print "  \\\$('#quickViewBody').html('Loading...');\n";
+	print "  currentQuickWhich = which;\n";
+	print "  var \\\$modal = \\\$('#quickViewModal');\n";
+	print "  if (!\\\$modal.parent().is('body')) { \\\$modal.appendTo('body'); }\n";
+	print "  \\\$modal.modal({ show: true, backdrop: true, keyboard: true });\n";
+	print "  \\\$('#quickViewEditBtn').show();\n";
+	print "  \\\$('#quickViewSaveBtn').hide();\n";
+	print "  \\\$('#quickViewCancelBtn').hide();\n";
+	 print "  // Apply view-mode glow (half intensity, slower)\n";
+	 print "  var \\\$mc = \\\$('#quickViewModal .modal-content');\n";
+	 print "  \\\$mc.removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view');\n";
+	 print "  \\\$mc.addClass('fire-border');\n";
+	 print "  if (currentQuickWhich==='allow') { \\\$mc.addClass('fire-allow-view'); } else if (currentQuickWhich==='ignore') { \\\$mc.addClass('fire-ignore-view'); } else if (currentQuickWhich==='deny') { \\\$mc.addClass('fire-deny-view'); }\n";
+	print "  \\\$.ajax({ url: url, method: 'GET' })\n";
+	print "    .done(function(data){\n";
+	print "      var body = data;\n";
+	print "      try { var m = data.match(/<pre[\\\\s\\\\S]*?<\\\\/pre>/i); if (m) { body = m[0]; } } catch(e) {}\n";
+	print "      \\\$('#quickViewBody').html(body);\n";
+	print "    })\n";
+	print "    .fail(function(){\n";
+	print "      \\\$('#quickViewBody').html('<div class=\\\\\\'alert alert-danger\\\\\\'>Failed to load content</div>');\n";
+	print "    });\n";
+	print "}\n";
+	print "function showQuickView(which) {\n";
+	print "  var url = '$script?action=viewlist&which=' + encodeURIComponent(which);\n";
+	print "  openQuickView(url, which);\n";
+	print "}\n";
+	print "\\\$(document).on('click', 'a.quickview-link', function(e){\n";
+	print "  try {\n";
+	print "    e.preventDefault();\n";
+	print "    var url = \\\$(this).attr('href');\n";
+	print "    var which = \\\$(this).data('which');\n";
+	print "    openQuickView(url, which);\n";
+	print "    return false;\n";
+	print "  } catch(err) { /* fallback to navigation */ }\n";
+	print "});\n";
+	print "\\\$(document).on('click', '#quickViewEditBtn', function(){\n";
+	print "  if (!currentQuickWhich) { return; }\n";
+	print "  var url = '$script?action=editlist&which=' + encodeURIComponent(currentQuickWhich);\n";
+	print "  \\\$('#quickViewBody').html('Loading...');\n";
+	print "  \\\$.ajax({ url: url, method: 'GET' })\n";
+	print "    .done(function(data){\n";
+	print "      \\\$('#quickViewBody').html(data);\n";
+	print "      \\\$('#quickViewEditBtn').hide();\n";
+	print "      \\\$('#quickViewSaveBtn').show();\n";
+	print "      \\\$('#quickViewCancelBtn').show();\n";
+	 print "      // add fire effect according to which list is being edited\n";
+	 print "      var cls = (currentQuickWhich==='allow') ? 'fire-allow' : (currentQuickWhich==='ignore' ? 'fire-ignore' : 'fire-deny');\n";
+	 print "      var \\\$mc = \\\$('#quickViewModal .modal-content'); \\\$mc.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); \\\$mc.addClass('fire-border').removeClass('fire-allow fire-ignore fire-deny').addClass(cls);\n";
+	print "    })\n";
+	print "    .fail(function(){\n";
+	print "      \\\$('#quickViewBody').html('<div class=\\\\\\'alert alert-danger\\\\\\'>Failed to load editor</div>');\n";
+	print "    });\n";
+	print "});\n";
+	print "\\\$(document).on('click', '#quickViewSaveBtn', function(){\n";
+	print "  if (!currentQuickWhich) { return; }\n";
+	print "\\$(document).on('click', '#quickViewCancelBtn', function(){\n";
+	print "  if (!currentQuickWhich) { return; }\n";
+	print "  \\\$('#quickViewEditBtn').show();\n";
+	print "  \\\$('#quickViewSaveBtn').hide();\n";
+	print "  \\\$('#quickViewCancelBtn').hide();\n";
+	 print "  var \\\$mc2 = \\\$('#quickViewModal .modal-content'); \\\$mc2.removeClass('fire-allow fire-ignore fire-deny'); \\\$mc2.addClass('fire-border'); \\\$mc2.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); if (currentQuickWhich==='allow') { \\\$mc2.addClass('fire-allow-view'); } else if (currentQuickWhich==='ignore') { \\\$mc2.addClass('fire-ignore-view'); } else if (currentQuickWhich==='deny') { \\\$mc2.addClass('fire-deny-view'); }\n";
+	print "  showQuickView(currentQuickWhich);\n";
+	print "});\n";
+	print "  var content = '';\n";
+	print "  var ta = document.getElementById('quickEditArea');\n";
+	print "  if (ta) { content = ta.value; }\n";
+	print "  \\\$('#quickViewBody').html('Saving...');\n";
+	print "  \\\$.ajax({ url: '$script?action=savelist&which=' + encodeURIComponent(currentQuickWhich), method: 'POST', data: { formdata: content } })\n";
+	print "    .done(function(){\n";
+	print "      showQuickView(currentQuickWhich);\n";
+	print "      \\\$('#quickViewEditBtn').show();\n";
+	print "      \\\$('#quickViewSaveBtn').hide();\n";
+	print "      \\\$('#quickViewCancelBtn').hide();\n";
+	 print "      var \\\$mc3 = \\\$('#quickViewModal .modal-content'); \\\$mc3.removeClass('fire-allow fire-ignore fire-deny'); \\\$mc3.addClass('fire-border'); \\\$mc3.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); \\\$mc3.addClass((currentQuickWhich==='allow')?'fire-allow-view':(currentQuickWhich==='ignore')?'fire-ignore-view':'fire-deny-view');\n";
+	print "    })\n";
+	print "    .fail(function(){\n";
+	print "      \\\$('#quickViewBody').html('<div class=\\\\\\'alert alert-danger\\\\\\'>Failed to save changes</div>');\n";
+	print "    });\n";
+	print "});\n";
+	print "\\\$('#quickViewModal').on('hidden.bs.modal', function(){ \\\$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view'); });\n";
+	print "</script>\n";
+	print "</div>\n";
 		print "</div>\n";
 
-		print "<div id='qhtlwaterfall' class='tab-pane active'>\n";
+	print "<div id='qhtlwaterfall' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
 		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallstatus'><input type='submit' class='btn btn-default' value='qhtlwaterfall Status'></form></td><td style='width:100%'>Display qhtlwaterfall status</td></tr>\n";
@@ -2222,7 +2524,7 @@ EOF
 		print "</div>\n";
 
 		if ($config{CLUSTER_SENDTO}) {
-			print "<div id='cluster' class='tab-pane active'>\n";
+			print "<div id='cluster' class='tab-pane'>\n";
 			print "<table class='table table-bordered table-striped'>\n";
 			print "<thead><tr><th colspan='2'>qhtlfirewall - qhtlwaterfall Cluster</th></tr></thead>";
 
@@ -2231,7 +2533,7 @@ EOF
 			print "<tr><td><button onClick='\$(\"#cdeny\").submit();' class='btn btn-default'>Cluster Deny</button></td><td style='width:100%'><form action='$script' method='post' id='cdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='cdeny'>Block IP address <input type='text' name='ip' value='' size='18' style='background-color: pink'> in the Cluster and add to the deny file (qhtlfirewall.deny)<br>Comment: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
 			print "<tr><td><button onClick='\$(\"#cignore\").submit();' class='btn btn-default'>Cluster Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='cignore'><input type='submit' class='hide'><input type='hidden' name='action' value='cignore'>Ignore IP address <input type='text' name='ip' value='' size='18'> in the Cluster and add to the ignore file (qhtlfirewall.ignore)<br>Comment: <input type='text' name='comment' value='' size='30'> Note: This will result in qhtlwaterfall being restarted</form></td></tr>\n";
 			print "<tr><td><button onClick='\$(\"#cgrep\").submit();' class='btn btn-default'>Search the Cluster for IP</button></td><td style='width:100%'><form action='$script' method='post' id='cgrep'><input type='submit' class='hide'><input type='hidden' name='action' value='cgrep'>Search iptables for IP address <input type='text' name='ip' value='' size='18'></form></td></tr>\n";
-			print "<tr><td><button onClick='\$(\"#ctempdeny\").submit();' class='btn btn-default'>Cluster Temp Allow/Deny</button></td><td style='width:100%'><form action='$script' method='post' id='ctempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='ctempdeny'>Temporarily <select name='do'><option>block</option><option>allow</option></select> IP address <input type='text' name='ip' value='' size='18'> to port(s) <input type='text' name='ports' value='*' size='5'> for <input type='text' name='timeout' value='' size='4'> <select name='dur'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select>.<br>Comment: <input type='text' name='comment' value='' size='30'><br>\n(ports can be either * for all ports, a single port, or a comma separated list of ports)</form></td></tr>\n";
+			print "<tr><td><button onClick='\$(\"#ctempdeny\").submit();' class='btn btn-default'>Cluster Temp Allow/Deny</button></td><td style='width:100%'><form action='$script' method='post' id='ctempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='ctempdeny'>Temporarily <select name='do' id='do'><option>allow</option><option>deny</option></select> IP address <input type='text' name='target' value='' size='18' id='target'> for $config{CF_TEMP} secs in CloudFlare AND qhtlfirewall for the chosen accounts and those with to \"any\"<br>Comment: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
 			print "<tr><td><button onClick='\$(\"#crm\").submit();' class='btn btn-default'>Cluster Remove Deny</button></td><td style='width:100%'><form action='$script' method='post' id='crm'><input type='submit' class='hide'><input type='hidden' name='action' value='crm'>Remove Deny IP address <input type='text' name='ip' value='' size='18' style=''> in the Cluster (temporary or permanent)</form></td></tr>\n";
 			print "<tr><td><button onClick='\$(\"#carm\").submit();' class='btn btn-default'>Cluster Remove Allow</button></td><td style='width:100%'><form action='$script' method='post' id='carm'><input type='submit' class='hide'><input type='hidden' name='action' value='carm'>Remove Allow IP address <input type='text' name='ip' value='' size='18' style=''> in the Cluster (temporary or permanent)</form></td></tr>\n";
 			print "<tr><td><button onClick='\$(\"#cirm\").submit();' class='btn btn-default'>Cluster Remove Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='cirm'><input type='submit' class='hide'><input type='hidden' name='action' value='cirm'>Remove Ignore IP address <input type='text' name='ip' value='' size='18'> in the Cluster<br>Note: This will result in qhtlwaterfall being restarted</form></td></tr>\n";
@@ -2262,7 +2564,7 @@ EOF
 			print "</div>\n";
 		}
 
-		print "<div id='other' class='tab-pane active'>\n";
+	print "<div id='other' class='tab-pane'>\n";
 		if ($config{CF_ENABLE}) {
 			print "<table class='table table-bordered table-striped'>\n";
 			print "<thead><tr><th colspan='2'>CloudFlare Firewall</th></tr></thead>";
@@ -2287,75 +2589,36 @@ EOF
 			print "</table>\n";
 		}
 
+		# Close the 'More' tab-pane before starting Extra
+		print "</div>\n";
+
+		# New Extra tab-pane at the end
+		print "<div id='extra' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Extra</th></tr></thead>";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='qhtlfirewalltest' type='submit' class='btn btn-default'>Test iptables</button></form></td><td style='width:100%'>Check that iptables has the required modules to run qhtlfirewall</td></tr>\n";
 		print "</table>\n";
+		print "</div>\n";
+		# Close tab-content container
+		print "</div>\n";
+
+		# Extra section moved to its own tab above
 #		if ($config{DIRECTADMIN} and !$config{THIS_UI}) {
 #			print "<a href='/' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> DirectAdmin Main Page</a>\n";
 #		}
-		print "</div>\n</div>\n";
-
-		if ($config{STYLE_MOBILE}) {
-			if (-e "/usr/local/cpanel/version" and !$config{THIS_UI}) {
-				require Cpanel::Version::Tiny;
-				if ($Cpanel::Version::Tiny::major_version < 65) {
-					print "<a id='cpframetr2' href='$ENV{cp_security_token}' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> cPanel Main Page</a>\n";
-				}
-			}
-			if  (defined $ENV{WEBMIN_VAR} and defined $ENV{WEBMIN_CONFIG} and !$config{THIS_UI}) {
-				print "<a id='webmintr2' href='/' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> Webmin Main Page</a>\n";
-			}
-			print "<div class='panel panel-default'><div class='panel-heading panel-heading-qhtlwatcher'>Shows a subset of functions suitable for viewing on mobile devices</div>\n";
-			print "<div class='panel-body text-center'><a class='btn btn-primary btn-block' style='margin:10px;padding: 18px 28px;font-size: 22px; line-height: normal;border-radius: 8px;' id='MobileView'>Mobile View</a></div></div>\n";
-
-			print "</div>\n<div class='mobilecontainer'>\n";
-
-			print "<form action='$script' method='post'>\n";
-			print "<div class='form-group' style='width:100%'>\n";
-			print "<p><label>IP address:</label><input id='ip' type='text' class='form-control' name='ip'></p>\n";
-			print "<p><button class='btn btn-primary btn-lg btn-block' type='submit' name='action' value='qallow'>Quick Allow IP</button></p>\n";
-			print "<p><button class='btn btn-primary btn-lg btn-block' type='submit' name='action' value='qdeny'>Quick Deny IP</button></p>\n";
-			print "<p><button class='btn btn-primary btn-lg btn-block' type='submit' name='action' value='qignore'>Quick Ignore IP</button></p>\n";
-			print "<p><button class='btn btn-primary btn-lg btn-block' type='submit' name='action' value='kill'>Quick Unblock IP</button></p>\n";
-			print "<p><button class='btn btn-primary btn-lg btn-block' type='submit' name='action' value='grep'>Search for IP</button></p>\n";
-			print "</div>\n";
-			print "<br><div class='form-group'>\n";
-			print "<p><button class='btn btn-success btn-lg btn-block' type='submit' name='action' value='enable'>Firewall Enable</button></p>\n";
-			print "<p><button class='btn btn-danger btn-lg btn-block' type='submit' name='action' value='disable'>Firewall Disable</button></p>\n";
-			print "<p><br></p>\n";
-			print "<p><button class='btn btn-warning btn-lg btn-block' type='submit' name='action' value='restart'>Firewall Restart</button></p>\n";
-			print "<p><button class='btn btn-primary btn-lg btn-block' type='submit' name='action' value='denyf'>Flush all Blocks</button></p>\n";
-			print "</div>\n";
-			print "</form>\n";
-
-			if (-e "/usr/local/cpanel/version" and !$config{THIS_UI}) {
-				if ($Cpanel::Version::Tiny::major_version < 65) {
-					print "<br><p><a href='$ENV{cp_security_token}' class='btn btn-info btn-lg btn-block'><span class='glyphicon glyphicon-home'></span> cPanel Main Page</a></p>\n";
-				}
-			}
-#			if  ($config{DIRECTADMIN} and !$config{THIS_UI}) {
-#				print "<br><p id='cpframe'><a href='/' class='btn btn-info btn-lg btn-block'><span class='glyphicon glyphicon-home'></span> DirectAdmin Main Page</a></p>\n";
-#			}
-			if (defined $ENV{WEBMIN_VAR} and defined $ENV{WEBMIN_CONFIG} and !$config{THIS_UI}) {
-				print "<br><p><a href='/' class='btn btn-info btn-lg btn-block'><span class='glyphicon glyphicon-home'></span> Webmin Main Page</a></p>\n";
-			}
-
-			print "<br><p><button class='btn btn-info btn-lg btn-block' id='NormalView'>Desktop View</button></p>\n";
-			print "</div>\n<div><br>\n";
-		}
+		# Note: Mobile View panel moved to Upgrade tab above
 
 		print "<div class='panel panel-info'>\n";
 		print "<div class='panel-heading'>About</div>";
-		print "<div class='panel-body'>This software is rebranded and maintained by Danpol Limited. Visit <a href='https://www.qhtlf.danpol.co.uk' target='_blank'>www.danpol.co.uk</a> for updates and support.</div>\n";
+		print "<div class='panel-body'>This software is maintained by Danpol Community. Visit <a href='https://www.forum.danpol.co.uk' target='_blank'>www.forum.danpol.co.uk</a> for updates and support.</div>\n";
 		print "</div>\n";
 
 	}
 
-	unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
+	unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
 		print "<br>\n";
 		print "<div class='well well-sm'>qhtlfirewall: v$myv</div>";
-		print "<p>&copy;2025, <a href='https://www.qhtlf.danpol.co.uk' target='_blank'>Danpol Limited</a> (Daniel Nowakowski</p>\n";
+		print "<p>&copy;2025, <a href='https://www.qhtlfirewall.danpol.co.uk' target='_blank'>Danpol Limited</a> (Daniel Nowakowski</p>\n";
 		print "</div>\n";
 	}
 

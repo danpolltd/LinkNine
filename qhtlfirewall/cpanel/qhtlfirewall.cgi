@@ -133,7 +133,7 @@ print "Content-type: text/html\r\n\r\n";
 
 my $templatehtml;
 my $SCRIPTOUT;
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
+unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
 #	open(STDERR, ">&STDOUT");
 	open ($SCRIPTOUT, '>', \$templatehtml);
 	select $SCRIPTOUT;
@@ -170,7 +170,7 @@ EOF
 	print @header;
 }
 
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
+unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
 	print <<EOF;
 <div id="loader"></div><br />
 <div class='panel panel-default'>
@@ -221,13 +221,7 @@ function getCookie(cname) {
 	var document_height = \$(document).height();
 	\$('html,body').animate({ scrollTop: window_height + document_height }, 'slow', function () {});
 });
-\$('#tabAll').click(function(){
-	\$('#tabAll').addClass('active');  
-	\$('.tab-pane').each(function(i,t){
-		\$('#myTabs li').removeClass('active'); 
-		\$(this).addClass('active');  
-	});
-});
+/* Removed All-tab handler: tabAll no longer present */
 \$(document).ready(function(){
 	\$('[data-tooltip="tooltip"]').tooltip();
 	\$(window).scroll(function () {

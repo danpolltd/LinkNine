@@ -29,6 +29,27 @@ use QhtLink::LookUpIP qw(iplookup);
 
 umask(0177);
 
+# Ensure required runtime directories exist with safe permissions (0700)
+BEGIN {
+	my @dirs = (
+		'/var/lib/qhtlfirewall',
+		'/var/lib/qhtlfirewall/lock',
+		'/var/lib/qhtlfirewall/stats',
+		'/var/lib/qhtlfirewall/Geo',
+		'/var/lib/qhtlfirewall/zone',
+	);
+	foreach my $d (@dirs) {
+		if (! -d $d) {
+			mkdir $d, 0700; ## no critic (ProhibitLeadingZeros)
+		}
+		# Enforce execute bit for directories created previously with 0600
+		if (-d $d) {
+			my $mode = (stat($d))[2] & 07777;
+			if (($mode & 0700) != 0700) { chmod 0700, $d } ## no critic (ProhibitLeadingZeros)
+		}
+	}
+}
+
 our ($abuseip, $accept, $apache401timeout, $apache403timeout,
      $apache404timeout, $attimeout, $blocklisttimeout, $ccltimeout, $cctimeout,
 	 $childcnt, $childpid, $childproc, $cidr, $cidr6, $cleanreg, $clock_ticks,
@@ -1164,19 +1185,19 @@ while (1)  {
 		&cleanup(__LINE__,"*Error* You have an unresolved error when starting qhtlfirewall. You need to restart qhtlfirewall successfully before restarting qhtlwaterfall (see /etc/qhtlfirewall/qhtlfirewall.error). *qhtlwaterfall stopped*");
 	}
 	my $perms = sprintf "%04o", (stat("/etc/qhtlfirewall"))[2] & oct("07777");
-	if ($perms != "0600") {
-		chmod (0600,"/etc/qhtlfirewall");
-		logfile("*Permissions* on /etc/qhtlfirewall reset to 0600 [currently: $perms]");
+	if ($perms != "0700") {
+		chmod (0700,"/etc/qhtlfirewall");
+		logfile("*Permissions* on /etc/qhtlfirewall reset to 0700 [currently: $perms]");
 	}
 	$perms = sprintf "%04o", (stat("/var/lib/qhtlfirewall"))[2] & oct("07777");
-	if ($perms != "0600") {
-		chmod (0600,"/var/lib/qhtlfirewall");
-		logfile("*Permissions* on /var/lib/qhtlfirewall reset to 0600 [currently: $perms]");
+	if ($perms != "0700") {
+		chmod (0700,"/var/lib/qhtlfirewall");
+		logfile("*Permissions* on /var/lib/qhtlfirewall reset to 0700 [currently: $perms]");
 	}
 	$perms = sprintf "%04o", (stat("/usr/local/qhtlfirewall"))[2] & oct("07777");
-	if ($perms != "0600") {
-		chmod (0600,"/usr/local/qhtlfirewall");
-		logfile("*Permissions* on /usr/local/qhtlfirewall reset to 0600 [currently: $perms]");
+	if ($perms != "0700") {
+		chmod (0700,"/usr/local/qhtlfirewall");
+		logfile("*Permissions* on /usr/local/qhtlfirewall reset to 0700 [currently: $perms]");
 	}
 
 	$locktimeout+=$duration;

@@ -5,10 +5,13 @@ Before=qhtlwaterfall.service
 
 [Service]
 ExecStart=/usr/sbin/qhtlfirewall --initup
-ExecStop=/usr/sbin/qhtlfirewall --initdown ; /usr/sbin/qhtlfirewall --stop
+ExecStop=/usr/sbin/qhtlfirewall --initdown
+ExecStop=/usr/sbin/qhtlfirewall --stop
 RemainAfterExit=yes
 Type=oneshot
 Restart=no
+ExecStartPre=/bin/mkdir -p /var/lib/qhtlfirewall /var/lib/qhtlfirewall/lock /var/lib/qhtlfirewall/stats /var/lib/qhtlfirewall/Geo /var/lib/qhtlfirewall/zone
+ExecStartPre=/bin/chmod 0700 /var/lib/qhtlfirewall /var/lib/qhtlfirewall/lock /var/lib/qhtlfirewall/stats /var/lib/qhtlfirewall/Geo /var/lib/qhtlfirewall/zone
 
 [Install]
 WantedBy=multi-user.target

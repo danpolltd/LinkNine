@@ -18,7 +18,7 @@ if [ ! `id -u` = 0 ]; then
 fi
 echo
 
-mkdir -v -m 0600 /etc/qhtlfirewall
+mkdir -v -m 0700 /etc/qhtlfirewall
 cp -avf install.txt /etc/qhtlfirewall/
 
 echo "Checking Perl modules..."
@@ -34,18 +34,18 @@ else
     echo
 fi
 
-mkdir -v -m 0600 /var/lib/qhtlfirewall
-mkdir -v -m 0600 /var/lib/qhtlfirewall/backup
-mkdir -v -m 0600 /var/lib/qhtlfirewall/Geo
-mkdir -v -m 0600 /var/lib/qhtlfirewall/ui
-mkdir -v -m 0600 /var/lib/qhtlfirewall/stats
-mkdir -v -m 0600 /var/lib/qhtlfirewall/lock
-mkdir -v -m 0600 /var/lib/qhtlfirewall/webmin
-mkdir -v -m 0600 /var/lib/qhtlfirewall/zone
-mkdir -v -m 0600 /usr/local/qhtlfirewall
-mkdir -v -m 0600 /usr/local/qhtlfirewall/bin
-mkdir -v -m 0600 /usr/local/qhtlfirewall/lib
-mkdir -v -m 0600 /usr/local/qhtlfirewall/tpl
+mkdir -v -m 0700 /var/lib/qhtlfirewall
+mkdir -v -m 0700 /var/lib/qhtlfirewall/backup
+mkdir -v -m 0700 /var/lib/qhtlfirewall/Geo
+mkdir -v -m 0700 /var/lib/qhtlfirewall/ui
+mkdir -v -m 0700 /var/lib/qhtlfirewall/stats
+mkdir -v -m 0700 /var/lib/qhtlfirewall/lock
+mkdir -v -m 0700 /var/lib/qhtlfirewall/webmin
+mkdir -v -m 0700 /var/lib/qhtlfirewall/zone
+mkdir -v -m 0700 /usr/local/qhtlfirewall
+mkdir -v -m 0700 /usr/local/qhtlfirewall/bin
+mkdir -v -m 0700 /usr/local/qhtlfirewall/lib
+mkdir -v -m 0700 /usr/local/qhtlfirewall/tpl
 
 if [ -e "/etc/qhtlfirewall/alert.txt" ]; then
 	sh migratedata.sh
@@ -56,16 +56,16 @@ if [ ! -e "/etc/qhtlfirewall/qhtlfirewall.conf" ]; then
 fi
 
 if [ ! -d /var/lib/qhtlfirewall ]; then
-	mkdir -v -p -m 0600 /var/lib/qhtlfirewall
+	mkdir -v -p -m 0700 /var/lib/qhtlfirewall
 fi
 if [ ! -d /usr/local/qhtlfirewall/lib ]; then
-	mkdir -v -p -m 0600 /usr/local/qhtlfirewall/lib
+	mkdir -v -p -m 0700 /usr/local/qhtlfirewall/lib
 fi
 if [ ! -d /usr/local/qhtlfirewall/bin ]; then
-	mkdir -v -p -m 0600 /usr/local/qhtlfirewall/bin
+	mkdir -v -p -m 0700 /usr/local/qhtlfirewall/bin
 fi
 if [ ! -d /usr/local/qhtlfirewall/tpl ]; then
-	mkdir -v -p -m 0600 /usr/local/qhtlfirewall/tpl
+	mkdir -v -p -m 0700 /usr/local/qhtlfirewall/tpl
 fi
 
 if [ ! -e "/etc/qhtlfirewall/qhtlfirewall.allow" ]; then

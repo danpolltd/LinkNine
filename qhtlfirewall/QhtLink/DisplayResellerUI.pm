@@ -196,8 +196,30 @@ sub main {
 		else {
 			print "<table class='table table-bordered table-striped'>\n";
 			print "<thead><tr><th align='left' colspan='2'>qhtlfirewall - QhtLink Firewall options for $ENV{REMOTE_USER}</th></tr></thead>";
-			if ($rprivs{$ENV{REMOTE_USER}}{ALLOW}) {print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qallow'><input type='submit' class='btn btn-default' value='Quick Allow'></td><td width='100%'>Allow IP address <input type='text' name='ip' id='allowip' value='' size='18' style='background-color: lightgreen'> through the firewall and add to the allow file (qhtlfirewall.allow).<br>Comment for Allow: <input type='text' name='comment' value='' size='30'> (required)</form></td></tr>\n"}
-			if ($rprivs{$ENV{REMOTE_USER}}{DENY}) {print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qdeny'><input type='submit' class='btn btn-default' value='Quick Deny'></td><td width='100%'>Block IP address <input type='text' name='ip' value='' size='18' style='background-color: pink'> in the firewall and add to the deny file (qhtlfirewall.deny).<br>Comment for Block: <input type='text' name='comment' value='' size='30'> (required)</form></td></tr>\n"}
+			if ($rprivs{$ENV{REMOTE_USER}}{ALLOW}) {print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qallow'><input type='submit' class='btn btn-default' value='Quick Allow'></form></td><td width='100%'>";
+			print "<form action='$script' method='post'><input type='hidden' name='action' value='qallow'>";
+			print "<div style='width:100%'>";
+			print "  <div style='display:flex; align-items:center; gap:12px; width:100%'>";
+			print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' href='$script?action=viewlist&which=allow' onclick=\"if(typeof showQuickView==='function'){showQuickView('allow'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.1em; margin-right:10px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a> through the firewall and add to the allow file (qhtlfirewall.allow).</div>";
+			print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' id='allowip' value='' size='18' style='background-color: lightgreen; width:100%;'></div>";
+			print "  </div>";
+			print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
+			print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Allow: <span style='font-size:0.9em;color:#666;'>(required)</span></div>";
+			print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
+			print "  </div>";
+			print "</div></form></td></tr>\n"}
+			if ($rprivs{$ENV{REMOTE_USER}}{DENY}) {print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qdeny'><input type='submit' class='btn btn-default' value='Quick Deny'></form></td><td width='100%'>";
+			print "<form action='$script' method='post'><input type='hidden' name='action' value='qdeny'>";
+			print "<div style='width:100%'>";
+			print "  <div style='display:flex; align-items:center; gap:12px; width:100%'>";
+			print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' href='$script?action=viewlist&which=deny' onclick=\"if(typeof showQuickView==='function'){showQuickView('deny'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.1em; margin-right:10px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a> in the firewall and add to the deny file (qhtlfirewall.deny).</div>";
+			print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' value='' size='18' style='background-color: pink; width:100%;'></div>";
+			print "  </div>";
+			print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
+			print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Block: <span style='font-size:0.9em;color:#666;'>(required)</span></div>";
+			print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
+			print "  </div>";
+			print "</div></form></td></tr>\n"}
 			if ($rprivs{$ENV{REMOTE_USER}}{UNBLOCK}) {print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qkill'><input type='submit' class='btn btn-default' value='Quick Unblock'></td><td width='100%'>Remove IP address <input type='text' name='ip' value='' size='18'> from the firewall (temp and perm blocks)</form></td></tr>\n"}
 			if ($rprivs{$ENV{REMOTE_USER}}{GREP}) {print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='grep'><input type='submit' class='btn btn-default' value='Search for IP'></td><td width='100%'>Search iptables for IP address <input type='text' name='ip' value='' size='18'></form></td></tr>\n"}
 			print "</table><br>\n";
