@@ -95,7 +95,9 @@ sub main {
 	print <<'QHTLBTNSTYLE';
 <style>
 /* First column gets a fixed width so all action buttons align */
-print "<style>\n#quickViewModal .modal-body { padding: 8px; }\n#quickViewModal .quickview-pre {\n  margin: 0; padding: 10px;\n  white-space: pre;\n  font-family: monospace; font-size: 12px; line-height: 1.3;\n  height: calc(1.3em * 15 + 20px);\n  max-height: calc(1.3em * 15 + 20px);\n  overflow-x: auto; overflow-y: auto;\n  resize: none;\n  border: 1px solid #ddd; background: #f8f9fa;\n}\n</style>\n";
+.table.table-bordered.table-striped > tbody > tr > td:first-child,
+.table.table-bordered.table-striped > thead + tbody > tr > td:first-child {
+	width: 260px;          /* adjust to taste for your layout */
 }
 /* Primary action buttons fill the first column */
 .table.table-bordered.table-striped > tbody > tr > td:first-child .btn.btn-default,
@@ -126,7 +128,7 @@ print "<style>\n#quickViewModal .modal-body { padding: 8px; }\n#quickViewModal .
 #upgrade.tab-pane.active #mobileview-upgrade-panel { display: block !important; }
 </style>
 QHTLBTNSTYLE
-print "<style>\n#quickViewModal .modal-body { padding: 8px; }\n#quickViewModal .quickview-pre {\n  margin: 0; padding: 10px;\n  white-space: pre;\n  font-family: monospace; font-size: 12px; line-height: 1.3;\n  height: calc(1.3em * 15 + 20px);\n  max-height: calc(1.3em * 15 + 20px);\n  overflow-x: auto; overflow-y: auto;\n  resize: none;\n  border: 1px solid #ddd; background: #f8f9fa;\n}\n</style>\n";
+
 	if ($FORM{ip} ne "") {$FORM{ip} =~ s/(^\s+)|(\s+$)//g}
 
 	if (($FORM{ip} ne "") and ($FORM{ip} ne "all") and (!checkip(\$FORM{ip}))) {
@@ -446,8 +448,8 @@ print "<style>\n#quickViewModal .modal-body { padding: 8px; }\n#quickViewModal .
 		if (myFont < 12) {myFont = 12}
 		\$('#QHTLFIREWALLajax').css("font-size",myFont+"px");
 	});
-	</script>
-	EOF
+</script>
+EOF
 		if ($config{DIRECTADMIN}) {$script = $script_safe}
 		&printreturn;
 	}
@@ -920,7 +922,7 @@ EOF
 			my $path = $map{$which}{path};
 			my $title = $map{$which}{title};
 			print "<div class='panel panel-default'><div class='panel-heading'><b>Quick View:</b> $title (comments omitted)</div><div class='panel-body'>";
-			print "<pre class='comment' style='white-space: pre; line-height: 1.2em; max-height: 18em; overflow-y: auto; overflow-x: auto; resize: none; clear: both'>\n";
+			print "<pre class='comment' style='white-space: pre-wrap;'>\n";
 			foreach my $line (slurp($path)) {
 				$line =~ s/$cleanreg//g;        # strip comments/blank
 				$line =~ s/^\s+|\s+$//g;        # trim
@@ -929,7 +931,6 @@ EOF
 				print "$line\n";
 			}
 			print "</pre>";
-			print "<div class='text-right'><button class='btn btn-default' onclick='window.close()'>Close</button></div>";
 			print "</div></div>";
 		}
 	}
@@ -1099,8 +1100,6 @@ EOF
 					print "</pre><pre class='comment' style='white-space: pre-wrap;background:#F4F4EA'>$line";
 					$start = 1;
 				}
-						# Removed stray assignment to $imghddir; not used in this context and caused a compile-time error
-				print $line;
 			}
 		}
 		waitpid ($pid, 0);
