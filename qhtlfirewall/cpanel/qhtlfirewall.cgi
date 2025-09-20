@@ -121,6 +121,7 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 	function onReady(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn, { once:true }); } }
 	onReady(function(){
 		try {
+			if (document.getElementById('qhtlfw-badge')) { return; }
 			var url = 'cgi/qhtlink/qhtlfirewall.cgi?action=status_json';
 			var controller = (typeof AbortController!=='undefined') ? new AbortController() : null;
 			var to = controller ? setTimeout(function(){ try{controller.abort();}catch(e){} }, 1800) : null;
