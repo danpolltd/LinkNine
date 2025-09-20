@@ -100,6 +100,16 @@ unless ($config{STYLE_CUSTOM}) {
 	$htmltag = "";
 }
 
+# Replace any VERSION/placeholder tokens in header/footer with installed version
+for my $frag (\@header, \@footer) {
+    next unless @$frag;
+    for (@$frag) {
+        s/\bVERSION\b/$myv/g;
+        s/\bv\.?VERSION\b/v$myv/gi;
+        s/\bqhtlfirewall_version\b/$myv/gi;
+    }
+}
+
 my $thisapp = "qhtlfirewall";
 my $reregister;
 my $modalstyle;
