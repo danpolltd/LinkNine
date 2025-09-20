@@ -437,8 +437,8 @@ $(function(){
 			showQuickView(currentQuickWhich);
 		}
 	});
-	  // Cancel button handler: revert to view without saving
-	  $(document).on('click', '#quickViewCancelBtn', function(){
+	  // Cancel button handler (main modal script)
+	  $(document).off('click.quickview', '#quickViewCancelBtn').on('click.quickview', '#quickViewCancelBtn', function(){
 		  if (!currentQuickWhich) { return; }
 		  $('#quickViewEditBtn').show();
 		  $('#quickViewSaveBtn').hide();
@@ -662,6 +662,7 @@ EOF
 				eval {
 					local $SIG{__DIE__} = undef;
 					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
 					my $total;
 					if ($FORM{grepZ}) {
 						foreach my $file (glob $logfile."\*") {
@@ -1601,7 +1602,7 @@ EOD
 	}
 	elsif ($FORM{action} eq "upgrade") {
 		if ($config{THIS_UI}) {
-			print "<div>You cannot upgrade through the UI as restarting qhtlwaterfall will interrupt this session. You must login to the root shell to upgrade qhtlfirewall using:\n<p><b>qhtlfirewall -u</b></div>\n";
+			print "<div>You cannot upgrade through the UI as restarting qhtlwaterfall will interrupt this session. You must login to the root shell to upgrade qhtlfirewall using:\n<p><b>qhtlfirewall -u</b></p>\n";
 		} else {
 			print "<div><p>Upgrading qhtlfirewall...</p>\n";
 			&resize("top");
@@ -1643,7 +1644,7 @@ EOD
 
 		print "<form action='$script' method='post'><input type='hidden' name='action' value='profileapply'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th>Preconfigured Profiles</th><th style='border-left:1px solid #990000'>&nbsp;</th></tr></thead>\n";
+		print "<thead><tr><th colspan='2'>Preconfigured Profiles</th><th style='border-left:1px solid #990000'>&nbsp;</th></tr></thead>\n";
 		foreach my $profile (@profiles) {
 			my ($file, undef) = fileparse($profile);
 			$file =~ s/\.conf$//;
@@ -1693,7 +1694,7 @@ EOD
 
 		print "<br><form action='$script' method='post'><input type='hidden' name='action' value='profilediff'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th>Compare Configurations</th></tr></thead>\n";
+		print "<thead><tr><th colspan='2'>Compare Configurations</th></tr></thead>";
 		print "<tr><td>Select first configuration:<br>\n<select name='profile1' size='10' style='min-width:400px'>\n";
 		print "<optgroup label='Profiles:'>\n";
 		foreach my $profile (@profiles) {
@@ -2260,10 +2261,10 @@ EOF
 		print "<div id='quickactions' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Quick Actions</th></tr></thead>";
-	print "<tr><td><button onClick='$(\"#qallow\").submit();' class='btn btn-default'>Quick Allow</button></td><td style='width:100%'><form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>Allow IP address <a class='quickview-link' data-which='allow' href='$script?action=viewlist&which=allow'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='allowip' value='' size='18' style='background-color: #BDECB6'> through the firewall and add to the allow file (qhtlfirewall.allow).<br>Comment for Allow: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
-	print "<tr><td><button onClick='$(\"#qdeny\").submit();' class='btn btn-default'>Quick Deny</button></td><td style='width:100%'><form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>Block IP address <a class='quickview-link' data-which='deny' href='$script?action=viewlist&which=deny'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='denyip' value='' size='18' style='background-color: #FFD1DC'> in the firewall and add to the deny file (qhtlfirewall.deny).<br>Comment for Block: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
-	print "<tr><td><button onClick='$(\"#qignore\").submit();' class='btn btn-default'>Quick Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>Ignore IP address <a class='quickview-link' data-which='ignore' href='$script?action=viewlist&which=ignore'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='ignoreip' value='' size='18' style='background-color: #D9EDF7'> in qhtlwaterfall, add to the ignore file (qhtlfirewall.ignore) and restart qhtlwaterfall</form></td></tr>\n";
-		print "<tr><td><button onClick='$(\"#kill\").submit();' class='btn btn-default'>Quick Unblock</button></td><td style='width:100%'><form action='$script' method='post' id='kill'><input type='submit' class='hide'><input type='hidden' name='action' value='kill'>Remove IP address <input type='text' name='ip' value='' size='18'> from the firewall (temp and perm blocks)</form></td></tr>\n";
+		print "<tr><td><button onClick='$(\"#qallow\").submit();' class='btn btn-default'>Quick Allow</button></td><td style='width:100%'><form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>Allow IP address <a class='quickview-link' data-which='allow' href='$script?action=viewlist&which=allow'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='allowip' value='' size='18' style='background-color: #BDECB6'> through the firewall and add to the allow file (qhtlfirewall.allow).<br>Comment for Allow: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
+		print "<tr><td><button onClick='$(\"#qdeny\").submit();' class='btn btn-default'>Quick Deny</button></td><td style='width:100%'><form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>Block IP address <a class='quickview-link' data-which='deny' href='$script?action=viewlist&which=deny'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='denyip' value='' size='18' style='background-color: #FFD1DC'> in the firewall and add to the deny file (qhtlfirewall.deny).<br>Comment for Block: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
+		print "<tr><td><button onClick='$(\"#qignore\").submit();' class='btn btn-default'>Quick Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>Ignore IP address <a class='quickview-link' data-which='ignore' href='$script?action=viewlist&which=ignore'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em;' data-tooltip='tooltip' title='$ENV{REMOTE_ADDR}'></span></a> <input type='text' name='ip' id='ignoreip' value='' size='18' style='background-color: #D9EDF7'> in qhtlwaterfall, add to the ignore file (qhtlfirewall.ignore) and restart qhtlwaterfall</form></td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='kill' type='submit' class='btn btn-default'>Quick Unblock</button></form></td><td style='width:100%'>Remove IP address from the firewall (temp and perm blocks)</td></tr>\n";
 		print "</table>\n";
 		print "</div>\n";
 
@@ -2277,15 +2278,9 @@ EOF
 		print "<tr><td><button name='action' value='loggrep' type='submit' class='btn btn-default'>Search System Logs</button></td><td style='width:100%'>Search (grep) various system log files (listed in qhtlfirewall.syslogs)</td></tr>\n";
 		print "<tr><td><button name='action' value='viewports' type='submit' class='btn btn-default'>View Listening Ports</button></td><td style='width:100%'>View ports on the server that have a running process behind them listening for external connections</td></tr>\n";
 		print "<tr><td><button name='action' value='rblcheck' type='submit' class='btn btn-default'>Check for IPs in RBLs</button></td><td style='width:100%'>Check whether any of the servers IP addresses are listed in RBLs</td></tr>\n";
-		if ($config{ST_ENABLE}) {
-			print "<tr><td><button name='action' value='viewlogs' type='submit' class='btn btn-default'>View iptables Log</button></td><td style='width:100%'>View the last $config{ST_IPTABLES} iptables log lines</td></tr>\n";
-			if ($chart) {
-				print "<tr><td><button name='action' value='chart' type='submit' class='btn btn-default'>View qhtlwaterfall Statistics</button></td><td style='width:100%'>View qhtlwaterfall blocking statistics</td></tr>\n";
-				if ($config{ST_SYSTEM}) {
-					print "<tr><td><button name='action' value='systemstats' type='submit' class='btn btn-default'>View System Statistics</button></td><td style='width:100%'>View basic system statistics</td></tr>\n";
-				}
-			}
-		}
+		print "<tr><td><button name='action' value='viewlogs' type='submit' class='btn btn-default'>View iptables Log</button></td><td style='width:100%'>View the last $config{ST_IPTABLES} iptables log lines</td></tr>\n";
+		print "<tr><td><button name='action' value='chart' type='submit' class='btn btn-default'>View qhtlwaterfall Statistics</button></td><td style='width:100%'>View qhtlwaterfall blocking statistics</td></tr>\n";
+		print "<tr><td><button name='action' value='systemstats' type='submit' class='btn btn-default'>View System Statistics</button></td><td style='width:100%'>View basic system statistics</td></tr>\n";
 		print "</table>\n";
 		print "</form>\n";
 		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
@@ -2321,9 +2316,28 @@ EOF
 	print "#quickViewModal .modal-body { flex: 1 1 auto !important; overflow: auto !important; }\n";
 	print "</style>\n";
 	# Add a Bootstrap modal for inline quick-view (no address bar)
-	print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-hidden='true'>\n";
-	print "  <div class='modal-dialog'>\n    <div class='modal-content'>\n      <div class='modal-header'>\n        <button type='button' class='close' data-dismiss='modal' aria-label='Close'><span aria-hidden='true'>&times;</span></button>\n        <h4 class='modal-title' id='quickViewTitle'>Quick View</h4>\n      </div>\n      <div class='modal-body' id='quickViewBody'>Loading...</div>\n      <div class='modal-footer' style='display:flex; justify-content:space-between; align-items:center;'>\n        <div>\n          <button type='button' class='btn btn-primary' id='quickViewEditBtn'>Edit</button>\n          <button type='button' class='btn btn-success' id='quickViewSaveBtn' style='display:none; margin-left: 4px;'>Save</button>\n        </div>\n        <div>\n          <button type='button' class='btn btn-warning' id='quickViewCancelBtn' style='display:none;'>Cancel</button>\n        </div>\n        <div>\n          <button type='button' class='btn btn-default' data-dismiss='modal'>Close</button>\n        </div>\n      </div>\n    </div>\n  </div>\n</div>\n";
-	print "<script>\nfunction fillfield (myitem,myip) {document.getElementById(myitem).value = myip;}\nvar currentQuickWhich = null;\nfunction openQuickView(url, which) {\n  var titleMap = {allow:'qhtlfirewall.allow', deny:'qhtlfirewall.deny', ignore:'qhtlfirewall.ignore'};\n  \$('#quickViewTitle').text('Quick View: ' + (titleMap[which]||which));\n  \$('#quickViewBody').html('Loading...');\n  currentQuickWhich = which;\n  var \$modal = \$('#quickViewModal');\n  if (!\$modal.parent().is('body')) { \$modal.appendTo('body'); }\n  \$modal.modal({ show: true, backdrop: true, keyboard: true });\n  \$('#quickViewEditBtn').show();\n  \$('#quickViewSaveBtn').hide();\n  \$.ajax({ url: url, method: 'GET' })\n    .done(function(data){\n      var body = data;\n      try { var m = data.match(/<pre[\\s\\S]*?<\\/pre>/i); if (m) { body = m[0]; } } catch(e) {}\n      \$('#quickViewBody').html(body);\n    })\n    .fail(function(){\n      \$('#quickViewBody').html('<div class=\\'alert alert-danger\\'>Failed to load content</div>');\n    });\n}\nfunction showQuickView(which) {\n  var url = '$script?action=viewlist&which=' + encodeURIComponent(which);\n  openQuickView(url, which);\n}\n// Intercept quick-view gear clicks to open modal (fallback navigates if JS fails)\n\$(document).on('click', 'a.quickview-link', function(e){\n  try {\n    e.preventDefault();\n    var url = \$(this).attr('href');\n    var which = \$(this).data('which');\n    openQuickView(url, which);\n  } catch(err) { /* fallback to navigation */ }\n});\n// Edit button handler\n\$(document).on('click', '#quickViewEditBtn', function(){\n  if (!currentQuickWhich) { return; }\n  var url = '$script?action=editlist&which=' + encodeURIComponent(currentQuickWhich);\n  \$('#quickViewBody').html('Loading...');\n  \$.ajax({ url: url, method: 'GET' })\n    .done(function(data){\n      \$('#quickViewBody').html(data);\n      \$('#quickViewEditBtn').hide();\n      \$('#quickViewSaveBtn').show();\n    })\n    .fail(function(){\n      \$('#quickViewBody').html('<div class=\\'alert alert-danger\\'>Failed to load editor</div>');\n    });\n});\n// Save button handler\n\$(document).on('click', '#quickViewSaveBtn', function(){\n  if (!currentQuickWhich) { return; }\n  var content = '';\n  var ta = document.getElementById('quickEditArea');\n  if (ta) { content = ta.value; }\n  \$('#quickViewBody').html('Saving...');\n  \$.ajax({ url: '$script?action=savelist&which=' + encodeURIComponent(currentQuickWhich), method: 'POST', data: { formdata: content } })\n    .done(function(){\n      showQuickView(currentQuickWhich);\n      \$('#quickViewEditBtn').show();\n      \$('#quickViewSaveBtn').hide();\n    })\n    .fail(function(){\n      \$('#quickViewBody').html('<div class=\\'alert alert-danger\\'>Failed to save changes</div>');\n    });\n});\n</script>\n";
+	print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
+	print "<div class='modal-dialog'>\n";
+	print "<div class='modal-content'>\n";
+	print "<div class='modal-body'>\n";
+	print "<h4 id='quickViewTitle'>Quick View</h4>\n";
+	print "<div id='quickViewBody'>Loading...</div>\n";
+	print "</div>\n";
+	print "<div class='modal-footer' style='display:flex; justify-content:space-between; align-items:center;'>\n";
+	print "  <div>\n";
+	print "    <button type='button' class='btn btn-primary' id='quickViewEditBtn'>Edit</button>\n";
+	print "    <button type='button' class='btn btn-success' id='quickViewSaveBtn' style='display:none; margin-left: 4px;'>Save</button>\n";
+	print "  </div>\n";
+	print "  <div>\n";
+	print "    <button type='button' class='btn btn-warning' id='quickViewCancelBtn' style='display:none;'>Cancel</button>\n";
+	print "  </div>\n";
+	print "  <div>\n";
+	print "    <button type='button' class='btn btn-default' data-dismiss='modal'>Close</button>\n";
+	print "  </div>\n";
+	print "</div>\n";
+	print "</div>\n";
+	print "</div>\n";
+	print "</div>\n";
 		print "</div>\n";
 
 	print "<div id='qhtlwaterfall' class='tab-pane'>\n";
@@ -2363,7 +2377,7 @@ EOF
 			print "<tr><td><button onClick='\$(\"#cdeny\").submit();' class='btn btn-default'>Cluster Deny</button></td><td style='width:100%'><form action='$script' method='post' id='cdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='cdeny'>Block IP address <input type='text' name='ip' value='' size='18' style='background-color: pink'> in the Cluster and add to the deny file (qhtlfirewall.deny)<br>Comment: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
 			print "<tr><td><button onClick='\$(\"#cignore\").submit();' class='btn btn-default'>Cluster Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='cignore'><input type='submit' class='hide'><input type='hidden' name='action' value='cignore'>Ignore IP address <input type='text' name='ip' value='' size='18'> in the Cluster and add to the ignore file (qhtlfirewall.ignore)<br>Comment: <input type='text' name='comment' value='' size='30'> Note: This will result in qhtlwaterfall being restarted</form></td></tr>\n";
 			print "<tr><td><button onClick='\$(\"#cgrep\").submit();' class='btn btn-default'>Search the Cluster for IP</button></td><td style='width:100%'><form action='$script' method='post' id='cgrep'><input type='submit' class='hide'><input type='hidden' name='action' value='cgrep'>Search iptables for IP address <input type='text' name='ip' value='' size='18'></form></td></tr>\n";
-			print "<tr><td><button onClick='\$(\"#ctempdeny\").submit();' class='btn btn-default'>Cluster Temp Allow/Deny</button></td><td style='width:100%'><form action='$script' method='post' id='ctempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='ctempdeny'>Temporarily <select name='do'><option>block</option><option>allow</option></select> IP address <input type='text' name='ip' value='' size='18'> to port(s) <input type='text' name='ports' value='*' size='5'> for <input type='text' name='timeout' value='' size='4'> <select name='dur'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select>.<br>Comment: <input type='text' name='comment' value='' size='30'><br>\n(ports can be either * for all ports, a single port, or a comma separated list of ports)</form></td></tr>\n";
+			print "<tr><td><button onClick='\$(\"#ctempdeny\").submit();' class='btn btn-default'>Cluster Temp Allow/Deny</button></td><td style='width:100%'><form action='$script' method='post' id='ctempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='ctempdeny'>Temporarily <select name='do' id='do'><option>allow</option><option>deny</option></select> IP address <input type='text' name='target' value='' size='18' id='target'> for $config{CF_TEMP} secs in CloudFlare AND qhtlfirewall for the chosen accounts and those with to \"any\"<br>Comment: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
 			print "<tr><td><button onClick='\$(\"#crm\").submit();' class='btn btn-default'>Cluster Remove Deny</button></td><td style='width:100%'><form action='$script' method='post' id='crm'><input type='submit' class='hide'><input type='hidden' name='action' value='crm'>Remove Deny IP address <input type='text' name='ip' value='' size='18' style=''> in the Cluster (temporary or permanent)</form></td></tr>\n";
 			print "<tr><td><button onClick='\$(\"#carm\").submit();' class='btn btn-default'>Cluster Remove Allow</button></td><td style='width:100%'><form action='$script' method='post' id='carm'><input type='submit' class='hide'><input type='hidden' name='action' value='carm'>Remove Allow IP address <input type='text' name='ip' value='' size='18' style=''> in the Cluster (temporary or permanent)</form></td></tr>\n";
 			print "<tr><td><button onClick='\$(\"#cirm\").submit();' class='btn btn-default'>Cluster Remove Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='cirm'><input type='submit' class='hide'><input type='hidden' name='action' value='cirm'>Remove Ignore IP address <input type='text' name='ip' value='' size='18'> in the Cluster<br>Note: This will result in qhtlwaterfall being restarted</form></td></tr>\n";
@@ -2448,7 +2462,7 @@ EOF
 	unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
 		print "<br>\n";
 		print "<div class='well well-sm'>qhtlfirewall: v$myv</div>";
-		print "<p>&copy;2025, <a href='https://www.qhtlf.danpol.co.uk' target='_blank'>Danpol Limited</a> (Daniel Nowakowski</p>\n";
+		print "<p>&copy;2025, <a href='https://www.qhtlfirewall.danpol.co.uk' target='_blank'>Danpol Limited</a> (Daniel Nowakowski</p>\n";
 		print "</div>\n";
 	}
 
