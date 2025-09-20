@@ -126,6 +126,20 @@ sub main {
 /* Belt-and-braces: explicitly hide the Mobile View panel unless Upgrade is active */
 #mobileview-upgrade-panel { display: none !important; }
 #upgrade.tab-pane.active #mobileview-upgrade-panel { display: block !important; }
+
+/* Fixed size for Quick View modal */
+#quickViewModal .modal-dialog {
+	width: 500px;
+	max-width: 500px;
+}
+#quickViewModal .modal-content {
+	height: 400px;
+}
+#quickViewModal .modal-body {
+	/* Approximate remaining height after header+footer */
+	height: calc(400px - 110px);
+	overflow: auto;
+}
 </style>
 QHTLBTNSTYLE
 
@@ -2273,9 +2287,9 @@ EOF
 		print "<tr><td><form action='$script' method='post'><button name='action' value='redirect' type='submit' class='btn btn-default'>Firewall Redirect</button></form></td><td style='width:100%'>Redirect connections to this server to other ports/IP addresses</td></tr>\n";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='fix' type='submit' class='btn btn-default'>Fix Common Problems</button></form></td><td style='width:100%'>Offers solutions to some common problems when using an SPI firewall</td></tr>\n";
 		print "</table>\n";
-		# Add a Bootstrap modal for inline quick-view (no address bar)
-		print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-hidden='true'>\n";
-		print "  <div class='modal-dialog modal-lg'>\n    <div class='modal-content'>\n      <div class='modal-header'>\n        <button type='button' class='close' data-dismiss='modal' aria-label='Close'><span aria-hidden='true'>&times;</span></button>\n        <h4 class='modal-title' id='quickViewTitle'>Quick View</h4>\n      </div>\n      <div class='modal-body' id='quickViewBody'>Loading...</div>\n      <div class='modal-footer'>\n        <button type='button' class='btn btn-default' data-dismiss='modal'>Close</button>\n      </div>\n    </div>\n  </div>\n</div>\n";
+	# Add a Bootstrap modal for inline quick-view (no address bar)
+	print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-hidden='true'>\n";
+	print "  <div class='modal-dialog'>\n    <div class='modal-content'>\n      <div class='modal-header'>\n        <button type='button' class='close' data-dismiss='modal' aria-label='Close'><span aria-hidden='true'>&times;</span></button>\n        <h4 class='modal-title' id='quickViewTitle'>Quick View</h4>\n      </div>\n      <div class='modal-body' id='quickViewBody'>Loading...</div>\n      <div class='modal-footer'>\n        <button type='button' class='btn btn-default' data-dismiss='modal'>Close</button>\n      </div>\n    </div>\n  </div>\n</div>\n";
 	print "<script>\nfunction fillfield (myitem,myip) {document.getElementById(myitem).value = myip;}\nfunction openQuickView(url, which) {\n  var titleMap = {allow:'qhtlfirewall.allow', deny:'qhtlfirewall.deny', ignore:'qhtlfirewall.ignore'};\n  \$('#quickViewTitle').text('Quick View: ' + (titleMap[which]||which));\n  \$('#quickViewBody').html('Loading...');\n  var \$modal = \$('#quickViewModal');\n  if (!\$modal.parent().is('body')) { \$modal.appendTo('body'); }\n  \$modal.modal({ show: true, backdrop: true, keyboard: true });\n  \$.ajax({ url: url, method: 'GET' })\n    .done(function(data){\n      var body = data;\n      try { var m = data.match(/<pre[\\s\\S]*?<\\/pre>/i); if (m) { body = m[0]; } } catch(e) {}\n      \$('#quickViewBody').html(body);\n    })\n    .fail(function(){\n      \$('#quickViewBody').html('<div class=\\'alert alert-danger\\'>Failed to load content</div>');\n    });\n}\nfunction showQuickView(which) {\n  var url = '$script?action=viewlist&which=' + encodeURIComponent(which);\n  openQuickView(url, which);\n}\n// Intercept quick-view gear clicks to open modal (fallback navigates if JS fails)\n\$(document).on('click', 'a.quickview-link', function(e){\n  try {\n    e.preventDefault();\n    var url = \$(this).attr('href');\n    var which = \$(this).data('which');\n    openQuickView(url, which);\n  } catch(err) { /* fallback to navigation */ }\n});\n</script>\n";
 		print "</div>\n";
 
