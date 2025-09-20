@@ -295,14 +295,22 @@ EOF
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
 	close ($SCRIPTOUT);
 	select STDOUT;
-	Cpanel::Template::process_template(
-		'whostmgr',
-		{
-			"template_file" => "${thisapp}.tmpl",
-			"${thisapp}_output" => $templatehtml,
-			"print"         => 1,
-		}
-	);
+	my $rendered;
+	eval {
+		$rendered = Cpanel::Template::process_template(
+			'whostmgr',
+			{
+				"template_file"   => "${thisapp}.tmpl",
+				"${thisapp}_output" => $templatehtml,
+				"print"           => 0,
+			}
+		);
+		1;
+	} or do {
+		my $err = $@ || 'unknown error';
+		print "<pre>Template render error: $err</pre>";
+	};
+	if (defined $rendered) { print $rendered; }
 }
 # end main
 ###############################################################################

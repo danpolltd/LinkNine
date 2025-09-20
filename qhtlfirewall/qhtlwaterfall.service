@@ -1,6 +1,7 @@
 [Unit]
 Description=QhtLink Firewall - qhtlwaterfall
 After=network.target qhtlfirewall.service
+ConditionPathExists=!/var/lib/qhtlfirewall/.installing
 
 [Service]
 LimitNOFILE=4096
