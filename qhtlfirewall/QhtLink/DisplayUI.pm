@@ -909,9 +909,17 @@ EOF
 		} else {
 			my $path = $map{$which}{path};
 			my @lines = slurp($path);
+			my $bgstyle = '';
+			if ($which eq 'allow') {
+				$bgstyle = 'background: linear-gradient(180deg, #d4edda 0%, #c3e6cb 100%);';
+			} elsif ($which eq 'ignore') {
+				$bgstyle = 'background: linear-gradient(180deg, #ffe0b2 0%, #ffcc80 100%);';
+			} elsif ($which eq 'deny') {
+				$bgstyle = 'background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%);';
+			}
 			print "<div style='display:flex; flex-direction:column; height:100%'>";
 			print "<div class='small text-muted' style='margin-bottom:6px; flex:0 0 auto'>Editing: $path</div>";
-			print "<textarea id='quickEditArea' style='width:100%; flex:1 1 auto; border:1px solid #000; font-family: \"Courier New\", Courier; font-size: 13px; line-height: 1.15; box-sizing:border-box; overflow:auto; resize:none' wrap='off'>";
+			print "<textarea id='quickEditArea' style='width:100%; flex:1 1 auto; border:1px solid #000; font-family: \"Courier New\", Courier; font-size: 13px; line-height: 1.15; box-sizing:border-box; overflow:auto; resize:none; $bgstyle' wrap='off'>";
 			foreach my $line (@lines) {
 				$line =~ s/&/&amp;/g; $line =~ s/</&lt;/g; $line =~ s/>/&gt;/g;
 				print $line."\n"; # ensure newline between lines in textarea
@@ -2180,7 +2188,7 @@ EOF
 		print "      var editBtn = document.createElement('button'); editBtn.id='quickViewEditBtnShim'; editBtn.className='btn btn-primary'; editBtn.textContent='Edit';\n";
 		print "      var saveBtn = document.createElement('button'); saveBtn.id='quickViewSaveBtnShim'; saveBtn.className='btn btn-success'; saveBtn.textContent='Save'; saveBtn.style.display='none'; saveBtn.style.marginLeft='4px';\n";
 		print "      var cancelBtn = document.createElement('button'); cancelBtn.id='quickViewCancelBtnShim'; cancelBtn.className='btn btn-warning'; cancelBtn.textContent='Cancel'; cancelBtn.style.display='none';\n";
-		print "      var closeBtn = document.createElement('button'); closeBtn.className='btn btn-default'; closeBtn.textContent='Close';\n";
+		print "      var closeBtn = document.createElement('button'); closeBtn.className='btn btn-default'; closeBtn.textContent='Close'; closeBtn.style.background='linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%)'; closeBtn.style.color='#721c24'; closeBtn.style.borderColor='#f1b0b7';\n";
 		print "      left.appendChild(editBtn); left.appendChild(saveBtn); mid.appendChild(cancelBtn); right.appendChild(closeBtn);\n";
 		print "      var inner = document.createElement('div'); inner.style.padding='10px'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.flex='1 1 auto'; inner.style.minHeight='0'; inner.appendChild(title); inner.appendChild(body);\n";
 		print "      footer.appendChild(left); footer.appendChild(mid); footer.appendChild(right);\n";
@@ -2320,6 +2328,8 @@ EOF
 	print "#quickViewModal #quickViewBody pre { height: 100%; max-height: 100%; white-space: pre; overflow-x: hidden; overflow-y: auto; }\n";
 	print "#quickEditArea { height: 100% !important; max-height: 100% !important; }\n";
 	print "#quickViewModal #quickEditArea { resize: none !important; }\n";
+	print ".btn-close-red { background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%); color: #721c24 !important; border-color: #f1b0b7 !important; }\n";
+	print ".btn-close-red:hover { background: #dc3545 !important; color: #fff !important; border-color: #dc3545 !important; }\n";
 	print "</style>\n";
 	# Add a Bootstrap modal for inline quick-view (no address bar)
 	print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
@@ -2338,7 +2348,7 @@ EOF
 	print "    <button type='button' class='btn btn-warning' id='quickViewCancelBtn' style='display:none;'>Cancel</button>\n";
 	print "  </div>\n";
 	print "  <div>\n";
-	print "    <button type='button' class='btn btn-default' data-dismiss='modal'>Close</button>\n";
+	print "    <button type='button' class='btn btn-default btn-close-red' data-dismiss='modal'>Close</button>\n";
 	print "  </div>\n";
 	print "</div>\n";
 	print "</div>\n";
