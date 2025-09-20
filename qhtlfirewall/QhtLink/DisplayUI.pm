@@ -2298,6 +2298,12 @@ EOF
 		print "<tr><td><form action='$script' method='post'><button name='action' value='redirect' type='submit' class='btn btn-default'>Firewall Redirect</button></form></td><td style='width:100%'>Redirect connections to this server to other ports/IP addresses</td></tr>\n";
 		print "<tr><td><form action='$script' method='post'><button name='action' value='fix' type='submit' class='btn btn-default'>Fix Common Problems</button></form></td><td style='width:100%'>Offers solutions to some common problems when using an SPI firewall</td></tr>\n";
 		print "</table>\n";
+	# Enforce Quick View modal sizing (500x400) with scrollable body
+	print "<style>\n";
+	print "#quickViewModal .modal-dialog { width: 500px !important; max-width: 500px !important; }\n";
+	print "#quickViewModal .modal-content { height: 400px !important; display: flex !important; flex-direction: column !important; }\n";
+	print "#quickViewModal .modal-body { flex: 1 1 auto !important; overflow: auto !important; }\n";
+	print "</style>\n";
 	# Add a Bootstrap modal for inline quick-view (no address bar)
 	print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-hidden='true'>\n";
 	print "  <div class='modal-dialog'>\n    <div class='modal-content'>\n      <div class='modal-header'>\n        <button type='button' class='close' data-dismiss='modal' aria-label='Close'><span aria-hidden='true'>&times;</span></button>\n        <h4 class='modal-title' id='quickViewTitle'>Quick View</h4>\n      </div>\n      <div class='modal-body' id='quickViewBody'>Loading...</div>\n      <div class='modal-footer' style='display:flex; justify-content:space-between; align-items:center;'>\n        <div>\n          <button type='button' class='btn btn-primary' id='quickViewEditBtn'>Edit</button>\n          <button type='button' class='btn btn-success' id='quickViewSaveBtn' style='display:none; margin-left: 4px;'>Save</button>\n        </div>\n        <div>\n          <button type='button' class='btn btn-warning' id='quickViewCancelBtn' style='display:none;'>Cancel</button>\n        </div>\n        <div>\n          <button type='button' class='btn btn-default' data-dismiss='modal'>Close</button>\n        </div>\n      </div>\n    </div>\n  </div>\n</div>\n";
