@@ -183,8 +183,6 @@ EOF
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
 		# Build a compact status badge for the header's right column
 		my $status_badge = "<span class='label label-success'>Enabled and Running</span>";
-		my $status_text  = "Enabled and Running";
-		my $status_color = "#3c763d"; # bootstrap success text color
 		my $status_buttons = '';
 		my $is_test = $config{TESTING} ? 1 : 0;
 		my $is_disabled = -e "/etc/qhtlfirewall/qhtlfirewall.disable" ? 1 : 0;
@@ -200,19 +198,13 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 		};
 		if ($is_disabled) {
 				$status_badge = "<span class='label label-danger'>Disabled and Stopped</span>";
-			$status_text  = "Disabled and Stopped";
-			$status_color = "#a94442";
 				$status_buttons = "<form action='$script' method='post' style='display:inline;margin-left:8px'>".
 													"<input type='hidden' name='action' value='enable'>".
 													"<input type='submit' class='btn btn-xs btn-default' value='Enable'></form>";
 		} elsif ($is_test) {
 				$status_badge = "<span class='label label-warning'>Enabled (Test Mode)</span>";
-			$status_text  = "Enabled (Test Mode)";
-			$status_color = "#8a6d3b";
 		} elsif (!$ipt_ok) {
 				$status_badge = "<span class='label label-danger'>Enabled but Stopped</span>";
-			$status_text  = "Enabled but Stopped";
-			$status_color = "#a94442";
 				$status_buttons = "<form action='$script' method='post' style='display:inline;margin-left:8px'>".
 													"<input type='hidden' name='action' value='start'>".
 													"<input type='submit' class='btn btn-xs btn-default' value='Start'></form>";
@@ -327,79 +319,6 @@ EOF
 EOF
 	}
 	print "});\n";
-
-	# Compute status (again) for WHM header injection
-	my $whm_status_text  = "Enabled and Running";
-	my $whm_status_color = "#3c763d"; # bootstrap success
-	my $whm_is_test = $config{TESTING} ? 1 : 0;
-	my $whm_is_disabled = -e "/etc/qhtlfirewall/qhtlfirewall.disable" ? 1 : 0;
-	my $whm_ipt_ok = 0;
-	eval {
-		my ($childin, $childout);
-		my $pid = open3($childin, $childout, $childout, "$config{IPTABLES} $config{IPTABLESWAIT} -L LOCALINPUT -n");
-		my @iptstatus = <$childout>;
-		waitpid ($pid, 0);
-		chomp @iptstatus;
-		if ($iptstatus[0] =~ /# Warning: iptables-legacy tables present/) {shift @iptstatus}
-		$whm_ipt_ok = ($iptstatus[0] && $iptstatus[0] =~ /^Chain LOCALINPUT/) ? 1 : 0;
-	};
-	if ($whm_is_disabled) {
-		$whm_status_text  = "Disabled and Stopped";
-		$whm_status_color = "#a94442";
-	} elsif ($whm_is_test) {
-		$whm_status_text  = "Enabled (Test Mode)";
-		$whm_status_color = "#8a6d3b";
-	} elsif (!$whm_ipt_ok) {
-		$whm_status_text  = "Enabled but Stopped";
-		$whm_status_color = "#a94442";
-	}
-
-	# Inject a new header stats cell after cPanel Version
-	print <<EOF;
-(function(){
-	var injected = false;
-	function tryInject(){
-		if (injected) return;
-		var wrap = document.querySelector('.cpanel-whm-header-stats__wrapper');
-		if (!wrap) return;
-		var versionCell = null;
-		var cells = wrap.querySelectorAll('[class^="cpanel-whm-header-stats__cell"]');
-		for (var i=0;i<cells.length;i++){
-			var label = cells[i].querySelector('[data-testid="cpanel-whm-header-stats__label-cpanel-version"]');
-			if (label) { versionCell = cells[i]; break; }
-		}
-		if (!versionCell) return;
-		if (document.getElementById('qhtlfirewall-whm-header-cell')) { injected = true; return; }
-		var cell = document.createElement('div');
-		cell.className = 'cpanel-whm-header-stats__cellX';
-		cell.id = 'qhtlfirewall-whm-header-cell';
-		var labelDiv = document.createElement('div');
-		labelDiv.className = 'cpanel-whm-header-stats__cell_label';
-		labelDiv.setAttribute('data-testid','cpanel-whm-header-stats__label-qhtlfirewall');
-		labelDiv.textContent = 'Firewall';
-		var dataDiv = document.createElement('div');
-		dataDiv.className = 'cpanel-whm-header-stats__cell_data';
-		var span = document.createElement('span');
-		span.setAttribute('data-testid','cpanel-whm-header-stats__qhtlfirewall_status');
-		span.title = 'qhtlfirewall status';
-		span.style.color = "$whm_status_color";
-		span.textContent = "$whm_status_text";
-		dataDiv.appendChild(span);
-		cell.appendChild(labelDiv);
-		cell.appendChild(dataDiv);
-		if (versionCell.nextSibling) {
-			wrap.insertBefore(cell, versionCell.nextSibling);
-		} else {
-			wrap.appendChild(cell);
-		}
-		injected = true;
-	}
-	var mo = new MutationObserver(function(){ tryInject(); });
-	mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
-	document.addEventListener('DOMContentLoaded', tryInject);
-	setTimeout(tryInject, 1200);
-})();
-EOF
 	if ($config{STYLE_MOBILE} or $reseller) {
 		print <<EOF;
 \$("#NormalView").click(function(){
