@@ -42,3 +42,10 @@ Dynamic version in WHM header/footer:
 	- Release: https://github.com/danpolltd/LinkNine/releases/tag/v.0.1.5
 
 
+## WHM header status (optional)
+
+We expose a lightweight JSON at `/cgi/qhtlink/qhtlfirewall.cgi?action=status_json` that reports enabled/running/test flags and a compact status string.
+
+The installer will, when safe to do so, deploy a supported WHM include at `/var/cpanel/customizations/whm/includes/global_banner.html.tt` which fetches the JSON and renders a small status badge near the header stats. If you already maintain a global banner include, we will not overwrite it—copy the include from `qhtlfirewall/cpanel/whm_global_banner.html.tt` into your own template if desired.
+
+

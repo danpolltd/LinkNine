@@ -452,6 +452,19 @@ cp -af cpanel/qhtlfirewall.conf /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/q
 cp -af cpanel/upgrade.sh /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/upgrade.sh
 chmod 700 /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/upgrade.sh
 
+# Optionally deploy a WHM global banner include to surface firewall status
+# This uses cPanel's supported customization path. We only install if the admin
+# hasn't provided their own banner include yet to avoid overriding.
+if [ -d "/var/cpanel/customizations/whm/includes" ] || mkdir -p /var/cpanel/customizations/whm/includes ; then
+    if [ ! -f "/var/cpanel/customizations/whm/includes/global_banner.html.tt" ]; then
+        cp -af cpanel/whm_global_banner.html.tt /var/cpanel/customizations/whm/includes/global_banner.html.tt
+        chmod 644 /var/cpanel/customizations/whm/includes/global_banner.html.tt
+        echo "Installed WHM global banner include for qhtlfirewall status."
+    else
+        echo "WHM global_banner.html.tt exists; not overwriting."
+    fi
+fi
+
 if [ -e "/usr/local/cpanel/bin/register_appconfig" ]; then
     # Copy only the canonical QhtLinkFirewall driver into cPanel's driver path
     /bin/cp -af /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/Driver/QhtLinkFirewall* /usr/local/cpanel/Cpanel/Config/ConfigObj/Driver/

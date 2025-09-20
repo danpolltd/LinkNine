@@ -1,0 +1,40 @@
+[%# QhtLink Firewall - WHM Global Banner include
+  #%]
+[%# This include renders a small status badge in the WHM header using
+   # an official template include slot: /var/cpanel/customizations/whm/includes/global_banner.html.tt
+   # It fetches a lightweight JSON from our CGI and maps to a badge.
+   # Safe to include multiple times; no JS errors on failure. %]
+
+[% SET status_url = '/cgi/qhtlink/qhtlfirewall.cgi?action=status_json' %]
+<script>
+(function(){
+  try {
+    var url = '[% status_url %]';
+    var controller = new AbortController();
+    var to = setTimeout(function(){ try{controller.abort();}catch(e){} }, 1800);
+    fetch(url, { credentials: 'same-origin', signal: controller.signal })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(data){
+        clearTimeout(to);
+        if(!data) return;
+        var cls = data.class || 'default';
+        var txt = data.text || 'Firewall';
+        var span = document.createElement('span');
+        span.className = 'label label-' + cls;
+        span.style.marginLeft = '8px';
+        span.textContent = 'Firewall: ' + txt;
+        // Prefer to append into cp-whm-header-stats-control if present
+        var stats = document.querySelector('cp-whm-header-stats-control');
+        if (stats && stats.shadowRoot) {
+          // If the web component uses a shadow root, try a known anchor
+          var host = stats.shadowRoot.querySelector('.header-stats, header, div, span') || stats;
+          host.appendChild(span);
+        } else {
+          var header = document.querySelector('cp-header, header, .page-header, body');
+          (header || document.body).appendChild(span);
+        }
+      })
+      .catch(function(e){ /* ignore */ });
+  } catch(e) {}
+})();
+</script>

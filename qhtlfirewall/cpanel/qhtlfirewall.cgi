@@ -75,6 +75,43 @@ $myv = <$IN>;
 close ($IN);
 chomp $myv;
 
+# Lightweight JSON status endpoint for sanctioned WHM includes
+# Usage: /cgi/qhtlink/qhtlfirewall.cgi?action=status_json
+if (defined $FORM{action} && $FORM{action} eq 'status_json') {
+	my $is_disabled = -e "/etc/qhtlfirewall/qhtlfirewall.disable" ? 1 : 0;
+	my $is_test     = $config{TESTING} ? 1 : 0;
+	my $ipt_ok      = 0;
+	eval {
+		my ($childin, $childout);
+		my $pid = open3($childin, $childout, $childout, "$config{IPTABLES} $config{IPTABLESWAIT} -L LOCALINPUT -n");
+		my @iptstatus = <$childout>;
+		waitpid($pid, 0);
+		chomp @iptstatus;
+		if ($iptstatus[0] && $iptstatus[0] =~ /# Warning: iptables-legacy tables present/) { shift @iptstatus }
+		$ipt_ok = ($iptstatus[0] && $iptstatus[0] =~ /^Chain LOCALINPUT/) ? 1 : 0;
+	};
+
+	my ($enabled, $running, $class, $text, $status_key);
+	if ($is_disabled) {
+		($enabled, $running, $class, $text, $status_key) = (0, 0, 'danger', 'Disabled and Stopped', 'disabled_stopped');
+	} elsif (!$ipt_ok) {
+		($enabled, $running, $class, $text, $status_key) = (1, 0, 'danger', 'Enabled but Stopped', 'enabled_stopped');
+	} elsif ($is_test) {
+		($enabled, $running, $class, $text, $status_key) = (1, 1, 'warning', 'Enabled (Test Mode)', 'enabled_test');
+	} else {
+		($enabled, $running, $class, $text, $status_key) = (1, 1, 'success', 'Enabled and Running', 'enabled_running');
+	}
+
+	# Simple JSON response, no external modules required here
+	my $json = sprintf(
+		'{"enabled":%d,"running":%d,"test_mode":%d,"status":"%s","text":"%s","class":"%s","version":"%s"}',
+		$enabled, $running, $is_test, $status_key, $text, $class, $myv
+	);
+	print "Content-type: application/json\r\n\r\n";
+	print $json;
+	exit 0;
+}
+
 my $bootstrapcss = "<link rel='stylesheet' href='$images/bootstrap/css/bootstrap.min.css'>";
 my $jqueryjs = "<script src='$images/jquery.min.js'></script>";
 my $bootstrapjs = "<script src='$images/bootstrap/js/bootstrap.min.js'></script>";
