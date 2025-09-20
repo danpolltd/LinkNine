@@ -909,8 +909,9 @@ EOF
 		} else {
 			my $path = $map{$which}{path};
 			my @lines = slurp($path);
-			print "<div><div class='small text-muted' style='margin-bottom:6px;'>Editing: $path</div>";
-			print "<textarea id='quickEditArea' style='width:100%; height:360px; max-height:420px; border:1px solid #000; font-family: \"Courier New\", Courier; font-size: 13px; line-height: 1.15; box-sizing:border-box; overflow:auto; resize:none' wrap='off'>";
+			print "<div style='display:flex; flex-direction:column; height:100%'>";
+			print "<div class='small text-muted' style='margin-bottom:6px; flex:0 0 auto'>Editing: $path</div>";
+			print "<textarea id='quickEditArea' style='width:100%; flex:1 1 auto; border:1px solid #000; font-family: \"Courier New\", Courier; font-size: 13px; line-height: 1.15; box-sizing:border-box; overflow:auto; resize:none' wrap='off'>";
 			foreach my $line (@lines) {
 				$line =~ s/&/&amp;/g; $line =~ s/</&lt;/g; $line =~ s/>/&gt;/g;
 				print $line."\n"; # ensure newline between lines in textarea
@@ -2172,7 +2173,7 @@ EOF
 		print "      modal.style.position='fixed'; modal.style.inset='0'; modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='none'; modal.style.zIndex='9999';\n";
 		print "      var dialog = document.createElement('div');\n";
 		print "      dialog.style.width='660px'; dialog.style.maxWidth='95vw'; dialog.style.height='500px'; dialog.style.margin='10vh auto'; dialog.style.background='#fff'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box';\n";
-		print "      var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflow='auto'; body.style.padding='10px'; body.style.minHeight='0';\n";
+		print "      var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflow='hidden'; body.style.padding='10px'; body.style.minHeight='0';\n";
 		print "      var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';\n";
 		print "      var footer = document.createElement('div'); footer.style.display='flex'; footer.style.justifyContent='space-between'; footer.style.alignItems='center'; footer.style.padding='10px'; footer.style.marginTop='auto';\n";
 		print "      var left = document.createElement('div'); var mid = document.createElement('div'); var right = document.createElement('div');\n";
@@ -2193,7 +2194,7 @@ EOF
 		print "      cancelBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; showQuickView(window.currentQuickWhich); });\n";
 		print "      return modal;\n";
 		print "    }\n";
-		print "    function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ var html=x.responseText; try{ if(url.indexOf('action=viewlist')!==-1){ var mm=html.match(/<pre[\\s\\S]*?<\\/pre>/i); if(mm){ html=mm[0]; html=html.replace('<pre','<pre style=\\'white-space: pre; overflow-x: hidden; overflow-y: auto;\\''); } } }catch(e){} b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to load content</div>'; } } }; x.send(); m.style.display='block'; }\n";
+		print "    function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ var html=x.responseText; try{ if(url.indexOf('action=viewlist')!==-1){ var mm=html.match(/<pre[\\s\\S]*?<\\/pre>/i); if(mm){ html=mm[0]; html=html.replace('<pre','<pre style=\\'white-space: pre; overflow-x: hidden; overflow-y: auto; height:100%; max-height:100%;\\''); } } }catch(e){} b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to load content</div>'; } } }; x.send(); m.style.display='block'; }\n";
 		print "    function quickViewPost(url, body, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBody'); b.innerHTML='Saving...'; var x=new XMLHttpRequest(); x.open('POST', url, true); x.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to save changes</div>'; } } }; x.send(body); m.style.display='block'; }\n";
 		print "    function openQuickView(url, which){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var b=document.getElementById('quickViewBodyShim'); window.currentQuickWhich=which; var map={allow:'qhtlfirewall.allow',deny:'qhtlfirewall.deny',ignore:'qhtlfirewall.ignore'}; t.textContent='Quick View: '+(map[which]||which); var e=document.getElementById('quickViewEditBtnShim'), s=document.getElementById('quickViewSaveBtnShim'), c=document.getElementById('quickViewCancelBtnShim'); if(e&&s&&c){ e.style.display='inline-block'; s.style.display='none'; c.style.display='none'; } quickViewLoad(url); }\n";
 		print "    window.showQuickView = function(which){ var url = '$script?action=viewlist&which=' + encodeURIComponent(which); openQuickView(url, which); return false; };\n";
@@ -2311,11 +2312,13 @@ EOF
 	print "<style>\n";
 	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 660px !important; }\n";
 	print "#quickViewModal .modal-content { height: 500px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
-	print "#quickViewModal .modal-body { flex: 1 1 auto !important; overflow: auto !important; min-height:0 !important; padding:10px !important; }\n";
+	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow: hidden !important; min-height:0 !important; padding:10px !important; }\n";
 	print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; }\n";
 	print "#quickViewModal .modal-dialog { margin: 10vh auto !important; }\n";
 	print "#quickViewModal #quickViewTitle { margin:0 0 8px 0 !important; }\n";
-	print "#quickViewModal #quickViewBody pre { max-height: 400px; white-space: pre; overflow-x: hidden; overflow-y: auto; }\n";
+	print "#quickViewBody { flex:1 1 auto !important; min-height:0 !important; overflow:hidden !important; }\n";
+	print "#quickViewModal #quickViewBody pre { height: 100%; max-height: 100%; white-space: pre; overflow-x: hidden; overflow-y: auto; }\n";
+	print "#quickEditArea { height: 100% !important; max-height: 100% !important; }\n";
 	print "#quickViewModal #quickEditArea { resize: none !important; }\n";
 	print "</style>\n";
 	# Add a Bootstrap modal for inline quick-view (no address bar)
