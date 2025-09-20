@@ -25,6 +25,19 @@ else
 	if [ -x "/etc/init.d/qhtlwaterfall" ]; then /etc/init.d/qhtlwaterfall stop >/dev/null 2>&1 || true; fi
 fi
 
+# Optional: mute DirWatch during install if config already exists
+CONF_FILE="/etc/qhtlfirewall/qhtlfirewall.conf"
+DIRWATCH_STATE="/var/lib/qhtlfirewall/.dirwatch.preinstall"
+if [ -f "$CONF_FILE" ]; then
+	# Capture current values (if present)
+	LFDW=$(awk -F '"' '/^LF_DIRWATCH[[:space:]]*=/{print $2}' "$CONF_FILE" | head -n1)
+	LFDWF=$(awk -F '"' '/^LF_DIRWATCH_FILE[[:space:]]*=/{print $2}' "$CONF_FILE" | head -n1)
+	printf 'LF_DIRWATCH="%s"\nLF_DIRWATCH_FILE="%s"\n' "${LFDW:-}" "${LFDWF:-}" > "$DIRWATCH_STATE" 2>/dev/null || true
+	# Disable during install window
+	sed -i -E 's/^LF_DIRWATCH[[:space:]]*=.*/LF_DIRWATCH = "0"/' "$CONF_FILE" 2>/dev/null || true
+	sed -i -E 's/^LF_DIRWATCH_FILE[[:space:]]*=.*/LF_DIRWATCH_FILE = "0"/' "$CONF_FILE" 2>/dev/null || true
+fi
+
 echo "Selecting installer..."
 echo
 
@@ -56,6 +69,19 @@ else
 	echo "Running qhtlfirewall generic installer"
 	echo
 	sh install.generic.sh
+fi
+
+# Restore DirWatch settings if we muted them earlier
+if [ -f "$DIRWATCH_STATE" ] && [ -f "$CONF_FILE" ]; then
+	# shellcheck disable=SC1090
+	. "$DIRWATCH_STATE" 2>/dev/null || true
+	if [ -n "${LF_DIRWATCH:-}" ]; then
+		sed -i -E "s/^LF_DIRWATCH[[:space:]]*=.*/LF_DIRWATCH = \"${LF_DIRWATCH}\"/" "$CONF_FILE" 2>/dev/null || true
+	fi
+	if [ -n "${LF_DIRWATCH_FILE:-}" ]; then
+		sed -i -E "s/^LF_DIRWATCH_FILE[[:space:]]*=.*/LF_DIRWATCH_FILE = \"${LF_DIRWATCH_FILE}\"/" "$CONF_FILE" 2>/dev/null || true
+	fi
+	rm -f "$DIRWATCH_STATE" 2>/dev/null || true
 fi
 
 # Remove install guard and start services safely now that temp files should be gone
