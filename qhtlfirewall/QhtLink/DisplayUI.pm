@@ -910,7 +910,7 @@ EOF
 			my $path = $map{$which}{path};
 			my @lines = slurp($path);
 			print "<div><div class='small text-muted' style='margin-bottom:6px;'>Editing: $path</div>";
-			print "<textarea id='quickEditArea' style='width:100%; height:280px; border:1px solid #000; font-family: \"Courier New\", Courier; font-size: 13px; line-height: 1.15' wrap='off'>";
+			print "<textarea id='quickEditArea' style='width:100%; height:280px; max-height:calc(400px - 100px); border:1px solid #000; font-family: \"Courier New\", Courier; font-size: 13px; line-height: 1.15; box-sizing:border-box; overflow:auto' wrap='off'>";
 			foreach my $line (@lines) {
 				$line =~ s/&/&amp;/g; $line =~ s/</&lt;/g; $line =~ s/>/&gt;/g;
 				print $line."\n"; # ensure newline between lines in textarea
@@ -2171,7 +2171,7 @@ EOF
 		print "      modal.setAttribute('role','dialog');\n";
 		print "      modal.style.position='fixed'; modal.style.inset='0'; modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='none'; modal.style.zIndex='9999';\n";
 		print "      var dialog = document.createElement('div');\n";
-		print "      dialog.style.width='500px'; dialog.style.maxWidth='90vw'; dialog.style.height='400px'; dialog.style.margin='10vh auto'; dialog.style.background='#fff'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column';\n";
+		print "      dialog.style.width='500px'; dialog.style.maxWidth='90vw'; dialog.style.height='400px'; dialog.style.margin='10vh auto'; dialog.style.background='#fff'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box';\n";
 		print "      var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflow='auto'; body.style.padding='10px';\n";
 		print "      var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';\n";
 		print "      var footer = document.createElement('div'); footer.style.display='flex'; footer.style.justifyContent='space-between'; footer.style.alignItems='center'; footer.style.padding='10px'; footer.style.marginTop='auto';\n";
@@ -2311,8 +2311,10 @@ EOF
 	print "<style>\n";
 	print "#quickViewModal .modal-dialog { width: 500px !important; max-width: 500px !important; }\n";
 	print "#quickViewModal .modal-content { height: 400px !important; display: flex !important; flex-direction: column !important; }\n";
-	print "#quickViewModal .modal-body { flex: 1 1 auto !important; overflow: auto !important; }\n";
+	print "#quickViewModal .modal-body { flex: 1 1 auto !important; overflow: auto !important; min-height:0 !important; }\n";
 	print "#quickViewModal .modal-footer { margin-top: auto !important; }\n";
+	print "#quickViewModal .modal-dialog { margin: 10vh auto !important; }\n";
+	print "#quickViewModal .modal-content { overflow: hidden !important; box-sizing: border-box !important; }\n";
 	print "</style>\n";
 	# Add a Bootstrap modal for inline quick-view (no address bar)
 	print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
