@@ -463,6 +463,21 @@ if [ -d "/var/cpanel/customizations/whm/includes" ] || mkdir -p /var/cpanel/cust
     else
         echo "WHM global_banner.html.tt exists; not overwriting."
     fi
+    # Also place header/footer variants if not present
+    if [ ! -f "/var/cpanel/customizations/whm/includes/global_header.html.tt" ]; then
+        cp -af cpanel/global_header.html.tt /var/cpanel/customizations/whm/includes/global_header.html.tt
+        chmod 644 /var/cpanel/customizations/whm/includes/global_header.html.tt
+        echo "Installed WHM global header include for qhtlfirewall status."
+    else
+        echo "WHM global_header.html.tt exists; not overwriting."
+    fi
+    if [ ! -f "/var/cpanel/customizations/whm/includes/global_footer.html.tt" ]; then
+        cp -af cpanel/global_footer.html.tt /var/cpanel/customizations/whm/includes/global_footer.html.tt
+        chmod 644 /var/cpanel/customizations/whm/includes/global_footer.html.tt
+        echo "Installed WHM global footer include for qhtlfirewall status."
+    else
+        echo "WHM global_footer.html.tt exists; not overwriting."
+    fi
 fi
 
 if [ -e "/usr/local/cpanel/bin/register_appconfig" ]; then
