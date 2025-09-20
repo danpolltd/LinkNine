@@ -86,13 +86,13 @@ sub main {
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<tr><td><font color='red'>qhtlfirewall UI Disabled via the RESTRICT_UI option in /etc/qhtlfirewall/qhtlfirewall.conf</font></td></tr>\n";
 		print "</tr></table>\n";
-		exit;
-	}
-
-	# Consistent button sizing for WHM/cPanel UI: make the primary action
-	# buttons in the first column of action tables a uniform width, while
-	# avoiding small toolbar/pagination controls.
-	print <<'QHTLBTNSTYLE';
+				<div>
+					<button type='button' class='btn btn-primary' id='quickViewEditBtn'>Edit</button>
+					<button type='button' class='btn btn-success' id='quickViewSaveBtn' style='display:none; margin-left: 4px;'>Save</button>
+				</div>
+				<div>
+					<button type='button' class='btn btn-warning' id='quickViewCancelBtn' style='display:none;'>Cancel</button>
+				</div>
 <style>
 /* First column gets a fixed width so all action buttons align */
 .table.table-bordered.table-striped > tbody > tr > td:first-child,
@@ -2449,6 +2449,9 @@ EOF
 			print "<tr><td><form action='$script' method='post'><button name='action' value='reseller' type='submit' class='btn btn-default'>Edit Reseller Privs</button></form></td><td style='width:100%'>Privileges can be assigned to $resellers accounts by editing this file (qhtlfirewall.resellers)</td></tr>\n";
 			print "</table>\n";
 		}
+
+		# Close the 'More' tab-pane before starting Extra
+		print "</div>\n";
 
 		# New Extra tab-pane at the end
 		print "<div id='extra' class='tab-pane'>\n";
