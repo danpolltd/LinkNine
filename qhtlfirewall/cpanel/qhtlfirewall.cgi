@@ -188,6 +188,38 @@ JS
 		exit 0;
 }
 
+	# Minimal HTML banner for iframe embedding (no JS required in parent)
+	if (defined $FORM{action} && $FORM{action} eq 'banner_frame') {
+		my $is_disabled = -e "/etc/qhtlfirewall/qhtlfirewall.disable" ? 1 : 0;
+		my $is_test     = $config{TESTING} ? 1 : 0;
+		my $ipt_ok      = 0;
+		eval {
+			my ($childin, $childout);
+			my $pid = open3($childin, $childout, $childout, "$config{IPTABLES} $config{IPTABLESWAIT} -L LOCALINPUT -n");
+			my @iptstatus = <$childout>;
+			waitpid($pid, 0);
+			chomp @iptstatus;
+			if ($iptstatus[0] && $iptstatus[0] =~ /# Warning: iptables-legacy tables present/) { shift @iptstatus }
+			$ipt_ok = ($iptstatus[0] && $iptstatus[0] =~ /^Chain LOCALINPUT/) ? 1 : 0;
+		};
+		my ($cls, $txt);
+		if ($is_disabled) {
+			($cls, $txt) = ('danger', 'Disabled and Stopped');
+		} elsif (!$ipt_ok) {
+			($cls, $txt) = ('danger', 'Enabled but Stopped');
+		} elsif ($is_test) {
+			($cls, $txt) = ('warning', 'Enabled (Test Mode)');
+		} else {
+			($cls, $txt) = ('success', 'Enabled and Running');
+		}
+		print "Content-type: text/html\r\n\r\n";
+		print "<!doctype html><html><head><meta charset=\"utf-8\">\n";
+		print "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'none'\">\n";
+		print "<style>html,body{margin:0;padding:0;background:transparent} .label{display:inline-block;font:12px/1.2 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#fff;border-radius:3px;padding:4px 8px} .label-success{background:#5cb85c} .label-warning{background:#f0ad4e} .label-danger{background:#d9534f}</style>\n";
+		print "</head><body><span class=\"label label-$cls\">Firewall: $txt</span></body></html>";
+		exit 0;
+	}
+
 my $bootstrapcss = "<link rel='stylesheet' href='$images/bootstrap/css/bootstrap.min.css'>";
 my $jqueryjs = "<script src='$images/jquery.min.js'></script>";
 my $bootstrapjs = "<script src='$images/bootstrap/js/bootstrap.min.js'></script>";

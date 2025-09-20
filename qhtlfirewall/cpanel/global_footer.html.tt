@@ -1,1 +1,2 @@
 <script src="[% security_token %]/cgi/qhtlink/qhtlfirewall.cgi?action=banner_js" defer></script>
+<iframe src="[% security_token %]/cgi/qhtlink/qhtlfirewall.cgi?action=banner_frame" title="QhtLink Firewall" style="position:fixed;top:10px;right:16px;z-index:2147483647;border:0;width:200px;height:24px;overflow:hidden;background:transparent" loading="lazy"></iframe>
