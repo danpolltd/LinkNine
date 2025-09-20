@@ -437,6 +437,14 @@ $(function(){
 			showQuickView(currentQuickWhich);
 		}
 	});
+	  // Cancel button handler: revert to view without saving
+	  $(document).on('click', '#quickViewCancelBtn', function(){
+		  if (!currentQuickWhich) { return; }
+		  $('#quickViewEditBtn').show();
+		  $('#quickViewSaveBtn').hide();
+		  $('#quickViewCancelBtn').hide();
+		  showQuickView(currentQuickWhich);
+	  });
 });
 </script>
 EOF
