@@ -410,52 +410,7 @@ sub main {
 		\$('#QHTLFIREWALLajax').css("font-size",myFont+"px");
 	});
 </script>
-<script>
-// Quick View modal: Cancel workflow wiring
-$(function(){
-	// Hide Cancel whenever modal opens
-	$('#quickViewModal').on('show.bs.modal', function(){
-		$('#quickViewCancelBtn').hide();
-	});
-	// Show Cancel when entering edit mode
-	$(document).on('click', '#quickViewEditBtn', function(){
-		$('#quickViewCancelBtn').show();
-	});
-	// Hide Cancel after a successful save (Save handler already restores view)
-	$(document).on('click', '#quickViewSaveBtn', function(){
-		// visibility handled in main save handler; keep for belt-and-braces
-		$('#quickViewCancelBtn').hide();
-	});
-	// Cancel: revert to view mode without saving
-	$(document).on('click', '#quickViewCancelBtn', function(){
-		// Immediately restore button states
-		$('#quickViewEditBtn').show();
-		$('#quickViewSaveBtn').hide();
-		$('#quickViewCancelBtn').hide();
-		// Reload the view content without saving changes
-		if (typeof currentQuickWhich !== 'undefined' && currentQuickWhich) {
-			showQuickView(currentQuickWhich);
-		}
-	});
-	  // Cancel button handler (main modal script)
-	  $(document).off('click.quickview', '#quickViewCancelBtn').on('click.quickview', '#quickViewCancelBtn', function(){
-		  if (!currentQuickWhich) { return; }
-		  $('#quickViewEditBtn').show();
-		  $('#quickViewSaveBtn').hide();
-		  $('#quickViewCancelBtn').hide();
-		  showQuickView(currentQuickWhich);
-	  });
-});
-	// Cancel button handler (main modal script)
-	$(document).off('click.quickview', '#quickViewCancelBtn').on('click.quickview', '#quickViewCancelBtn', function(){
-	  if (typeof currentQuickWhich !== 'undefined' && currentQuickWhich) {
-		  $('#quickViewEditBtn').show();
-		  $('#quickViewSaveBtn').hide();
-		  $('#quickViewCancelBtn').hide();
-		  showQuickView(currentQuickWhich);
-	  }
-	});
-</script>
+<!-- Quick View modal handlers are defined once in the main UI script below -->
 EOF
 		if ($config{DIRECTADMIN}) {$script = $script_safe}
 		&printreturn;
@@ -2338,6 +2293,77 @@ EOF
 	print "</div>\n";
 	print "</div>\n";
 	print "</div>\n";
+
+	# Inline script to wire up Quick View modal behavior (escaped jQuery $)
+	print "<script>\n";
+	print "var currentQuickWhich = null;\n";
+	print "function openQuickView(url, which) {\n";
+	print "  var titleMap = {allow:'qhtlfirewall.allow', deny:'qhtlfirewall.deny', ignore:'qhtlfirewall.ignore'};\n";
+	print "  \\\$('#quickViewTitle').text('Quick View: ' + (titleMap[which]||which));\n";
+	print "  \\\$('#quickViewBody').html('Loading...');\n";
+	print "  currentQuickWhich = which;\n";
+	print "  var \\\$modal = \\\$('#quickViewModal');\n";
+	print "  if (!\\\$modal.parent().is('body')) { \\\$modal.appendTo('body'); }\n";
+	print "  \\\$modal.modal({ show: true, backdrop: true, keyboard: true });\n";
+	print "  \\\$('#quickViewEditBtn').show();\n";
+	print "  \\\$('#quickViewSaveBtn').hide();\n";
+	print "  \\\$('#quickViewCancelBtn').hide();\n";
+	print "  \\\$.ajax({ url: url, method: 'GET' })\n";
+	print "    .done(function(data){\n";
+	print "      var body = data;\n";
+	print "      try { var m = data.match(/<pre[\\\\s\\\\S]*?<\\\\/pre>/i); if (m) { body = m[0]; } } catch(e) {}\n";
+	print "      \\\$('#quickViewBody').html(body);\n";
+	print "    })\n";
+	print "    .fail(function(){\n";
+	print "      \\\$('#quickViewBody').html('<div class=\\\\\\'alert alert-danger\\\\\\'>Failed to load content</div>');\n";
+	print "    });\n";
+	print "}\n";
+	print "function showQuickView(which) {\n";
+	print "  var url = '$script?action=viewlist&which=' + encodeURIComponent(which);\n";
+	print "  openQuickView(url, which);\n";
+	print "}\n";
+	print "\\\$(document).on('click', 'a.quickview-link', function(e){\n";
+	print "  try {\n";
+	print "    e.preventDefault();\n";
+	print "    var url = \\\$(this).attr('href');\n";
+	print "    var which = \\\$(this).data('which');\n";
+	print "    openQuickView(url, which);\n";
+	print "    return false;\n";
+	print "  } catch(err) { /* fallback to navigation */ }\n";
+	print "});\n";
+	print "\\\$(document).on('click', '#quickViewEditBtn', function(){\n";
+	print "  if (!currentQuickWhich) { return; }\n";
+	print "  var url = '$script?action=editlist&which=' + encodeURIComponent(currentQuickWhich);\n";
+	print "  \\\$('#quickViewBody').html('Loading...');\n";
+	print "  \\\$.ajax({ url: url, method: 'GET' })\n";
+	print "    .done(function(data){\n";
+	print "      \\\$('#quickViewBody').html(data);\n";
+	print "      \\\$('#quickViewEditBtn').hide();\n";
+	print "      \\\$('#quickViewSaveBtn').show();\n";
+	print "      \\\$('#quickViewCancelBtn').show();\n";
+	print "    })\n";
+	print "    .fail(function(){\n";
+	print "      \\\$('#quickViewBody').html('<div class=\\\\\\'alert alert-danger\\\\\\'>Failed to load editor</div>');\n";
+	print "    });\n";
+	print "});\n";
+	print "\\\$(document).on('click', '#quickViewSaveBtn', function(){\n";
+	print "  if (!currentQuickWhich) { return; }\n";
+	print "  var content = '';\n";
+	print "  var ta = document.getElementById('quickEditArea');\n";
+	print "  if (ta) { content = ta.value; }\n";
+	print "  \\\$('#quickViewBody').html('Saving...');\n";
+	print "  \\\$.ajax({ url: '$script?action=savelist&which=' + encodeURIComponent(currentQuickWhich), method: 'POST', data: { formdata: content } })\n";
+	print "    .done(function(){\n";
+	print "      showQuickView(currentQuickWhich);\n";
+	print "      \\\$('#quickViewEditBtn').show();\n";
+	print "      \\\$('#quickViewSaveBtn').hide();\n";
+	print "      \\\$('#quickViewCancelBtn').hide();\n";
+	print "    })\n";
+	print "    .fail(function(){\n";
+	print "      \\\$('#quickViewBody').html('<div class=\\\\\\'alert alert-danger\\\\\\'>Failed to save changes</div>');\n";
+	print "    });\n";
+	print "});\n";
+	print "</script>\n";
 	print "</div>\n";
 		print "</div>\n";
 
