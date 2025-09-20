@@ -2345,9 +2345,9 @@ EOF
 	print ".fire-allow::after { box-shadow: inset 0 0 28px 15px rgba(40,167,69,0.85), 0 0 26px 8px rgba(40,167,69,0.55); animation: flicker-allow 1.4s infinite ease-in-out; }\n";
 	print ".fire-ignore::after { box-shadow: inset 0 0 28px 15px rgba(255,152,0,0.9), 0 0 26px 8px rgba(255,152,0,0.6); animation: flicker-ignore 1.4s infinite ease-in-out; }\n";
 	print ".fire-deny::after { box-shadow: inset 0 0 28px 15px rgba(220,53,69,0.9), 0 0 26px 8px rgba(220,53,69,0.6); animation: flicker-deny 1.4s infinite ease-in-out; }\n";
-	print "@keyframes flicker-allow { 0%,100% { box-shadow: inset 0 0 24px 12px rgba(40,167,69,0.75), 0 0 20px 6px rgba(40,167,69,0.45); } 50% { box-shadow: inset 0 0 36px 18px rgba(40,167,69,0.95), 0 0 34px 12px rgba(40,167,69,0.75); } }\n";
-	print "@keyframes flicker-ignore { 0%,100% { box-shadow: inset 0 0 24px 12px rgba(255,152,0,0.75), 0 0 20px 6px rgba(255,152,0,0.45); } 50% { box-shadow: inset 0 0 36px 18px rgba(255,152,0,0.98), 0 0 34px 12px rgba(255,152,0,0.78); } }\n";
-	print "@keyframes flicker-deny { 0%,100% { box-shadow: inset 0 0 24px 12px rgba(220,53,69,0.75), 0 0 20px 6px rgba(220,53,69,0.45); } 50% { box-shadow: inset 0 0 36px 18px rgba(220,53,69,0.98), 0 0 34px 12px rgba(220,53,69,0.78); } }\n";
+	print "\@keyframes flicker-allow { 0%,100% { box-shadow: inset 0 0 24px 12px rgba(40,167,69,0.75), 0 0 20px 6px rgba(40,167,69,0.45); } 50% { box-shadow: inset 0 0 36px 18px rgba(40,167,69,0.95), 0 0 34px 12px rgba(40,167,69,0.75); } }\n";
+	print "\@keyframes flicker-ignore { 0%,100% { box-shadow: inset 0 0 24px 12px rgba(255,152,0,0.75), 0 0 20px 6px rgba(255,152,0,0.45); } 50% { box-shadow: inset 0 0 36px 18px rgba(255,152,0,0.98), 0 0 34px 12px rgba(255,152,0,0.78); } }\n";
+	print "\@keyframes flicker-deny { 0%,100% { box-shadow: inset 0 0 24px 12px rgba(220,53,69,0.75), 0 0 20px 6px rgba(220,53,69,0.45); } 50% { box-shadow: inset 0 0 36px 18px rgba(220,53,69,0.98), 0 0 34px 12px rgba(220,53,69,0.78); } }\n";
 	print "</style>\n";
 	# Add a Bootstrap modal for inline quick-view (no address bar)
 	print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
