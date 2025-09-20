@@ -964,7 +964,7 @@ EOF
 			print "<textarea id='quickEditArea' style='width:100%; height:280px; border:1px solid #000; font-family: \"Courier New\", Courier; font-size: 13px; line-height: 1.15' wrap='off'>";
 			foreach my $line (@lines) {
 				$line =~ s/&/&amp;/g; $line =~ s/</&lt;/g; $line =~ s/>/&gt;/g;
-				print $line; # slurp() includes newlines
+				print $line."\n"; # ensure newline between lines in textarea
 			}
 			print "</textarea></div>";
 		}
