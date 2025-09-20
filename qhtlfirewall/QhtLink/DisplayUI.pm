@@ -2098,7 +2098,7 @@ EOF
 		waitpid ($pid, 0);
 		chomp @iptstatus;
 		if ($iptstatus[0] =~ /# Warning: iptables-legacy tables present/) {shift @iptstatus}
-		my $status = "<div class='bs-callout bs-callout-success text-center'><h4>Firewall Status: Enabled and Running</h4></div>";
+	my $status = "<div class='bs-callout bs-callout-success text-center'><h4>Firewall Status: Enabled and Running</h4></div>";
 
 		if (-e "/etc/qhtlfirewall/qhtlfirewall.disable") {
 			$status = "<div class='bs-callout bs-callout-danger text-center'><form action='$script' method='post'><h4>Firewall Status: Disabled and Stopped <input type='hidden' name='action' value='enable'><input type='submit' class='btn btn-default' value='Enable'></form></h4></div>\n"
@@ -2109,8 +2109,9 @@ EOF
 		elsif ($iptstatus[0] !~ /^Chain LOCALINPUT/) {
 			$status = "<div class='bs-callout bs-callout-danger text-center'><form action='$script' method='post'><h4>Firewall Status: Enabled but Stopped <input type='hidden' name='action' value='start'><input type='submit' class='btn btn-default' value='Start'></form></h4></div>"
 		}
-		if (-e "/var/lib/qhtlfirewall/qhtlwaterfall.restart") {$status .= "<div class='bs-callout bs-callout-info text-center'><h4>qhtlwaterfall restart request pending</h4></div>"}
-		unless ($config{RESTRICT_SYSLOG}) {$status .= "<div class='bs-callout bs-callout-warning text-center'><h4>WARNING: RESTRICT_SYSLOG is disabled. See SECURITY WARNING in Firewall Configuration</h4></div>\n"}
+	my $status_extras = '';
+	if (-e "/var/lib/qhtlfirewall/qhtlwaterfall.restart") { $status_extras .= "<div class='bs-callout bs-callout-info text-center'><h4>qhtlwaterfall restart request pending</h4></div>"; }
+	unless ($config{RESTRICT_SYSLOG}) { $status_extras .= "<div class='bs-callout bs-callout-warning text-center'><h4>WARNING: RESTRICT_SYSLOG is disabled. See SECURITY WARNING in Firewall Configuration</h4></div>\n"; }
 
 		my $tempcnt = 0;
 		if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempban") {
@@ -2159,7 +2160,13 @@ EOF
 		}
 		my $permallows = "(Currently: <code>$permcnt</code> permanent IP allows)";
 
-		print $status;
+		# If invoked from cPanel UI, the header already shows a compact status. Only print extras here.
+		if ($config{THIS_UI} && $config{THIS_UI} eq 'cpanel') {
+			print $status_extras;
+		} else {
+			print $status;
+			print $status_extras;
+		}
 
 		print "<div class='normalcontainer'>\n";
 		print "<div class='bs-callout bs-callout-info text-center collapse' id='upgradebs'><h4>A new version of qhtlfirewall is <a href='#upgradetable'>available</a></h4></div>";

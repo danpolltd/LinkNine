@@ -181,19 +181,57 @@ EOF
 }
 
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
-	print <<EOF;
+		# Build a compact status badge for the header's right column
+		my $status_badge = "<span class='label label-success'>Enabled and Running</span>";
+		my $status_buttons = '';
+		my $is_test = $config{TESTING} ? 1 : 0;
+		my $is_disabled = -e "/etc/qhtlfirewall/qhtlfirewall.disable" ? 1 : 0;
+		my $ipt_ok = 0;
+		eval {
+				my ($childin, $childout);
+				my $pid = open3($childin, $childout, $childout, "$config{IPTABLES} $config{IPTABLESWAIT} -L LOCALINPUT -n");
+				my @iptstatus = <$childout>;
+				waitpid ($pid, 0);
+				chomp @iptstatus;
+				if ($iptstatus[0] =~ /# Warning: iptables-legacy tables present/) {shift @iptstatus}
+				$ipt_ok = ($iptstatus[0] && $iptstatus[0] =~ /^Chain LOCALINPUT/) ? 1 : 0;
+		};
+		if ($is_disabled) {
+				$status_badge = "<span class='label label-danger'>Disabled and Stopped</span>";
+				$status_buttons = "<form action='$script' method='post' style='display:inline;margin-left:8px'>".
+													"<input type='hidden' name='action' value='enable'>".
+													"<input type='submit' class='btn btn-xs btn-default' value='Enable'></form>";
+		} elsif ($is_test) {
+				$status_badge = "<span class='label label-warning'>Enabled (Test Mode)</span>";
+		} elsif (!$ipt_ok) {
+				$status_badge = "<span class='label label-danger'>Enabled but Stopped</span>";
+				$status_buttons = "<form action='$script' method='post' style='display:inline;margin-left:8px'>".
+													"<input type='hidden' name='action' value='start'>".
+													"<input type='submit' class='btn btn-xs btn-default' value='Start'></form>";
+		}
+
+		print <<EOF;
 <div id="loader"></div><br />
-<div class='panel panel-default'>
-<h4><img src='$images/qhtlfirewall_small.png' style='padding-left: 10px'> QhtLink Firewall (qhtlfirewall) v$myv</h4></div>
+<div class='panel panel-default' style='padding: 10px'>
+	<div class='row' style='display:flex;align-items:center;'>
+		<div class='col-sm-8 col-xs-12'>
+			<h4 style='margin:5px 0;'>QhtLink Firewall (qhtlfirewall) v$myv</h4>
+		</div>
+		<div class='col-sm-4 col-xs-12 text-right'>
+			<img src='$images/qhtlfirewall_small.png' style='height:24px;vertical-align:middle;margin-right:8px' alt='Logo'>
+			$status_badge $status_buttons
+		</div>
+	</div>
+</div>
 EOF
-	if ($reregister ne "") {print $reregister}
+		if ($reregister ne "") {print $reregister}
 }
 
 #eval {
 if ($reseller) {
-	QhtLink::DisplayResellerUI::main(\%FORM, $script, 0, $images, $myv);
+	QhtLink::DisplayResellerUI::main(\%FORM, $script, 0, $images, $myv, 'cpanel');
 } else {
-	QhtLink::DisplayUI::main(\%FORM, $script, 0, $images, $myv);
+	QhtLink::DisplayUI::main(\%FORM, $script, 0, $images, $myv, 'cpanel');
 }
 #};
 #if ($@) {
