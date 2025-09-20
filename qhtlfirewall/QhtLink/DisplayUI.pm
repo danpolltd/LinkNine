@@ -910,7 +910,7 @@ EOF
 			my $path = $map{$which}{path};
 			my @lines = slurp($path);
 			print "<div><div class='small text-muted' style='margin-bottom:6px;'>Editing: $path</div>";
-			print "<textarea id='quickEditArea' style='width:100%; height:280px; max-height:300px; border:1px solid #000; font-family: \"Courier New\", Courier; font-size: 13px; line-height: 1.15; box-sizing:border-box; overflow:auto' wrap='off'>";
+			print "<textarea id='quickEditArea' style='width:100%; height:280px; max-height:300px; border:1px solid #000; font-family: \"Courier New\", Courier; font-size: 13px; line-height: 1.15; box-sizing:border-box; overflow:auto; resize:none' wrap='off'>";
 			foreach my $line (@lines) {
 				$line =~ s/&/&amp;/g; $line =~ s/</&lt;/g; $line =~ s/>/&gt;/g;
 				print $line."\n"; # ensure newline between lines in textarea
@@ -2317,6 +2317,7 @@ EOF
 	print "#quickViewModal #quickViewTitle { margin:0 0 8px 0 !important; }\n";
 	print "#quickViewModal #quickViewBody pre { max-height: 300px; overflow: auto; }\n";
 	print "#quickViewModal #quickViewBody pre { white-space: pre; overflow-x: hidden; overflow-y: auto; }\n";
+	print "#quickViewModal #quickEditArea { resize: none !important; }\n";
 	print "</style>\n";
 	# Add a Bootstrap modal for inline quick-view (no address bar)
 	print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
