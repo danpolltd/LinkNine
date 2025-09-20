@@ -310,7 +310,15 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 		my $err = $@ || 'unknown error';
 		print "<pre>Template render error: $err</pre>";
 	};
-	if (defined $rendered) { print $rendered; }
+	if (defined $rendered) {
+		if (ref($rendered) eq 'SCALAR') {
+			print ${$rendered};
+		} elsif (ref($rendered) eq 'ARRAY') {
+			print join('', @{$rendered});
+		} else {
+			print $rendered;
+		}
+	}
 }
 # end main
 ###############################################################################
