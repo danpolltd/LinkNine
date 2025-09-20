@@ -447,8 +447,7 @@ print "<style>\n#quickViewModal .modal-body { padding: 8px; }\n#quickViewModal .
 		\$('#QHTLFIREWALLajax').css("font-size",myFont+"px");
 	});
 	</script>
-	print "<script>\n(function(){\nvar applyQV=function(){ try{ var \\$c = \\$('#quickViewBody'); var \\$p = \\$c.find('pre').first(); if(\\$p.length){ \\$p.addClass('quickview-pre').css({whiteSpace:'pre', lineHeight:'1.2em', maxHeight:'18em', overflowY:'auto', overflowX:'auto', resize:'none'});}\n \\$c.find('button').filter(function(){ var on=this.getAttribute('onclick')||''; return on.indexOf('window.close')!==-1; }).each(function(){ \\$(this).removeAttr('onclick').attr('data-dismiss','modal');}); }catch(e){} };\n\\$('#quickViewModal').on('shown.bs.modal', applyQV);\nvar target = document.getElementById('quickViewBody'); if (target && window.MutationObserver){ var mo = new MutationObserver(function(){ applyQV(); }); mo.observe(target,{childList:true, subtree:true}); }\n})();\n</script>\n";
-EOF
+	EOF
 		if ($config{DIRECTADMIN}) {$script = $script_safe}
 		&printreturn;
 	}
@@ -510,7 +509,6 @@ EOF
 					alarm(0);
 				};
 				alarm(0);
-				if ($@) {print "TIMEOUT: tail command took too long. Timed out after $timeout seconds\n"}
 			} else {
 				print "Executable [$config{TAIL}] invalid";
 			}
