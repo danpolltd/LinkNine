@@ -5,7 +5,8 @@ Before=qhtlwaterfall.service
 
 [Service]
 ExecStart=/usr/sbin/qhtlfirewall --initup
-ExecStop=/usr/sbin/qhtlfirewall --initdown ; /usr/sbin/qhtlfirewall --stop
+ExecStop=/usr/sbin/qhtlfirewall --initdown
+ExecStop=/usr/sbin/qhtlfirewall --stop
 RemainAfterExit=yes
 Type=oneshot
 Restart=no
