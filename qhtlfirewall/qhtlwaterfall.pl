@@ -35,6 +35,8 @@ BEGIN {
 		'/var/lib/qhtlfirewall',
 		'/var/lib/qhtlfirewall/lock',
 		'/var/lib/qhtlfirewall/stats',
+		'/var/lib/qhtlfirewall/Geo',
+		'/var/lib/qhtlfirewall/zone',
 	);
 	foreach my $d (@dirs) {
 		if (! -d $d) {
