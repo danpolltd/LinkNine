@@ -7,6 +7,21 @@
 
 umask 0177
 
+# Parse flags
+FORCE_WHM_INCLUDES=0
+for arg in "$@"; do
+    case "$arg" in
+        --force-whm-includes)
+            FORCE_WHM_INCLUDES=1
+            ;;
+    esac
+done
+
+# Env var override
+if [ "${QHTL_FORCE_WHM_INCLUDES}" = "1" ]; then
+    FORCE_WHM_INCLUDES=1
+fi
+
 echo "Installing qhtlfirewall and qhtlwaterfall"
 echo
 
@@ -456,27 +471,27 @@ chmod 700 /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/upgrade.sh
 # This uses cPanel's supported customization path. We only install if the admin
 # hasn't provided their own banner include yet to avoid overriding.
 if [ -d "/var/cpanel/customizations/whm/includes" ] || mkdir -p /var/cpanel/customizations/whm/includes ; then
-    if [ ! -f "/var/cpanel/customizations/whm/includes/global_banner.html.tt" ]; then
+    if [ $FORCE_WHM_INCLUDES -eq 1 ] || [ ! -f "/var/cpanel/customizations/whm/includes/global_banner.html.tt" ]; then
         cp -af cpanel/whm_global_banner.html.tt /var/cpanel/customizations/whm/includes/global_banner.html.tt
         chmod 644 /var/cpanel/customizations/whm/includes/global_banner.html.tt
-        echo "Installed WHM global banner include for qhtlfirewall status."
+        echo "Installed WHM global banner include for qhtlfirewall status." 
     else
-        echo "WHM global_banner.html.tt exists; not overwriting."
+        echo "WHM global_banner.html.tt exists; not overwriting. Use --force-whm-includes to replace."
     fi
-    # Also place header/footer variants if not present
-    if [ ! -f "/var/cpanel/customizations/whm/includes/global_header.html.tt" ]; then
+    # Also place header/footer variants
+    if [ $FORCE_WHM_INCLUDES -eq 1 ] || [ ! -f "/var/cpanel/customizations/whm/includes/global_header.html.tt" ]; then
         cp -af cpanel/global_header.html.tt /var/cpanel/customizations/whm/includes/global_header.html.tt
         chmod 644 /var/cpanel/customizations/whm/includes/global_header.html.tt
         echo "Installed WHM global header include for qhtlfirewall status."
     else
-        echo "WHM global_header.html.tt exists; not overwriting."
+        echo "WHM global_header.html.tt exists; not overwriting. Use --force-whm-includes to replace."
     fi
-    if [ ! -f "/var/cpanel/customizations/whm/includes/global_footer.html.tt" ]; then
+    if [ $FORCE_WHM_INCLUDES -eq 1 ] || [ ! -f "/var/cpanel/customizations/whm/includes/global_footer.html.tt" ]; then
         cp -af cpanel/global_footer.html.tt /var/cpanel/customizations/whm/includes/global_footer.html.tt
         chmod 644 /var/cpanel/customizations/whm/includes/global_footer.html.tt
         echo "Installed WHM global footer include for qhtlfirewall status."
     else
-        echo "WHM global_footer.html.tt exists; not overwriting."
+        echo "WHM global_footer.html.tt exists; not overwriting. Use --force-whm-includes to replace."
     fi
 fi
 
