@@ -213,7 +213,9 @@ JS
 		} else {
 			($cls, $txt) = ('success', 'Enabled and Running');
 		}
-		print "Content-type: text/html\r\n\r\n";
+		print "Content-type: text/html\r\n";
+		print "X-Frame-Options: SAMEORIGIN\r\n";
+		print "Content-Security-Policy: frame-ancestors 'self';\r\n\r\n";
 		print "<!doctype html><html><head><meta charset=\"utf-8\">\n";
 		print "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'none'\">\n";
 		print "<style>html,body{margin:0;padding:0;background:transparent} .label{display:inline-block;font:12px/1.2 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#fff;border-radius:3px;padding:4px 8px} .label-success{background:#5cb85c} .label-warning{background:#f0ad4e} .label-danger{background:#d9534f}</style>\n";
