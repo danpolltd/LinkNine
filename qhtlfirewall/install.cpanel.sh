@@ -45,7 +45,7 @@ if [ -e "/usr/local/cpanel/3rdparty/bin/perl" ]; then
 fi
 
 # Make sure target dirs exist without noisy errors
-mkdir -p -m 0600 /etc/qhtlfirewall
+mkdir -p -m 0700 /etc/qhtlfirewall
 cp -af install.txt /etc/qhtlfirewall/
 
 echo
@@ -62,16 +62,16 @@ else
 fi
 
 # Create runtime directories (idempotent, quiet)
-mkdir -p -m 0600 /var/lib/qhtlfirewall
+mkdir -p -m 0700 /var/lib/qhtlfirewall
     # Install and run daily updater under new name
     cp -af qhtlfirewallget.pl /etc/cron.daily/qhtlfirewallget
     chmod 700 /etc/cron.daily/qhtlfirewallget
     /etc/cron.daily/qhtlfirewallget --nosleep || true
-mkdir -p -m 0600 /var/lib/qhtlfirewall/webmin
-mkdir -p -m 0600 /var/lib/qhtlfirewall/zone
-mkdir -p -m 0600 /usr/local/qhtlfirewall
-mkdir -p -m 0600 /usr/local/qhtlfirewall/lib
-mkdir -p -m 0600 /usr/local/qhtlfirewall/tpl
+mkdir -p -m 0700 /var/lib/qhtlfirewall/webmin
+mkdir -p -m 0700 /var/lib/qhtlfirewall/zone
+mkdir -p -m 0700 /usr/local/qhtlfirewall
+mkdir -p -m 0700 /usr/local/qhtlfirewall/lib
+mkdir -p -m 0700 /usr/local/qhtlfirewall/tpl
 
 if [ -e "/etc/qhtlfirewall/alert.txt" ]; then
 	sh migratedata.sh
