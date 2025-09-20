@@ -2445,7 +2445,17 @@ EOF
 			print "</table>\n";
 		}
 
-		# Extra section moved to its own tab below
+		# New Extra tab-pane at the end
+		print "<div id='extra' class='tab-pane'>\n";
+		print "<table class='table table-bordered table-striped'>\n";
+		print "<thead><tr><th colspan='2'>Extra</th></tr></thead>";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='qhtlfirewalltest' type='submit' class='btn btn-default'>Test iptables</button></form></td><td style='width:100%'>Check that iptables has the required modules to run qhtlfirewall</td></tr>\n";
+		print "</table>\n";
+		print "</div>\n";
+		# Close tab-content container
+		print "</div>\n";
+
+		# Extra section moved to its own tab above
 #		if ($config{DIRECTADMIN} and !$config{THIS_UI}) {
 #			print "<a href='/' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> DirectAdmin Main Page</a>\n";
 #		}
