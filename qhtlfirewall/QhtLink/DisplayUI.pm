@@ -2339,15 +2339,14 @@ EOF
 	print "#quickViewModal #quickEditArea { resize: none !important; }\n";
 	print ".btn-close-red { background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%); color: #721c24 !important; border-color: #f1b0b7 !important; }\n";
 	print ".btn-close-red:hover { background: #dc3545 !important; color: #fff !important; border-color: #dc3545 !important; }\n";
-	# Fire border effect (applies around ~15px from edges) for Edit mode
+	# Fire border effect radiating OUTSIDE the edges for Edit mode
 	print ".fire-border { position: relative; }\n";
-	print ".fire-border::after { content: ''; position: absolute; inset: 0; border-radius: 6px; pointer-events: none; }\n";
-	print ".fire-allow::after { box-shadow: inset 0 0 28px 15px rgba(40,167,69,0.85), 0 0 26px 8px rgba(40,167,69,0.55); animation: flicker-allow 1.4s infinite ease-in-out; }\n";
-	print ".fire-ignore::after { box-shadow: inset 0 0 28px 15px rgba(255,152,0,0.9), 0 0 26px 8px rgba(255,152,0,0.6); animation: flicker-ignore 1.4s infinite ease-in-out; }\n";
-	print ".fire-deny::after { box-shadow: inset 0 0 28px 15px rgba(220,53,69,0.9), 0 0 26px 8px rgba(220,53,69,0.6); animation: flicker-deny 1.4s infinite ease-in-out; }\n";
-	print "\@keyframes flicker-allow { 0%,100% { box-shadow: inset 0 0 24px 12px rgba(40,167,69,0.75), 0 0 20px 6px rgba(40,167,69,0.45); } 50% { box-shadow: inset 0 0 36px 18px rgba(40,167,69,0.95), 0 0 34px 12px rgba(40,167,69,0.75); } }\n";
-	print "\@keyframes flicker-ignore { 0%,100% { box-shadow: inset 0 0 24px 12px rgba(255,152,0,0.75), 0 0 20px 6px rgba(255,152,0,0.45); } 50% { box-shadow: inset 0 0 36px 18px rgba(255,152,0,0.98), 0 0 34px 12px rgba(255,152,0,0.78); } }\n";
-	print "\@keyframes flicker-deny { 0%,100% { box-shadow: inset 0 0 24px 12px rgba(220,53,69,0.75), 0 0 20px 6px rgba(220,53,69,0.45); } 50% { box-shadow: inset 0 0 36px 18px rgba(220,53,69,0.98), 0 0 34px 12px rgba(220,53,69,0.78); } }\n";
+	print ".fire-allow { box-shadow: 0 0 20px 10px rgba(40,167,69,0.75), 0 0 40px 18px rgba(40,167,69,0.45); animation: flicker-allow 1.4s infinite ease-in-out; }\n";
+	print ".fire-ignore { box-shadow: 0 0 20px 10px rgba(255,152,0,0.78), 0 0 40px 18px rgba(255,152,0,0.48); animation: flicker-ignore 1.4s infinite ease-in-out; }\n";
+	print ".fire-deny { box-shadow: 0 0 20px 10px rgba(220,53,69,0.78), 0 0 40px 18px rgba(220,53,69,0.5); animation: flicker-deny 1.4s infinite ease-in-out; }\n";
+	print "\@keyframes flicker-allow { 0%,100% { box-shadow: 0 0 14px 6px rgba(40,167,69,0.6), 0 0 24px 10px rgba(40,167,69,0.35); } 50% { box-shadow: 0 0 28px 14px rgba(40,167,69,0.9), 0 0 46px 20px rgba(40,167,69,0.65); } }\n";
+	print "\@keyframes flicker-ignore { 0%,100% { box-shadow: 0 0 14px 6px rgba(255,152,0,0.62), 0 0 24px 10px rgba(255,152,0,0.35); } 50% { box-shadow: 0 0 28px 14px rgba(255,152,0,0.98), 0 0 46px 20px rgba(255,152,0,0.6); } }\n";
+	print "\@keyframes flicker-deny { 0%,100% { box-shadow: 0 0 14px 6px rgba(220,53,69,0.62), 0 0 24px 10px rgba(220,53,69,0.35); } 50% { box-shadow: 0 0 28px 14px rgba(220,53,69,0.98), 0 0 46px 20px rgba(220,53,69,0.62); } }\n";
 	print "</style>\n";
 	# Add a Bootstrap modal for inline quick-view (no address bar)
 	print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
