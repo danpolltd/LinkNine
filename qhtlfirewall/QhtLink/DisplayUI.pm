@@ -2213,7 +2213,7 @@ EOF
 		print "    }\n";
 		print "    function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ var html=x.responseText; try{ if(url.indexOf('action=viewlist')!==-1){ var mm=html.match(/<pre[\\s\\S]*?<\\/pre>/i); if(mm){ html=mm[0]; var bg=''; if(url.indexOf('which=allow')!==-1){ bg = 'background: linear-gradient(180deg, #d4edda 0%, #c3e6cb 100%);'; } else if(url.indexOf('which=ignore')!==-1){ bg = 'background: linear-gradient(180deg, #ffe0b2 0%, #ffcc80 100%);'; } else if(url.indexOf('which=deny')!==-1){ bg = 'background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%);'; } html=html.replace('<pre','<pre style=\\'white-space: pre; overflow-x: hidden; overflow-y: auto; height:100%; max-height:100%; '+bg+'\\'' ); } } }catch(e){} b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to load content</div>'; } } }; x.send(); m.style.display='block'; }\n";
 		print "    function quickViewPost(url, body, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBody'); b.innerHTML='Saving...'; var x=new XMLHttpRequest(); x.open('POST', url, true); x.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to save changes</div>'; } } }; x.send(body); m.style.display='block'; }\n";
-		print "    function openQuickView(url, which){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var b=document.getElementById('quickViewBodyShim'); window.currentQuickWhich=which; var map={allow:'qhtlfirewall.allow',deny:'qhtlfirewall.deny',ignore:'qhtlfirewall.ignore'}; t.textContent='Quick View: '+(map[which]||which); var e=document.getElementById('quickViewEditBtnShim'), s=document.getElementById('quickViewSaveBtnShim'), c=document.getElementById('quickViewCancelBtnShim'); if(e&&s&&c){ e.style.display='inline-block'; s.style.display='none'; c.style.display='none'; } var d=m.querySelector('div'); if(d){ d.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny'); } quickViewLoad(url); }\n";
+		print "    function openQuickView(url, which){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var b=document.getElementById('quickViewBodyShim'); window.currentQuickWhich=which; var map={allow:'qhtlfirewall.allow',deny:'qhtlfirewall.deny',ignore:'qhtlfirewall.ignore'}; t.textContent='Quick View: '+(map[which]||which); var e=document.getElementById('quickViewEditBtnShim'), s=document.getElementById('quickViewSaveBtnShim'), c=document.getElementById('quickViewCancelBtnShim'); if(e&&s&&c){ e.style.display='inline-block'; s.style.display='none'; c.style.display='none'; } var d=m.querySelector('div'); if(d){ d.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny','fire-allow-view','fire-ignore-view','fire-deny-view'); d.classList.add('fire-border'); if(which==='allow'){ d.classList.add('fire-allow-view'); } else if(which==='ignore'){ d.classList.add('fire-ignore-view'); } else if(which==='deny'){ d.classList.add('fire-deny-view'); } } quickViewLoad(url); }\n";
 		print "    window.showQuickView = function(which){ var url = '$script?action=viewlist&which=' + encodeURIComponent(which); openQuickView(url, which); return false; };\n";
 		print "  }\n";
 		print "})();\n";
@@ -2344,6 +2344,10 @@ EOF
 	print ".fire-allow { box-shadow: 0 0 20px 10px rgba(40,167,69,0.75), 0 0 40px 18px rgba(40,167,69,0.45); animation: flicker-allow 1.4s infinite ease-in-out; }\n";
 	print ".fire-ignore { box-shadow: 0 0 20px 10px rgba(255,152,0,0.78), 0 0 40px 18px rgba(255,152,0,0.48); animation: flicker-ignore 1.4s infinite ease-in-out; }\n";
 	print ".fire-deny { box-shadow: 0 0 20px 10px rgba(220,53,69,0.78), 0 0 40px 18px rgba(220,53,69,0.5); animation: flicker-deny 1.4s infinite ease-in-out; }\n";
+	# View-mode: half intensity, 50% slower animation
+	print ".fire-allow-view { box-shadow: 0 0 20px 10px rgba(40,167,69,0.38), 0 0 40px 18px rgba(40,167,69,0.225); animation: flicker-allow 2.8s infinite ease-in-out; }\n";
+	print ".fire-ignore-view { box-shadow: 0 0 20px 10px rgba(255,152,0,0.39), 0 0 40px 18px rgba(255,152,0,0.24); animation: flicker-ignore 2.8s infinite ease-in-out; }\n";
+	print ".fire-deny-view { box-shadow: 0 0 20px 10px rgba(220,53,69,0.39), 0 0 40px 18px rgba(220,53,69,0.25); animation: flicker-deny 2.8s infinite ease-in-out; }\n";
 	print "\@keyframes flicker-allow { 0%,100% { box-shadow: 0 0 14px 6px rgba(40,167,69,0.6), 0 0 24px 10px rgba(40,167,69,0.35); } 50% { box-shadow: 0 0 28px 14px rgba(40,167,69,0.9), 0 0 46px 20px rgba(40,167,69,0.65); } }\n";
 	print "\@keyframes flicker-ignore { 0%,100% { box-shadow: 0 0 14px 6px rgba(255,152,0,0.62), 0 0 24px 10px rgba(255,152,0,0.35); } 50% { box-shadow: 0 0 28px 14px rgba(255,152,0,0.98), 0 0 46px 20px rgba(255,152,0,0.6); } }\n";
 	print "\@keyframes flicker-deny { 0%,100% { box-shadow: 0 0 14px 6px rgba(220,53,69,0.62), 0 0 24px 10px rgba(220,53,69,0.35); } 50% { box-shadow: 0 0 28px 14px rgba(220,53,69,0.98), 0 0 46px 20px rgba(220,53,69,0.62); } }\n";
@@ -2385,8 +2389,11 @@ EOF
 	print "  \\\$('#quickViewEditBtn').show();\n";
 	print "  \\\$('#quickViewSaveBtn').hide();\n";
 	print "  \\\$('#quickViewCancelBtn').hide();\n";
-	print "  // ensure fire effect is removed in view mode\n";
-	print "  \\\$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny');\n";
+	 print "  // Apply view-mode glow (half intensity, slower)\n";
+	 print "  var \\\$mc = \\\$('#quickViewModal .modal-content');\n";
+	 print "  \\\$mc.removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view');\n";
+	 print "  \\\$mc.addClass('fire-border');\n";
+	 print "  if (currentQuickWhich==='allow') { \\\$mc.addClass('fire-allow-view'); } else if (currentQuickWhich==='ignore') { \\\$mc.addClass('fire-ignore-view'); } else if (currentQuickWhich==='deny') { \\\$mc.addClass('fire-deny-view'); }\n";
 	print "  \\\$.ajax({ url: url, method: 'GET' })\n";
 	print "    .done(function(data){\n";
 	print "      var body = data;\n";
@@ -2420,9 +2427,9 @@ EOF
 	print "      \\\$('#quickViewEditBtn').hide();\n";
 	print "      \\\$('#quickViewSaveBtn').show();\n";
 	print "      \\\$('#quickViewCancelBtn').show();\n";
-	print "      // add fire effect according to which list is being edited\n";
-	print "      var cls = (currentQuickWhich==='allow') ? 'fire-allow' : (currentQuickWhich==='ignore' ? 'fire-ignore' : 'fire-deny');\n";
-	print "      var \\\$mc = \\\$('#quickViewModal .modal-content'); \\\$mc.removeClass('fire-allow fire-ignore fire-deny').addClass('fire-border').addClass(cls);\n";
+	 print "      // add fire effect according to which list is being edited\n";
+	 print "      var cls = (currentQuickWhich==='allow') ? 'fire-allow' : (currentQuickWhich==='ignore' ? 'fire-ignore' : 'fire-deny');\n";
+	 print "      var \\\$mc = \\\$('#quickViewModal .modal-content'); \\\$mc.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); \\\$mc.addClass('fire-border').removeClass('fire-allow fire-ignore fire-deny').addClass(cls);\n";
 	print "    })\n";
 	print "    .fail(function(){\n";
 	print "      \\\$('#quickViewBody').html('<div class=\\\\\\'alert alert-danger\\\\\\'>Failed to load editor</div>');\n";
@@ -2435,7 +2442,7 @@ EOF
 	print "  \\\$('#quickViewEditBtn').show();\n";
 	print "  \\\$('#quickViewSaveBtn').hide();\n";
 	print "  \\\$('#quickViewCancelBtn').hide();\n";
-	print "  \\\$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny');\n";
+	 print "  var \\\$mc2 = \\\$('#quickViewModal .modal-content'); \\\$mc2.removeClass('fire-allow fire-ignore fire-deny'); \\\$mc2.addClass('fire-border'); \\\$mc2.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); if (currentQuickWhich==='allow') { \\\$mc2.addClass('fire-allow-view'); } else if (currentQuickWhich==='ignore') { \\\$mc2.addClass('fire-ignore-view'); } else if (currentQuickWhich==='deny') { \\\$mc2.addClass('fire-deny-view'); }\n";
 	print "  showQuickView(currentQuickWhich);\n";
 	print "});\n";
 	print "  var content = '';\n";
@@ -2448,13 +2455,13 @@ EOF
 	print "      \\\$('#quickViewEditBtn').show();\n";
 	print "      \\\$('#quickViewSaveBtn').hide();\n";
 	print "      \\\$('#quickViewCancelBtn').hide();\n";
-	print "      \\\$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny');\n";
+	 print "      var \\\$mc3 = \\\$('#quickViewModal .modal-content'); \\\$mc3.removeClass('fire-allow fire-ignore fire-deny'); \\\$mc3.addClass('fire-border'); \\\$mc3.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); \\\$mc3.addClass((currentQuickWhich==='allow')?'fire-allow-view':(currentQuickWhich==='ignore')?'fire-ignore-view':'fire-deny-view');\n";
 	print "    })\n";
 	print "    .fail(function(){\n";
 	print "      \\\$('#quickViewBody').html('<div class=\\\\\\'alert alert-danger\\\\\\'>Failed to save changes</div>');\n";
 	print "    });\n";
 	print "});\n";
-	print "\\\$('#quickViewModal').on('hidden.bs.modal', function(){ \\\$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny'); });\n";
+	print "\\\$('#quickViewModal').on('hidden.bs.modal', function(){ \\\$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view'); });\n";
 	print "</script>\n";
 	print "</div>\n";
 		print "</div>\n";
