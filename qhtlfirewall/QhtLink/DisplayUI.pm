@@ -2159,6 +2159,48 @@ EOF
 	print "<li><a data-toggle='tab' href='#extra'>Extra</a></li>\n";
 		print "</ul><br>\n";
 
+		# Early Quick View modal shim (no jQuery required) to guarantee popup availability
+		print "<script>\n";
+		print "(function(){\n";
+		print "  if (typeof window.showQuickView !== 'function') {\n";
+		print "    function ensureQuickViewModal(){\n";
+		print "      var modal = document.getElementById('quickViewModalShim');\n";
+		print "      if (modal) return modal;\n";
+		print "      modal = document.createElement('div');\n";
+		print "      modal.id = 'quickViewModalShim';\n";
+		print "      modal.setAttribute('role','dialog');\n";
+		print "      modal.style.position='fixed'; modal.style.inset='0'; modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='none'; modal.style.zIndex='9999';\n";
+		print "      var dialog = document.createElement('div');\n";
+		print "      dialog.style.width='500px'; dialog.style.maxWidth='90vw'; dialog.style.height='400px'; dialog.style.margin='10vh auto'; dialog.style.background='#fff'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column';\n";
+		print "      var body = document.createElement('div'); body.id='quickViewBody'; body.style.flex='1 1 auto'; body.style.overflow='auto'; body.style.padding='10px';\n";
+		print "      var title = document.createElement('h4'); title.id='quickViewTitle'; title.style.margin='10px'; title.textContent='Quick View';\n";
+		print "      var footer = document.createElement('div'); footer.style.display='flex'; footer.style.justifyContent='space-between'; footer.style.alignItems='center'; footer.style.padding='10px';\n";
+		print "      var left = document.createElement('div'); var mid = document.createElement('div'); var right = document.createElement('div');\n";
+		print "      var editBtn = document.createElement('button'); editBtn.id='quickViewEditBtn'; editBtn.className='btn btn-primary'; editBtn.textContent='Edit';\n";
+		print "      var saveBtn = document.createElement('button'); saveBtn.id='quickViewSaveBtn'; saveBtn.className='btn btn-success'; saveBtn.textContent='Save'; saveBtn.style.display='none'; saveBtn.style.marginLeft='4px';\n";
+		print "      var cancelBtn = document.createElement('button'); cancelBtn.id='quickViewCancelBtn'; cancelBtn.className='btn btn-warning'; cancelBtn.textContent='Cancel'; cancelBtn.style.display='none';\n";
+		print "      var closeBtn = document.createElement('button'); closeBtn.className='btn btn-default'; closeBtn.textContent='Close';\n";
+		print "      left.appendChild(editBtn); left.appendChild(saveBtn); mid.appendChild(cancelBtn); right.appendChild(closeBtn);\n";
+		print "      var inner = document.createElement('div'); inner.style.padding='10px'; inner.appendChild(title); inner.appendChild(body);\n";
+		print "      footer.appendChild(left); footer.appendChild(mid); footer.appendChild(right);\n";
+		print "      dialog.appendChild(inner); dialog.appendChild(footer); modal.appendChild(dialog); document.body.appendChild(modal);\n";
+		print "      // basic close handlers\n";
+		print "      closeBtn.addEventListener('click', function(){ modal.style.display='none'; });\n";
+		print "      modal.addEventListener('click', function(e){ if(e.target===modal){ modal.style.display='none'; } });\n";
+		print "      // wire buttons\n";
+		print "      editBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; quickViewLoad('$script?action=editlist&which='+encodeURIComponent(window.currentQuickWhich), function(){ editBtn.style.display='none'; saveBtn.style.display='inline-block'; cancelBtn.style.display='inline-block'; }); });\n";
+		print "      saveBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; var ta=document.getElementById('quickEditArea'); var content=ta?ta.value:''; quickViewPost('$script?action=savelist&which='+encodeURIComponent(window.currentQuickWhich), 'formdata='+encodeURIComponent(content), function(){ showQuickView(window.currentQuickWhich); editBtn.style.display='inline-block'; saveBtn.style.display='none'; cancelBtn.style.display='none'; }); });\n";
+		print "      cancelBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; showQuickView(window.currentQuickWhich); });\n";
+		print "      return modal;\n";
+		print "    }\n";
+		print "    function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBody'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ b.innerHTML = x.responseText; if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to load content</div>'; } } }; x.send(); m.style.display='block'; }\n";
+		print "    function quickViewPost(url, body, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBody'); b.innerHTML='Saving...'; var x=new XMLHttpRequest(); x.open('POST', url, true); x.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to save changes</div>'; } } }; x.send(body); m.style.display='block'; }\n";
+		print "    function openQuickView(url, which){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitle'); var b=document.getElementById('quickViewBody'); window.currentQuickWhich=which; var map={allow:'qhtlfirewall.allow',deny:'qhtlfirewall.deny',ignore:'qhtlfirewall.ignore'}; t.textContent='Quick View: '+(map[which]||which); var e=document.getElementById('quickViewEditBtn'), s=document.getElementById('quickViewSaveBtn'), c=document.getElementById('quickViewCancelBtn'); if(e&&s&&c){ e.style.display='inline-block'; s.style.display='none'; c.style.display='none'; } quickViewLoad(url); }\n";
+		print "    window.showQuickView = function(which){ var url = '$script?action=viewlist&which=' + encodeURIComponent(which); openQuickView(url, which); return false; };\n";
+		print "  }\n";
+		print "})();\n";
+		print "</script>\n";
+
 		print "<div class='tab-content'>\n";
 		print "<div id='upgrade' class='tab-pane active'>\n";
 		print "<form action='$script' method='post'>\n";
