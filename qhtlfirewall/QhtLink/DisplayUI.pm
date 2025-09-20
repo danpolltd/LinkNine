@@ -86,6 +86,7 @@ sub main {
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<tr><td><font color='red'>qhtlfirewall UI Disabled via the RESTRICT_UI option in /etc/qhtlfirewall/qhtlfirewall.conf</font></td></tr>\n";
 		print "</tr></table>\n";
+
 		return;
 	}
 

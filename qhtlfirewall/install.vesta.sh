@@ -7,13 +7,6 @@
 
 umask 0177
 
-# Locate Perl interpreter explicitly to avoid executing scripts on noexec mounts
-PERL=$(command -v perl 2>/dev/null || echo /usr/bin/perl)
-if [ ! -x "$PERL" ]; then
-	echo "FAILED: perl not found or not executable at $PERL"
-	exit 1
-fi
-
 if [ -e "/usr/local/cpanel/version" ]; then
 	echo "Running qhtlfirewall cPanel installer"
 	echo
@@ -42,7 +35,7 @@ cp -avf install.txt /etc/qhtlfirewall/
 
 echo "Checking Perl modules..."
 chmod 700 os.pl
-RETURN=`"$PERL" os.pl`
+RETURN=`./os.pl`
 if [ "$RETURN" = 1 ]; then
 	echo
 	echo "FAILED: You MUST install the missing perl modules above before you can install qhtlfirewall. See /etc/qhtlfirewall/install.txt for installation details."
@@ -388,11 +381,7 @@ cp -avf license.txt /etc/qhtlfirewall/
 cp -avf webmin /usr/local/qhtlfirewall/lib/
 cp -avf QhtLink /usr/local/qhtlfirewall/lib/
 cp -avf Net /usr/local/qhtlfirewall/lib/
-if [ -d Geo ]; then
-	cp -avf Geo /usr/local/qhtlfirewall/lib/
-else
-	echo "Skipping Geo directory copy (not present)"
-fi
+cp -avf Geo /usr/local/qhtlfirewall/lib/
 cp -avf Crypt /usr/local/qhtlfirewall/lib/
 cp -avf HTTP /usr/local/qhtlfirewall/lib/
 cp -avf JSON /usr/local/qhtlfirewall/lib/
@@ -437,7 +426,7 @@ chmod 700 /etc/cron.daily/qhtlfirewallget
 /etc/cron.daily/qhtlfirewallget --nosleep || true
 
 chmod -v 700 auto.vesta.pl
-"$PERL" auto.vesta.pl "$OLDVERSION"
+./auto.vesta.pl $OLDVERSION
 
 if test `cat /proc/1/comm` = "systemd"
 then
