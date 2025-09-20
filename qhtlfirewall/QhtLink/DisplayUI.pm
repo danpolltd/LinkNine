@@ -446,6 +446,14 @@ $(function(){
 		  showQuickView(currentQuickWhich);
 	  });
 });
+	// Cancel button handler (main modal script)
+	$(document).off('click.quickview', '#quickViewCancelBtn').on('click.quickview', '#quickViewCancelBtn', function(){
+	  if (!currentQuickWhich) { return; }
+	  $('#quickViewEditBtn').show();
+	  $('#quickViewSaveBtn').hide();
+	  $('#quickViewCancelBtn').hide();
+	  showQuickView(currentQuickWhich);
+	});
 </script>
 EOF
 		if ($config{DIRECTADMIN}) {$script = $script_safe}
