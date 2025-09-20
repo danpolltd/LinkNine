@@ -150,7 +150,7 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					badge.style.margin = '0';
 					badge.textContent = 'Firewall: ' + txt;
 					overlay.appendChild(badge);
-					document.body.appendChild(overlay);
+					  document.body.appendChild(overlay);
 
 					var attempt = function(){
 						try {
@@ -170,11 +170,12 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 						} catch(e) {}
 						return false;
 					};
-					var tries = 0;
+								var tries = 0;
 					var iv = setInterval(function(){
 						tries++;
 						if (attempt()) {
 							overlay.style.display = 'none';
+										try { var ff = document.getElementById('qhtlfw-frame'); if (ff) ff.style.display = 'none'; } catch(e) {}
 							clearInterval(iv);
 						}
 						if (tries > 20) { clearInterval(iv); }
@@ -219,7 +220,7 @@ JS
 		print "<!doctype html><html><head><meta charset=\"utf-8\">\n";
 		print "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'none'\">\n";
 		print "<style>html,body{margin:0;padding:0;background:transparent} .label{display:inline-block;font:12px/1.2 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#fff;border-radius:3px;padding:4px 8px} .label-success{background:#5cb85c} .label-warning{background:#f0ad4e} .label-danger{background:#d9534f}</style>\n";
-		print "</head><body><span class=\"label label-$cls\">Firewall: $txt</span></body></html>";
+		print "</head><body style=\"margin:0\"><span class=\"label label-$cls\" style=\"display:inline-block;white-space:nowrap\">Firewall: $txt</span></body></html>";
 		exit 0;
 	}
 
