@@ -463,6 +463,30 @@ QHTLBTNSTYLE
 		\$('#QHTLFIREWALLajax').css("font-size",myFont+"px");
 	});
 </script>
+<script>
+// Quick View modal: Cancel workflow wiring
+$(function(){
+	// Hide Cancel whenever modal opens
+	$('#quickViewModal').on('show.bs.modal', function(){
+		$('#quickViewCancelBtn').hide();
+	});
+	// Show Cancel when entering edit mode
+	$(document).on('click', '#quickViewEditBtn', function(){
+		$('#quickViewCancelBtn').show();
+	});
+	// Hide Cancel after a successful save (Save handler already restores view)
+	$(document).on('click', '#quickViewSaveBtn', function(){
+		// visibility handled in main save handler; keep for belt-and-braces
+		$('#quickViewCancelBtn').hide();
+	});
+	// Cancel: revert to view mode without saving
+	$(document).on('click', '#quickViewCancelBtn', function(){
+		if (typeof currentQuickWhich !== 'undefined' && currentQuickWhich) {
+			showQuickView(currentQuickWhich);
+		}
+	});
+});
+</script>
 EOF
 		if ($config{DIRECTADMIN}) {$script = $script_safe}
 		&printreturn;
@@ -2324,7 +2348,7 @@ EOF
 		print "</table>\n";
 	# Add a Bootstrap modal for inline quick-view (no address bar)
 	print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-hidden='true'>\n";
-	print "  <div class='modal-dialog'>\n    <div class='modal-content'>\n      <div class='modal-header'>\n        <button type='button' class='close' data-dismiss='modal' aria-label='Close'><span aria-hidden='true'>&times;</span></button>\n        <h4 class='modal-title' id='quickViewTitle'>Quick View</h4>\n      </div>\n      <div class='modal-body' id='quickViewBody'>Loading...</div>\n      <div class='modal-footer' style='display:flex; justify-content:space-between; align-items:center;'>\n        <div>\n          <button type='button' class='btn btn-primary' id='quickViewEditBtn'>Edit</button>\n          <button type='button' class='btn btn-success' id='quickViewSaveBtn' style='display:none; margin-left: 4px;'>Save</button>\n        </div>\n        <div>\n          <button type='button' class='btn btn-default' data-dismiss='modal'>Close</button>\n        </div>\n      </div>\n    </div>\n  </div>\n</div>\n";
+	print "  <div class='modal-dialog'>\n    <div class='modal-content'>\n      <div class='modal-header'>\n        <button type='button' class='close' data-dismiss='modal' aria-label='Close'><span aria-hidden='true'>&times;</span></button>\n        <h4 class='modal-title' id='quickViewTitle'>Quick View</h4>\n      </div>\n      <div class='modal-body' id='quickViewBody'>Loading...</div>\n      <div class='modal-footer' style='display:flex; justify-content:space-between; align-items:center;'>\n        <div>\n          <button type='button' class='btn btn-primary' id='quickViewEditBtn'>Edit</button>\n          <button type='button' class='btn btn-success' id='quickViewSaveBtn' style='display:none; margin-left: 4px;'>Save</button>\n        </div>\n        <div>\n          <button type='button' class='btn btn-warning' id='quickViewCancelBtn' style='display:none;'>Cancel</button>\n        </div>\n        <div>\n          <button type='button' class='btn btn-default' data-dismiss='modal'>Close</button>\n        </div>\n      </div>\n    </div>\n  </div>\n</div>\n";
 	print "<script>\nfunction fillfield (myitem,myip) {document.getElementById(myitem).value = myip;}\nvar currentQuickWhich = null;\nfunction openQuickView(url, which) {\n  var titleMap = {allow:'qhtlfirewall.allow', deny:'qhtlfirewall.deny', ignore:'qhtlfirewall.ignore'};\n  \$('#quickViewTitle').text('Quick View: ' + (titleMap[which]||which));\n  \$('#quickViewBody').html('Loading...');\n  currentQuickWhich = which;\n  var \$modal = \$('#quickViewModal');\n  if (!\$modal.parent().is('body')) { \$modal.appendTo('body'); }\n  \$modal.modal({ show: true, backdrop: true, keyboard: true });\n  \$('#quickViewEditBtn').show();\n  \$('#quickViewSaveBtn').hide();\n  \$.ajax({ url: url, method: 'GET' })\n    .done(function(data){\n      var body = data;\n      try { var m = data.match(/<pre[\\s\\S]*?<\\/pre>/i); if (m) { body = m[0]; } } catch(e) {}\n      \$('#quickViewBody').html(body);\n    })\n    .fail(function(){\n      \$('#quickViewBody').html('<div class=\\'alert alert-danger\\'>Failed to load content</div>');\n    });\n}\nfunction showQuickView(which) {\n  var url = '$script?action=viewlist&which=' + encodeURIComponent(which);\n  openQuickView(url, which);\n}\n// Intercept quick-view gear clicks to open modal (fallback navigates if JS fails)\n\$(document).on('click', 'a.quickview-link', function(e){\n  try {\n    e.preventDefault();\n    var url = \$(this).attr('href');\n    var which = \$(this).data('which');\n    openQuickView(url, which);\n  } catch(err) { /* fallback to navigation */ }\n});\n// Edit button handler\n\$(document).on('click', '#quickViewEditBtn', function(){\n  if (!currentQuickWhich) { return; }\n  var url = '$script?action=editlist&which=' + encodeURIComponent(currentQuickWhich);\n  \$('#quickViewBody').html('Loading...');\n  \$.ajax({ url: url, method: 'GET' })\n    .done(function(data){\n      \$('#quickViewBody').html(data);\n      \$('#quickViewEditBtn').hide();\n      \$('#quickViewSaveBtn').show();\n    })\n    .fail(function(){\n      \$('#quickViewBody').html('<div class=\\'alert alert-danger\\'>Failed to load editor</div>');\n    });\n});\n// Save button handler\n\$(document).on('click', '#quickViewSaveBtn', function(){\n  if (!currentQuickWhich) { return; }\n  var content = '';\n  var ta = document.getElementById('quickEditArea');\n  if (ta) { content = ta.value; }\n  \$('#quickViewBody').html('Saving...');\n  \$.ajax({ url: '$script?action=savelist&which=' + encodeURIComponent(currentQuickWhich), method: 'POST', data: { formdata: content } })\n    .done(function(){\n      showQuickView(currentQuickWhich);\n      \$('#quickViewEditBtn').show();\n      \$('#quickViewSaveBtn').hide();\n    })\n    .fail(function(){\n      \$('#quickViewBody').html('<div class=\\'alert alert-danger\\'>Failed to save changes</div>');\n    });\n});\n</script>\n";
 		print "</div>\n";
 
