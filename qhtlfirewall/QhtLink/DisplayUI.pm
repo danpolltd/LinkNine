@@ -948,6 +948,41 @@ EOF
 			print "</div></div>";
 		}
 	}
+	elsif ($FORM{action} eq "editlist") {
+		my $which = $FORM{which} || '';
+		my %map = (
+			allow  => { path => "/etc/qhtlfirewall/qhtlfirewall.allow",  title => "qhtlfirewall.allow" },
+			deny   => { path => "/etc/qhtlfirewall/qhtlfirewall.deny",   title => "qhtlfirewall.deny" },
+			ignore => { path => "/etc/qhtlfirewall/qhtlfirewall.ignore", title => "qhtlfirewall.ignore" },
+		);
+		if (!$map{$which}) {
+			print "<div class='bs-callout bs-callout-danger'><h4>Unknown list requested</h4></div>";
+		} else {
+			my $path = $map{$which}{path};
+			my @lines = slurp($path);
+			print "<div><div class='small text-muted' style='margin-bottom:6px;'>Editing: $path</div>";
+			print "<textarea id='quickEditArea' style='width:100%; height:280px; border:1px solid #000; font-family: \"Courier New\", Courier; font-size: 13px; line-height: 1.15' wrap='off'>";
+			foreach my $line (@lines) {
+				$line =~ s/&/&amp;/g; $line =~ s/</&lt;/g; $line =~ s/>/&gt;/g;
+				print $line; # slurp() includes newlines
+			}
+			print "</textarea></div>";
+		}
+	}
+	elsif ($FORM{action} eq "savelist") {
+		my $which = $FORM{which} || '';
+		my %map = (
+			allow  => { path => "/etc/qhtlfirewall/qhtlfirewall.allow" },
+			deny   => { path => "/etc/qhtlfirewall/qhtlfirewall.deny" },
+			ignore => { path => "/etc/qhtlfirewall/qhtlfirewall.ignore" },
+		);
+		if (!$map{$which}) {
+			print "<div class='bs-callout bs-callout-danger'><h4>Unknown list requested</h4></div>";
+		} else {
+			my $path = $map{$which}{path};
+			&savefile($path, "");
+		}
+	}
 	elsif ($FORM{action} eq "qdeny") {
 		print "<div><p>Blocking $FORM{ip}...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 		&printcmd("/usr/sbin/qhtlfirewall","-d",$FORM{ip},$FORM{comment});
@@ -2289,8 +2324,8 @@ EOF
 		print "</table>\n";
 	# Add a Bootstrap modal for inline quick-view (no address bar)
 	print "<div class='modal fade' id='quickViewModal' tabindex='-1' role='dialog' aria-hidden='true'>\n";
-	print "  <div class='modal-dialog'>\n    <div class='modal-content'>\n      <div class='modal-header'>\n        <button type='button' class='close' data-dismiss='modal' aria-label='Close'><span aria-hidden='true'>&times;</span></button>\n        <h4 class='modal-title' id='quickViewTitle'>Quick View</h4>\n      </div>\n      <div class='modal-body' id='quickViewBody'>Loading...</div>\n      <div class='modal-footer'>\n        <button type='button' class='btn btn-default' data-dismiss='modal'>Close</button>\n      </div>\n    </div>\n  </div>\n</div>\n";
-	print "<script>\nfunction fillfield (myitem,myip) {document.getElementById(myitem).value = myip;}\nfunction openQuickView(url, which) {\n  var titleMap = {allow:'qhtlfirewall.allow', deny:'qhtlfirewall.deny', ignore:'qhtlfirewall.ignore'};\n  \$('#quickViewTitle').text('Quick View: ' + (titleMap[which]||which));\n  \$('#quickViewBody').html('Loading...');\n  var \$modal = \$('#quickViewModal');\n  if (!\$modal.parent().is('body')) { \$modal.appendTo('body'); }\n  \$modal.modal({ show: true, backdrop: true, keyboard: true });\n  \$.ajax({ url: url, method: 'GET' })\n    .done(function(data){\n      var body = data;\n      try { var m = data.match(/<pre[\\s\\S]*?<\\/pre>/i); if (m) { body = m[0]; } } catch(e) {}\n      \$('#quickViewBody').html(body);\n    })\n    .fail(function(){\n      \$('#quickViewBody').html('<div class=\\'alert alert-danger\\'>Failed to load content</div>');\n    });\n}\nfunction showQuickView(which) {\n  var url = '$script?action=viewlist&which=' + encodeURIComponent(which);\n  openQuickView(url, which);\n}\n// Intercept quick-view gear clicks to open modal (fallback navigates if JS fails)\n\$(document).on('click', 'a.quickview-link', function(e){\n  try {\n    e.preventDefault();\n    var url = \$(this).attr('href');\n    var which = \$(this).data('which');\n    openQuickView(url, which);\n  } catch(err) { /* fallback to navigation */ }\n});\n</script>\n";
+	print "  <div class='modal-dialog'>\n    <div class='modal-content'>\n      <div class='modal-header'>\n        <button type='button' class='close' data-dismiss='modal' aria-label='Close'><span aria-hidden='true'>&times;</span></button>\n        <h4 class='modal-title' id='quickViewTitle'>Quick View</h4>\n      </div>\n      <div class='modal-body' id='quickViewBody'>Loading...</div>\n      <div class='modal-footer' style='display:flex; justify-content:space-between; align-items:center;'>\n        <div>\n          <button type='button' class='btn btn-primary' id='quickViewEditBtn'>Edit</button>\n        </div>\n        <div style='text-align:center; flex:1;'>\n          <button type='button' class='btn btn-success' id='quickViewSaveBtn' style='display:none;'>Save</button>\n        </div>\n        <div>\n          <button type='button' class='btn btn-default' data-dismiss='modal'>Close</button>\n        </div>\n      </div>\n    </div>\n  </div>\n</div>\n";
+	print "<script>\nfunction fillfield (myitem,myip) {document.getElementById(myitem).value = myip;}\nvar currentQuickWhich = null;\nfunction openQuickView(url, which) {\n  var titleMap = {allow:'qhtlfirewall.allow', deny:'qhtlfirewall.deny', ignore:'qhtlfirewall.ignore'};\n  \$('#quickViewTitle').text('Quick View: ' + (titleMap[which]||which));\n  \$('#quickViewBody').html('Loading...');\n  currentQuickWhich = which;\n  var \$modal = \$('#quickViewModal');\n  if (!\$modal.parent().is('body')) { \$modal.appendTo('body'); }\n  \$modal.modal({ show: true, backdrop: true, keyboard: true });\n  \$('#quickViewEditBtn').show();\n  \$('#quickViewSaveBtn').hide();\n  \$.ajax({ url: url, method: 'GET' })\n    .done(function(data){\n      var body = data;\n      try { var m = data.match(/<pre[\\s\\S]*?<\\/pre>/i); if (m) { body = m[0]; } } catch(e) {}\n      \$('#quickViewBody').html(body);\n    })\n    .fail(function(){\n      \$('#quickViewBody').html('<div class=\\'alert alert-danger\\'>Failed to load content</div>');\n    });\n}\nfunction showQuickView(which) {\n  var url = '$script?action=viewlist&which=' + encodeURIComponent(which);\n  openQuickView(url, which);\n}\n// Intercept quick-view gear clicks to open modal (fallback navigates if JS fails)\n\$(document).on('click', 'a.quickview-link', function(e){\n  try {\n    e.preventDefault();\n    var url = \$(this).attr('href');\n    var which = \$(this).data('which');\n    openQuickView(url, which);\n  } catch(err) { /* fallback to navigation */ }\n});\n// Edit button handler\n\$(document).on('click', '#quickViewEditBtn', function(){\n  if (!currentQuickWhich) { return; }\n  var url = '$script?action=editlist&which=' + encodeURIComponent(currentQuickWhich);\n  \$('#quickViewBody').html('Loading...');\n  \$.ajax({ url: url, method: 'GET' })\n    .done(function(data){\n      \$('#quickViewBody').html(data);\n      \$('#quickViewEditBtn').hide();\n      \$('#quickViewSaveBtn').show();\n    })\n    .fail(function(){\n      \$('#quickViewBody').html('<div class=\\'alert alert-danger\\'>Failed to load editor</div>');\n    });\n});\n// Save button handler\n\$(document).on('click', '#quickViewSaveBtn', function(){\n  if (!currentQuickWhich) { return; }\n  var content = '';\n  var ta = document.getElementById('quickEditArea');\n  if (ta) { content = ta.value; }\n  \$('#quickViewBody').html('Saving...');\n  \$.ajax({ url: '$script?action=savelist&which=' + encodeURIComponent(currentQuickWhich), method: 'POST', data: { formdata: content } })\n    .done(function(){\n      showQuickView(currentQuickWhich);\n      \$('#quickViewEditBtn').show();\n      \$('#quickViewSaveBtn').hide();\n    })\n    .fail(function(){\n      \$('#quickViewBody').html('<div class=\\'alert alert-danger\\'>Failed to save changes</div>');\n    });\n});\n</script>\n";
 		print "</div>\n";
 
 	print "<div id='qhtlwaterfall' class='tab-pane'>\n";
@@ -2390,16 +2425,6 @@ EOF
 #		if ($config{DIRECTADMIN} and !$config{THIS_UI}) {
 #			print "<a href='/' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> DirectAdmin Main Page</a>\n";
 #		}
-		print "</div>\n";
-
-		# New Extra tab-pane at the end
-		print "<div id='extra' class='tab-pane'>\n";
-		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>Extra</th></tr></thead>";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='qhtlfirewalltest' type='submit' class='btn btn-default'>Test iptables</button></form></td><td style='width:100%'>Check that iptables has the required modules to run qhtlfirewall</td></tr>\n";
-		print "</table>\n";
-		print "</div>\n</div>\n";
-
 		# Note: Mobile View panel moved to Upgrade tab above
 
 		print "<div class='panel panel-info'>\n";

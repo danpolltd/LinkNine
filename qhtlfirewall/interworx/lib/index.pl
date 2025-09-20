@@ -50,7 +50,7 @@ my $bootstrapcss = "<link rel='stylesheet' href='$images/bootstrap/css/bootstrap
 my $jqueryjs = "<script src='$images/jquery.min.js'></script>";
 my $bootstrapjs = "<script src='$images/bootstrap/js/bootstrap.min.js'></script>";
 
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist") {
+unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
 	print <<EOF;
 <!doctype html>
 <html lang='en'>
@@ -110,7 +110,7 @@ $templatehtml =~ s/\'action'/'iworxme'/g;
 $templatehtml =~ s/\"action"/"iworxme"/g;
 print $templatehtml;
 
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist") {
+unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
 	print <<EOF;
 <a class='botlink' id='botlink' title='Go to top'><span class='glyphicon glyphicon-hand-up'></span></a>
 <script>
