@@ -481,6 +481,11 @@ $(function(){
 	});
 	// Cancel: revert to view mode without saving
 	$(document).on('click', '#quickViewCancelBtn', function(){
+		// Immediately restore button states
+		$('#quickViewEditBtn').show();
+		$('#quickViewSaveBtn').hide();
+		$('#quickViewCancelBtn').hide();
+		// Reload the view content without saving changes
 		if (typeof currentQuickWhich !== 'undefined' && currentQuickWhich) {
 			showQuickView(currentQuickWhich);
 		}
