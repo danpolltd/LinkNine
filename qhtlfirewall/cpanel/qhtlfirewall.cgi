@@ -42,10 +42,10 @@ my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
 my $sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
 my $accept   = lc($ENV{HTTP_ACCEPT} // '');
 if (!defined $FORM{action} || $FORM{action} eq '') {
-	my $is_nav = ($sec_mode eq 'navigate') || ($sec_dest eq 'document');
-	my $accept_html = ($accept =~ /text\/html/);
-	# Serve HTML only for clear top-level navigations that expect HTML; otherwise, return JS no-op
-	if (!($is_nav && $accept_html)) {
+	my $is_script_dest = ($sec_dest eq 'script');
+	my $accept_js = ($accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
+	# Only treat as script when clearly indicated; otherwise serve normal HTML (fixes UI page)
+	if ($is_script_dest || $accept_js) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print "/* qhtlfirewall: ignored legacy script include without action; please update templates */\n";
 		print "(function(){ /* noop */ })();\n";
