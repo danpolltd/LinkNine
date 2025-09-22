@@ -164,11 +164,14 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 	}
 
 	onReady(function(){
-		// Don't inject on our own firewall UI page to avoid doubling there
-		var href = String(location.pathname || '') + String(location.search || '');
+			// Don't inject on our own firewall UI page to avoid doubling there
+			var path = String(location.pathname || '');
+			var href = path + String(location.search || '');
 		if (/\/qhtlfirewall\.cgi(?:\?|$)/.test(href)) { return; }
+			// Only run within WHM routes; avoid login and other non-app pages
+			if (!/\/whostmgr\//.test(path)) { return; }
 
-		function cps(){ var m=(location.pathname||'').match(/\/cpsess[0-9]+/); return m?m[0]:''; }
+		function cps(){ var m=(location.pathname||'').match(/\/cpsess[^\/]+/); return m?m[0]:''; }
 		function origin(){ return (location && (location.origin || (location.protocol+'//'+location.host))) || ''; }
 		var token = cps();
 		if (!token) { return; } // avoid CSRF/login redirects that return HTML
@@ -217,15 +220,7 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 				// Inject now; header is present
 				injectIntoHeader();
 
-				// Keep it persistent across SPA navigation/renders: only re-inject if missing
-				if (typeof MutationObserver !== 'undefined' && document && document.body) {
-					var mo = new MutationObserver(function(){
-						var stats = document.querySelector('cp-whm-header-stats-control');
-						var present = !!(stats && stats.shadowRoot && stats.shadowRoot.getElementById('qhtlfw-header-badge'));
-						if (!present) { injectIntoHeader(); }
-					});
-					mo.observe(document.body, { childList: true, subtree: true });
-				}
+						// Intentionally do not observe for SPA mutations to prevent repeated fetches/injections
 			})
 			.catch(function(){ /* ignore */ });
 	});
