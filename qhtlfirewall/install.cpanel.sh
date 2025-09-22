@@ -48,9 +48,17 @@ if [ ! `id -u` = 0 ]; then
 fi
 echo
 
+# Ensure we're in the package directory (containing install.sh)
 if [ ! -e "install.sh" ]; then
-	echo "You must cd to the package directory that you expanded"
-	exit
+    if [ -e "qhtlfirewall/install.sh" ]; then
+        cd qhtlfirewall || {
+            echo "Unable to cd into qhtlfirewall/"
+            exit 1
+        }
+    else
+        echo "You must cd to the package directory that you expanded"
+        exit
+    fi
 fi
 
 #First replace:
