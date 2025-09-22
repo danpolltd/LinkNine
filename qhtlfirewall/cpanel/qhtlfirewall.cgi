@@ -177,17 +177,39 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 		if (!window.fetch) { return; }
 
 				var lastData = null;
-				// Fire the fetch immediately; do not wait for header to exist
-				(function fetchStatus(){
+				function getJSON(url, done){
+					// Try fetch with credentials: include first
+					if (window.fetch) {
+						var controller = (typeof AbortController!=='undefined') ? new AbortController() : null;
+						var to = controller ? setTimeout(function(){ if (controller && typeof controller.abort==='function') { controller.abort(); } }, 2500) : null;
+						var opts = { credentials: 'include' };
+						if (controller) opts.signal = controller.signal;
+						fetch(url, opts).then(function(r){ return (r && r.ok) ? r.json() : null; })
+						.then(function(data){ if (to) clearTimeout(to); done(data||null); })
+						.catch(function(){ tryXHR(url, done); });
+					} else {
+						tryXHR(url, done);
+					}
+				}
+				function tryXHR(url, done){
+					try {
+						var xhr = new XMLHttpRequest();
+						xhr.open('GET', url, true);
+						xhr.withCredentials = true;
+						xhr.onreadystatechange = function(){
+							if (xhr.readyState === 4){
+								if (xhr.status >= 200 && xhr.status < 300){
+									try { done(JSON.parse(xhr.responseText)); } catch(e){ done(null); }
+								} else { done(null); }
+							}
+						};
+						xhr.send(null);
+					} catch(e){ done(null); }
+				}
+				// Fire the request immediately; do not wait for header to exist
+				(function(){
 					var url = origin()+token+'/cgi/qhtlink/qhtlfirewall.cgi?action=status_json';
-					var controller = (typeof AbortController!=='undefined') ? new AbortController() : null;
-					var to = controller ? setTimeout(function(){ if (controller && typeof controller.abort==='function') { controller.abort(); } }, 1800) : null;
-					var fetchOpts = { credentials: 'same-origin' };
-					if (controller) fetchOpts.signal = controller.signal;
-					fetch(url, fetchOpts)
-						.then(function(r){ return (r && r.ok) ? r.json() : null; })
-						.then(function(data){ if (to) clearTimeout(to); lastData = data || null; })
-						.catch(function(){ /* ignore */ });
+					getJSON(url, function(data){ lastData = data; });
 				})();
 
 				function computeStyle(data){
