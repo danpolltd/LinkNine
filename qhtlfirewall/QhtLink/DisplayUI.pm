@@ -3071,25 +3071,7 @@ $(document).ready(function(){
 JS
 		print "</script>\n";
 		}
-		print <<EOF;
-
-	var myFont = 14;
-	\$("#fontplus-btn").on('click', function () {
-		myFont++;
-		if (myFont > 20) {myFont = 20}
-		\$('#output').css("font-size",myFont+"px");
-	});
-	\$("#fontminus-btn").on('click', function () {
-		myFont--;
-		if (myFont < 12) {myFont = 12}
-		\$('#output').css("font-size",myFont+"px");
-	});
-</script>
-EOF
-	}
-	return;
-}
-# end resize
+		# Removed legacy resize script block to avoid unmatched braces
 ###############################################################################
 # start printreturn
 sub printreturn {
