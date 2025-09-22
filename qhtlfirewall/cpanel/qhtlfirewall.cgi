@@ -483,6 +483,61 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	if (typeof window.openWatcher !== 'function') {
 		window.openWatcher = function(){ return window.__qhtlOpenWatcherSmart(); };
 	}
+
+	// Define a minimal Quick View modal shim early so Watcher can open without navigation
+	if (!window.__qhtlQuickViewShim) {
+		window.__qhtlQuickViewShim = true;
+		function ensureQuickViewModal(){
+			var modal = document.getElementById('quickViewModalShim');
+			if (modal) return modal;
+			modal = document.createElement('div');
+			modal.id = 'quickViewModalShim';
+			modal.setAttribute('role','dialog');
+			modal.style.position='fixed'; modal.style.inset='0'; modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='none'; modal.style.zIndex='9999';
+			var dialog = document.createElement('div');
+			dialog.style.width='660px'; dialog.style.maxWidth='95vw'; dialog.style.height='500px'; dialog.style.background='#fff'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='fixed'; dialog.style.top='50%'; dialog.style.left='50%'; dialog.style.transform='translate(-50%, -50%)'; dialog.style.margin='0';
+			var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflowX='hidden'; body.style.overflowY='auto'; body.style.padding='10px'; body.style.minHeight='0';
+			var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';
+			var footer = document.createElement('div'); footer.style.display='flex'; footer.style.justifyContent='space-between'; footer.style.alignItems='center'; footer.style.padding='10px'; footer.style.marginTop='auto';
+			var left = document.createElement('div'); left.id='quickViewFooterLeft'; var mid = document.createElement('div'); mid.id='quickViewFooterMid'; var right = document.createElement('div'); right.id='quickViewFooterRight';
+			// Watcher controls
+			var logSelect = document.createElement('select'); logSelect.id='watcherLogSelect'; logSelect.className='form-control'; logSelect.style.display='inline-block'; logSelect.style.width='auto'; logSelect.style.marginRight='8px';
+			var linesInput = document.createElement('input'); linesInput.id='watcherLines'; linesInput.type='text'; linesInput.value='100'; linesInput.size='4'; linesInput.className='form-control'; linesInput.style.display='inline-block'; linesInput.style.width='70px'; linesInput.style.marginRight='8px';
+			var refreshBtn = document.createElement('button'); refreshBtn.id='watcherRefresh'; refreshBtn.className='btn btn-default'; refreshBtn.textContent='Refresh Now'; refreshBtn.style.marginRight='8px';
+			var timerSpan = document.createElement('span'); timerSpan.id='watcherTimer'; timerSpan.textContent='0'; timerSpan.style.marginRight='8px';
+			var pauseBtn = document.createElement('button'); pauseBtn.id='watcherPause'; pauseBtn.className='btn btn-default'; pauseBtn.textContent='Pause'; pauseBtn.style.width='80px';
+			left.appendChild(logSelect); left.appendChild(document.createTextNode(' Lines: ')); left.appendChild(linesInput); left.appendChild(refreshBtn); left.appendChild(document.createTextNode(' Refresh in ')); left.appendChild(timerSpan); left.appendChild(pauseBtn);
+			// No edit/save/cancel in watcher mode
+			mid.style.display='none';
+			var closeBtn = document.createElement('button'); closeBtn.id='quickViewCloseShim'; closeBtn.className='btn btn-default'; closeBtn.textContent='Close'; closeBtn.style.background='linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%)'; closeBtn.style.color='#721c24'; closeBtn.style.borderColor='#f1b0b7';
+			right.appendChild(closeBtn);
+			// Populate log options
+			function populateLogs(){ try{ var xhr=new XMLHttpRequest(); xhr.open('GET', '$script?action=logtailcmd&meta=1', true); xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){ var opts = JSON.parse(xhr.responseText||'[]'); logSelect.innerHTML=''; for(var i=0;i<opts.length;i++){ var o=document.createElement('option'); o.value=opts[i].value; o.textContent=opts[i].label; if(opts[i].selected){ o.selected=true; } logSelect.appendChild(o);} } }; xhr.send(); }catch(e){} }
+			// Refresh logic with 5s countdown
+			var watcherPaused=false, watcherTick=5, watcherTimerId=null;
+			function scheduleTick(){ if(watcherTimerId){ clearInterval(watcherTimerId);} watcherTick=5; timerSpan.textContent=String(watcherTick); watcherTimerId=setInterval(function(){ if(watcherPaused){ return; } watcherTick--; timerSpan.textContent=String(watcherTick); if(watcherTick<=0){ doRefresh(); watcherTick=5; timerSpan.textContent=String(watcherTick);} },1000);}
+			function doRefresh(){ var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0'); quickViewLoad(url); }
+			refreshBtn.addEventListener('click', function(e){ e.preventDefault(); doRefresh(); });
+			pauseBtn.addEventListener('click', function(e){ e.preventDefault(); watcherPaused=!watcherPaused; pauseBtn.textContent=watcherPaused?'Start':'Pause'; });
+			logSelect.addEventListener('change', function(){ doRefresh(); scheduleTick(); });
+			linesInput.addEventListener('change', function(){ doRefresh(); scheduleTick(); });
+			closeBtn.addEventListener('click', function(){ if(watcherTimerId){ clearInterval(watcherTimerId); watcherTimerId=null; } modal.style.display='none'; });
+			populateLogs();
+			var inner = document.createElement('div'); inner.style.padding='10px'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.flex='1 1 auto'; inner.style.minHeight='0'; inner.appendChild(title); inner.appendChild(body);
+			footer.appendChild(left); footer.appendChild(mid); footer.appendChild(right);
+			dialog.appendChild(inner); dialog.appendChild(footer); modal.appendChild(dialog); document.body.appendChild(modal);
+			modal.addEventListener('click', function(e){ if(e.target===modal){ modal.style.display='none'; } });
+			return modal;
+		}
+
+		function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ var html=x.responseText; b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\'alert alert-danger\'>Failed to load content</div>'; } } }; x.send(); m.style.display='block'; }
+
+		// Global watcher opener that sets size and starts auto-refresh
+		window.openWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){ d.style.width='800px'; d.style.height='450px'; d.style.maxWidth='95vw'; d.style.position='fixed'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0'; }
+			// initial load and start timer
+			(function(){ var ls=document.getElementById('watcherLines'), sel=document.getElementById('watcherLogSelect'); var url='$script?action=logtailcmd&lines='+(ls?encodeURIComponent(ls.value||'100'):'100')+'&lognum='+(sel?encodeURIComponent(sel.value||'0'):'0'); quickViewLoad(url, function(){ var timer=document.getElementById('watcherTimer'); if(timer){ timer.textContent='5'; } var evt=document.createEvent('Event'); evt.initEvent('change', true, true); if(sel){ sel.dispatchEvent(evt); } }); })();
+			m.style.display='block'; return false; };
+	}
 })();
 </script>
 EOF
