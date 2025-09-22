@@ -7,7 +7,4 @@
 
 [% IF security_token %]
 <script>(function(){ if (window.__QHTLFW_LOADED__) return; window.__QHTLFW_LOADED__=true; var s=document.createElement('script'); s.src='[% security_token %]/cgi/qhtlink/qhtlfirewall.cgi?action=banner_js'; s.defer=true; (document.head||document.documentElement).appendChild(s); })();</script>
-[% ELSE %]
-<script>// Fallback: compute cpsess from path so this still works if security_token isn't passed
-(function(){ if (window.__QHTLFW_LOADED__) return; window.__QHTLFW_LOADED__=true; var m=String(location.pathname).match(/\/cpsess[^/]+/); if(!(m&&m[0])) return; var s=document.createElement('script'); s.src=m[0]+'/cgi/qhtlink/qhtlfirewall.cgi?action=banner_js'; s.defer=true; (document.head||document.documentElement).appendChild(s); })();</script>
 [% END %]

@@ -143,110 +143,92 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 	    exit 0;
 	}
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
-		print <<'JS';
+				print <<'JS';
 (function(){
   // Global one-time loader guard to avoid multiple executions from multiple include points
   if (window.__QHTLFW_INIT__) { return; }
   window.__QHTLFW_INIT__ = true;
 
-  function onReady(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn, { once:true }); } }
-  onReady(function(){
-    // Don't inject on our own firewall UI page to avoid doubling there
-    var href = String(location.pathname || '') + String(location.search || '');
-    if (/\/qhtlfirewall\.cgi(?:\?|$)/.test(href)) { return; }
+	function onReady(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn, { once:true }); } }
+	function waitForHeader(timeoutMs){
+		return new Promise(function(resolve, reject){
+			var start = Date.now();
+			function check(){
+				var stats = document.querySelector('cp-whm-header-stats-control');
+				if (stats && stats.shadowRoot) { resolve(stats); return; }
+				if ((Date.now()-start) >= timeoutMs) { reject(new Error('header-timeout')); return; }
+				setTimeout(check, 100);
+			}
+			check();
+		});
+	}
 
-    function cps(){ var m=(location.pathname||'').match(/\/cpsess[0-9]+/); return m?m[0]:''; }
-    function origin(){ return (location && (location.origin || (location.protocol+'//'+location.host))) || ''; }
-    var token = cps();
-    if (!token) { return; } // avoid CSRF/login redirects that return HTML
-    var url = origin()+token+'/cgi/qhtlink/qhtlfirewall.cgi?action=status_json';
-    var controller = (typeof AbortController!=='undefined') ? new AbortController() : null;
-    var to = controller ? setTimeout(function(){ if (controller && typeof controller.abort==='function') { controller.abort(); } }, 1800) : null;
-    var fetchOpts = { credentials: 'same-origin' };
-    if (controller) fetchOpts.signal = controller.signal;
-    if (!window.fetch) { return; }
-    fetch(url, fetchOpts)
-      .then(function(r){ return (r && r.ok) ? r.json() : null; })
-      .then(function(data){
-        if (to) clearTimeout(to);
-        if(!data) return;
-        var cls = data.class || 'default';
-        var txt = data.text || 'Firewall';
-        var bg = (cls==='success') ? '#5cb85c' : (cls==='warning' ? '#f0ad4e' : (cls==='danger' ? '#d9534f' : '#777'));
+	onReady(function(){
+		// Don't inject on our own firewall UI page to avoid doubling there
+		var href = String(location.pathname || '') + String(location.search || '');
+		if (/\/qhtlfirewall\.cgi(?:\?|$)/.test(href)) { return; }
 
-        // Floating overlay as a temporary fallback while header isn't ready
-        var overlay = document.getElementById('qhtlfw-badge-overlay');
-        if (!overlay) {
-          overlay = document.createElement('div');
-          overlay.id = 'qhtlfw-badge-overlay';
-          overlay.style.position = 'fixed';
-          overlay.style.top = '10px';
-          overlay.style.right = '16px';
-          overlay.style.zIndex = '2147483647';
-          overlay.style.pointerEvents = 'none';
-          overlay.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-          var badge = document.createElement('span');
-          badge.id = 'qhtlfw-badge-float';
-          badge.style.pointerEvents = 'auto';
-          badge.style.padding = '4px 8px';
-          badge.style.display = 'inline-block';
-          badge.style.margin = '0';
-          badge.style.color = '#fff';
-          badge.style.background = bg;
-          badge.textContent = 'Firewall: ' + txt;
-          overlay.appendChild(badge);
-          if (document.body) document.body.appendChild(overlay);
-        } else {
-          var b = document.getElementById('qhtlfw-badge-float'); if (b){ b.style.background = bg; b.textContent = 'Firewall: ' + txt; }
-        }
+		function cps(){ var m=(location.pathname||'').match(/\/cpsess[0-9]+/); return m?m[0]:''; }
+		function origin(){ return (location && (location.origin || (location.protocol+'//'+location.host))) || ''; }
+		var token = cps();
+		if (!token) { return; } // avoid CSRF/login redirects that return HTML
+		if (!window.fetch) { return; }
 
-        function injectIntoHeader(){
-          var stats = document.querySelector('cp-whm-header-stats-control');
-          if (!stats || !stats.shadowRoot) return false;
-          var host = stats.shadowRoot.querySelector('.header-stats, header, div');
-          if (!host) return false;
-          var existing = stats.shadowRoot.getElementById('qhtlfw-header-badge');
-          if (existing) {
-            existing.style.background = bg;
-            existing.textContent = 'Firewall: ' + txt;
-            return true;
-          }
-          var span = document.createElement('span');
-          span.id = 'qhtlfw-header-badge';
-          span.style.marginLeft = '8px';
-          span.style.padding = '4px 8px';
-          span.style.borderRadius = '3px';
-          span.style.color = '#fff';
-          span.style.background = bg;
-          span.textContent = 'Firewall: ' + txt;
-          host.appendChild(span);
-          return true;
-        }
+		waitForHeader(4000)
+			.then(function(){
+				var url = origin()+token+'/cgi/qhtlink/qhtlfirewall.cgi?action=status_json';
+				var controller = (typeof AbortController!=='undefined') ? new AbortController() : null;
+				var to = controller ? setTimeout(function(){ if (controller && typeof controller.abort==='function') { controller.abort(); } }, 1800) : null;
+				var fetchOpts = { credentials: 'same-origin' };
+				if (controller) fetchOpts.signal = controller.signal;
+				return fetch(url, fetchOpts)
+					.then(function(r){ return (r && r.ok) ? r.json() : null; })
+					.then(function(data){ if (to) clearTimeout(to); return data; });
+			})
+			.then(function(data){
+				if(!data) return;
+				var cls = data.class || 'default';
+				var txt = data.text || 'Firewall';
+				var bg = (cls==='success') ? '#5cb85c' : (cls==='warning' ? '#f0ad4e' : (cls==='danger' ? '#d9534f' : '#777'));
 
-        // Try a few times right away (header can arrive late)
-        var tries = 0;
-        var iv = setInterval(function(){
-          tries++;
-          if (injectIntoHeader()) {
-            var ff = document.getElementById('qhtlfw-frame'); if (ff && ff.parentNode) ff.parentNode.removeChild(ff);
-            if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
-            clearInterval(iv);
-          }
-          if (tries > 50) { clearInterval(iv); }
-        }, 100);
+				function injectIntoHeader(){
+					var stats = document.querySelector('cp-whm-header-stats-control');
+					if (!stats || !stats.shadowRoot) return false;
+					var host = stats.shadowRoot.querySelector('.header-stats, header, div');
+					if (!host) return false;
+					var existing = stats.shadowRoot.getElementById('qhtlfw-header-badge');
+					if (existing) {
+						existing.style.background = bg;
+						existing.textContent = 'Firewall: ' + txt;
+						return true;
+					}
+					var span = document.createElement('span');
+					span.id = 'qhtlfw-header-badge';
+					span.style.marginLeft = '8px';
+					span.style.padding = '4px 8px';
+					span.style.borderRadius = '3px';
+					span.style.color = '#fff';
+					span.style.background = bg;
+					span.textContent = 'Firewall: ' + txt;
+					host.appendChild(span);
+					return true;
+				}
 
-        // Keep it persistent across SPA navigation/renders: only re-inject if missing
-        if (typeof MutationObserver !== 'undefined' && document && document.body) {
-          var mo = new MutationObserver(function(){
-            var stats = document.querySelector('cp-whm-header-stats-control');
-            var present = !!(stats && stats.shadowRoot && stats.shadowRoot.getElementById('qhtlfw-header-badge'));
-            if (!present) { injectIntoHeader(); }
-          });
-          mo.observe(document.body, { childList: true, subtree: true });
-        }
-      })
-      .catch(function(){ /* ignore */ });
-  });
+				// Inject now; header is present
+				injectIntoHeader();
+
+				// Keep it persistent across SPA navigation/renders: only re-inject if missing
+				if (typeof MutationObserver !== 'undefined' && document && document.body) {
+					var mo = new MutationObserver(function(){
+						var stats = document.querySelector('cp-whm-header-stats-control');
+						var present = !!(stats && stats.shadowRoot && stats.shadowRoot.getElementById('qhtlfw-header-badge'));
+						if (!present) { injectIntoHeader(); }
+					});
+					mo.observe(document.body, { childList: true, subtree: true });
+				}
+			})
+			.catch(function(){ /* ignore */ });
+	});
 })();
 JS
 		;
