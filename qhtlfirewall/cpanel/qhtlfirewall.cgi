@@ -64,10 +64,16 @@ if (-e "/usr/local/cpanel/bin/register_appconfig") {
 
 ## Reseller ACL resolution is moved after lightweight endpoints
 
-open (my $IN, "<", "/etc/qhtlfirewall/version.txt") or die $!;
-$myv = <$IN>;
-close ($IN);
-chomp $myv;
+# Read version non-fatally to avoid breaking lightweight endpoints if the file is missing
+$myv = 'unknown';
+if (open(my $IN, '<', '/etc/qhtlfirewall/version.txt')) {
+	my $line = <$IN>;
+	close($IN);
+	if (defined $line) {
+		chomp $line;
+		$myv = $line;
+	}
+}
 
 # Lightweight JSON status endpoint for sanctioned WHM includes
 # Usage: /cgi/qhtlink/qhtlfirewall.cgi?action=status_json
