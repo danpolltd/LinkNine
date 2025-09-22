@@ -209,7 +209,10 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 				// Fire the request immediately; do not wait for header to exist
 				(function(){
 					var url = origin()+token+'/cgi/qhtlink/qhtlfirewall.cgi?action=status_json';
-					getJSON(url, function(data){ lastData = data; });
+					getJSON(url, function(data){
+						lastData = data;
+						try { tryInject(); } catch(e){}
+					});
 				})();
 
 				function computeStyle(data){
@@ -220,6 +223,8 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 				}
 
 				function tryInject(){
+					// Do not inject until we have real data to avoid gray placeholder
+					if (!lastData) return false;
 					var stats = document.querySelector('cp-whm-header-stats-control');
 					if (!stats || !stats.shadowRoot) return false;
 					var host = stats.shadowRoot.querySelector('.header-stats, header, div');
