@@ -43,7 +43,9 @@ my $sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
 my $accept   = lc($ENV{HTTP_ACCEPT} // '');
 if (!defined $FORM{action} || $FORM{action} eq '') {
 	my $has_ref       = defined $ENV{HTTP_REFERER} && $ENV{HTTP_REFERER} ne '' ? 1 : 0;
-	my $is_nav        = ($sec_mode eq 'navigate') || ($sec_dest eq 'document');
+	my $accept_html   = ($accept =~ /(?:text\/html|application\/xhtml\+xml)/);
+	# Consider iframe/frame as document-like navigations too
+	my $is_nav        = ($sec_mode eq 'navigate') || ($sec_dest eq 'document') || ($sec_dest eq 'iframe') || ($sec_dest eq 'frame') || $accept_html;
 	my $is_script_dest= ($sec_dest eq 'script');
 	my $accept_js     = ($accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
 	my $scriptish     = $is_script_dest || $accept_js || (!$is_nav && $has_ref);
