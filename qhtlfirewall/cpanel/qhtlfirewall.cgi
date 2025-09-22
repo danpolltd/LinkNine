@@ -560,6 +560,17 @@ EOF
 		if ($reregister ne "") {print $reregister}
 }
 
+if (!$ui_error) {
+	eval {
+		if ($reseller) {
+			QhtLink::DisplayResellerUI::main(\%FORM, $script, 0, $images, $myv, 'cpanel');
+		} else {
+			QhtLink::DisplayUI::main(\%FORM, $script, 0, $images, $myv, 'cpanel');
+		}
+		1;
+	} or do { $ui_error = $@ || 'Unknown error in UI renderer'; };
+}
+
 if ($ui_error) {
 	print qq{<div class="alert alert-danger" role="alert" style="margin:10px">QhtLink Firewall UI error: <code>} . ( $ui_error =~ s/</&lt;/gr ) . qq{</code></div>};
 }
