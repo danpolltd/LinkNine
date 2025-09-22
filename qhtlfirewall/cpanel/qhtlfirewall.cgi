@@ -373,8 +373,6 @@ for my $frag (\@header, \@footer) {
         s/\bVERSION\b/$myv/g;
         s/\bv\.?VERSION\b/v$myv/gi;
         s/\bqhtlfirewall_version\b/$myv/gi;
-		# Remove inline <script> blocks completely to avoid custom parse errors
-		s{<script\b[^>]*>.*?</script>}{}gis;
 		# Sanitize legacy script includes that point to our CGI without an action
 		# Convert .../qhtlink/qhtlfirewall.cgi to .../qhtlink/qhtlfirewall.cgi?action=banner_js
 		s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3 }ig;
@@ -427,7 +425,7 @@ if (defined $FORM{action} && $FORM{action} ne '' && $FORM{action} !~ /^(?:status
 	}
 }
 
-print "Content-type: text/html\r\nX-Content-Type-Options: nosniff\r\n\r\n";
+print "Content-type: text/html\r\n\r\n";
 #if ($Cpanel::Version::Tiny::major_version < 65) {$modalstyle = "style='top:120px'"}
 
 my $templatehtml;
@@ -550,8 +548,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	select STDOUT;
 	# Defensive cleanup: rewrite any legacy includes in the captured template HTML
 	if (defined $templatehtml && length $templatehtml) {
-		# Remove inline <script> blocks to avoid custom parse errors in our context
-		$templatehtml =~ s{<script\b[^>]*>.*?</script>}{}gis;
+		# Do not strip inline scripts here; UI relies on them for tabs and interactions.
 		$templatehtml =~ s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3 }ig;
 		$templatehtml =~ s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(\?)(?!action=)}{$1$2$3}ig;
 	}
