@@ -48,7 +48,8 @@ if (!defined $FORM{action} || $FORM{action} eq '') {
 	my $is_nav        = ($sec_mode eq 'navigate') || ($sec_dest eq 'document') || ($sec_dest eq 'iframe') || ($sec_dest eq 'frame') || $accept_html;
 	my $is_script_dest= ($sec_dest eq 'script');
 	my $accept_js     = ($accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
-	my $scriptish     = $is_script_dest || $accept_js || (!$is_nav && $has_ref);
+	# Treat as script-like if clearly script, or if not a nav and Accept lacks HTML (common for <script> requests with */*)
+	my $scriptish     = $is_script_dest || $accept_js || (!$is_nav && ($has_ref || !$accept_html));
 	# Treat script-like requests as JS includes and return a safe no-op; otherwise, serve UI HTML
 	if ($scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
