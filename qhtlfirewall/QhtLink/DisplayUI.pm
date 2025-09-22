@@ -104,15 +104,24 @@ sub main {
 	}
 	elsif ($FORM{action} eq "manualcheck") {
 		print "<div><p>Checking version...</p>\n\n";
-		my ($upgrade, $actv) = &manualversion($myv);
+		my ($upgrade, $actv, $src, $err) = &manualversion($myv);
 		if ($upgrade) {
-			print "<form action='$script' method='post'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button> A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings. <a href='https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt' target='_blank'>View ChangeLog</a></form>\n";
+			my $changelog = ($src ne '' ? "$src/qhtlfirewall/changelog.txt" : "https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt");
+			print "<form action='$script' method='post'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button> A new version of qhtlfirewall (v$actv) is available";
+			if ($src ne '') { print " from <code>$src</code>"; }
+			print ". Upgrading will retain your settings. <a href='${changelog}' target='_blank'>View ChangeLog</a></form>\n";
 		} else {
-			if ($actv ne "") {
-				print "<div class='bs-callout bs-callout-danger'>$actv</div>\n";
+			if (defined $err and $err ne "") {
+				print "<div class='bs-callout bs-callout-danger'>$err</div>\n";
 			}
 			else {
-				print "<div class='bs-callout bs-callout-info'>You are running the latest version of qhtlfirewall (v$myv). An Upgrade button will appear here if a new version becomes available</div>\n";
+				# No upgrade available, but if we fetched a version, show it for transparency
+				if (defined $actv and $actv ne "") {
+					my $src_text = ($src ne '' ? " (from $src)" : "");
+					print "<div class='bs-callout bs-callout-info'>You are running the latest version of qhtlfirewall (v$myv). Latest available online: v$actv$src_text</div>\n";
+				} else {
+					print "<div class='bs-callout bs-callout-info'>You are running the latest version of qhtlfirewall (v$myv). An Upgrade button will appear here if a new version becomes available</div>\n";
+				}
 			}
 		}
 		print "</div>\n";
@@ -3093,11 +3102,66 @@ sub qhtlfirewallgetversion {
 sub manualversion {
 	my $current = shift;
 	my $upgrade = 0;
-	my $url = "https://$config{DOWNLOADSERVER}/qhtlfirewall/version.txt";
-	if ($config{URLGET} == 1) {$url = "http://$config{DOWNLOADSERVER}/qhtlfirewall/version.txt";}
-	my ($status, $newversion) = $urlget->urlget($url);
-	if (!$status and $newversion ne "" and $newversion =~ /^[\d\.]*$/ and $newversion > $current) {$upgrade = 1} else {$newversion = ""}
-	return ($upgrade, $newversion);
+	my @servers;
+	my $errtext = '';
+
+	# Prefer /etc/qhtlfirewall/downloadservers if present, else fall back to configured DOWNLOADSERVER
+	my $list = '/etc/qhtlfirewall/downloadservers';
+	if (-r $list) {
+		if (open my $fh, '<', $list) {
+			while (my $line = <$fh>) {
+				chomp $line;
+				$line =~ s/\r?\n$//;
+				$line =~ s/#.*$//;
+				$line =~ s/^\s+|\s+$//g;
+				next unless length $line;
+				if ($line !~ m{^https?://}i) { $line = 'https://' . $line; }
+				$line =~ s{/+\z}{};
+				push @servers, $line;
+			}
+			close $fh;
+		}
+	}
+	if (!@servers) {
+		my $scheme = ($config{URLGET} == 1) ? 'http' : 'https';
+		push @servers, "$scheme://$config{DOWNLOADSERVER}";
+	}
+
+	my $best_version = '';
+	my $best_server  = '';
+
+	foreach my $srv (@servers) {
+		my $url = "$srv/qhtlfirewall/version.txt";
+		my ($status, $body) = $urlget->urlget($url);
+		if (!$status && defined $body && $body ne '') {
+			my $v = $body; chomp $v; $v =~ s/^\s+|\s+$//g;
+			if ($v =~ /^[\d\.]+$/) {
+				# Keep the highest semver-ish numeric version
+				if ($best_version eq '' || $v > $best_version) {
+					$best_version = $v;
+					$best_server  = $srv;
+				}
+			} else {
+				$errtext ||= "Invalid version format from $srv";
+			}
+		} else {
+			my $why = (defined $body && $body ne '') ? $body : 'request failed';
+			$errtext ||= "$url - $why";
+		}
+	}
+
+	if ($best_version ne '' && $best_version > $current) { $upgrade = 1; }
+
+	# If no upgrade but we have a valid fetched version, return it for display
+	if ($best_version ne '' && !$upgrade) {
+		return (0, $best_version, $best_server, '');
+	}
+	# If upgrade available
+	if ($upgrade) {
+		return (1, $best_version, $best_server, '');
+	}
+	# If nothing valid fetched, surface an error
+	return (0, '', '', ($errtext ne '' ? "Failed to retrieve latest version from Danpol update server: $errtext" : 'Failed to retrieve latest version from Danpol update server'));
 }
 # end manualversion
 ###############################################################################
