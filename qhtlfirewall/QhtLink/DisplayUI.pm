@@ -213,99 +213,68 @@ sub main {
 			if ($time < 1) {
 				$time = "<1";
 			} else {
-				my $days = int($time/(24*60*60));
-				my $hours = ($time/(60*60))%24;
-				my $mins = ($time/60)%60;
-				my $secs = $time%60;
-				$days = $days < 1 ? '' : $days .'d ';
-				$hours = $hours < 1 ? '' : $hours .'h ';
-				$mins = $mins < 1 ? '' : $mins . 'm ';
-				$time = $days . $hours . $mins . $secs . 's'; 
-			}
-			print "<tr><td style='white-space: nowrap;'><a class='btn btn-success' href='$script?action=temprmd&ip=$ip' data-tooltip='tooltip' title='Unblock $ip'><span class='glyphicon glyphicon-ok-circle'></span></a> \n";
-			print "<a class='btn btn-danger' href='$script?action=temptoperm&ip=$ip' data-tooltip='tooltip' title='Permanently block $ip'><span class='glyphicon glyphicon-ban-circle'></span></a></td>\n";
-			print "<td>DENY</td><td>$ip</td><td>$port</td><td>$inout</td><td>$time</td><td>$message</td></tr>\n";
-		}
-		my @allow;
-		if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempallow") {
-			open (my $IN, "<", "/var/lib/qhtlfirewall/qhtlfirewall.tempallow") or die $!;
-			flock ($IN, LOCK_SH);
-			@allow = <$IN>;
-			chomp @allow;
-			close ($IN);
-		}
-		foreach my $line (@allow) {
-			if ($line eq "") {next}
-			my ($time,$ip,$port,$inout,$timeout,$message) = split(/\|/,$line);
-			$time = $timeout - (time - $time);
-			if ($port eq "") {$port = "*"}
-			if ($inout eq "") {$inout = " *"}
-			if ($time < 1) {
-				$time = "<1";
-			} else {
-				my $days = int($time/(24*60*60));
-				my $hours = ($time/(60*60))%24;
-				my $mins = ($time/60)%60;
-				my $secs = $time%60;
-				$days = $days < 1 ? '' : $days .'d ';
-				$hours = $hours < 1 ? '' : $hours .'h ';
-				$mins = $mins < 1 ? '' : $mins . 'm ';
-				$time = $days . $hours . $mins . $secs . 's'; 
-			}
-			print "<tr><td style='white-space: nowrap;'><a class='btn btn-success' href='$script?action=temprma&ip=$ip' data-tooltip='tooltip' title='Remove $ip'><span class='glyphicon glyphicon-ok-circle'></span></a> \n";
-			print "<td>ALLOW</td><td>$ip</td><td>$port</td><td>$inout</td><td>$time</td><td>$message</td></tr>\n";
-		}
-		print "<script>\n";
-		print "var QHTL_SCRIPT = '$script';\n";
-		print <<'JS';
-	$(document).ready(function(){
-		$('#cflist').submit(function(){ $('#cflistbtn').click(); return false; })
-		$('#cftempdeny').submit(function(){ $('#cftempdenybtn').click(); return false; })
-		$('#cfadd').submit(function(){ $('#cfaddbtn').click(); return false; })
-		$('#cfremove').submit(function(){ $('#cfremovebtn').click(); return false; })
-		$('button').click(function(){
-			$('body').css('cursor', 'progress');
-			var myurl;
-			if (this.id == 'cflistbtn') { myurl = QHTL_SCRIPT + '?action=cflist&type=' + $("#cflist #type").val() + '&domains=' + $("#domains").val(); }
-			if (this.id == 'cftempdenybtn') { myurl = QHTL_SCRIPT + '?action=cftempdeny&do=' + $("#cftempdeny #do").val() + '&target=' + $("#cftempdeny #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
-			if (this.id == 'cfaddbtn') { myurl = QHTL_SCRIPT + '?action=cfadd&type=' + $("#cfadd #type").val() + '&target=' + $("#cfadd #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
-			if (this.id == 'cfremovebtn') { myurl = QHTL_SCRIPT + '?action=cfremove&target=' + $("#cfremove #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
-			$('#CFajax').html('<div id="loader"></div><div class="panel panel-info"><div class="panel-heading">Loading...</div></div>');
-			$('#CFajax').load(myurl);
-			$('body').css('cursor', 'default');
-		});
-		$('#domains').on('keyup change',function() {
-			if ($('#domains').val() == null) {
-				$('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', true);
-			} else {
-				$('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', false);
-			}
-		});
-	});
-	JS
-		print "<div><p>Removing temporary deny entry for $FORM{ip}:</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/qhtlfirewall","-trd",$FORM{ip});
-		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='temp'><input type='submit' class='btn btn-default' value='Return'></form></div>\n";
-	}
-	elsif ($FORM{action} eq "temprma") {
-		print "<div><p>Removing temporary allow entry for $FORM{ip}:</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/qhtlfirewall","-tra",$FORM{ip});
-		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='temp'><input type='submit' class='btn btn-default' value='Return'></form></div>\n";
-	}
-	elsif ($FORM{action} eq "temptoperm") {
-		print "<div><p>Permanent ban for $FORM{ip}:</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/qhtlfirewall","-tr",$FORM{ip});
-		&printcmd("/usr/sbin/qhtlfirewall","-d",$FORM{ip});
-		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='temp'><input type='submit' class='btn btn-default' value='Return'></form></div>\n";
-	}
-	elsif ($FORM{action} eq "tempdeny") {
-		$FORM{timeout} =~ s/\D//g;
-		if ($FORM{dur} eq "minutes") {$FORM{timeout} = $FORM{timeout} * 60}
-		if ($FORM{dur} eq "hours") {$FORM{timeout} = $FORM{timeout} * 60 * 60}
-		if ($FORM{dur} eq "days") {$FORM{timeout} = $FORM{timeout} * 60 * 60 * 24}
+				sub cloudflare {
+					my $scope = &QhtLink::CloudFlare::getscope();
+					print "<link rel='stylesheet' href='$images/bootstrap-chosen.css'>\n";
+					print "<script src='$images/chosen.min.js'></script>\n";
+					print "<script>\n";
+					print <<'JS';
+				$(function() {
+					$('.chosen-select').chosen();
+					$('.chosen-select-deselect').chosen({ allow_single_deselect: true });
+				});
+				JS
+					print "</script>\n";
+
+					print "<table class='table table-bordered table-striped'>\n";
+					print "<thead><tr><th colspan='2'>qhtlfirewall - CloudFlare</th></tr></thead>";
+					print "<tr><td>Select the user(s), then select the action below</td><td style='width:100%'><select data-placeholder='Select user(s)' class='chosen-select' id='domains' name='domains' multiple>\n";
+					foreach my $user (keys %{$scope->{user}}) { print "<option>$user</option>\n" }
+					print "</select></td></tr>\n";
+					print "<tr><td><button type='button' id='cflistbtn' class='btn btn-default' disabled='true'>CF List Rules</button></td><td style='width:100%'><form action='#' id='cflist'>List <select name='type' id='type'><option>all</option><option>block</option><option>challenge</option><option>whitelist</option></select> rules in CloudFlare ONLY for the chosen accounts</form></td></tr>";
+					print "<tr><td><button type='button' id='cfaddbtn' class='btn btn-default' disabled='true'>CloudFlare Add</button></td><td style='width:100%'><form action='#' id='cfadd'>Add <select name='type' id='type'><option>block</option><option>challenge</option><option>whitelist</option></select> rule for target <input type='text' name='target' value='' size='18' id='target'> in CloudFlare ONLY for the chosen accounts</form></td></tr>\n";
+					print "<tr><td><button type='button' id='cfremovebtn' class='btn btn-default' disabled='true'>CloudFlare Delete</button></td><td style='width:100%'><form action='#' id='cfremove'>Delete rule for target <input type='text' name='target' value='' size='18' id='target'> in CloudFlare ONLY</form></td></tr>\n";
+					print "<tr><td><button type='button' id='cftempdenybtn' class='btn btn-default' disabled='true'>CF Temp Allow/Deny</button></td><td style='width:100%'><form action='#' id='cftempdeny'>Temporarily <select name='do' id='do'><option>allow</option><option>deny</option></select> IP address <input type='text' name='target' value='' size='18' id='target'> for $config{CF_TEMP} secs in CloudFlare AND qhtlfirewall for the chosen accounts and those with to \"any\"</form></td></tr>";
+					print "</table>\n";
+					print "<div id='CFajax'><div class='panel panel-info'><div class='panel-heading'>Output will appear here</div></div></div>\n";
+					print "<div class='bs-callout bs-callout-success'>Note:\n<ul>\n";
+					print "<li><mark>target</mark> can be one of:<ul><li>An IP address</li>\n<li>2 letter Country Code</li>\n<li>IP range CIDR</li></ul>\n</li>\n";
+					print "<li>Only Enterprise customers can <mark>block</mark> a Country Code, but all can <mark>allow</mark> and <mark>challenge</mark>\n";
+					print "<li>\nIP range CIDR is limited to /16 and /24</blockquote></li></ul></div>\n";
+
+					print "<script>\n";
+					print "var QHTL_SCRIPT = '$script';\n";
+					print <<'JS';
+				$(document).ready(function(){
+					$('#cflist').submit(function(){ $('#cflistbtn').click(); return false; })
+					$('#cftempdeny').submit(function(){ $('#cftempdenybtn').click(); return false; })
+					$('#cfadd').submit(function(){ $('#cfaddbtn').click(); return false; })
+					$('#cfremove').submit(function(){ $('#cfremovebtn').click(); return false; })
+					$('button').click(function(){
+						$('body').css('cursor', 'progress');
+						var myurl;
+						if (this.id == 'cflistbtn') { myurl = QHTL_SCRIPT + '?action=cflist&type=' + $("#cflist #type").val() + '&domains=' + $("#domains").val(); }
+						if (this.id == 'cftempdenybtn') { myurl = QHTL_SCRIPT + '?action=cftempdeny&do=' + $("#cftempdeny #do").val() + '&target=' + $("#cftempdeny #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
+						if (this.id == 'cfaddbtn') { myurl = QHTL_SCRIPT + '?action=cfadd&type=' + $("#cfadd #type").val() + '&target=' + $("#cfadd #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
+						if (this.id == 'cfremovebtn') { myurl = QHTL_SCRIPT + '?action=cfremove&target=' + $("#cfremove #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
+						$('#CFajax').html('<div id="loader"></div><div class="panel panel-info"><div class="panel-heading">Loading...</div></div>');
+						$('#CFajax').load(myurl);
+						$('body').css('cursor', 'default');
+					});
+					$('#domains').on('keyup change',function() {
+						if ($('#domains').val() == null) {
+							$('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', true);
+						} else {
+							$('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', false);
+						}
+					});
+				});
+				JS
+					print "</script>\n";
+
+					return;
+				}
+				# end cloudflare
 		if ($FORM{ports} eq "") {$FORM{ports} = "*"}
 		print "<div><p>Temporarily $FORM{do}ing $FORM{ip} for $FORM{timeout} seconds:</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 		if ($FORM{do} eq "block") {
