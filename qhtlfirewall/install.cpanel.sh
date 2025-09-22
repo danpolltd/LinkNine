@@ -9,10 +9,14 @@ umask 0177
 
 # Parse flags
 FORCE_WHM_INCLUDES=0
+WITH_ANALYTICS=0
 for arg in "$@"; do
     case "$arg" in
         --force-whm-includes)
             FORCE_WHM_INCLUDES=1
+            ;;
+        --with-analytics)
+            WITH_ANALYTICS=1
             ;;
     esac
 done
@@ -20,6 +24,9 @@ done
 # Env var override
 if [ "${QHTL_FORCE_WHM_INCLUDES}" = "1" ]; then
     FORCE_WHM_INCLUDES=1
+fi
+if [ "${QHTL_WITH_ANALYTICS}" = "1" ]; then
+    WITH_ANALYTICS=1
 fi
 
 echo "Installing qhtlfirewall and qhtlwaterfall"
@@ -498,6 +505,12 @@ fi
 # Ensure Jupiter (WHM root) path renders our badge by leveraging cp_analytics_whm.html.tt
 ANALYTICS_TT="/var/cpanel/customizations/whm/includes/cp_analytics_whm.html.tt"
 if [ -f "$ANALYTICS_TT" ] || mkdir -p "/var/cpanel/customizations/whm/includes" ; then
+    # Remove previously injected v3 snippet unless explicitly opted-in
+    if grep -q 'qhtlfirewall analytics inject v3' "$ANALYTICS_TT" 2>/dev/null && [ "$WITH_ANALYTICS" != "1" ]; then
+        echo "Removing previously injected qhtlfirewall analytics v3 snippet (cleanup)"
+        sed -i "/qhtlfirewall analytics inject v3/,/<\\\/script>/d" "$ANALYTICS_TT" || true
+    fi
+
     if grep -q 'qhtlfirewall analytics inject v2' "$ANALYTICS_TT" 2>/dev/null; then
         # Patch existing v2 snippet to bail when cpsess is missing to avoid non-token requests
         if ! grep -q 'qhtlfirewall v2 cpsess guard' "$ANALYTICS_TT" 2>/dev/null; then
@@ -509,8 +522,8 @@ if [ -f "$ANALYTICS_TT" ] || mkdir -p "/var/cpanel/customizations/whm/includes" 
         else
             echo "qhtlfirewall analytics v2 snippet already guarded; leaving as-is."
         fi
-    elif ! grep -q 'qhtlfirewall analytics inject v3' "$ANALYTICS_TT" 2>/dev/null; then
-        echo "Injecting qhtlfirewall snippet into cp_analytics_whm.html.tt (v3)"
+    elif [ "$WITH_ANALYTICS" = "1" ] && ! grep -q 'qhtlfirewall analytics inject v3' "$ANALYTICS_TT" 2>/dev/null; then
+        echo "Injecting qhtlfirewall snippet into cp_analytics_whm.html.tt (v3, opt-in)"
         cat >> "$ANALYTICS_TT" <<'QHTL_EOF'
 
 [%# qhtlfirewall analytics inject v3 %]
@@ -554,7 +567,7 @@ if [ -f "$ANALYTICS_TT" ] || mkdir -p "/var/cpanel/customizations/whm/includes" 
 QHTL_EOF
         chmod 644 "$ANALYTICS_TT" || true
     else
-        echo "cp_analytics_whm.html.tt already contains qhtlfirewall snippet v3; skipping."
+        echo "Skipping analytics injection (default). Use --with-analytics to enable."
     fi
 fi
 
