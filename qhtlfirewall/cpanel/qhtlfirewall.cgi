@@ -461,8 +461,31 @@ print "Content-type: text/html\r\n\r\n";
 my $templatehtml;
 my $SCRIPTOUT;
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
-		# Provide a minimal stub so window.openWatcher always exists; later UI script will overwrite it with the modal version
-		print "<script>window.openWatcher = window.openWatcher || function(){ try{ window.location='$script?action=logtail'; }catch(e){ window.location='$script?action=logtail'; } };</script>\n";
+		# Provide a smart wrapper so clicking Watcher waits briefly for modal init before falling back
+		print <<EOF;
+<script>
+(function(){
+	function fallback(){ try{ window.location='$script?action=logtail'; }catch(e){ window.location='$script?action=logtail'; } }
+	window.__qhtlOpenWatcherSmart = function(){
+		if (window.__qhtlQuickViewShim && typeof window.openWatcher==='function') { try{ window.openWatcher(); } catch(e){ fallback(); } return false; }
+		var attempts = 0, iv = setInterval(function(){
+			attempts++;
+			if (window.__qhtlQuickViewShim && typeof window.openWatcher==='function'){
+				clearInterval(iv);
+				try{ window.openWatcher(); } catch(e){ fallback(); }
+			} else if (attempts >= 30) { // ~3s total
+				clearInterval(iv);
+				fallback();
+			}
+		}, 100);
+		return false;
+	};
+	if (typeof window.openWatcher !== 'function') {
+		window.openWatcher = function(){ return window.__qhtlOpenWatcherSmart(); };
+	}
+})();
+</script>
+EOF
 #	open(STDERR, ">&STDOUT");
 	open ($SCRIPTOUT, '>', \$templatehtml);
 	select $SCRIPTOUT;
@@ -548,7 +571,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 		</div>
 		<div class='col-sm-4 col-xs-12 text-right'>
 			<button type='button' class='btn btn-xs btn-default' style='margin-right:8px'
-				onclick="try{ if (typeof window.openWatcher==='function'){ openWatcher(); } else { window.location='$script?action=logtail'; } } catch(e){ window.location='$script?action=logtail'; } return false;">
+				onclick="return (window.__qhtlOpenWatcherSmart ? window.__qhtlOpenWatcherSmart() : (typeof window.openWatcher==='function' ? (openWatcher(), false) : (window.location='$script?action=logtail', false)));">
 				Watcher
 			</button>
 			<img src='$images/qhtlfirewall_small.gif' onerror="this.onerror=null;this.src='$images/qhtlfirewall_small.png';" style='width:48px;height:48px;vertical-align:middle;margin-right:8px' alt='Logo'>
