@@ -118,7 +118,7 @@ sub main {
 				# No upgrade available, but if we fetched a version, show it for transparency
 				if (defined $actv and $actv ne "") {
 					my $src_text = ($src ne '' ? " (from $src)" : "");
-					print "<div class='bs-callout bs-callout-info'>You are running the latest version of qhtlfirewall (v$myv). Latest available online: v$actv$src_text</div>\n";
+					print "<div class='bs-callout bs-callout-info'>Up to date: qhtlfirewall v$myv (latest available is also v$actv$src_text)</div>\n";
 				} else {
 					print "<div class='bs-callout bs-callout-info'>You are running the latest version of qhtlfirewall (v$myv). An Upgrade button will appear here if a new version becomes available</div>\n";
 				}
