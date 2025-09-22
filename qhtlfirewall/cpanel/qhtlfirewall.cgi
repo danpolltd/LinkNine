@@ -42,10 +42,10 @@ my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
 my $sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
 my $accept   = lc($ENV{HTTP_ACCEPT} // '');
 if (!defined $FORM{action} || $FORM{action} eq '') {
-	my $is_script   = ($sec_dest eq 'script') || ($accept =~ /(?:application|text)\/javascript/);
-	my $is_document = ($sec_mode eq 'navigate') || ($sec_dest eq 'document') || ($accept =~ /text\/html/);
-	# Treat any script-like or ambiguous non-document request as a JS include and return a safe no-op
-	if ($is_script || !$is_document || (($ENV{REQUEST_METHOD}||'') eq 'GET' && (!defined $ENV{HTTP_REFERER} || $ENV{HTTP_REFERER} eq ''))) {
+	my $is_nav = ($sec_mode eq 'navigate') || ($sec_dest eq 'document');
+	my $accept_html = ($accept =~ /text\/html/);
+	# Serve HTML only for clear top-level navigations that expect HTML; otherwise, return JS no-op
+	if (!($is_nav && $accept_html)) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print "/* qhtlfirewall: ignored legacy script include without action; please update templates */\n";
 		print "(function(){ /* noop */ })();\n";
@@ -128,10 +128,16 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print <<'JS';
 (function(){
+	// Global one-time loader guard to avoid multiple executions from multiple include points
+	if (window.__QHTLFW_INIT__) { return; }
+	window.__QHTLFW_INIT__ = true;
 	function onReady(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn, { once:true }); } }
 	onReady(function(){
 		try {
-			if (document.getElementById('qhtlfw-badge')) { return; }
+			// Don't inject on our own firewall UI page to avoid doubling there
+			var href = String(location.pathname || '') + String(location.search || '');
+			if (/\/qhtlfirewall\.cgi(?:\?|$)/.test(href)) { return; }
+
 			function cps(){ var m=(location.pathname||'').match(/\/cpsess[0-9]+/); return m?m[0]:''; }
 			function origin(){ try { return location.origin || (location.protocol+'//'+location.host); } catch(e){ return ''; } }
 			var token = cps();
@@ -149,45 +155,56 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					var cls = data.class || 'default';
 					var txt = data.text || 'Firewall';
 					var bg = (cls==='success') ? '#5cb85c' : (cls==='warning' ? '#f0ad4e' : (cls==='danger' ? '#d9534f' : '#777'));
-					var overlay = document.createElement('div');
-					overlay.id = 'qhtlfw-badge';
-					overlay.style.position = 'fixed';
-					overlay.style.top = '10px';
-					overlay.style.right = '16px';
-					overlay.style.zIndex = '2147483647';
-					overlay.style.pointerEvents = 'none';
-					overlay.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-					var badge = document.createElement('span');
-					badge.style.pointerEvents = 'auto';
-					badge.style.padding = '4px 8px';
-					badge.style.display = 'inline-block';
-					badge.style.margin = '0';
-					badge.style.color = '#fff';
-					badge.style.background = bg;
-					badge.textContent = 'Firewall: ' + txt;
-					overlay.appendChild(badge);
-					document.body.appendChild(overlay);
+
+					// Floating overlay as a temporary fallback while header isn't ready
+					var overlay = document.getElementById('qhtlfw-badge-overlay');
+					if (!overlay) {
+						overlay = document.createElement('div');
+						overlay.id = 'qhtlfw-badge-overlay';
+						overlay.style.position = 'fixed';
+						overlay.style.top = '10px';
+						overlay.style.right = '16px';
+						overlay.style.zIndex = '2147483647';
+						overlay.style.pointerEvents = 'none';
+						overlay.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+						var badge = document.createElement('span');
+						badge.id = 'qhtlfw-badge-float';
+						badge.style.pointerEvents = 'auto';
+						badge.style.padding = '4px 8px';
+						badge.style.display = 'inline-block';
+						badge.style.margin = '0';
+						badge.style.color = '#fff';
+						badge.style.background = bg;
+						badge.textContent = 'Firewall: ' + txt;
+						overlay.appendChild(badge);
+						document.body.appendChild(overlay);
+					} else {
+						try { var b = document.getElementById('qhtlfw-badge-float'); if (b){ b.style.background = bg; b.textContent = 'Firewall: ' + txt; } } catch(e) {}
+					}
 
 					function injectIntoHeader(){
 						try {
 							var stats = document.querySelector('cp-whm-header-stats-control');
 							if (!stats) return false;
-							if (stats.shadowRoot) {
-								var host = stats.shadowRoot.querySelector('.header-stats, header, div');
-								if (host) {
-									var span = document.createElement('span');
-									span.style.marginLeft = '8px';
-									span.style.padding = '4px 8px';
-									span.style.borderRadius = '3px';
-									span.style.color = '#fff';
-									span.style.background = bg;
-									span.textContent = 'Firewall: ' + txt;
-									host.appendChild(span);
-									return true;
-								}
+							var host = stats && stats.shadowRoot ? (stats.shadowRoot.querySelector('.header-stats, header, div')) : null;
+							if (!host) return false;
+							var existing = stats.shadowRoot.getElementById('qhtlfw-header-badge');
+							if (existing) {
+								existing.style.background = bg;
+								existing.textContent = 'Firewall: ' + txt;
+								return true;
 							}
-						} catch(e) {}
-						return false;
+							var span = document.createElement('span');
+							span.id = 'qhtlfw-header-badge';
+							span.style.marginLeft = '8px';
+							span.style.padding = '4px 8px';
+							span.style.borderRadius = '3px';
+							span.style.color = '#fff';
+							span.style.background = bg;
+							span.textContent = 'Firewall: ' + txt;
+							host.appendChild(span);
+							return true;
+						} catch(e) { return false; }
 					}
 
 					// Try a few times right away (header can arrive late)
@@ -195,23 +212,20 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					var iv = setInterval(function(){
 						tries++;
 						if (injectIntoHeader()) {
-							overlay.style.display = 'none';
-							try { var ff = document.getElementById('qhtlfw-frame'); if (ff) ff.style.display = 'none'; } catch(e) {}
+							try { var ff = document.getElementById('qhtlfw-frame'); if (ff) ff.remove(); } catch(e) {}
+							try { overlay && overlay.remove(); } catch(e) {}
 							clearInterval(iv);
 						}
 						if (tries > 50) { clearInterval(iv); }
 					}, 100);
 
-					// Keep it persistent across SPA navigation/renders
+					// Keep it persistent across SPA navigation/renders: only re-inject if missing
 					try {
 						var mo = new MutationObserver(function(){
-							var ok = document.querySelector('cp-whm-header-stats-control');
-							// If header exists but our badge isn't inside it, try reinjecting
-							if (ok && overlay && overlay.style.display !== 'none') {
-								// nothing
-							} else {
-								injectIntoHeader();
-							}
+							var stats = document.querySelector('cp-whm-header-stats-control');
+							var present = false;
+							try { present = !!(stats && stats.shadowRoot && stats.shadowRoot.getElementById('qhtlfw-header-badge')); } catch(e) {}
+							if (!present) { injectIntoHeader(); }
 						});
 						mo.observe(document.body, { childList: true, subtree: true });
 					} catch(e) {}
