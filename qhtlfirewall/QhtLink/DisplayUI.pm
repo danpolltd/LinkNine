@@ -538,7 +538,6 @@ $("#fontminus-btn").on('click', function () {
 });
 </script>
 QHTL_JQ_GREP
-		print <<EOF;
 		if ($config{DIRECTADMIN}) {$script = $script_safe}
 		&printreturn;
 	}
@@ -555,6 +554,20 @@ QHTL_JQ_GREP
 		my $logfile = "/var/log/qhtlwaterfall.log";
 		my $hit = 0;
 		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					if ($FORM{lognum} == $cnt) {
+						$logfile = $globfile;
+						$hit = 1;
+						last;
 					}
 					$cnt++;
 				}
