@@ -39,12 +39,18 @@ Cpanel::Rlimit::set_rlimit_to_infinity();
 # Defensive: if this CGI is requested as a <script> without an action, return a JS no-op.
 # This avoids browsers trying to parse full HTML as JavaScript due to legacy includes.
 my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+my $sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
 my $accept   = lc($ENV{HTTP_ACCEPT} // '');
-if ((!defined $FORM{action} || $FORM{action} eq '') && ($sec_dest eq 'script' || $accept =~ /(?:application|text)\/javascript/)) {
-	print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
-	print "/* qhtlfirewall: ignored legacy script include without action; please update templates */\n";
-	print "(function(){ /* noop */ })();\n";
-	exit 0;
+if (!defined $FORM{action} || $FORM{action} eq '') {
+	my $is_script   = ($sec_dest eq 'script') || ($accept =~ /(?:application|text)\/javascript/);
+	my $is_document = ($sec_mode eq 'navigate') || ($sec_dest eq 'document') || ($accept =~ /text\/html/);
+	# Treat any script-like or ambiguous non-document request as a JS include and return a safe no-op
+	if ($is_script || !$is_document || (($ENV{REQUEST_METHOD}||'') eq 'GET' && (!defined $ENV{HTTP_REFERER} || $ENV{HTTP_REFERER} eq ''))) {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print "/* qhtlfirewall: ignored legacy script include without action; please update templates */\n";
+		print "(function(){ /* noop */ })();\n";
+		exit 0;
+	}
 }
 
 if (-e "/usr/local/cpanel/bin/register_appconfig") {
@@ -221,6 +227,15 @@ JS
 
 	# Minimal HTML banner for iframe embedding (no JS required in parent)
 	if (defined $FORM{action} && $FORM{action} eq 'banner_frame') {
+		# If loaded as a <script>, emit a JS no-op instead of HTML to prevent parse errors
+		my $bf_sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+		my $bf_accept   = lc($ENV{HTTP_ACCEPT} // '');
+		if ($bf_sec_dest eq 'script' || $bf_accept =~ /(?:application|text)\/javascript/) {
+			print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+			print "/* banner_frame loaded as script: noop */\n";
+			print "(function(){ /* noop */ })();\n";
+			exit 0;
+		}
 		# Load minimal config in a guarded way to avoid failing the endpoint
 		my %cfg = (
 			IPTABLES => '/sbin/iptables',
@@ -361,7 +376,7 @@ if ($Cpanel::Version::Tiny::major_version >= 65) {
 	}
 }
 
-print "Content-type: text/html\r\n\r\n";
+print "Content-type: text/html\r\nX-Content-Type-Options: nosniff\r\n\r\n";
 #if ($Cpanel::Version::Tiny::major_version < 65) {$modalstyle = "style='top:120px'"}
 
 my $templatehtml;
