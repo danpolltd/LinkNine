@@ -41,6 +41,17 @@ my $cleanreg = QhtLink::Slurp->cleanreg;
 
 Cpanel::Rlimit::set_rlimit_to_infinity();
 
+# Defensive: if this CGI is requested as a <script> without an action, return a JS no-op.
+# This avoids browsers trying to parse full HTML as JavaScript due to legacy includes.
+my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+my $accept   = lc($ENV{HTTP_ACCEPT} // '');
+if ((!defined $FORM{action} || $FORM{action} eq '') && ($sec_dest eq 'script' || $accept =~ /(?:application|text)\/javascript/)) {
+	print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	print "/* qhtlfirewall: ignored legacy script include without action; please update templates */\n";
+	print "(function(){ /* noop */ })();\n";
+	exit 0;
+}
+
 if (-e "/usr/local/cpanel/bin/register_appconfig") {
 	$script = "qhtlfirewall.cgi";
 	$images = "qhtlfirewall";
