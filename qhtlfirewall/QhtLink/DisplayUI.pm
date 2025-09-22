@@ -2412,94 +2412,97 @@ EOF
 	print "</div>\n";
 	print "</div>\n";
 
-	# Inline script to wire up Quick View modal behavior (escaped jQuery $)
-	print "<script>\n";
-	print "var currentQuickWhich = null;\n";
-	print "function openQuickView(url, which) {\n";
-	print "  var titleMap = {allow:'qhtlfirewall.allow', deny:'qhtlfirewall.deny', ignore:'qhtlfirewall.ignore'};\n";
-	print "  \\\$('#quickViewTitle').text('Quick View: ' + (titleMap[which]||which));\n";
-	print "  \\\$('#quickViewBody').html('Loading...');\n";
-	print "  currentQuickWhich = which;\n";
-	print "  var \\\$modal = \\\$('#quickViewModal');\n";
-	print "  if (!\\\$modal.parent().is('body')) { \\\$modal.appendTo('body'); }\n";
-	print "  \\\$modal.modal({ show: true, backdrop: true, keyboard: true });\n";
-	print "  \\\$('#quickViewEditBtn').show();\n";
-	print "  \\\$('#quickViewSaveBtn').hide();\n";
-	print "  \\\$('#quickViewCancelBtn').hide();\n";
-	 print "  // Apply view-mode glow (half intensity, slower)\n";
-	 print "  var \\\$mc = \\\$('#quickViewModal .modal-content');\n";
-	 print "  \\\$mc.removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view');\n";
-	 print "  \\\$mc.addClass('fire-border');\n";
-	 print "  if (currentQuickWhich==='allow') { \\\$mc.addClass('fire-allow-view'); } else if (currentQuickWhich==='ignore') { \\\$mc.addClass('fire-ignore-view'); } else if (currentQuickWhich==='deny') { \\\$mc.addClass('fire-deny-view'); }\n";
-	print "  \\\$.ajax({ url: url, method: 'GET' })\n";
-	print "    .done(function(data){\n";
-	print "      var body = data;\n";
-	print "      try { var m = data.match(/<pre[\\\\s\\\\S]*?<\\\\/pre>/i); if (m) { body = m[0]; } } catch(e) {}\n";
-	print "      \\\$('#quickViewBody').html(body);\n";
-	print "    })\n";
-	print "    .fail(function(){\n";
-	print "      \\\$('#quickViewBody').html('<div class=\\\\\\'alert alert-danger\\\\\\'>Failed to load content</div>');\n";
-	print "    });\n";
-	print "}\n";
-	print "function showQuickView(which) {\n";
-	print "  var url = '$script?action=viewlist&which=' + encodeURIComponent(which);\n";
-	print "  openQuickView(url, which);\n";
-	print "}\n";
-	print "\\\$(document).on('click', 'a.quickview-link', function(e){\n";
-	print "  try {\n";
-	print "    e.preventDefault();\n";
-	print "    var url = \\\$(this).attr('href');\n";
-	print "    var which = \\\$(this).data('which');\n";
-	print "    openQuickView(url, which);\n";
-	print "    return false;\n";
-	print "  } catch(err) { /* fallback to navigation */ }\n";
-	print "});\n";
-	print "\\\$(document).on('click', '#quickViewEditBtn', function(){\n";
-	print "  if (!currentQuickWhich) { return; }\n";
-	print "  var url = '$script?action=editlist&which=' + encodeURIComponent(currentQuickWhich);\n";
-	print "  \\\$('#quickViewBody').html('Loading...');\n";
-	print "  \\\$.ajax({ url: url, method: 'GET' })\n";
-	print "    .done(function(data){\n";
-	print "      \\\$('#quickViewBody').html(data);\n";
-	print "      \\\$('#quickViewEditBtn').hide();\n";
-	print "      \\\$('#quickViewSaveBtn').show();\n";
-	print "      \\\$('#quickViewCancelBtn').show();\n";
-	 print "      // add fire effect according to which list is being edited\n";
-	 print "      var cls = (currentQuickWhich==='allow') ? 'fire-allow' : (currentQuickWhich==='ignore' ? 'fire-ignore' : 'fire-deny');\n";
-	 print "      var \\\$mc = \\\$('#quickViewModal .modal-content'); \\\$mc.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); \\\$mc.addClass('fire-border').removeClass('fire-allow fire-ignore fire-deny').addClass(cls);\n";
-	print "    })\n";
-	print "    .fail(function(){\n";
-	print "      \\\$('#quickViewBody').html('<div class=\\\\\\'alert alert-danger\\\\\\'>Failed to load editor</div>');\n";
-	print "    });\n";
-	print "});\n";
-	print "\\\$(document).on('click', '#quickViewSaveBtn', function(){\n";
-	print "  if (!currentQuickWhich) { return; }\n";
-	print "\\$(document).on('click', '#quickViewCancelBtn', function(){\n";
-	print "  if (!currentQuickWhich) { return; }\n";
-	print "  \\\$('#quickViewEditBtn').show();\n";
-	print "  \\\$('#quickViewSaveBtn').hide();\n";
-	print "  \\\$('#quickViewCancelBtn').hide();\n";
-	 print "  var \\\$mc2 = \\\$('#quickViewModal .modal-content'); \\\$mc2.removeClass('fire-allow fire-ignore fire-deny'); \\\$mc2.addClass('fire-border'); \\\$mc2.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); if (currentQuickWhich==='allow') { \\\$mc2.addClass('fire-allow-view'); } else if (currentQuickWhich==='ignore') { \\\$mc2.addClass('fire-ignore-view'); } else if (currentQuickWhich==='deny') { \\\$mc2.addClass('fire-deny-view'); }\n";
-	print "  showQuickView(currentQuickWhich);\n";
-	print "});\n";
-	print "  var content = '';\n";
-	print "  var ta = document.getElementById('quickEditArea');\n";
-	print "  if (ta) { content = ta.value; }\n";
-	print "  \\\$('#quickViewBody').html('Saving...');\n";
-	print "  \\\$.ajax({ url: '$script?action=savelist&which=' + encodeURIComponent(currentQuickWhich), method: 'POST', data: { formdata: content } })\n";
-	print "    .done(function(){\n";
-	print "      showQuickView(currentQuickWhich);\n";
-	print "      \\\$('#quickViewEditBtn').show();\n";
-	print "      \\\$('#quickViewSaveBtn').hide();\n";
-	print "      \\\$('#quickViewCancelBtn').hide();\n";
-	 print "      var \\\$mc3 = \\\$('#quickViewModal .modal-content'); \\\$mc3.removeClass('fire-allow fire-ignore fire-deny'); \\\$mc3.addClass('fire-border'); \\\$mc3.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); \\\$mc3.addClass((currentQuickWhich==='allow')?'fire-allow-view':(currentQuickWhich==='ignore')?'fire-ignore-view':'fire-deny-view');\n";
-	print "    })\n";
-	print "    .fail(function(){\n";
-	print "      \\\$('#quickViewBody').html('<div class=\\\\\\'alert alert-danger\\\\\\'>Failed to save changes</div>');\n";
-	print "    });\n";
-	print "});\n";
-	print "\\\$('#quickViewModal').on('hidden.bs.modal', function(){ \\\$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view'); });\n";
-	print "</script>\n";
+		# Inline script to wire up Quick View modal behavior
+		print "<script>\n";
+		print "var QHTL_SCRIPT = '$script';\n";
+		print <<'JS';
+var currentQuickWhich = null;
+function openQuickView(url, which) {
+	var titleMap = {allow:'qhtlfirewall.allow', deny:'qhtlfirewall.deny', ignore:'qhtlfirewall.ignore'};
+	$('#quickViewTitle').text('Quick View: ' + (titleMap[which]||which));
+	$('#quickViewBody').html('Loading...');
+	currentQuickWhich = which;
+	var $modal = $('#quickViewModal');
+	if (!$modal.parent().is('body')) { $modal.appendTo('body'); }
+	$modal.modal({ show: true, backdrop: true, keyboard: true });
+	$('#quickViewEditBtn').show();
+	$('#quickViewSaveBtn').hide();
+	$('#quickViewCancelBtn').hide();
+	// Apply view-mode glow (half intensity, slower)
+	var $mc = $('#quickViewModal .modal-content');
+	$mc.removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view');
+	$mc.addClass('fire-border');
+	if (currentQuickWhich==='allow') { $mc.addClass('fire-allow-view'); } else if (currentQuickWhich==='ignore') { $mc.addClass('fire-ignore-view'); } else if (currentQuickWhich==='deny') { $mc.addClass('fire-deny-view'); }
+	$.ajax({ url: url, method: 'GET' })
+		.done(function(data){
+			var body = data;
+			try { var m = data.match(/<pre[\s\S]*?<\/pre>/i); if (m) { body = m[0]; } } catch(e) {}
+			$('#quickViewBody').html(body);
+		})
+		.fail(function(){
+			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to load content</div>');
+		});
+}
+function showQuickView(which) {
+	var url = QHTL_SCRIPT + '?action=viewlist&which=' + encodeURIComponent(which);
+	openQuickView(url, which);
+}
+$(document).on('click', 'a.quickview-link', function(e){
+	try {
+		e.preventDefault();
+		var url = $(this).attr('href');
+		var which = $(this).data('which');
+		openQuickView(url, which);
+		return false;
+	} catch(err) { /* fallback to navigation */ }
+});
+$(document).on('click', '#quickViewEditBtn', function(){
+	if (!currentQuickWhich) { return; }
+	var url = QHTL_SCRIPT + '?action=editlist&which=' + encodeURIComponent(currentQuickWhich);
+	$('#quickViewBody').html('Loading...');
+	$.ajax({ url: url, method: 'GET' })
+		.done(function(data){
+			$('#quickViewBody').html(data);
+			$('#quickViewEditBtn').hide();
+			$('#quickViewSaveBtn').show();
+			$('#quickViewCancelBtn').show();
+			// add fire effect according to which list is being edited
+			var cls = (currentQuickWhich==='allow') ? 'fire-allow' : (currentQuickWhich==='ignore' ? 'fire-ignore' : 'fire-deny');
+			var $mc = $('#quickViewModal .modal-content'); $mc.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); $mc.addClass('fire-border').removeClass('fire-allow fire-ignore fire-deny').addClass(cls);
+		})
+		.fail(function(){
+			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to load editor</div>');
+		});
+});
+$(document).on('click', '#quickViewCancelBtn', function(){
+	if (!currentQuickWhich) { return; }
+	$('#quickViewEditBtn').show();
+	$('#quickViewSaveBtn').hide();
+	$('#quickViewCancelBtn').hide();
+	var $mc2 = $('#quickViewModal .modal-content'); $mc2.removeClass('fire-allow fire-ignore fire-deny'); $mc2.addClass('fire-border'); $mc2.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); if (currentQuickWhich==='allow') { $mc2.addClass('fire-allow-view'); } else if (currentQuickWhich==='ignore') { $mc2.addClass('fire-ignore-view'); } else if (currentQuickWhich==='deny') { $mc2.addClass('fire-deny-view'); }
+	showQuickView(currentQuickWhich);
+});
+$(document).on('click', '#quickViewSaveBtn', function(){
+	if (!currentQuickWhich) { return; }
+	var content = '';
+	var ta = document.getElementById('quickEditArea');
+	if (ta) { content = ta.value; }
+	$('#quickViewBody').html('Saving...');
+	$.ajax({ url: QHTL_SCRIPT + '?action=savelist&which=' + encodeURIComponent(currentQuickWhich), method: 'POST', data: { formdata: content } })
+		.done(function(){
+			showQuickView(currentQuickWhich);
+			$('#quickViewEditBtn').show();
+			$('#quickViewSaveBtn').hide();
+			$('#quickViewCancelBtn').hide();
+			var $mc3 = $('#quickViewModal .modal-content'); $mc3.removeClass('fire-allow fire-ignore fire-deny'); $mc3.addClass('fire-border'); $mc3.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); $mc3.addClass((currentQuickWhich==='allow')?'fire-allow-view':(currentQuickWhich==='ignore')?'fire-ignore-view':'fire-deny-view');
+		})
+		.fail(function(){
+			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to save changes</div>');
+		});
+});
+$('#quickViewModal').on('hidden.bs.modal', function(){ $('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view'); });
+JS
+		print "</script>\n";
 	print "</div>\n";
 		print "</div>\n";
 
@@ -3014,12 +3017,14 @@ sub cloudflare {
 	my $scope = &QhtLink::CloudFlare::getscope();
 	print "<link rel='stylesheet' href='$images/bootstrap-chosen.css'>\n";
 	print "<script src='$images/chosen.min.js'></script>\n";
-	print "<script>\n";
-	print "\$(function() {\n";
-	print "  \$('.chosen-select').chosen();\n";
-	print "  \$('.chosen-select-deselect').chosen({ allow_single_deselect: true });\n";
-	print "});\n";
-	print "</script>\n";
+		print "<script>\n";
+		print <<'JS';
+$(function() {
+	$('.chosen-select').chosen();
+	$('.chosen-select-deselect').chosen({ allow_single_deselect: true });
+});
+JS
+		print "</script>\n";
 
 	print "<table class='table table-bordered table-striped'>\n";
 	print "<thead><tr><th colspan='2'>qhtlfirewall - CloudFlare</th></tr></thead>";
@@ -3052,32 +3057,35 @@ sub cloudflare {
 	print "		\$('#CFajax').html('<div id=\"loader\"></div><div class=\"panel panel-info\"><div class=\"panel-heading\">Loading...</div></div>');\n";
 	print "		\$('#CFajax').load(myurl);\n";
 	print "		\$('body').css('cursor', 'default');\n";
-	print "	});\n";
-	print "	\$('#domains').on('keyup change',function() {\n";
-	print "		if (\$('#domains').val() == null) {\n";
-	print "			\$('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', true);\n";
-	print "		} else {\n";
-	print "			\$('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', false);\n";
-	print "		}\n";
-	print "	});\n";
-	print "});\n";
-	print "</script>\n";
-	&printreturn;
-	return;
-}
-# end cloudflare
-###############################################################################
-# start resize
-sub resize {
-	my $part = shift;
-	my $scroll = shift;
-	if ($part eq "top") {
-		print "<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>\n";
-		print "<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>\n";
-	} else {
 		print "<script>\n";
-		if ($scroll) {
-			print "\$('#output').scrollTop(\$('#output')[0].scrollHeight);\n";
+		print "var QHTL_SCRIPT = '$script';\n";
+		print <<'JS';
+$(document).ready(function(){
+	$('#cflist').submit(function(){ $('#cflistbtn').click(); return false; })
+	$('#cftempdeny').submit(function(){ $('#cftempdenybtn').click(); return false; })
+	$('#cfadd').submit(function(){ $('#cfaddbtn').click(); return false; })
+	$('#cfremove').submit(function(){ $('#cfremovebtn').click(); return false; })
+	$('button').click(function(){
+		$('body').css('cursor', 'progress');
+		var myurl;
+		if (this.id == 'cflistbtn') { myurl = QHTL_SCRIPT + '?action=cflist&type=' + $("#cflist #type").val() + '&domains=' + $("#domains").val(); }
+		if (this.id == 'cftempdenybtn') { myurl = QHTL_SCRIPT + '?action=cftempdeny&do=' + $("#cftempdeny #do").val() + '&target=' + $("#cftempdeny #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
+		if (this.id == 'cfaddbtn') { myurl = QHTL_SCRIPT + '?action=cfadd&type=' + $("#cfadd #type").val() + '&target=' + $("#cfadd #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
+		if (this.id == 'cfremovebtn') { myurl = QHTL_SCRIPT + '?action=cfremove&target=' + $("#cfremove #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
+		$('#CFajax').html('<div id="loader"></div><div class="panel panel-info"><div class="panel-heading">Loading...</div></div>');
+		$('#CFajax').load(myurl);
+		$('body').css('cursor', 'default');
+	});
+	$('#domains').on('keyup change',function() {
+		if ($('#domains').val() == null) {
+			$('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', true);
+		} else {
+			$('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', false);
+		}
+	});
+});
+JS
+		print "</script>\n";
 		}
 		print <<EOF;
 
