@@ -536,11 +536,7 @@ if ($ui_error) {
 }
 
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
-	# Fallback: load the header badge script on this page too (global includes may not be present)
-	print "<script src='$script?action=banner_js' defer></script>\n";
-	print <<'EOF';
-<script>(function(){ /* inline UI script remains disabled to avoid legacy parse errors */ })();</script>
-EOF
+	# No local fallback loader here; global WHM includes handle banner injection with a valid cpsess token.
 	print @footer;
 }
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
