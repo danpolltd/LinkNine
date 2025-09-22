@@ -505,79 +505,21 @@ fi
 # Ensure Jupiter (WHM root) path renders our badge by leveraging cp_analytics_whm.html.tt
 ANALYTICS_TT="/var/cpanel/customizations/whm/includes/cp_analytics_whm.html.tt"
 if [ -f "$ANALYTICS_TT" ] || mkdir -p "/var/cpanel/customizations/whm/includes" ; then
-    # Remove previously injected v3 snippet unless explicitly opted-in
-    if grep -q 'qhtlfirewall analytics inject v3' "$ANALYTICS_TT" 2>/dev/null && [ "$WITH_ANALYTICS" != "1" ]; then
-        echo "Removing previously injected qhtlfirewall analytics v3 snippet (cleanup)"
-        sed -i "/qhtlfirewall analytics inject v3/,/<\\\/script>/d" "$ANALYTICS_TT" || true
-    fi
-
-    # Remove previously injected v2 snippet entirely (safer than patching) unless opted-in
-    if grep -q 'qhtlfirewall analytics inject v2' "$ANALYTICS_TT" 2>/dev/null && [ "$WITH_ANALYTICS" != "1" ]; then
-        echo "Removing previously injected qhtlfirewall analytics v2 snippet (cleanup)"
-        sed -i "/qhtlfirewall analytics inject v2/,/<\\\/script>/d" "$ANALYTICS_TT" || true
-    fi
-
-    # Remove any stray lines referencing our CGI or iframe that could live outside markers
+    # Robust cleanup: remove any entire <script> blocks that reference qhtlfirewall to avoid truncated/broken snippets
     if [ "$WITH_ANALYTICS" != "1" ]; then
-        sed -i \
-            -e "/qhtlfirewall\\.cgi/d" \
-            -e "/qhtlfw-frame/d" \
-            "$ANALYTICS_TT" || true
+        echo "Cleaning qhtlfirewall scripts from cp_analytics_whm.html.tt"
+        perl -0777 -pe 's/<script\b[^>]*>.*?qhtlfirewall.*?<\/script>//igs' -i "$ANALYTICS_TT" 2>/dev/null || true
+        # Also remove leftover single lines that might reference our assets
+        sed -i -e "/qhtlfirewall\\.cgi/d" -e "/qhtlfw-frame/d" "$ANALYTICS_TT" 2>/dev/null || true
     fi
 
-    if grep -q 'qhtlfirewall analytics inject v2' "$ANALYTICS_TT" 2>/dev/null; then
-        # Patch existing v2 snippet to bail when cpsess is missing to avoid non-token requests
-        if ! grep -q 'qhtlfirewall v2 cpsess guard' "$ANALYTICS_TT" 2>/dev/null; then
-            echo "Patching existing qhtlfirewall analytics snippet v2 to guard on cpsess"
-            # Replace the base computation with a strict cpsess guard
-            sed -i \
-                -e "s|var base = (m && m\[0\]) ? (m\[0\] + '/') : '/'\;|/* qhtlfirewall v2 cpsess guard */ if(!(m && m[0])){ return; } var base = m[0] + '/'\;|" \
-                "$ANALYTICS_TT" || true
-        else
-            echo "qhtlfirewall analytics v2 snippet already guarded; leaving as-is."
-        fi
-    elif [ "$WITH_ANALYTICS" = "1" ] && ! grep -q 'qhtlfirewall analytics inject v3' "$ANALYTICS_TT" 2>/dev/null; then
-        echo "Injecting qhtlfirewall snippet into cp_analytics_whm.html.tt (v3, opt-in)"
+    if [ "$WITH_ANALYTICS" = "1" ]; then
+        # Remove any prior qhtlfirewall blocks before injecting the fresh, minimal snippet
+        perl -0777 -pe 's/<script\b[^>]*>.*?qhtlfirewall.*?<\/script>//igs' -i "$ANALYTICS_TT" 2>/dev/null || true
+        echo "Injecting qhtlfirewall snippet into cp_analytics_whm.html.tt (v4 minimal)"
         cat >> "$ANALYTICS_TT" <<'QHTL_EOF'
-
-[%# qhtlfirewall analytics inject v3 %]
-<script>
-(function(){
-    try {
-        var m = String(location.pathname).match(/\/cpsess[^/]+/);
-        if (!(m && m[0])) { return; }
-        var token = m[0];
-        var org;
-        try { org = location.origin || (location.protocol + '//' + location.host); } catch(e) { org = ''; }
-        if (!org) { return; }
-        var baseAbs = org + token + '/';
-        // Inject external JS for smart placement; the script itself is safeguarded
-        var s = document.createElement('script');
-        s.src = baseAbs + 'cgi/qhtlink/qhtlfirewall.cgi?action=banner_js';
-        s.defer = true;
-        (document.head||document.documentElement).appendChild(s);
-        // Optional: tiny iframe badge for visibility; guarded by cpsess
-        if (!document.getElementById('qhtlfw-frame')) {
-            var f = document.createElement('iframe');
-            f.id = 'qhtlfw-frame';
-            f.src = baseAbs + 'cgi/qhtlink/qhtlfirewall.cgi?action=banner_frame';
-            f.title = 'QhtLink Firewall';
-            f.style.position = 'fixed';
-            f.style.top = '10px';
-            f.style.right = '16px';
-            f.style.zIndex = '2147483647';
-            f.style.border = '0';
-            f.style.width = '200px';
-            f.style.height = '24px';
-            f.style.overflow = 'hidden';
-            f.style.background = 'transparent';
-            f.setAttribute('loading','lazy');
-            (document.body||document.documentElement).appendChild(f);
-        }
-    } catch(e) {}
-})();
-</script>
-
+[%# qhtlfirewall analytics inject v4 (minimal) %]
+<script>(function(){ var m=String(location.pathname).match(/\/cpsess[^/]+/); if(!(m&&m[0])) return; var base=m[0]+'/'; var s=document.createElement('script'); s.src=base+'cgi/qhtlink/qhtlfirewall.cgi?action=banner_js'; s.defer=true; (document.head||document.documentElement).appendChild(s); })();</script>
 QHTL_EOF
         chmod 644 "$ANALYTICS_TT" || true
     else
