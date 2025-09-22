@@ -398,7 +398,12 @@ cp -avf restricted.txt /usr/local/qhtlfirewall/lib/
 cp -avf changelog.txt /etc/qhtlfirewall/
 cp -avf downloadservers /etc/qhtlfirewall/
 cp -avf install.txt /etc/qhtlfirewall/
-cp -avf version.txt /etc/qhtlfirewall/
+# Write installed version
+if [ -n "${QHTL_RELEASE_VERSION}" ]; then
+    printf '%s\n' "${QHTL_RELEASE_VERSION}" > /etc/qhtlfirewall/version.txt
+else
+    cp -avf version.txt /etc/qhtlfirewall/
+fi
 cp -avf license.txt /etc/qhtlfirewall/
 cp -avf webmin /usr/local/qhtlfirewall/lib/
 cp -avf QhtLink /usr/local/qhtlfirewall/lib/
