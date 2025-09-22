@@ -255,23 +255,34 @@ sub main {
 			print "<tr><td style='white-space: nowrap;'><a class='btn btn-success' href='$script?action=temprma&ip=$ip' data-tooltip='tooltip' title='Remove $ip'><span class='glyphicon glyphicon-ok-circle'></span></a> \n";
 			print "<td>ALLOW</td><td>$ip</td><td>$port</td><td>$inout</td><td>$time</td><td>$message</td></tr>\n";
 		}
-		print "</table>\n";
-		if (@deny or @allow) {
-			print "<div><a class='btn btn-success' href='$script?action=temprm&ip=all'>Flush all temporary blocks</a></div>\n";
-		} else {
-			print "<div>There are no temporary IP entries</div>\n";
-		}
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "temprm") {
-		print "<div><p>Removing all temporary entries:</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		if ($FORM{ip} eq "all") {
-			&printcmd("/usr/sbin/qhtlfirewall","-tf");
-		}
-		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='temp'><input type='submit' class='btn btn-default' value='Return'></form></div>\n";
-	}
-	elsif ($FORM{action} eq "temprmd") {
+		print "<script>\n";
+		print "var QHTL_SCRIPT = '$script';\n";
+		print <<'JS';
+	$(document).ready(function(){
+		$('#cflist').submit(function(){ $('#cflistbtn').click(); return false; })
+		$('#cftempdeny').submit(function(){ $('#cftempdenybtn').click(); return false; })
+		$('#cfadd').submit(function(){ $('#cfaddbtn').click(); return false; })
+		$('#cfremove').submit(function(){ $('#cfremovebtn').click(); return false; })
+		$('button').click(function(){
+			$('body').css('cursor', 'progress');
+			var myurl;
+			if (this.id == 'cflistbtn') { myurl = QHTL_SCRIPT + '?action=cflist&type=' + $("#cflist #type").val() + '&domains=' + $("#domains").val(); }
+			if (this.id == 'cftempdenybtn') { myurl = QHTL_SCRIPT + '?action=cftempdeny&do=' + $("#cftempdeny #do").val() + '&target=' + $("#cftempdeny #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
+			if (this.id == 'cfaddbtn') { myurl = QHTL_SCRIPT + '?action=cfadd&type=' + $("#cfadd #type").val() + '&target=' + $("#cfadd #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
+			if (this.id == 'cfremovebtn') { myurl = QHTL_SCRIPT + '?action=cfremove&target=' + $("#cfremove #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
+			$('#CFajax').html('<div id="loader"></div><div class="panel panel-info"><div class="panel-heading">Loading...</div></div>');
+			$('#CFajax').load(myurl);
+			$('body').css('cursor', 'default');
+		});
+		$('#domains').on('keyup change',function() {
+			if ($('#domains').val() == null) {
+				$('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', true);
+			} else {
+				$('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', false);
+			}
+		});
+	});
+	JS
 		print "<div><p>Removing temporary deny entry for $FORM{ip}:</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 		&printcmd("/usr/sbin/qhtlfirewall","-trd",$FORM{ip});
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
@@ -393,24 +404,26 @@ sub main {
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
 <pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both"> &nbsp; </pre>
 
-<script>
-	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
-	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
-	QHTLFIREWALLscript = '$script?action=logtailcmd';
-	QHTLFIREWALLtimer();
-
-	var myFont = 14;
-	\$("#fontplus-btn").on('click', function () {
-		myFont++;
-		if (myFont > 20) {myFont = 20}
-		\$('#QHTLFIREWALLajax').css("font-size",myFont+"px");
-	});
-	\$("#fontminus-btn").on('click', function () {
-		myFont--;
-		if (myFont < 12) {myFont = 12}
-		\$('#QHTLFIREWALLajax').css("font-size",myFont+"px");
-	});
-</script>
+		<script>
+			QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+			QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+			QHTLFIREWALLscript = '$script?action=logtailcmd';
+			QHTLFIREWALLtimer();
+		</script>
+		<script>
+		// Clean jQuery handlers for font size controls
+		var myFont = 14;
+		$("#fontplus-btn").on('click', function () {
+			myFont++;
+			if (myFont > 20) { myFont = 20 }
+			$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+		});
+		$("#fontminus-btn").on('click', function () {
+			myFont--;
+			if (myFont < 12) { myFont = 12 }
+			$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+		});
+		</script>
 <!-- Quick View modal handlers are defined once in the main UI script below -->
 EOF
 		if ($config{DIRECTADMIN}) {$script = $script_safe}
@@ -554,18 +567,20 @@ Please Note:
 	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
 	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
 	QHTLFIREWALLscript = '$script?action=loggrepcmd';
-
-	var myFont = 14;
-	\$("#fontplus-btn").on('click', function () {
-		myFont++;
-		if (myFont > 20) {myFont = 20}
-		\$('#QHTLFIREWALLajax').css("font-size",myFont+"px");
-	});
-	\$("#fontminus-btn").on('click', function () {
-		myFont--;
-		if (myFont < 12) {myFont = 12}
-		\$('#QHTLFIREWALLajax').css("font-size",myFont+"px");
-	});
+</script>
+<script>
+// Clean jQuery handlers for grep view
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+    myFont++;
+    if (myFont > 20) { myFont = 20 }
+    $('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+    myFont--;
+    if (myFont < 12) { myFont = 12 }
+    $('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
 </script>
 EOF
 		if ($config{DIRECTADMIN}) {$script = $script_safe}

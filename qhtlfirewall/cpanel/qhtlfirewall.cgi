@@ -13,10 +13,8 @@ use Sys::Hostname qw(hostname);
 use IPC::Open3;
 
 use lib '/usr/local/qhtlfirewall/lib';
-use QhtLink::DisplayUI;
-use QhtLink::DisplayResellerUI;
-use QhtLink::Config;
-use QhtLink::Slurp qw(slurp);
+require QhtLink::Config;
+require QhtLink::Slurp;
 
 use lib '/usr/local/cpanel';
 require Cpanel::Form;
@@ -60,7 +58,7 @@ if (-e "/usr/local/cpanel/bin/register_appconfig") {
 	$images = "qhtlfirewall";
 }
 
-foreach my $line (slurp("/etc/qhtlfirewall/qhtlfirewall.resellers")) {
+foreach my $line (QhtLink::Slurp::slurp("/etc/qhtlfirewall/qhtlfirewall.resellers")) {
 	$line =~ s/$cleanreg//g;
 	my ($user,$alert,$privs) = split(/\:/,$line);
 	$privs =~ s/\s//g;
@@ -392,6 +390,8 @@ EOF
 }
 
 #eval {
+require QhtLink::DisplayUI;
+require QhtLink::DisplayResellerUI;
 if ($reseller) {
 	QhtLink::DisplayResellerUI::main(\%FORM, $script, 0, $images, $myv, 'cpanel');
 } else {
