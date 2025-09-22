@@ -511,6 +511,20 @@ if [ -f "$ANALYTICS_TT" ] || mkdir -p "/var/cpanel/customizations/whm/includes" 
         sed -i "/qhtlfirewall analytics inject v3/,/<\\\/script>/d" "$ANALYTICS_TT" || true
     fi
 
+    # Remove previously injected v2 snippet entirely (safer than patching) unless opted-in
+    if grep -q 'qhtlfirewall analytics inject v2' "$ANALYTICS_TT" 2>/dev/null && [ "$WITH_ANALYTICS" != "1" ]; then
+        echo "Removing previously injected qhtlfirewall analytics v2 snippet (cleanup)"
+        sed -i "/qhtlfirewall analytics inject v2/,/<\\\/script>/d" "$ANALYTICS_TT" || true
+    fi
+
+    # Remove any stray lines referencing our CGI or iframe that could live outside markers
+    if [ "$WITH_ANALYTICS" != "1" ]; then
+        sed -i \
+            -e "/qhtlfirewall\\.cgi/d" \
+            -e "/qhtlfw-frame/d" \
+            "$ANALYTICS_TT" || true
+    fi
+
     if grep -q 'qhtlfirewall analytics inject v2' "$ANALYTICS_TT" 2>/dev/null; then
         # Patch existing v2 snippet to bail when cpsess is missing to avoid non-token requests
         if ! grep -q 'qhtlfirewall v2 cpsess guard' "$ANALYTICS_TT" 2>/dev/null; then
