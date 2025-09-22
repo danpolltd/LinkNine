@@ -76,6 +76,15 @@ chomp $myv;
 # Lightweight JSON status endpoint for sanctioned WHM includes
 # Usage: /cgi/qhtlink/qhtlfirewall.cgi?action=status_json
 if (defined $FORM{action} && $FORM{action} eq 'status_json') {
+	# If this endpoint is accidentally loaded as a <script>, emit a JS no-op to avoid parse errors
+	my $sj_sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	my $sj_accept   = lc($ENV{HTTP_ACCEPT} // '');
+	if ($sj_sec_dest eq 'script' || $sj_accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/) {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print "/* status_json cannot be <script>-loaded; noop */\n";
+		print "(function(){ /* noop */ })();\n";
+		exit 0;
+	}
 	# Load minimal config in a guarded way to avoid failing the endpoint
 	my %cfg = (
 		IPTABLES => '/sbin/iptables',
@@ -122,7 +131,7 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 		'{"enabled":%d,"running":%d,"test_mode":%d,"status":"%s","text":"%s","class":"%s","version":"%s"}',
 		$enabled, $running, $is_test, $status_key, $text, $class, $myv
 	);
-	print "Content-type: application/json\r\n\r\n";
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\n\r\n";
 	print $json;
 	exit 0;
 }
@@ -130,6 +139,15 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 # Lightweight JavaScript endpoint to render a header badge without relying on inline JS in templates.
 # Usage: /cgi/qhtlink/qhtlfirewall.cgi?action=banner_js (builds an absolute cpsess-aware URL internally)
 if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
+	# If this endpoint is navigated to as a document, send a JS no-op (do not emit HTML)
+	my $bj_sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	my $bj_mode     = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
+	if ($bj_mode eq 'navigate' || $bj_sec_dest eq 'document' || $bj_sec_dest eq 'iframe' || $bj_sec_dest eq 'frame') {
+	    print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	    print "/* banner_js is not a document; noop */\n";
+	    print "(function(){ /* noop */ })();\n";
+	    exit 0;
+	}
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print <<'JS';
 (function(){
