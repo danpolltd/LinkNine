@@ -36,25 +36,29 @@ Whostmgr::ACLS::init_acls();
 
 Cpanel::Rlimit::set_rlimit_to_infinity();
 
-# Defensive: if this CGI is requested as a <script> without an action, return a JS no-op.
-# This avoids browsers trying to parse full HTML as JavaScript due to legacy includes.
+# Defensive: if this CGI is requested in a script-like context without an action, return a JS no-op.
+# Only treat as a true navigation when Sec-Fetch clearly indicates a document navigation or user-initiated nav.
 my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
 my $sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
+my $sec_user = lc($ENV{HTTP_SEC_FETCH_USER} // ''); # '?1' for user navigations
 my $accept   = lc($ENV{HTTP_ACCEPT} // '');
 if (!defined $FORM{action} || $FORM{action} eq '') {
 	my $has_ref       = defined $ENV{HTTP_REFERER} && $ENV{HTTP_REFERER} ne '' ? 1 : 0;
 	my $accept_html   = ($accept =~ /(?:text\/html|application\/xhtml\+xml)/);
-	# Consider iframe/frame as document-like navigations too
-	my $is_nav        = ($sec_mode eq 'navigate') || ($sec_dest eq 'document') || ($sec_dest eq 'iframe') || ($sec_dest eq 'frame') || $accept_html;
+	my $has_secfetch  = ($ENV{HTTP_SEC_FETCH_DEST}||$ENV{HTTP_SEC_FETCH_MODE}||$ENV{HTTP_SEC_FETCH_USER}) ? 1 : 0;
+	# Only consider this a navigation if Sec-Fetch says so (user nav, navigate mode, or document dest)
+	my $is_nav_strict = ($sec_user eq '?1') || ($sec_mode eq 'navigate') || ($sec_dest eq 'document');
 	my $is_script_dest= ($sec_dest eq 'script');
 	my $accept_js     = ($accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
-	# Treat as script-like if clearly script, or if not a nav and Accept lacks HTML (common for <script> requests with */*)
-	my $scriptish     = $is_script_dest || $accept_js || (!$is_nav && ($has_ref || !$accept_html));
-	# Treat script-like requests as JS includes and return a safe no-op; otherwise, serve UI HTML
+	# If Sec-Fetch headers are present and do NOT indicate a document navigation, treat as script-like
+	my $scriptish     = ($has_secfetch && !$is_nav_strict) || $is_script_dest || $accept_js;
+	# Fallback heuristic when Sec-Fetch is absent: if Accept lacks HTML or a Referer is present, it's likely a subresource (script)
+	if (!$has_secfetch) {
+		$scriptish ||= ($has_ref || !$accept_html) ? 1 : 0;
+	}
 	if ($scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
-		print "/* qhtlfirewall: ignored legacy script include without action; please update templates */\n";
-		print "(function(){ /* noop */ })();\n";
+		print ";\n";
 		exit 0;
 	}
 }
@@ -82,8 +86,7 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 	my $sj_accept   = lc($ENV{HTTP_ACCEPT} // '');
 	if ($sj_sec_dest eq 'script' || $sj_accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
-		print "/* status_json cannot be <script>-loaded; noop */\n";
-		print "(function(){ /* noop */ })();\n";
+		print ";\n";
 		exit 0;
 	}
 	# Load minimal config in a guarded way to avoid failing the endpoint
@@ -145,120 +148,114 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 	my $bj_mode     = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
 	if ($bj_mode eq 'navigate' || $bj_sec_dest eq 'document' || $bj_sec_dest eq 'iframe' || $bj_sec_dest eq 'frame') {
 	    print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
-	    print "/* banner_js is not a document; noop */\n";
-	    print "(function(){ /* noop */ })();\n";
+	    print ";\n";
 	    exit 0;
 	}
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print <<'JS';
 (function(){
-	try {
-		// Global one-time loader guard to avoid multiple executions from multiple include points
-		if (window.__QHTLFW_INIT__) { return; }
-		window.__QHTLFW_INIT__ = true;
-		function onReady(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn, { once:true }); } }
-		onReady(function(){
-			try {
-				// Don't inject on our own firewall UI page to avoid doubling there
-				var href = String(location.pathname || '') + String(location.search || '');
-				if (/\/qhtlfirewall\.cgi(?:\?|$)/.test(href)) { return; }
+  // Global one-time loader guard to avoid multiple executions from multiple include points
+  if (window.__QHTLFW_INIT__) { return; }
+  window.__QHTLFW_INIT__ = true;
 
-				function cps(){ var m=(location.pathname||'').match(/\/cpsess[0-9]+/); return m?m[0]:''; }
-				function origin(){ try { return location.origin || (location.protocol+'//'+location.host); } catch(e){ return ''; } }
-				var token = cps();
-				if (!token) { return; } // avoid CSRF/login redirects that return HTML
-				var url = origin()+token+'/cgi/qhtlink/qhtlfirewall.cgi?action=status_json';
-				var controller = (typeof AbortController!=='undefined') ? new AbortController() : null;
-				var to = controller ? setTimeout(function(){ try{controller.abort();}catch(e){} }, 1800) : null;
-				var fetchOpts = { credentials: 'same-origin' };
-				if (controller) fetchOpts.signal = controller.signal;
-				(window.fetch ? fetch(url, fetchOpts) : Promise.reject('no-fetch'))
-					.then(function(r){ return (r && r.ok) ? r.json() : null; })
-					.then(function(data){
-						if (to) clearTimeout(to);
-						if(!data) return;
-						var cls = data.class || 'default';
-						var txt = data.text || 'Firewall';
-						var bg = (cls==='success') ? '#5cb85c' : (cls==='warning' ? '#f0ad4e' : (cls==='danger' ? '#d9534f' : '#777'));
+  function onReady(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn, { once:true }); } }
+  onReady(function(){
+    // Don't inject on our own firewall UI page to avoid doubling there
+    var href = String(location.pathname || '') + String(location.search || '');
+    if (/\/qhtlfirewall\.cgi(?:\?|$)/.test(href)) { return; }
 
-						// Floating overlay as a temporary fallback while header isn't ready
-						var overlay = document.getElementById('qhtlfw-badge-overlay');
-						if (!overlay) {
-							overlay = document.createElement('div');
-							overlay.id = 'qhtlfw-badge-overlay';
-							overlay.style.position = 'fixed';
-							overlay.style.top = '10px';
-							overlay.style.right = '16px';
-							overlay.style.zIndex = '2147483647';
-							overlay.style.pointerEvents = 'none';
-							overlay.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-							var badge = document.createElement('span');
-							badge.id = 'qhtlfw-badge-float';
-							badge.style.pointerEvents = 'auto';
-							badge.style.padding = '4px 8px';
-							badge.style.display = 'inline-block';
-							badge.style.margin = '0';
-							badge.style.color = '#fff';
-							badge.style.background = bg;
-							badge.textContent = 'Firewall: ' + txt;
-							overlay.appendChild(badge);
-							document.body.appendChild(overlay);
-						} else {
-							try { var b = document.getElementById('qhtlfw-badge-float'); if (b){ b.style.background = bg; b.textContent = 'Firewall: ' + txt; } } catch(e) {}
-						}
+    function cps(){ var m=(location.pathname||'').match(/\/cpsess[0-9]+/); return m?m[0]:''; }
+    function origin(){ return (location && (location.origin || (location.protocol+'//'+location.host))) || ''; }
+    var token = cps();
+    if (!token) { return; } // avoid CSRF/login redirects that return HTML
+    var url = origin()+token+'/cgi/qhtlink/qhtlfirewall.cgi?action=status_json';
+    var controller = (typeof AbortController!=='undefined') ? new AbortController() : null;
+    var to = controller ? setTimeout(function(){ if (controller && typeof controller.abort==='function') { controller.abort(); } }, 1800) : null;
+    var fetchOpts = { credentials: 'same-origin' };
+    if (controller) fetchOpts.signal = controller.signal;
+    if (!window.fetch) { return; }
+    fetch(url, fetchOpts)
+      .then(function(r){ return (r && r.ok) ? r.json() : null; })
+      .then(function(data){
+        if (to) clearTimeout(to);
+        if(!data) return;
+        var cls = data.class || 'default';
+        var txt = data.text || 'Firewall';
+        var bg = (cls==='success') ? '#5cb85c' : (cls==='warning' ? '#f0ad4e' : (cls==='danger' ? '#d9534f' : '#777'));
 
-						function injectIntoHeader(){
-							try {
-								var stats = document.querySelector('cp-whm-header-stats-control');
-								if (!stats) return false;
-								var host = stats && stats.shadowRoot ? (stats.shadowRoot.querySelector('.header-stats, header, div')) : null;
-								if (!host) return false;
-								var existing = stats.shadowRoot.getElementById('qhtlfw-header-badge');
-								if (existing) {
-									existing.style.background = bg;
-									existing.textContent = 'Firewall: ' + txt;
-									return true;
-								}
-								var span = document.createElement('span');
-								span.id = 'qhtlfw-header-badge';
-								span.style.marginLeft = '8px';
-								span.style.padding = '4px 8px';
-								span.style.borderRadius = '3px';
-								span.style.color = '#fff';
-								span.style.background = bg;
-								span.textContent = 'Firewall: ' + txt;
-								host.appendChild(span);
-								return true;
-							} catch(e) { return false; }
-						}
+        // Floating overlay as a temporary fallback while header isn't ready
+        var overlay = document.getElementById('qhtlfw-badge-overlay');
+        if (!overlay) {
+          overlay = document.createElement('div');
+          overlay.id = 'qhtlfw-badge-overlay';
+          overlay.style.position = 'fixed';
+          overlay.style.top = '10px';
+          overlay.style.right = '16px';
+          overlay.style.zIndex = '2147483647';
+          overlay.style.pointerEvents = 'none';
+          overlay.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+          var badge = document.createElement('span');
+          badge.id = 'qhtlfw-badge-float';
+          badge.style.pointerEvents = 'auto';
+          badge.style.padding = '4px 8px';
+          badge.style.display = 'inline-block';
+          badge.style.margin = '0';
+          badge.style.color = '#fff';
+          badge.style.background = bg;
+          badge.textContent = 'Firewall: ' + txt;
+          overlay.appendChild(badge);
+          if (document.body) document.body.appendChild(overlay);
+        } else {
+          var b = document.getElementById('qhtlfw-badge-float'); if (b){ b.style.background = bg; b.textContent = 'Firewall: ' + txt; }
+        }
 
-						// Try a few times right away (header can arrive late)
-						var tries = 0;
-						var iv = setInterval(function(){
-							tries++;
-							if (injectIntoHeader()) {
-								try { var ff = document.getElementById('qhtlfw-frame'); if (ff) ff.remove(); } catch(e) {}
-								try { overlay && overlay.remove(); } catch(e) {}
-								clearInterval(iv);
-							}
-							if (tries > 50) { clearInterval(iv); }
-						}, 100);
+        function injectIntoHeader(){
+          var stats = document.querySelector('cp-whm-header-stats-control');
+          if (!stats || !stats.shadowRoot) return false;
+          var host = stats.shadowRoot.querySelector('.header-stats, header, div');
+          if (!host) return false;
+          var existing = stats.shadowRoot.getElementById('qhtlfw-header-badge');
+          if (existing) {
+            existing.style.background = bg;
+            existing.textContent = 'Firewall: ' + txt;
+            return true;
+          }
+          var span = document.createElement('span');
+          span.id = 'qhtlfw-header-badge';
+          span.style.marginLeft = '8px';
+          span.style.padding = '4px 8px';
+          span.style.borderRadius = '3px';
+          span.style.color = '#fff';
+          span.style.background = bg;
+          span.textContent = 'Firewall: ' + txt;
+          host.appendChild(span);
+          return true;
+        }
 
-						// Keep it persistent across SPA navigation/renders: only re-inject if missing
-						try {
-							var mo = new MutationObserver(function(){
-								var stats = document.querySelector('cp-whm-header-stats-control');
-								var present = false;
-								try { present = !!(stats && stats.shadowRoot && stats.shadowRoot.getElementById('qhtlfw-header-badge')); } catch(e) {}
-								if (!present) { injectIntoHeader(); }
-							});
-							mo.observe(document.body, { childList: true, subtree: true });
-						} catch(e) {}
-					})
-					.catch(function(e){ /* ignore */ });
-			} catch(e) {}
-		});
-	} catch(e) {}
+        // Try a few times right away (header can arrive late)
+        var tries = 0;
+        var iv = setInterval(function(){
+          tries++;
+          if (injectIntoHeader()) {
+            var ff = document.getElementById('qhtlfw-frame'); if (ff && ff.parentNode) ff.parentNode.removeChild(ff);
+            if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+            clearInterval(iv);
+          }
+          if (tries > 50) { clearInterval(iv); }
+        }, 100);
+
+        // Keep it persistent across SPA navigation/renders: only re-inject if missing
+        if (typeof MutationObserver !== 'undefined' && document && document.body) {
+          var mo = new MutationObserver(function(){
+            var stats = document.querySelector('cp-whm-header-stats-control');
+            var present = !!(stats && stats.shadowRoot && stats.shadowRoot.getElementById('qhtlfw-header-badge'));
+            if (!present) { injectIntoHeader(); }
+          });
+          mo.observe(document.body, { childList: true, subtree: true });
+        }
+      })
+      .catch(function(){ /* ignore */ });
+  });
 })();
 JS
 		;
@@ -272,8 +269,7 @@ JS
 		my $bf_accept   = lc($ENV{HTTP_ACCEPT} // '');
 		if ($bf_sec_dest eq 'script' || $bf_accept =~ /(?:application|text)\/javascript/) {
 			print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
-			print "/* banner_frame loaded as script: noop */\n";
-			print "(function(){ /* noop */ })();\n";
+			print ";\n";
 			exit 0;
 		}
 		# Load minimal config in a guarded way to avoid failing the endpoint
@@ -316,6 +312,7 @@ JS
 			($cls, $txt) = ('success', 'Enabled and Running');
 		}
 		print "Content-type: text/html\r\n";
+		print "X-Content-Type-Options: nosniff\r\n";
 		print "X-Frame-Options: SAMEORIGIN\r\n";
 		print "Content-Security-Policy: frame-ancestors 'self';\r\n\r\n";
 		print "<!doctype html><html><head><meta charset=\"utf-8\">\n";
@@ -385,6 +382,8 @@ for my $frag (\@header, \@footer) {
         s/\bVERSION\b/$myv/g;
         s/\bv\.?VERSION\b/v$myv/gi;
         s/\bqhtlfirewall_version\b/$myv/gi;
+		# Remove inline <script> blocks completely to avoid custom parse errors
+		s{<script\b[^>]*>.*?</script>}{}gis;
 		# Sanitize legacy script includes that point to our CGI without an action
 		# Convert .../qhtlink/qhtlfirewall.cgi to .../qhtlink/qhtlfirewall.cgi?action=banner_js
 		s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3 }ig;
@@ -417,6 +416,28 @@ if ($Cpanel::Version::Tiny::major_version >= 65) {
 			$reregister = "<div class='bs-callout bs-callout-info'><h4>Updated application. The next time you login to WHM this will open within the native WHM main window instead of launching a separate window</h4></div>\n";
 		}
 		close ($CONF);
+	}
+}
+
+# If an action other than our lightweight endpoints is being requested in a script-like context,
+# emit a JS no-op to prevent browsers from parsing full HTML as JavaScript.
+if (defined $FORM{action} && $FORM{action} ne '' && $FORM{action} !~ /^(?:status_json|banner_js|banner_frame)$/) {
+	my $g_sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	my $g_sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
+	my $g_sec_user = lc($ENV{HTTP_SEC_FETCH_USER} // '');
+	my $g_accept   = lc($ENV{HTTP_ACCEPT} // '');
+	my $g_has_secfetch = ($ENV{HTTP_SEC_FETCH_DEST}||$ENV{HTTP_SEC_FETCH_MODE}||$ENV{HTTP_SEC_FETCH_USER}) ? 1 : 0;
+	my $g_is_nav_strict = ($g_sec_user eq '?1') || ($g_sec_mode eq 'navigate') || ($g_sec_dest eq 'document');
+	my $g_is_script_dest= ($g_sec_dest eq 'script');
+	my $g_accept_js     = ($g_accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
+	my $g_accept_html   = ($g_accept =~ /(?:text\/html|application\/xhtml\+xml)/);
+	my $g_has_ref       = defined $ENV{HTTP_REFERER} && $ENV{HTTP_REFERER} ne '' ? 1 : 0;
+	my $g_scriptish     = ($g_has_secfetch && !$g_is_nav_strict) || $g_is_script_dest || $g_accept_js;
+	if (!$g_has_secfetch) { $g_scriptish ||= ($g_has_ref || !$g_accept_html) ? 1 : 0; }
+	if ($g_scriptish) {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
 	}
 }
 
@@ -543,6 +564,8 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	select STDOUT;
 	# Defensive cleanup: rewrite any legacy includes in the captured template HTML
 	if (defined $templatehtml && length $templatehtml) {
+		# Remove inline <script> blocks to avoid custom parse errors in our context
+		$templatehtml =~ s{<script\b[^>]*>.*?</script>}{}gis;
 		$templatehtml =~ s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3 }ig;
 		$templatehtml =~ s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(\?)(?!action=)}{$1$2$3}ig;
 	}
