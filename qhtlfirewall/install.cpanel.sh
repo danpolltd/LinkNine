@@ -387,7 +387,8 @@ cp -af qhtlfirewall/* da/images/
 cp -af qhtlfirewall/* interworx/images/
 
 cp -avf messenger/*.php /etc/qhtlfirewall/messenger/
-cp -avf qhtlfirewall/qhtlfirewall_small.png /usr/local/cpanel/whostmgr/docroot/addon_plugins/
+# Install WHM addon icon (use GIF)
+cp -avf qhtlfirewall/qhtlfirewall_small.gif /usr/local/cpanel/whostmgr/docroot/addon_plugins/
 cp -avf uninstall.sh /usr/local/qhtlfirewall/bin/
 cp -avf qhtlfirewalltest.pl /usr/local/qhtlfirewall/bin/
 cp -avf remove_apf_bfd.sh /usr/local/qhtlfirewall/bin/
