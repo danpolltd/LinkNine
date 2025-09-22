@@ -3026,54 +3026,35 @@ JS
 	print "<li>Only Enterprise customers can <mark>block</mark> a Country Code, but all can <mark>allow</mark> and <mark>challenge</mark>\n";
 	print "<li>\nIP range CIDR is limited to /16 and /24</blockquote></li></ul></div>\n";
 	print "<script>\n";
-	print "\$(document).ready(function(){\n";
-	print "	\$('#cflist').submit(function(){\$('#cflistbtn').click(); return false})\n";
-	print "	\$('#cftempdeny').submit(function(){\$('#cftempdenybtn').click(); return false})\n";
-	print "	\$('#cfadd').submit(function(){\$('#cfaddbtn').click(); return false})\n";
-	print "	\$('#cfremove').submit(function(){\$('#cfremovebtn').click(); return false})\n";
-	print "	\$('button').click(function(){\n";
-	print "		\$('body').css('cursor', 'progress');\n";
-	print "		var myurl;\n";
-	print "		if (this.id == 'cflistbtn') {myurl = '$script?action=cflist&type='+\$(\"#cflist #type\").val()+'&domains='+\$(\"#domains\").val();}\n";
-	print "		if (this.id == 'cftempdenybtn') {myurl = '$script?action=cftempdeny&do='+\$(\"#cftempdeny #do\").val()+'&target='+\$(\"#cftempdeny #target\").val().replace(/\\s/g,'')+'&domains='+\$(\"#domains\").val();}\n";
-	print "		if (this.id == 'cfaddbtn') {myurl = '$script?action=cfadd&type='+\$(\"#cfadd #type\").val()+'&target='+\$(\"#cfadd #target\").val().replace(/\\s/g,'')+'&domains='+\$(\"#domains\").val();}\n";
-	print "		if (this.id == 'cfremovebtn') {myurl = '$script?action=cfremove&target='+\$(\"#cfremove #target\").val().replace(/\\s/g,'')+'&domains='+\$(\"#domains\").val();}\n";
-	print "		\$('#CFajax').html('<div id=\"loader\"></div><div class=\"panel panel-info\"><div class=\"panel-heading\">Loading...</div></div>');\n";
-	print "		\$('#CFajax').load(myurl);\n";
-	print "		\$('body').css('cursor', 'default');\n";
-		print "<script>\n";
-		print "var QHTL_SCRIPT = '$script';\n";
-		print <<'JS';
+	print "var QHTL_SCRIPT = '$script';\n";
+	print <<'JS';
 $(document).ready(function(){
-	$('#cflist').submit(function(){ $('#cflistbtn').click(); return false; })
-	$('#cftempdeny').submit(function(){ $('#cftempdenybtn').click(); return false; })
-	$('#cfadd').submit(function(){ $('#cfaddbtn').click(); return false; })
-	$('#cfremove').submit(function(){ $('#cfremovebtn').click(); return false; })
-	$('button').click(function(){
-		$('body').css('cursor', 'progress');
-		var myurl;
-		if (this.id == 'cflistbtn') { myurl = QHTL_SCRIPT + '?action=cflist&type=' + $("#cflist #type").val() + '&domains=' + $("#domains").val(); }
-		if (this.id == 'cftempdenybtn') { myurl = QHTL_SCRIPT + '?action=cftempdeny&do=' + $("#cftempdeny #do").val() + '&target=' + $("#cftempdeny #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
-		if (this.id == 'cfaddbtn') { myurl = QHTL_SCRIPT + '?action=cfadd&type=' + $("#cfadd #type").val() + '&target=' + $("#cfadd #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
-		if (this.id == 'cfremovebtn') { myurl = QHTL_SCRIPT + '?action=cfremove&target=' + $("#cfremove #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
-		$('#CFajax').html('<div id="loader"></div><div class="panel panel-info"><div class="panel-heading">Loading...</div></div>');
-		$('#CFajax').load(myurl);
-		$('body').css('cursor', 'default');
-	});
-	$('#domains').on('keyup change',function() {
-		if ($('#domains').val() == null) {
-			$('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', true);
-		} else {
-			$('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', false);
-		}
-	});
+  $('#cflist').submit(function(){ $('#cflistbtn').click(); return false; });
+  $('#cftempdeny').submit(function(){ $('#cftempdenybtn').click(); return false; });
+  $('#cfadd').submit(function(){ $('#cfaddbtn').click(); return false; });
+  $('#cfremove').submit(function(){ $('#cfremovebtn').click(); return false; });
+  $('button').click(function(){
+    $('body').css('cursor', 'progress');
+    var myurl;
+    if (this.id == 'cflistbtn') { myurl = QHTL_SCRIPT + '?action=cflist&type=' + $("#cflist #type").val() + '&domains=' + $("#domains").val(); }
+    if (this.id == 'cftempdenybtn') { myurl = QHTL_SCRIPT + '?action=cftempdeny&do=' + $("#cftempdeny #do").val() + '&target=' + $("#cftempdeny #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
+    if (this.id == 'cfaddbtn') { myurl = QHTL_SCRIPT + '?action=cfadd&type=' + $("#cfadd #type").val() + '&target=' + $("#cfadd #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
+    if (this.id == 'cfremovebtn') { myurl = QHTL_SCRIPT + '?action=cfremove&target=' + $("#cfremove #target").val().replace(/\s/g,'') + '&domains=' + $("#domains").val(); }
+    $('#CFajax').html('<div id="loader"></div><div class="panel panel-info"><div class="panel-heading">Loading...</div></div>');
+    $('#CFajax').load(myurl);
+    $('body').css('cursor', 'default');
+  });
+  $('#domains').on('keyup change',function() {
+    if ($('#domains').val() == null) {
+      $('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', true);
+    } else {
+      $('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', false);
+    }
+  });
 });
 JS
-		print "</script>\n";
-		}
-		# Removed legacy resize script block to avoid unmatched braces
-###############################################################################
-# start printreturn
+	print "</script>\n";
+	}
 sub printreturn {
 	print "<hr><div><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input id='qhtlfirewallreturn' type='submit' class='btn btn-default' value='Return'></form></div>\n";
 
