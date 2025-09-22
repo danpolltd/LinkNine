@@ -339,6 +339,40 @@ EOF
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "logtailcmd") {
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			my $json = encode_json(\@opts);
+			print $json;
+			return;
+		}
 		$FORM{lines} =~ s/\D//g;
 		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
 
@@ -2124,12 +2158,34 @@ EOF
 		print "      var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflowX='hidden'; body.style.overflowY='auto'; body.style.padding='10px'; body.style.minHeight='0';\n";
 		print "      var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';\n";
 		print "      var footer = document.createElement('div'); footer.style.display='flex'; footer.style.justifyContent='space-between'; footer.style.alignItems='center'; footer.style.padding='10px'; footer.style.marginTop='auto';\n";
-		print "      var left = document.createElement('div'); var mid = document.createElement('div'); var right = document.createElement('div');\n";
+		print "      var left = document.createElement('div'); left.id='quickViewFooterLeft'; var mid = document.createElement('div'); mid.id='quickViewFooterMid'; var right = document.createElement('div'); right.id='quickViewFooterRight';\n";
 		print "      var editBtn = document.createElement('button'); editBtn.id='quickViewEditBtnShim'; editBtn.className='btn btn-primary'; editBtn.textContent='Edit';\n";
 		print "      var saveBtn = document.createElement('button'); saveBtn.id='quickViewSaveBtnShim'; saveBtn.className='btn btn-success'; saveBtn.textContent='Save'; saveBtn.style.display='none'; saveBtn.style.marginLeft='4px';\n";
 		print "      var cancelBtn = document.createElement('button'); cancelBtn.id='quickViewCancelBtnShim'; cancelBtn.className='btn btn-warning'; cancelBtn.textContent='Cancel'; cancelBtn.style.display='none';\n";
-		print "      var closeBtn = document.createElement('button'); closeBtn.className='btn btn-default'; closeBtn.textContent='Close'; closeBtn.style.background='linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%)'; closeBtn.style.color='#721c24'; closeBtn.style.borderColor='#f1b0b7';\n";
-		print "      left.appendChild(editBtn); left.appendChild(saveBtn); mid.appendChild(cancelBtn); right.appendChild(closeBtn);\n";
+		print "      var closeBtn = document.createElement('button'); closeBtn.id='quickViewCloseShim'; closeBtn.className='btn btn-default'; closeBtn.textContent='Close'; closeBtn.style.background='linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%)'; closeBtn.style.color='#721c24'; closeBtn.style.borderColor='#f1b0b7';\n";
+		print "      // Left: Watcher controls (log selector + lines + refresh/pause)\n";
+		print "      var logSelect = document.createElement('select'); logSelect.id='watcherLogSelect'; logSelect.className='form-control'; logSelect.style.display='inline-block'; logSelect.style.width='auto'; logSelect.style.marginRight='8px';\n";
+		print "      var linesInput = document.createElement('input'); linesInput.id='watcherLines'; linesInput.type='text'; linesInput.value='100'; linesInput.size='4'; linesInput.className='form-control'; linesInput.style.display='inline-block'; linesInput.style.width='70px'; linesInput.style.marginRight='8px';\n";
+		print "      var refreshBtn = document.createElement('button'); refreshBtn.id='watcherRefresh'; refreshBtn.className='btn btn-default'; refreshBtn.textContent='Refresh Now'; refreshBtn.style.marginRight='8px';\n";
+		print "      var timerSpan = document.createElement('span'); timerSpan.id='watcherTimer'; timerSpan.textContent='0'; timerSpan.style.marginRight='8px';\n";
+		print "      var pauseBtn = document.createElement('button'); pauseBtn.id='watcherPause'; pauseBtn.className='btn btn-default'; pauseBtn.textContent='Pause'; pauseBtn.style.width='80px';\n";
+		print "      left.appendChild(logSelect); left.appendChild(document.createTextNode(' Lines: ')); left.appendChild(linesInput); left.appendChild(refreshBtn); left.appendChild(document.createTextNode(' Refresh in ')); left.appendChild(timerSpan); left.appendChild(pauseBtn);\n";
+		print "      // Middle: unused in watcher; hide edit/save/cancel\n";
+		print "      editBtn.style.display='none'; saveBtn.style.display='none'; cancelBtn.style.display='none';\n";
+		print "      mid.style.display='none';\n";
+		print "      right.appendChild(closeBtn);\n";
+		print "      // Populate logSelect by calling meta endpoint for options\n";
+		print "      function populateLogs(){ try{ var xhr=new XMLHttpRequest(); xhr.open('GET', '" . $script . "?action=logtailcmd&meta=1', true); xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){ var opts = JSON.parse(xhr.responseText||'[]'); logSelect.innerHTML=''; for(var i=0;i<opts.length;i++){ var o=document.createElement('option'); o.value=opts[i].value; o.textContent=opts[i].label; if(opts[i].selected){ o.selected=true; } logSelect.appendChild(o);} } }; xhr.send(); }catch(e){} }\n";
+		print "      // Auto-refresh every 5s with pause\n";
+		print "      var watcherPaused=false, watcherTick=5, watcherTimerId=null;\n";
+		print "      function scheduleTick(){ if(watcherTimerId){ clearInterval(watcherTimerId);} watcherTick=5; timerSpan.textContent=String(watcherTick); watcherTimerId=setInterval(function(){ if(watcherPaused){ return; } watcherTick--; timerSpan.textContent=String(watcherTick); if(watcherTick<=0){ doRefresh(); watcherTick=5; timerSpan.textContent=String(watcherTick);} },1000);}\n";
+		print "      function doRefresh(){ var url='" . $script . "?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0'); quickViewLoad(url); }\n";
+		print "      refreshBtn.addEventListener('click', function(e){ e.preventDefault(); doRefresh(); });\n";
+		print "      pauseBtn.addEventListener('click', function(e){ e.preventDefault(); watcherPaused=!watcherPaused; pauseBtn.textContent=watcherPaused?'Start':'Pause'; });\n";
+		print "      logSelect.addEventListener('change', function(){ doRefresh(); scheduleTick(); });\n";
+		print "      linesInput.addEventListener('change', function(){ doRefresh(); scheduleTick(); });\n";
+		print "      closeBtn.addEventListener('click', function(){ if(watcherTimerId){ clearInterval(watcherTimerId); watcherTimerId=null; } });\n";
+		print "      populateLogs(); doRefresh(); scheduleTick();\n";
 		print "      var inner = document.createElement('div'); inner.style.padding='10px'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.flex='1 1 auto'; inner.style.minHeight='0'; inner.appendChild(title); inner.appendChild(body);\n";
 		print "      footer.appendChild(left); footer.appendChild(mid); footer.appendChild(right);\n";
 		print "      dialog.appendChild(inner); dialog.appendChild(footer); modal.appendChild(dialog); document.body.appendChild(modal);\n";
@@ -2145,7 +2201,7 @@ EOF
 		print "    }\n";
 	print "    function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ var html=x.responseText; try{ if(url.indexOf('action=viewlist')!==-1){ var mm=html.match(/<pre[\\s\\S]*?<\\/pre>/i); if(mm){ html=mm[0]; var bg=''; if(url.indexOf('which=allow')!==-1){ bg = 'background: linear-gradient(180deg, #d4edda 0%, #c3e6cb 100%);'; } else if(url.indexOf('which=ignore')!==-1){ bg = 'background: linear-gradient(180deg, #ffe0b2 0%, #ffcc80 100%);'; } else if(url.indexOf('which=deny')!==-1){ bg = 'background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%);'; } html=html.replace('<pre','<pre style=\\'white-space: pre; overflow-x: hidden; overflow-y: auto; height:100%; max-height:100%; '+bg+'\\'' ); } } }catch(e){} b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to load content</div>'; } } }; x.send(); m.style.display='block'; }\n";
 	# Expose a global openWatcher that reuses the Quick View modal, with 800x600 size and blue pulsating glow
-	print "    window.openWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var b=document.getElementById('quickViewBodyShim'); t.textContent='Watcher'; var dialog = m.querySelector('div'); if(dialog){ dialog.style.width='800px'; dialog.style.height='600px'; dialog.style.maxWidth='95vw'; dialog.style.position='fixed'; dialog.style.top='50%'; dialog.style.left='50%'; dialog.style.transform='translate(-50%, -50%)'; dialog.style.margin='0'; dialog.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny','fire-allow-view','fire-ignore-view','fire-deny-view','fire-blue'); dialog.classList.add('fire-blue'); } var css = document.getElementById('qhtl-blue-style'); if(!css){ css = document.createElement('style'); css.id='qhtl-blue-style'; css.textContent='\@keyframes qhtl-blue {0%,100%{box-shadow: 0 0 14px 6px rgba(0,123,255,0.55), 0 0 24px 10px rgba(0,123,255,0.3);}50%{box-shadow: 0 0 28px 14px rgba(0,123,255,0.95), 0 0 46px 20px rgba(0,123,255,0.6);}} .fire-blue{ animation: qhtl-blue 2.2s infinite ease-in-out; }'; document.head.appendChild(css);} quickViewLoad(''+ '$script' + '?action=logtailcmd', function(){ /* no-op */ }); m.style.display='block'; return false; };\n";
+	print "    window.openWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var b=document.getElementById('quickViewBodyShim'); t.textContent='Watcher'; var dialog = m.querySelector('div'); if(dialog){ dialog.style.width='800px'; dialog.style.height='450px'; dialog.style.maxWidth='95vw'; dialog.style.position='fixed'; dialog.style.top='50%'; dialog.style.left='50%'; dialog.style.transform='translate(-50%, -50%)'; dialog.style.margin='0'; dialog.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny','fire-allow-view','fire-ignore-view','fire-deny-view','fire-blue'); dialog.classList.add('fire-blue'); } var css = document.getElementById('qhtl-blue-style'); if(!css){ css = document.createElement('style'); css.id='qhtl-blue-style'; css.textContent='\@keyframes qhtl-blue {0%,100%{box-shadow: 0 0 14px 6px rgba(0,123,255,0.55), 0 0 24px 10px rgba(0,123,255,0.3);}50%{box-shadow: 0 0 28px 14px rgba(0,123,255,0.95), 0 0 46px 20px rgba(0,123,255,0.6);}} .fire-blue{ animation: qhtl-blue 2.2s infinite ease-in-out; }'; document.head.appendChild(css);} quickViewLoad(''+ '$script' + '?action=logtailcmd', function(){ /* no-op */ }); m.style.display='block'; return false; };\n";
 		print "    function quickViewPost(url, body, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBody'); b.innerHTML='Saving...'; var x=new XMLHttpRequest(); x.open('POST', url, true); x.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to save changes</div>'; } } }; x.send(body); m.style.display='block'; }\n";
 		print "    function openQuickView(url, which){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var b=document.getElementById('quickViewBodyShim'); window.currentQuickWhich=which; var map={allow:'qhtlfirewall.allow',deny:'qhtlfirewall.deny',ignore:'qhtlfirewall.ignore'}; t.textContent='Quick View: '+(map[which]||which); var e=document.getElementById('quickViewEditBtnShim'), s=document.getElementById('quickViewSaveBtnShim'), c=document.getElementById('quickViewCancelBtnShim'); if(e&&s&&c){ e.style.display='inline-block'; s.style.display='none'; c.style.display='none'; } var d=m.querySelector('div'); if(d){ d.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny','fire-allow-view','fire-ignore-view','fire-deny-view'); d.classList.add('fire-border'); if(which==='allow'){ d.classList.add('fire-allow-view'); } else if(which==='ignore'){ d.classList.add('fire-ignore-view'); } else if(which==='deny'){ d.classList.add('fire-deny-view'); } } quickViewLoad(url); }\n";
 		print "    window.showQuickView = function(which){ var url = '$script?action=viewlist&which=' + encodeURIComponent(which); openQuickView(url, which); return false; };\n";
@@ -2306,7 +2362,7 @@ EOF
 	# Enforce Quick View modal sizing (500x400) with scrollable body
 	print "<style>\n";
 	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 95vw !important; position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; margin: 0 !important; }\n";
-	print "#quickViewModal .modal-content { height: 500px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
+	print "#quickViewModal .modal-content { height: 450px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
 	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow: hidden !important; min-height:0 !important; padding:10px !important; }\n";
 	print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; }\n";
 	print "#quickViewModal #quickViewTitle { margin:0 0 8px 0 !important; }\n";
