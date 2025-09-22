@@ -429,19 +429,27 @@ EOF
 		if ($reregister ne "") {print $reregister}
 }
 
-#eval {
-require QhtLink::DisplayUI;
-require QhtLink::DisplayResellerUI;
-if ($reseller) {
-	QhtLink::DisplayResellerUI::main(\%FORM, $script, 0, $images, $myv, 'cpanel');
-} else {
-	QhtLink::DisplayUI::main(\%FORM, $script, 0, $images, $myv, 'cpanel');
+my $ui_error = '';
+eval {
+	require QhtLink::DisplayUI;
+	require QhtLink::DisplayResellerUI;
+	1;
+} or do { $ui_error = $@ || 'Failed to load UI modules'; };
+
+if (!$ui_error) {
+	eval {
+		if ($reseller) {
+			QhtLink::DisplayResellerUI::main(\%FORM, $script, 0, $images, $myv, 'cpanel');
+		} else {
+			QhtLink::DisplayUI::main(\%FORM, $script, 0, $images, $myv, 'cpanel');
+		}
+		1;
+	} or do { $ui_error = $@ || 'Unknown error in UI renderer'; };
 }
-#};
-#if ($@) {
-#	print "Error during UI output generation: [$@]\n";
-#	warn "Error during UI output generation: [$@]\n";
-#}
+
+if ($ui_error) {
+	print qq{<div class="alert alert-danger" role="alert" style="margin:10px">QhtLink Firewall UI error: <code>} . ( $ui_error =~ s/</&lt;/gr ) . qq{</code></div>};
+}
 
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
 	print <<'EOF';
@@ -475,6 +483,9 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 		} else {
 			print $rendered;
 		}
+	} elsif (defined $templatehtml && length $templatehtml) {
+		# Fallback: print the raw captured HTML to avoid a blank page
+		print $templatehtml;
 	}
 }
 # end main
