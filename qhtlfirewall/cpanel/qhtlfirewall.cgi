@@ -499,6 +499,17 @@ EOF
 	print @header;
 }
 
+
+
+my $ui_error = '';
+eval {
+	require QhtLink::DisplayUI;
+	require QhtLink::DisplayResellerUI;
+	1;
+} or do { $ui_error = $@ || 'Failed to load UI modules'; };
+
+
+# After UI module is loaded and modal JS is injected, render header and Watcher button
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
 		# Build a compact status badge for the header's right column
 		my $status_badge = "<span class='label label-success'>Enabled and Running</span>";
@@ -529,7 +540,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 													"<input type='submit' class='btn btn-xs btn-default' value='Start'></form>";
 		}
 
- 		print <<EOF;
+		print <<EOF;
 <div class='panel panel-default' style='padding: 10px'>
 	<div class='row' style='display:flex;align-items:center;'>
 		<div class='col-sm-8 col-xs-12'>
@@ -547,24 +558,6 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 </div>
 EOF
 		if ($reregister ne "") {print $reregister}
-}
-
-my $ui_error = '';
-eval {
-	require QhtLink::DisplayUI;
-	require QhtLink::DisplayResellerUI;
-	1;
-} or do { $ui_error = $@ || 'Failed to load UI modules'; };
-
-if (!$ui_error) {
-	eval {
-		if ($reseller) {
-			QhtLink::DisplayResellerUI::main(\%FORM, $script, 0, $images, $myv, 'cpanel');
-		} else {
-			QhtLink::DisplayUI::main(\%FORM, $script, 0, $images, $myv, 'cpanel');
-		}
-		1;
-	} or do { $ui_error = $@ || 'Unknown error in UI renderer'; };
 }
 
 if ($ui_error) {
