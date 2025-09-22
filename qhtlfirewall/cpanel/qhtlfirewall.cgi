@@ -161,21 +161,9 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
   if (window.__QHTLFW_INIT__) { return; }
   window.__QHTLFW_INIT__ = true;
 
-	function onReady(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn, { once:true }); } }
-	function waitForHeader(timeoutMs){
-		return new Promise(function(resolve, reject){
-			var start = Date.now();
-			function check(){
-				var stats = document.querySelector('cp-whm-header-stats-control');
-				if (stats && stats.shadowRoot) { resolve(stats); return; }
-				if ((Date.now()-start) >= timeoutMs) { reject(new Error('header-timeout')); return; }
-				setTimeout(check, 100);
-			}
-			check();
-		});
-	}
+			function onReady(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn, { once:true }); } }
 
-	onReady(function(){
+			onReady(function(){
 			// Don't inject on our own firewall UI page to avoid doubling there
 			var path = String(location.pathname || '');
 			var href = path + String(location.search || '');
@@ -188,32 +176,37 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 		if (!token) { return; } // avoid CSRF/login redirects that return HTML
 		if (!window.fetch) { return; }
 
-		waitForHeader(4000)
-			.then(function(){
-				var url = origin()+token+'/cgi/qhtlink/qhtlfirewall.cgi?action=status_json';
-				var controller = (typeof AbortController!=='undefined') ? new AbortController() : null;
-				var to = controller ? setTimeout(function(){ if (controller && typeof controller.abort==='function') { controller.abort(); } }, 1800) : null;
-				var fetchOpts = { credentials: 'same-origin' };
-				if (controller) fetchOpts.signal = controller.signal;
-				return fetch(url, fetchOpts)
-					.then(function(r){ return (r && r.ok) ? r.json() : null; })
-					.then(function(data){ if (to) clearTimeout(to); return data; });
-			})
-			.then(function(data){
-				if(!data) return;
-				var cls = data.class || 'default';
-				var txt = data.text || 'Firewall';
-				var bg = (cls==='success') ? '#5cb85c' : (cls==='warning' ? '#f0ad4e' : (cls==='danger' ? '#d9534f' : '#777'));
+				var lastData = null;
+				// Fire the fetch immediately; do not wait for header to exist
+				(function fetchStatus(){
+					var url = origin()+token+'/cgi/qhtlink/qhtlfirewall.cgi?action=status_json';
+					var controller = (typeof AbortController!=='undefined') ? new AbortController() : null;
+					var to = controller ? setTimeout(function(){ if (controller && typeof controller.abort==='function') { controller.abort(); } }, 1800) : null;
+					var fetchOpts = { credentials: 'same-origin' };
+					if (controller) fetchOpts.signal = controller.signal;
+					fetch(url, fetchOpts)
+						.then(function(r){ return (r && r.ok) ? r.json() : null; })
+						.then(function(data){ if (to) clearTimeout(to); lastData = data || null; })
+						.catch(function(){ /* ignore */ });
+				})();
 
-				function injectIntoHeader(){
+				function computeStyle(data){
+					var cls = data && data.class || 'default';
+					var txt = data && data.text || 'Firewall';
+					var bg = (cls==='success') ? '#5cb85c' : (cls==='warning' ? '#f0ad4e' : (cls==='danger' ? '#d9534f' : '#777'));
+					return {bg:bg, txt:txt};
+				}
+
+				function tryInject(){
 					var stats = document.querySelector('cp-whm-header-stats-control');
 					if (!stats || !stats.shadowRoot) return false;
 					var host = stats.shadowRoot.querySelector('.header-stats, header, div');
 					if (!host) return false;
+					var sty = computeStyle(lastData);
 					var existing = stats.shadowRoot.getElementById('qhtlfw-header-badge');
 					if (existing) {
-						existing.style.background = bg;
-						existing.textContent = 'Firewall: ' + txt;
+						existing.style.background = sty.bg;
+						existing.textContent = 'Firewall: ' + sty.txt;
 						return true;
 					}
 					var span = document.createElement('span');
@@ -222,18 +215,18 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					span.style.padding = '4px 8px';
 					span.style.borderRadius = '3px';
 					span.style.color = '#fff';
-					span.style.background = bg;
-					span.textContent = 'Firewall: ' + txt;
+					span.style.background = sty.bg;
+					span.textContent = 'Firewall: ' + sty.txt;
 					host.appendChild(span);
 					return true;
 				}
 
-				// Inject now; header is present
-				injectIntoHeader();
-
-						// Intentionally do not observe for SPA mutations to prevent repeated fetches/injections
-			})
-			.catch(function(){ /* ignore */ });
+				// Retry header injection for up to ~6 seconds
+				var attempts = 0, maxAttempts = 30; // 30 * 200ms = 6000ms
+				var iv = setInterval(function(){
+					attempts++;
+					if (tryInject() || attempts >= maxAttempts) { clearInterval(iv); }
+				}, 200);
 	});
 })();
 JS
