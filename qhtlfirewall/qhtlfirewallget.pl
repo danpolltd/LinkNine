@@ -115,17 +115,15 @@ foreach my $server (@downloadservers) {
 		unless (-e $versions{$version}) {
 			if (-e $versions{$version}.".error") {unlink $versions{$version}.".error"}
 			my $status = system("$cmd $versions{$version} $server$version");
-#			print "$cmd $versions{$version} $server$version\n";
 			if ($status) {
-				if ($GET ne "") {
-					open (my $ERROR, ">", $versions{$version}.".error");
-					print $ERROR "$server$version - ";
-					close ($ERROR);
-					my $GETstatus = system("$GET $server$version >> $versions{$version}".".error");
-				} else {
-					open (my $ERROR, ">", $versions{$version}.".error");
-					print $ERROR "Failed to retrieve latest version from Danpol update server";
-					close ($ERROR);
+				# Capture curl/wget exit code for diagnostics
+				my $ec = $? >> 8;
+				open (my $ERROR, ">", $versions{$version}.".error");
+				print $ERROR "$server$version - HTTP fetch failed (exit $ec)";
+				close ($ERROR);
+				# Avoid falling back to /usr/bin/GET on HTTPS unless LWP::Protocol::https is installed
+				if ($GET ne "" && $server !~ m{^https://}i) {
+					system("$GET $server$version >> $versions{$version}".".error");
 				}
 			}
 		}
