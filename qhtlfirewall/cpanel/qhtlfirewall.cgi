@@ -13,7 +13,7 @@ use Sys::Hostname qw(hostname);
 use IPC::Open3;
 
 use lib '/usr/local/qhtlfirewall/lib';
-require QhtLink::Config;
+# Defer heavy config/UI module loading; only Slurp is needed early for simple IO helpers
 require QhtLink::Slurp;
 
 use lib '/usr/local/cpanel';
@@ -32,10 +32,7 @@ Whostmgr::ACLS::init_acls();
 
 %FORM = Cpanel::Form::parseform();
 
-my $config = QhtLink::Config->loadconfig();
-my %config = $config->config;
-my $slurpreg = QhtLink::Slurp->slurpreg;
-my $cleanreg = QhtLink::Slurp->cleanreg;
+## Postpone config and regex setup until after lightweight endpoints
 
 Cpanel::Rlimit::set_rlimit_to_infinity();
 
@@ -58,26 +55,7 @@ if (-e "/usr/local/cpanel/bin/register_appconfig") {
 	$images = "qhtlfirewall";
 }
 
-foreach my $line (QhtLink::Slurp::slurp("/etc/qhtlfirewall/qhtlfirewall.resellers")) {
-	$line =~ s/$cleanreg//g;
-	my ($user,$alert,$privs) = split(/\:/,$line);
-	$privs =~ s/\s//g;
-	foreach my $priv (split(/\,/,$privs)) {
-		$rprivs{$user}{$priv} = 1;
-	}
-	$rprivs{$user}{ALERT} = $alert;
-}
-
-$reseller = 0;
-if (!Whostmgr::ACLS::hasroot()) {
-	if ($rprivs{$ENV{REMOTE_USER}}{USE}) {
-		$reseller = 1;
-	} else {
-		print "Content-type: text/html\r\n\r\n";
-		print "You do not have access to this feature\n";
-		exit();
-	}
-}
+## Reseller ACL resolution is moved after lightweight endpoints
 
 open (my $IN, "<", "/etc/qhtlfirewall/version.txt") or die $!;
 $myv = <$IN>;
@@ -87,12 +65,29 @@ chomp $myv;
 # Lightweight JSON status endpoint for sanctioned WHM includes
 # Usage: /cgi/qhtlink/qhtlfirewall.cgi?action=status_json
 if (defined $FORM{action} && $FORM{action} eq 'status_json') {
+	# Load minimal config in a guarded way to avoid failing the endpoint
+	my %cfg = (
+		IPTABLES => '/sbin/iptables',
+		IPTABLESWAIT => '',
+		TESTING => 0,
+	);
+	eval {
+		require QhtLink::Config;
+		my $c = QhtLink::Config->loadconfig();
+		my %full = $c->config;
+		$cfg{IPTABLES}    = $full{IPTABLES}    if defined $full{IPTABLES};
+		$cfg{IPTABLESWAIT}= $full{IPTABLESWAIT}if defined $full{IPTABLESWAIT};
+		$cfg{TESTING}     = $full{TESTING}     ? 1 : 0;
+		1;
+	} or do { # fall back to defaults
+	};
+
 	my $is_disabled = -e "/etc/qhtlfirewall/qhtlfirewall.disable" ? 1 : 0;
-	my $is_test     = $config{TESTING} ? 1 : 0;
+	my $is_test     = $cfg{TESTING} ? 1 : 0;
 	my $ipt_ok      = 0;
 	eval {
 		my ($childin, $childout);
-		my $pid = open3($childin, $childout, $childout, "$config{IPTABLES} $config{IPTABLESWAIT} -L LOCALINPUT -n");
+		my $pid = open3($childin, $childout, $childout, "$cfg{IPTABLES} $cfg{IPTABLESWAIT} -L LOCALINPUT -n");
 		my @iptstatus = <$childout>;
 		waitpid($pid, 0);
 		chomp @iptstatus;
@@ -205,12 +200,29 @@ JS
 
 	# Minimal HTML banner for iframe embedding (no JS required in parent)
 	if (defined $FORM{action} && $FORM{action} eq 'banner_frame') {
+		# Load minimal config in a guarded way to avoid failing the endpoint
+		my %cfg = (
+			IPTABLES => '/sbin/iptables',
+			IPTABLESWAIT => '',
+			TESTING => 0,
+		);
+		eval {
+			require QhtLink::Config;
+			my $c = QhtLink::Config->loadconfig();
+			my %full = $c->config;
+			$cfg{IPTABLES}    = $full{IPTABLES}    if defined $full{IPTABLES};
+			$cfg{IPTABLESWAIT}= $full{IPTABLESWAIT}if defined $full{IPTABLESWAIT};
+			$cfg{TESTING}     = $full{TESTING}     ? 1 : 0;
+			1;
+		} or do { # fall back to defaults
+		};
+
 		my $is_disabled = -e "/etc/qhtlfirewall/qhtlfirewall.disable" ? 1 : 0;
-		my $is_test     = $config{TESTING} ? 1 : 0;
+		my $is_test     = $cfg{TESTING} ? 1 : 0;
 		my $ipt_ok      = 0;
 		eval {
 			my ($childin, $childout);
-			my $pid = open3($childin, $childout, $childout, "$config{IPTABLES} $config{IPTABLESWAIT} -L LOCALINPUT -n");
+			my $pid = open3($childin, $childout, $childout, "$cfg{IPTABLES} $cfg{IPTABLESWAIT} -L LOCALINPUT -n");
 			my @iptstatus = <$childout>;
 			waitpid($pid, 0);
 			chomp @iptstatus;
@@ -236,6 +248,34 @@ JS
 		print "</head><body style=\"margin:0\"><span class=\"label label-$cls\" style=\"display:inline-block;white-space:nowrap\">Firewall: $txt</span></body></html>";
 		exit 0;
 	}
+
+## From here onwards, load full config and regex helpers, then resolve reseller ACLs
+require QhtLink::Config;
+my $config = QhtLink::Config->loadconfig();
+my %config = $config->config;
+my $slurpreg = QhtLink::Slurp->slurpreg;
+my $cleanreg = QhtLink::Slurp->cleanreg;
+
+foreach my $line (QhtLink::Slurp::slurp("/etc/qhtlfirewall/qhtlfirewall.resellers")) {
+	$line =~ s/$cleanreg//g;
+	my ($user,$alert,$privs) = split(/\:/,$line);
+	$privs =~ s/\s//g;
+	foreach my $priv (split(/\,/, $privs)) {
+		$rprivs{$user}{$priv} = 1;
+	}
+	$rprivs{$user}{ALERT} = $alert;
+}
+
+$reseller = 0;
+if (!Whostmgr::ACLS::hasroot()) {
+	if ($rprivs{$ENV{REMOTE_USER}}{USE}) {
+		$reseller = 1;
+	} else {
+		print "Content-type: text/html\r\n\r\n";
+		print "You do not have access to this feature\n";
+		exit();
+	}
+}
 
 my $bootstrapcss = "<link rel='stylesheet' href='$images/bootstrap/css/bootstrap.min.css'>";
 my $jqueryjs = "<script src='$images/jquery.min.js'></script>";
