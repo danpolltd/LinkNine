@@ -540,6 +540,16 @@ QHTL_EOF
     else
         echo "Skipping analytics injection (default). Use --with-analytics to enable."
     fi
+
+    # If the analytics include exists but is empty or whitespace-only after cleanup,
+    # remove it to restore WHM's default analytics rendering.
+    if [ -f "$ANALYTICS_TT" ]; then
+        if [ ! -s "$ANALYTICS_TT" ] || [ -z "$(grep -o "[^
+\r\t ]" "$ANALYTICS_TT" | head -n1)" ]; then
+            echo "cp_analytics_whm.html.tt is empty after cleanup; removing to restore defaults."
+            rm -f "$ANALYTICS_TT"
+        fi
+    fi
 fi
 
 if [ -e "/usr/local/cpanel/bin/register_appconfig" ]; then

@@ -134,6 +134,12 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 # Lightweight JavaScript endpoint to render a header badge without relying on inline JS in templates.
 # Usage: /cgi/qhtlink/qhtlfirewall.cgi?action=banner_js (builds an absolute cpsess-aware URL internally)
 if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
+	# Admin kill-switch to completely disable the WHM badge without reinstall
+	if (-e "/etc/qhtlfirewall/disable_whm_badge") {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
 	# If this endpoint is navigated to as a document, send a JS no-op (do not emit HTML)
 	my $bj_sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
 	my $bj_mode     = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
