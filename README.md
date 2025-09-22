@@ -11,10 +11,10 @@ For qhtlfirewall uninstallation scripts, see the [uninstallers/qhtlfirewall](uni
 
 ## Install / Upgrade (CloudLinux or similar)
 
-Run as root to install or upgrade to the latest published release (v.0.1.5 – Snow White):
+Run as root to install or upgrade to the latest published release (v.0.1.6 – Flaming Rock):
 
 ```bash
-curl -fsSL https://github.com/danpolltd/LinkNine/releases/download/v.0.1.5/qhtlfirewall-main.tar.gz -o /tmp/qhtlfirewall.tar.gz && \
+curl -fsSL https://github.com/danpolltd/LinkNine/releases/download/v.0.1.6/qhtlfirewall-main.tar.gz -o /tmp/qhtlfirewall.tar.gz && \
 	mkdir -p /root/qhtlfirewall-install && \
 	tar -xzf /tmp/qhtlfirewall.tar.gz -C /root/qhtlfirewall-install && \
 	cd /root/qhtlfirewall-install/qhtlfirewall && \
@@ -28,11 +28,18 @@ What the installer does:
 
 Dynamic version in WHM header/footer:
 - If you use custom header/footer files at `/etc/qhtlfirewall/qhtlfirewall.header` and `/etc/qhtlfirewall/qhtlfirewall.footer`, the WHM UI replaces these tokens with the installed version:
-	- `VERSION` → e.g. `0.1.5`
-	- `vVERSION` or `v.VERSION` → e.g. `v0.1.5`
-	- `qhtlfirewall_version` → e.g. `0.1.5`
+	- `VERSION` → e.g. `0.1.6`
+	- `vVERSION` or `v.VERSION` → e.g. `v0.1.6`
+	- `qhtlfirewall_version` → e.g. `0.1.6`
 
 ## Release history
+
+- v.0.1.6 “Flaming Rock” (2025-09-22)
+	- WHM banner: clickable badge linking to Firewall UI (cpsess-aware)
+	- Remove initial gray flash on login; defer render until status JSON loads
+	- Add 5px status-colored glow around badge and balanced spacing
+	- Minor WHM UI hardening and installer improvements
+	- Release: https://github.com/danpolltd/LinkNine/releases/tag/v.0.1.6
 
 - v.0.1.5 “Snow White” (2025-09-20)
 	- Install guard + systemd Condition to pause qhtlwaterfall during install
