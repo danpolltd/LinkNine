@@ -113,16 +113,20 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 }
 
 # Lightweight JavaScript endpoint to render a header badge without relying on inline JS in templates.
-# Usage: /cgi/qhtlink/qhtlfirewall.cgi?action=banner_js (use relative path so cpsess is preserved)
+# Usage: /cgi/qhtlink/qhtlfirewall.cgi?action=banner_js (builds an absolute cpsess-aware URL internally)
 if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
-		print "Content-type: application/javascript\r\n\r\n";
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print <<'JS';
 (function(){
 	function onReady(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn, { once:true }); } }
 	onReady(function(){
 		try {
 			if (document.getElementById('qhtlfw-badge')) { return; }
-			var url = 'cgi/qhtlink/qhtlfirewall.cgi?action=status_json';
+			function cps(){ var m=(location.pathname||'').match(/\/cpsess[0-9]+/); return m?m[0]:''; }
+			function origin(){ try { return location.origin || (location.protocol+'//'+location.host); } catch(e){ return ''; } }
+			var token = cps();
+			if (!token) { return; } // avoid CSRF/login redirects that return HTML
+			var url = origin()+token+'/cgi/qhtlink/qhtlfirewall.cgi?action=status_json';
 			var controller = (typeof AbortController!=='undefined') ? new AbortController() : null;
 			var to = controller ? setTimeout(function(){ try{controller.abort();}catch(e){} }, 1800) : null;
 			var fetchOpts = { credentials: 'same-origin' };
@@ -150,7 +154,7 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					badge.style.margin = '0';
 					badge.textContent = 'Firewall: ' + txt;
 					overlay.appendChild(badge);
-					  document.body.appendChild(overlay);
+					document.body.appendChild(overlay);
 
 					var attempt = function(){
 						try {
@@ -170,12 +174,12 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 						} catch(e) {}
 						return false;
 					};
-								var tries = 0;
+					var tries = 0;
 					var iv = setInterval(function(){
 						tries++;
 						if (attempt()) {
 							overlay.style.display = 'none';
-										try { var ff = document.getElementById('qhtlfw-frame'); if (ff) ff.style.display = 'none'; } catch(e) {}
+							try { var ff = document.getElementById('qhtlfw-frame'); if (ff) ff.style.display = 'none'; } catch(e) {}
 							clearInterval(iv);
 						}
 						if (tries > 20) { clearInterval(iv); }
@@ -389,104 +393,9 @@ if ($reseller) {
 #}
 
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
-	print <<EOF;
-<script>
-function getCookie(cname) {
-	var name = cname + "=";
-	var ca = document.cookie.split(';');
-	for(var i = 0; i <ca.length; i++) {
-		var c = ca[i];
-		while (c.charAt(0)==' ') {
-			c = c.substring(1);
-		}
-		if (c.indexOf(name) == 0) {
-			return c.substring(name.length,c.length);
-		}
-	}
-	return "";
-} 
-\$("#loader").hide();
-\$("#docs-link").hide();
-\$.fn.scrollBottom = function() { 
-  return \$(document).height() - this.scrollTop() - this.height(); 
-};
-\$('#botlink').on("click",function(){
-	\$('html,body').animate({ scrollTop: 0 }, 'slow', function () {});
-});
-\$('#toplink').on("click",function() {
-	var window_height = \$(window).height();
-	var document_height = \$(document).height();
-	\$('html,body').animate({ scrollTop: window_height + document_height }, 'slow', function () {});
-});
-/* Removed All-tab handler: tabAll no longer present */
-\$(document).ready(function(){
-	\$('[data-tooltip="tooltip"]').tooltip();
-	\$(window).scroll(function () {
-		if (\$(this).scrollTop() > 500) {
-			\$('#botlink').fadeIn();
-		} else {
-			\$('#botlink').fadeOut();
-		}
-		if (\$(this).scrollBottom() > 500) {
-			\$('#toplink').fadeIn();
-		} else {
-			\$('#toplink').fadeOut();
-		}
-	});
+	print <<'EOF';
+<script>(function(){ /* inline UI script temporarily disabled to avoid JS parse errors */ })();</script>
 EOF
-	if ($config{STYLE_MOBILE} or $reseller) {
-		print <<EOF;
-	var qhtlfirewallview = getCookie('qhtlfirewallview');
-	if (qhtlfirewallview == 'mobile') {
-		\$(".mobilecontainer").css('display','block');
-		\$(".normalcontainer").css('display','none');
-		\$("#qhtlfirewallreturn").addClass('btn-primary btn-lg btn-block').removeClass('btn-default');
-	} else if (qhtlfirewallview == 'desktop') {
-		\$(".mobilecontainer").css('display','none');
-		\$(".normalcontainer").css('display','block');
-		\$("#qhtlfirewallreturn").removeClass('btn-primary btn-lg btn-block').addClass('btn-default');
-	}
-	if (top.location == location) {
-		\$("#cpframetr2").show();
-	} else {
-		\$("#cpframetr2").hide();
-	}
-	if (\$(".mobilecontainer").css('display') == 'block' ) {
-		document.cookie = "qhtlfirewallview=mobile; path=/";
-		if (top.location != location) {
-			top.location.href = document.location.href ;
-		}
-	}
-	\$(window).resize(function() {
-		if (\$(".mobilecontainer").css('display') == 'block' ) {
-			document.cookie = "qhtlfirewallview=mobile; path=/";
-			if (top.location != location) {
-				top.location.href = document.location.href ;
-			}
-		}
-	});
-EOF
-	}
-	print "});\n";
-	if ($config{STYLE_MOBILE} or $reseller) {
-		print <<EOF;
-\$("#NormalView").click(function(){
-	document.cookie = "qhtlfirewallview=desktop; path=/";
-	\$(".mobilecontainer").css('display','none');
-	\$(".normalcontainer").css('display','block');
-});
-\$("#MobileView").click(function(){
-	document.cookie = "qhtlfirewallview=mobile; path=/";
-	if (top.location == location) {
-		\$(".normalcontainer").css('display','none');
-		\$(".mobilecontainer").css('display','block');
-	} else {
-		top.location.href = document.location.href;
-	}
-});
-EOF
-	}
-	print "</script>\n";
 	print @footer;
 }
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
