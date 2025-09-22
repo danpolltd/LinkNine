@@ -535,7 +535,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 		</div>
 		<div class='col-sm-4 col-xs-12 text-right'>
 			<button type='button' class='btn btn-xs btn-default' style='margin-right:8px'
-				onclick="try{ if (typeof window.openWatcher==='function'){ openWatcher(); } else { window.location='$script?action=logtail'; } } catch(e){ window.location='$script?action=logtail'; }">
+				onclick="try{ if (typeof window.openWatcher==='function'){ openWatcher(); } else { window.open('$script?action=logtail','qhtlwatcher','width=820,height=540,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes'); } } catch(e){ window.open('$script?action=logtail','qhtlwatcher','width=820,height=540,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes'); } return false;">
 				Watcher
 			</button>
 			<img src='$images/qhtlfirewall_small.gif' onerror="this.onerror=null;this.src='$images/qhtlfirewall_small.png';" style='width:48px;height:48px;vertical-align:middle;margin-right:8px' alt='Logo'>
