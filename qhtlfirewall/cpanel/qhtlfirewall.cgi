@@ -227,19 +227,29 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					var sty = computeStyle(lastData);
 					var existing = stats.shadowRoot.getElementById('qhtlfw-header-badge');
 					if (existing) {
+						// existing is the inner span; update its style/text
 						existing.style.background = sty.bg;
 						existing.textContent = 'Firewall: ' + sty.txt;
 						return true;
 					}
+					// Build clickable link to the Firewall UI (cpsess-aware)
+					var a = document.createElement('a');
+					a.href = origin()+token+'/cgi/qhtlink/qhtlfirewall.cgi';
+					a.target = '_self';
+					a.setAttribute('aria-label','Open QhtLink Firewall');
+					a.style.textDecoration = 'none';
+					a.style.marginLeft = '8px';
+					// Inner badge span for color/status
 					var span = document.createElement('span');
 					span.id = 'qhtlfw-header-badge';
-					span.style.marginLeft = '8px';
 					span.style.padding = '4px 8px';
 					span.style.borderRadius = '3px';
 					span.style.color = '#fff';
 					span.style.background = sty.bg;
+					span.style.cursor = 'pointer';
 					span.textContent = 'Firewall: ' + sty.txt;
-					host.appendChild(span);
+					a.appendChild(span);
+					host.appendChild(a);
 					return true;
 				}
 
