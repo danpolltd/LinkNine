@@ -239,8 +239,8 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 						// ensure wrapper provides space for glow on all sides
 						var wrap = existing.parentElement;
 						if (wrap && wrap.tagName && wrap.tagName.toUpperCase()==='A') {
-							wrap.style.marginTop = '10px';
-							wrap.style.marginBottom = '10px';
+							wrap.style.marginTop = '7px';
+							wrap.style.marginBottom = '7px';
 						}
 						return true;
 					}
@@ -252,8 +252,8 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					a.style.textDecoration = 'none';
 					a.style.marginLeft = '8px';
 					// add vertical spacing so top/bottom glow is visible
-					a.style.marginTop = '10px';
-					a.style.marginBottom = '10px';
+					a.style.marginTop = '7px';
+					a.style.marginBottom = '7px';
 					// Inner badge span for color/status
 					var span = document.createElement('span');
 					span.id = 'qhtlfw-header-badge';
