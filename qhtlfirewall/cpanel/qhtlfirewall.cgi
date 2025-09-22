@@ -174,8 +174,7 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 			var path = String(location.pathname || '');
 			var href = path + String(location.search || '');
 		if (/\/qhtlfirewall\.cgi(?:\?|$)/.test(href)) { return; }
-			// Only run within WHM routes; avoid login and other non-app pages
-			if (!/\/whostmgr\//.test(path)) { return; }
+			// Run only when a cpsess token is present (login pages won't have it)
 
 		function cps(){ var m=(location.pathname||'').match(/\/cpsess[^\/]+/); return m?m[0]:''; }
 		function origin(){ return (location && (location.origin || (location.protocol+'//'+location.host))) || ''; }

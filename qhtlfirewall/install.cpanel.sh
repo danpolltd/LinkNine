@@ -517,9 +517,10 @@ if [ -d "/var/cpanel/customizations/whm/includes" ] || mkdir -p /var/cpanel/cust
     fi
 fi
 
-# Ensure Jupiter (WHM root) path renders our badge by leveraging cp_analytics_whm.html.tt
+# Optional analytics injection (opt-in only)
 ANALYTICS_TT="/var/cpanel/customizations/whm/includes/cp_analytics_whm.html.tt"
-if [ -f "$ANALYTICS_TT" ] || mkdir -p "/var/cpanel/customizations/whm/includes" ; then
+if [ "$WITH_ANALYTICS" = "1" ]; then
+    mkdir -p "/var/cpanel/customizations/whm/includes"
     # Robust cleanup: remove any entire <script> blocks that reference qhtlfirewall to avoid truncated/broken snippets
     if [ "$WITH_ANALYTICS" != "1" ]; then
         echo "Cleaning qhtlfirewall scripts from cp_analytics_whm.html.tt"
