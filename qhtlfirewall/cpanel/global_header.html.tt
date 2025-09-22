@@ -1,1 +1,3 @@
+[% IF security_token %]
 <script src="[% security_token %]/cgi/qhtlink/qhtlfirewall.cgi?action=banner_js" defer></script>
+[% END %]

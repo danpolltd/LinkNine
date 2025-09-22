@@ -498,26 +498,42 @@ fi
 # Ensure Jupiter (WHM root) path renders our badge by leveraging cp_analytics_whm.html.tt
 ANALYTICS_TT="/var/cpanel/customizations/whm/includes/cp_analytics_whm.html.tt"
 if [ -f "$ANALYTICS_TT" ] || mkdir -p "/var/cpanel/customizations/whm/includes" ; then
-        if ! grep -q 'qhtlfirewall analytics inject v2' "$ANALYTICS_TT" 2>/dev/null; then
-                echo "Injecting qhtlfirewall snippet into cp_analytics_whm.html.tt (v2)"
-                cat >> "$ANALYTICS_TT" <<'QHTL_EOF'
+    if grep -q 'qhtlfirewall analytics inject v2' "$ANALYTICS_TT" 2>/dev/null; then
+        # Patch existing v2 snippet to bail when cpsess is missing to avoid non-token requests
+        if ! grep -q 'qhtlfirewall v2 cpsess guard' "$ANALYTICS_TT" 2>/dev/null; then
+            echo "Patching existing qhtlfirewall analytics snippet v2 to guard on cpsess"
+            # Replace the base computation with a strict cpsess guard
+            sed -i \
+                -e "s|var base = (m && m\[0\]) ? (m\[0\] + '/') : '/'\;|/* qhtlfirewall v2 cpsess guard */ if(!(m && m[0])){ return; } var base = m[0] + '/'\;|" \
+                "$ANALYTICS_TT" || true
+        else
+            echo "qhtlfirewall analytics v2 snippet already guarded; leaving as-is."
+        fi
+    elif ! grep -q 'qhtlfirewall analytics inject v3' "$ANALYTICS_TT" 2>/dev/null; then
+        echo "Injecting qhtlfirewall snippet into cp_analytics_whm.html.tt (v3)"
+        cat >> "$ANALYTICS_TT" <<'QHTL_EOF'
 
-[%# qhtlfirewall analytics inject v2 %]
+[%# qhtlfirewall analytics inject v3 %]
 <script>
 (function(){
     try {
         var m = String(location.pathname).match(/\/cpsess[^/]+/);
-        var base = (m && m[0]) ? (m[0] + '/') : '/';
-        // Inject external JS for smart placement, guarded in the script itself
+        if (!(m && m[0])) { return; }
+        var token = m[0];
+        var org;
+        try { org = location.origin || (location.protocol + '//' + location.host); } catch(e) { org = ''; }
+        if (!org) { return; }
+        var baseAbs = org + token + '/';
+        // Inject external JS for smart placement; the script itself is safeguarded
         var s = document.createElement('script');
-        s.src = base + 'cgi/qhtlink/qhtlfirewall.cgi?action=banner_js';
+        s.src = baseAbs + 'cgi/qhtlink/qhtlfirewall.cgi?action=banner_js';
         s.defer = true;
         (document.head||document.documentElement).appendChild(s);
-        // Ensure a small visible badge even if JS gets blocked later
+        // Optional: tiny iframe badge for visibility; guarded by cpsess
         if (!document.getElementById('qhtlfw-frame')) {
             var f = document.createElement('iframe');
             f.id = 'qhtlfw-frame';
-            f.src = base + 'cgi/qhtlink/qhtlfirewall.cgi?action=banner_frame';
+            f.src = baseAbs + 'cgi/qhtlink/qhtlfirewall.cgi?action=banner_frame';
             f.title = 'QhtLink Firewall';
             f.style.position = 'fixed';
             f.style.top = '10px';
@@ -536,10 +552,10 @@ if [ -f "$ANALYTICS_TT" ] || mkdir -p "/var/cpanel/customizations/whm/includes" 
 </script>
 
 QHTL_EOF
-                chmod 644 "$ANALYTICS_TT" || true
-        else
-                echo "cp_analytics_whm.html.tt already contains qhtlfirewall snippet v2; skipping."
-        fi
+        chmod 644 "$ANALYTICS_TT" || true
+    else
+        echo "cp_analytics_whm.html.tt already contains qhtlfirewall snippet v3; skipping."
+    fi
 fi
 
 if [ -e "/usr/local/cpanel/bin/register_appconfig" ]; then

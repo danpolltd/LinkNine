@@ -5,4 +5,6 @@
    # It fetches a lightweight JSON from our CGI and maps to a badge.
    # Safe to include multiple times; no JS errors on failure. %]
 
+[% IF security_token %]
 <script src="[% security_token %]/cgi/qhtlink/qhtlfirewall.cgi?action=banner_js" defer></script>
+[% END %]
