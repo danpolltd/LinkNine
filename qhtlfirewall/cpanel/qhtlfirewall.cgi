@@ -534,10 +534,10 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			<h4 style='margin:5px 0;'>QhtLink Firewall (qhtlfirewall) v$myv</h4>
 		</div>
 		<div class='col-sm-4 col-xs-12 text-right'>
-			<form action='$script' method='post' style='display:inline;margin-right:8px'>
-				<input type='hidden' name='action' value='logtail'>
-				<input type='submit' class='btn btn-xs btn-default' value='Watcher'>
-			</form>
+			<button type='button' class='btn btn-xs btn-default' style='margin-right:8px'
+				onclick="try{ if (typeof window.openWatcher==='function'){ openWatcher(); } else { window.location='$script?action=logtail'; } } catch(e){ window.location='$script?action=logtail'; }">
+				Watcher
+			</button>
 			<img src='$images/qhtlfirewall_small.gif' onerror="this.onerror=null;this.src='$images/qhtlfirewall_small.png';" style='width:48px;height:48px;vertical-align:middle;margin-right:8px' alt='Logo'>
 			$status_badge $status_buttons
 		</div>
