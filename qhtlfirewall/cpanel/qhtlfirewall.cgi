@@ -142,6 +142,7 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					if(!data) return;
 					var cls = data.class || 'default';
 					var txt = data.text || 'Firewall';
+					var bg = (cls==='success') ? '#5cb85c' : (cls==='warning' ? '#f0ad4e' : (cls==='danger' ? '#d9534f' : '#777'));
 					var overlay = document.createElement('div');
 					overlay.id = 'qhtlfw-badge';
 					overlay.style.position = 'fixed';
@@ -151,16 +152,17 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					overlay.style.pointerEvents = 'none';
 					overlay.style.fontFamily = 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
 					var badge = document.createElement('span');
-					badge.className = 'label label-' + cls;
 					badge.style.pointerEvents = 'auto';
 					badge.style.padding = '4px 8px';
 					badge.style.display = 'inline-block';
 					badge.style.margin = '0';
+					badge.style.color = '#fff';
+					badge.style.background = bg;
 					badge.textContent = 'Firewall: ' + txt;
 					overlay.appendChild(badge);
 					document.body.appendChild(overlay);
 
-					var attempt = function(){
+					function injectIntoHeader(){
 						try {
 							var stats = document.querySelector('cp-whm-header-stats-control');
 							if (!stats) return false;
@@ -168,8 +170,11 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 								var host = stats.shadowRoot.querySelector('.header-stats, header, div');
 								if (host) {
 									var span = document.createElement('span');
-									span.className = 'label label-' + cls;
 									span.style.marginLeft = '8px';
+									span.style.padding = '4px 8px';
+									span.style.borderRadius = '3px';
+									span.style.color = '#fff';
+									span.style.background = bg;
 									span.textContent = 'Firewall: ' + txt;
 									host.appendChild(span);
 									return true;
@@ -177,17 +182,33 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 							}
 						} catch(e) {}
 						return false;
-					};
+					}
+
+					// Try a few times right away (header can arrive late)
 					var tries = 0;
 					var iv = setInterval(function(){
 						tries++;
-						if (attempt()) {
+						if (injectIntoHeader()) {
 							overlay.style.display = 'none';
 							try { var ff = document.getElementById('qhtlfw-frame'); if (ff) ff.style.display = 'none'; } catch(e) {}
 							clearInterval(iv);
 						}
-						if (tries > 20) { clearInterval(iv); }
+						if (tries > 50) { clearInterval(iv); }
 					}, 100);
+
+					// Keep it persistent across SPA navigation/renders
+					try {
+						var mo = new MutationObserver(function(){
+							var ok = document.querySelector('cp-whm-header-stats-control');
+							// If header exists but our badge isn't inside it, try reinjecting
+							if (ok && overlay && overlay.style.display !== 'none') {
+								// nothing
+							} else {
+								injectIntoHeader();
+							}
+						});
+						mo.observe(document.body, { childList: true, subtree: true });
+					} catch(e) {}
 				})
 				.catch(function(e){ /* ignore */ });
 		} catch(e) {}
@@ -412,8 +433,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 													"<input type='submit' class='btn btn-xs btn-default' value='Start'></form>";
 		}
 
-		print <<EOF;
-<div id="loader"></div><br />
+ 		print <<EOF;
 <div class='panel panel-default' style='padding: 10px'>
 	<div class='row' style='display:flex;align-items:center;'>
 		<div class='col-sm-8 col-xs-12'>
@@ -452,8 +472,10 @@ if ($ui_error) {
 }
 
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
+	# Fallback: load the header badge script on this page too (global includes may not be present)
+	print "<script src='$script?action=banner_js' defer></script>\n";
 	print <<'EOF';
-<script>(function(){ /* inline UI script temporarily disabled to avoid JS parse errors */ })();</script>
+<script>(function(){ /* inline UI script remains disabled to avoid legacy parse errors */ })();</script>
 EOF
 	print @footer;
 }
