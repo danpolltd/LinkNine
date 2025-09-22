@@ -2232,7 +2232,7 @@ EOF
 	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' id='ignoreip' value='' size='36' style='background-color: #D9EDF7; width:100%;'></div>";
 	print "  </div>";
 	print "</div></form></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='kill' type='submit' class='btn btn-default'>Quick Unblock</button></form></td><td style='width:100%'>Remove IP address from the firewall (temp and perm blocks)</td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='kill' type='submit' class='btn btn-default'>Quick Unblock</button></form></td><td style='width:100%'>Remove IP address</td></tr>\n";
 		print "</table>\n";
 		print "</div>\n";
 
