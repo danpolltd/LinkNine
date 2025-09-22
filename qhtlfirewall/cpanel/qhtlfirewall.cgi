@@ -234,6 +234,7 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					if (existing) {
 						// existing is the inner span; update its style/text
 						existing.style.background = sty.bg;
+						existing.style.boxShadow = '0 0 0 5px '+sty.bg+'33';
 						existing.textContent = 'Firewall: ' + sty.txt;
 						return true;
 					}
@@ -252,6 +253,8 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					span.style.color = '#fff';
 					span.style.background = sty.bg;
 					span.style.cursor = 'pointer';
+					// 5px glow in same color (with slight transparency)
+					span.style.boxShadow = '0 0 0 5px '+sty.bg+'33';
 					span.textContent = 'Firewall: ' + sty.txt;
 					a.appendChild(span);
 					host.appendChild(a);
