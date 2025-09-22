@@ -37,25 +37,16 @@ Whostmgr::ACLS::init_acls();
 Cpanel::Rlimit::set_rlimit_to_infinity();
 
 # Defensive: if this CGI is requested in a script-like context without an action, return a JS no-op.
-# Only treat as a true navigation when Sec-Fetch clearly indicates a document navigation or user-initiated nav.
+# Simple rule: only consider it script-like when Sec-Fetch-Dest=script or Accept indicates JavaScript.
 my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
 my $sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
 my $sec_user = lc($ENV{HTTP_SEC_FETCH_USER} // ''); # '?1' for user navigations
 my $accept   = lc($ENV{HTTP_ACCEPT} // '');
 if (!defined $FORM{action} || $FORM{action} eq '') {
-	my $has_ref       = defined $ENV{HTTP_REFERER} && $ENV{HTTP_REFERER} ne '' ? 1 : 0;
-	my $accept_html   = ($accept =~ /(?:text\/html|application\/xhtml\+xml)/);
-	my $has_secfetch  = ($ENV{HTTP_SEC_FETCH_DEST}||$ENV{HTTP_SEC_FETCH_MODE}||$ENV{HTTP_SEC_FETCH_USER}) ? 1 : 0;
-	# Only consider this a navigation if Sec-Fetch says so (user nav, navigate mode, or document dest)
-	my $is_nav_strict = ($sec_user eq '?1') || ($sec_mode eq 'navigate') || ($sec_dest eq 'document');
 	my $is_script_dest= ($sec_dest eq 'script');
 	my $accept_js     = ($accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
-	# If Sec-Fetch headers are present and do NOT indicate a document navigation, treat as script-like
-	my $scriptish     = ($has_secfetch && !$is_nav_strict) || $is_script_dest || $accept_js;
-	# Fallback heuristic when Sec-Fetch is absent: if Accept lacks HTML or a Referer is present, it's likely a subresource (script)
-	if (!$has_secfetch) {
-		$scriptish ||= ($has_ref || !$accept_html) ? 1 : 0;
-	}
+	# Treat script-like only when clearly a script destination or Accept looks like JS
+	my $scriptish     = $is_script_dest || $accept_js;
 	if ($scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
@@ -426,14 +417,9 @@ if (defined $FORM{action} && $FORM{action} ne '' && $FORM{action} !~ /^(?:status
 	my $g_sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
 	my $g_sec_user = lc($ENV{HTTP_SEC_FETCH_USER} // '');
 	my $g_accept   = lc($ENV{HTTP_ACCEPT} // '');
-	my $g_has_secfetch = ($ENV{HTTP_SEC_FETCH_DEST}||$ENV{HTTP_SEC_FETCH_MODE}||$ENV{HTTP_SEC_FETCH_USER}) ? 1 : 0;
-	my $g_is_nav_strict = ($g_sec_user eq '?1') || ($g_sec_mode eq 'navigate') || ($g_sec_dest eq 'document');
 	my $g_is_script_dest= ($g_sec_dest eq 'script');
 	my $g_accept_js     = ($g_accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
-	my $g_accept_html   = ($g_accept =~ /(?:text\/html|application\/xhtml\+xml)/);
-	my $g_has_ref       = defined $ENV{HTTP_REFERER} && $ENV{HTTP_REFERER} ne '' ? 1 : 0;
-	my $g_scriptish     = ($g_has_secfetch && !$g_is_nav_strict) || $g_is_script_dest || $g_accept_js;
-	if (!$g_has_secfetch) { $g_scriptish ||= ($g_has_ref || !$g_accept_html) ? 1 : 0; }
+	my $g_scriptish     = $g_is_script_dest || $g_accept_js;
 	if ($g_scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";

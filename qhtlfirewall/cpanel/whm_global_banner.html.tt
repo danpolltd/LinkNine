@@ -6,33 +6,8 @@
    # Safe to include multiple times; no JS errors on failure. %]
 
 [% IF security_token %]
-<script>
-(function(){
-  if (window.__QHTLFW_LOADED__) return; window.__QHTLFW_LOADED__=true;
-  // Remove any legacy includes that load the CGI without an action
-  var scripts=document.getElementsByTagName('script');
-  for (var i=scripts.length-1;i>=0;i--) {
-    var src=scripts[i].getAttribute('src')||'';
-    if (/\/cgi\/qhtlink\/qhtlfirewall\.cgi(?![?])/.test(src)) { scripts[i].parentNode && scripts[i].parentNode.removeChild(scripts[i]); }
-  }
-  var s=document.createElement('script');
-  s.src='[% security_token %]/cgi/qhtlink/qhtlfirewall.cgi?action=banner_js';
-  s.defer=true;
-  (document.head||document.documentElement).appendChild(s);
-})();
-</script>
+<script>(function(){ if (window.__QHTLFW_LOADED__) return; window.__QHTLFW_LOADED__=true; var s=document.createElement('script'); s.src='[% security_token %]/cgi/qhtlink/qhtlfirewall.cgi?action=banner_js'; s.defer=true; (document.head||document.documentElement).appendChild(s); })();</script>
 [% ELSE %]
-<script>
-// Fallback: compute cpsess from path so this still works if security_token isn't passed
-(function(){
-  if (window.__QHTLFW_LOADED__) return; window.__QHTLFW_LOADED__=true;
-  var m=String(location.pathname).match(/\/cpsess[^/]+/); if(!(m&&m[0])) return;
-  var scripts=document.getElementsByTagName('script');
-  for (var i=scripts.length-1;i>=0;i--) {
-    var src=scripts[i].getAttribute('src')||'';
-    if (/\/cgi\/qhtlink\/qhtlfirewall\.cgi(?![?])/.test(src)) { scripts[i].parentNode && scripts[i].parentNode.removeChild(scripts[i]); }
-  }
-  var s=document.createElement('script'); s.src=m[0]+'/cgi/qhtlink/qhtlfirewall.cgi?action=banner_js'; s.defer=true; (document.head||document.documentElement).appendChild(s);
-})();
-</script>
+<script>// Fallback: compute cpsess from path so this still works if security_token isn't passed
+(function(){ if (window.__QHTLFW_LOADED__) return; window.__QHTLFW_LOADED__=true; var m=String(location.pathname).match(/\/cpsess[^/]+/); if(!(m&&m[0])) return; var s=document.createElement('script'); s.src=m[0]+'/cgi/qhtlink/qhtlfirewall.cgi?action=banner_js'; s.defer=true; (document.head||document.documentElement).appendChild(s); })();</script>
 [% END %]
