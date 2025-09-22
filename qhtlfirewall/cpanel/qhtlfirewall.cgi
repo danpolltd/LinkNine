@@ -534,7 +534,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			<h4 style='margin:5px 0;'>QhtLink Firewall (qhtlfirewall) v$myv</h4>
 		</div>
 		<div class='col-sm-4 col-xs-12 text-right'>
-			<img src='$images/qhtlfirewall_small.gif' style='width:48px;height:48px;vertical-align:middle;margin-right:8px' alt='Logo'>
+			<img src='$images/qhtlfirewall_small.gif' onerror="this.onerror=null;this.src='$images/qhtlfirewall_small.png';" style='width:48px;height:48px;vertical-align:middle;margin-right:8px' alt='Logo'>
 			$status_badge $status_buttons
 		</div>
 	</div>
