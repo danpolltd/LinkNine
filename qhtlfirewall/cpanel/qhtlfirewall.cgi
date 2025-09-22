@@ -42,10 +42,13 @@ my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
 my $sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
 my $accept   = lc($ENV{HTTP_ACCEPT} // '');
 if (!defined $FORM{action} || $FORM{action} eq '') {
-	my $is_script_dest = ($sec_dest eq 'script');
-	my $accept_js = ($accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
-	# Only treat as script when clearly indicated; otherwise serve normal HTML (fixes UI page)
-	if ($is_script_dest || $accept_js) {
+	my $has_ref       = defined $ENV{HTTP_REFERER} && $ENV{HTTP_REFERER} ne '' ? 1 : 0;
+	my $is_nav        = ($sec_mode eq 'navigate') || ($sec_dest eq 'document');
+	my $is_script_dest= ($sec_dest eq 'script');
+	my $accept_js     = ($accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
+	my $scriptish     = $is_script_dest || $accept_js || (!$is_nav && $has_ref);
+	# Treat script-like requests as JS includes and return a safe no-op; otherwise, serve UI HTML
+	if ($scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print "/* qhtlfirewall: ignored legacy script include without action; please update templates */\n";
 		print "(function(){ /* noop */ })();\n";
