@@ -236,6 +236,12 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 						existing.style.background = sty.bg;
 						existing.style.boxShadow = '0 0 0 5px '+sty.bg+'33';
 						existing.textContent = 'Firewall: ' + sty.txt;
+						// ensure wrapper provides space for glow on all sides
+						var wrap = existing.parentElement;
+						if (wrap && wrap.tagName && wrap.tagName.toUpperCase()==='A') {
+							wrap.style.marginTop = '5px';
+							wrap.style.marginBottom = '5px';
+						}
 						return true;
 					}
 					// Build clickable link to the Firewall UI (cpsess-aware)
@@ -245,6 +251,9 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					a.setAttribute('aria-label','Open QhtLink Firewall');
 					a.style.textDecoration = 'none';
 					a.style.marginLeft = '8px';
+					// add vertical spacing so top/bottom glow is visible
+					a.style.marginTop = '5px';
+					a.style.marginBottom = '5px';
 					// Inner badge span for color/status
 					var span = document.createElement('span');
 					span.id = 'qhtlfw-header-badge';
