@@ -369,8 +369,16 @@ EOF
 					}
 				}
 			}
-			my $json = encode_json(\@opts);
-			print $json;
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
 			return;
 		}
 		$FORM{lines} =~ s/\D//g;
@@ -2145,7 +2153,7 @@ EOF
 		# Early Quick View modal shim (no jQuery required) to guarantee popup availability
 		print "<script>\n";
 		print "(function(){\n";
-		print "  if (typeof window.showQuickView !== 'function') {\n";
+		print "  if (!window.__qhtlQuickViewShim) { window.__qhtlQuickViewShim = true;\n";
 		print "    function ensureQuickViewModal(){\n";
 		print "      var modal = document.getElementById('quickViewModalShim');\n";
 		print "      if (modal) return modal;\n";
