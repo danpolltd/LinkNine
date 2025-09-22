@@ -319,22 +319,24 @@ sub main {
 			QHTLFIREWALLscript = '$script?action=logtailcmd';
 			QHTLFIREWALLtimer();
 		</script>
-		<script>
-		// Clean jQuery handlers for font size controls
-		var myFont = 14;
-		$("#fontplus-btn").on('click', function () {
-			myFont++;
-			if (myFont > 20) { myFont = 20 }
-			$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
-		});
-		$("#fontminus-btn").on('click', function () {
-			myFont--;
-			if (myFont < 12) { myFont = 12 }
-			$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
-		});
-		</script>
-<!-- Quick View modal handlers are defined once in the main UI script below -->
 EOF
+		print <<'QHTL_JQ_TAIL';
+<script>
+// Clean jQuery handlers for font size controls
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+    myFont++;
+    if (myFont > 20) { myFont = 20 }
+    $('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+    myFont--;
+    if (myFont < 12) { myFont = 12 }
+    $('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+</script>
+<!-- Quick View modal handlers are defined once in the main UI script below -->
+QHTL_JQ_TAIL
 		if ($config{DIRECTADMIN}) {$script = $script_safe}
 		&printreturn;
 	}
@@ -519,26 +521,29 @@ Please Note:
 	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
 	QHTLFIREWALLscript = '$script?action=loggrepcmd';
 </script>
+EOF
+		print <<'QHTL_JQ_GREP';
 <script>
 // Clean jQuery handlers for grep view
 var myFont = 14;
 $("#fontplus-btn").on('click', function () {
-    myFont++;
-    if (myFont > 20) { myFont = 20 }
-    $('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+	myFont++;
+	if (myFont > 20) { myFont = 20 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
 });
 $("#fontminus-btn").on('click', function () {
-    myFont--;
-    if (myFont < 12) { myFont = 12 }
-    $('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
 });
 </script>
-EOF
+QHTL_JQ_GREP
+		print <<EOF;
 		if ($config{DIRECTADMIN}) {$script = $script_safe}
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "loggrepcmd") {
-		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+	my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
 		foreach my $line (@data) {
 			if ($line =~ /^Include\s*(.*)$/) {
 				my @incfile = slurp($1);
@@ -550,20 +555,6 @@ EOF
 		my $logfile = "/var/log/qhtlwaterfall.log";
 		my $hit = 0;
 		foreach my $file (@data) {
-			$file =~ s/$cleanreg//g;
-			if ($file eq "") {next}
-			if ($file =~ /^\s*\#|Include/) {next}
-			my @globfiles;
-			if ($file =~ /\*|\?|\[/) {
-				foreach my $log (glob $file) {push @globfiles, $log}
-			} else {push @globfiles, $file}
-
-			foreach my $globfile (@globfiles) {
-				if (-f $globfile) {
-					if ($FORM{lognum} == $cnt) {
-						$logfile = $globfile;
-						$hit = 1;
-						last;
 					}
 					$cnt++;
 				}
