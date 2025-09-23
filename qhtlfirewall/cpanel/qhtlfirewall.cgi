@@ -467,8 +467,12 @@ print "Content-type: text/html\r\n\r\n";
 my $templatehtml;
 my $SCRIPTOUT;
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
-		# Provide a smart wrapper so clicking Watcher waits briefly for modal init before falling back
-		print <<EOF;
+#	open(STDERR, ">&STDOUT");
+	open ($SCRIPTOUT, '>', \$templatehtml);
+	select $SCRIPTOUT;
+
+	# Provide a smart wrapper so clicking Watcher waits briefly for modal init before falling back
+	print <<EOF;
 <script>
 (function(){
 	function fallback(){ try{ window.location='$script?action=logtail'; }catch(e){ window.location='$script?action=logtail'; } }
@@ -534,8 +538,14 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			return modal;
 		}
 
-		function quickViewLoad(url, done){ var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); if(!b){ return; } b.innerHTML='Loading...'; var x=new XMLHttpRequest(); window.__qhtlWatcherLoading=true; x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200&&x.status<300){ var html=x.responseText || ''; // strip any script tags to avoid recursive execution
-					try { html = html.replace(/<script[\s\S]*?<\/script>/gi, ''); } catch(e){}
+		function quickViewLoad(url, done){ var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); if(!b){ return; } b.innerHTML='Loading...'; var x=new XMLHttpRequest(); window.__qhtlWatcherLoading=true; x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200&&x.status<300){ var html=x.responseText || ''; // safely remove any <script> tags without embedding a literal </script> in this inline script
+					try {
+						var tmp = document.createElement('div');
+						tmp.innerHTML = html;
+						var scripts = tmp.getElementsByTagName('script');
+						while (scripts.length) { scripts[0].parentNode.removeChild(scripts[0]); }
+						html = tmp.innerHTML;
+					} catch(e){}
 					b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>"; } } finally { window.__qhtlWatcherLoading=false; } } }; x.send(); m.style.display='block'; }
 
 		// Global watcher opener that sets size and starts auto-refresh
@@ -551,9 +561,6 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 })();
 </script>
 EOF
-#	open(STDERR, ">&STDOUT");
-	open ($SCRIPTOUT, '>', \$templatehtml);
-	select $SCRIPTOUT;
 
 	print <<EOF;
 	<!-- $bootstrapcss -->
