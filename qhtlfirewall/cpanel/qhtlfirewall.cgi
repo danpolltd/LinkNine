@@ -511,21 +511,35 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			// Watcher controls
 			var logSelect = document.createElement('select'); logSelect.id='watcherLogSelect'; logSelect.className='form-control'; logSelect.style.display='inline-block'; logSelect.style.width='auto'; logSelect.style.marginRight='8px';
 			var linesInput = document.createElement('input'); linesInput.id='watcherLines'; linesInput.type='text'; linesInput.value='100'; linesInput.size='4'; linesInput.className='form-control'; linesInput.style.display='inline-block'; linesInput.style.width='70px'; linesInput.style.marginRight='8px';
-			var refreshBtn = document.createElement('button'); refreshBtn.id='watcherRefresh'; refreshBtn.className='btn btn-default'; refreshBtn.textContent='Refresh Now'; refreshBtn.style.marginRight='8px';
+			var refreshBtn = document.createElement('button'); refreshBtn.id='watcherRefresh'; refreshBtn.className='btn btn-default'; refreshBtn.textContent='Autocheck'; refreshBtn.style.marginRight='8px';
+			var refreshLabel = document.createElement('span'); refreshLabel.id='watcherRefreshLabel'; refreshLabel.textContent=' Refresh in ';
 			var timerSpan = document.createElement('span'); timerSpan.id='watcherTimer'; timerSpan.textContent='0'; timerSpan.style.marginRight='8px';
 			var pauseBtn = document.createElement('button'); pauseBtn.id='watcherPause'; pauseBtn.className='btn btn-default'; pauseBtn.textContent='Pause'; pauseBtn.style.width='80px';
-			left.appendChild(logSelect); left.appendChild(document.createTextNode(' Lines: ')); left.appendChild(linesInput); left.appendChild(refreshBtn); left.appendChild(document.createTextNode(' Refresh in ')); left.appendChild(timerSpan); left.appendChild(pauseBtn);
+			left.appendChild(logSelect); left.appendChild(document.createTextNode(' Lines: ')); left.appendChild(linesInput); left.appendChild(refreshBtn); left.appendChild(refreshLabel); left.appendChild(timerSpan); left.appendChild(pauseBtn);
 			// No edit/save/cancel in watcher mode
 			mid.style.display='none';
 			var closeBtn = document.createElement('button'); closeBtn.id='quickViewCloseShim'; closeBtn.className='btn btn-default'; closeBtn.textContent='Close'; closeBtn.style.background='linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%)'; closeBtn.style.color='#721c24'; closeBtn.style.borderColor='#f1b0b7';
 			right.appendChild(closeBtn);
 			// Populate log options
 			function populateLogs(){ try{ var xhr=new XMLHttpRequest(); xhr.open('GET', '$script?action=logtailcmd&meta=1', true); xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){ var opts = JSON.parse(xhr.responseText||'[]'); logSelect.innerHTML=''; for(var i=0;i<opts.length;i++){ var o=document.createElement('option'); o.value=opts[i].value; o.textContent=opts[i].label; if(opts[i].selected){ o.selected=true; } logSelect.appendChild(o);} } }; xhr.send(); }catch(e){} }
-			// Refresh logic with 5s countdown and in-flight guard
-			var watcherPaused=false, watcherTick=5, watcherTimerId=null; window.__qhtlWatcherLoading = false;
-			function scheduleTick(){ if(watcherTimerId){ clearInterval(watcherTimerId);} watcherTick=5; timerSpan.textContent=String(watcherTick); watcherTimerId=setInterval(function(){ if(watcherPaused){ return; } if(window.__qhtlWatcherLoading){ return; } watcherTick--; timerSpan.textContent=String(watcherTick); if(watcherTick<=0){ doRefresh(); watcherTick=5; timerSpan.textContent=String(watcherTick);} },1000);} window.__qhtlScheduleTick = scheduleTick;
+			// Refresh logic: 5s autocheck or 1s real-time mode; in-flight guard
+			var watcherPaused=false, watcherTick=5, watcherTimerId=null, watcherMode='auto'; window.__qhtlWatcherLoading = false;
+			function scheduleTick(){ if(watcherTimerId){ clearInterval(watcherTimerId);} watcherTick=5; if(watcherMode==='auto'){ refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } else { refreshLabel.textContent=' '; timerSpan.textContent='live mode'; }
+				watcherTimerId=setInterval(function(){ if(watcherPaused){ return; } if(window.__qhtlWatcherLoading){ return; }
+					if(watcherMode==='auto'){
+						watcherTick--; timerSpan.textContent=String(watcherTick);
+						if(watcherTick<=0){ doRefresh(); watcherTick=5; timerSpan.textContent=String(watcherTick); }
+					} else {
+						// Real-time: refresh every second
+						timerSpan.textContent='live mode'; doRefresh();
+					}
+				},1000);
+			}
+			window.__qhtlScheduleTick = scheduleTick;
+			function setWatcherMode(mode){ watcherMode = (mode==='live') ? 'live' : 'auto'; if(watcherMode==='live'){ refreshBtn.textContent='Real Time'; refreshLabel.textContent=' '; timerSpan.textContent='live mode'; } else { refreshBtn.textContent='Autocheck'; refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } scheduleTick(); }
 			function doRefresh(){ if(window.__qhtlWatcherLoading){ return; } var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0'); quickViewLoad(url); }
-			refreshBtn.addEventListener('click', function(e){ e.preventDefault(); doRefresh(); });
+			// Mode toggle: Autocheck (5s) <-> Real Time (1s)
+			refreshBtn.addEventListener('click', function(e){ e.preventDefault(); setWatcherMode(watcherMode==='auto' ? 'live' : 'auto'); });
 			pauseBtn.addEventListener('click', function(e){ e.preventDefault(); watcherPaused=!watcherPaused; pauseBtn.textContent=watcherPaused?'Start':'Pause'; });
 			logSelect.addEventListener('change', function(){ doRefresh(); scheduleTick(); });
 			linesInput.addEventListener('change', function(){ doRefresh(); scheduleTick(); });
@@ -580,7 +594,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 				// Ensure blue pulsating glow CSS exists and apply class
 				(function(){ var css=document.getElementById('qhtl-blue-style'); if(!css){ css=document.createElement('style'); css.id='qhtl-blue-style'; css.textContent=String.fromCharCode(64)+'keyframes qhtl-blue {0%,100%{box-shadow: 0 0 14px 6px rgba(0,123,255,0.55), 0 0 24px 10px rgba(0,123,255,0.3);}50%{box-shadow: 0 0 28px 14px rgba(0,123,255,0.95), 0 0 46px 20px rgba(0,123,255,0.6);}} .fire-blue{ animation: qhtl-blue 2.2s infinite ease-in-out; }'; document.head.appendChild(css);} if(d){ d.classList.add('fire-blue'); } var bodyEl=document.getElementById('quickViewBodyShim'); if(bodyEl){ /* 50% brighter than glow base (#007bff) by mixing with white */ bodyEl.style.background='linear-gradient(180deg, rgb(127,189,255) 0%, rgb(159,205,255) 100%)'; bodyEl.style.borderRadius='4px'; bodyEl.style.padding='10px'; } })();
 			// initial load and start timer (no synthetic change event to avoid loops)
-			(function(){ var ls=document.getElementById('watcherLines'), sel=document.getElementById('watcherLogSelect'); var url='$script?action=logtailcmd&lines='+(ls?encodeURIComponent(ls.value||'100'):'100')+'&lognum='+(sel?encodeURIComponent(sel.value||'0'):'0'); quickViewLoad(url, function(){ var timer=document.getElementById('watcherTimer'); if(timer){ timer.textContent='5'; } if(window.__qhtlScheduleTick){ window.__qhtlScheduleTick(); } }); })();
+			(function(){ var ls=document.getElementById('watcherLines'), sel=document.getElementById('watcherLogSelect'); var url='$script?action=logtailcmd&lines='+(ls?encodeURIComponent(ls.value||'100'):'100')+'&lognum='+(sel?encodeURIComponent(sel.value||'0'):'0'); quickViewLoad(url, function(){ var timer=document.getElementById('watcherTimer'); if(timer){ timer.textContent='5'; } if(typeof setWatcherMode==='function'){ setWatcherMode('auto'); } else if(window.__qhtlScheduleTick){ window.__qhtlScheduleTick(); } }); })();
 				m.style.display='block'; return false; };
 		// Also expose the real opener on the original name for direct callers
 		window.openWatcher = window.__qhtlRealOpenWatcher;
