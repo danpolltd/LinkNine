@@ -514,11 +514,14 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			var linesInput = document.createElement('input'); linesInput.id='watcherLines'; linesInput.type='text'; linesInput.value='100'; linesInput.size='4'; linesInput.className='form-control'; linesInput.style.display='inline-block'; linesInput.style.width='70px'; linesInput.style.marginRight='8px';
 			var refreshBtn = document.createElement('button'); refreshBtn.id='watcherRefresh'; refreshBtn.className='btn btn-default'; refreshBtn.textContent='Autocheck'; refreshBtn.style.marginRight='0';
 			var refreshLabel = document.createElement('span'); refreshLabel.id='watcherRefreshLabel'; refreshLabel.textContent=' Refresh in ';
-			var timerSpan = document.createElement('span'); timerSpan.id='watcherTimer'; timerSpan.textContent='0'; timerSpan.style.marginRight='8px';
+			var timerSpan = document.createElement('span'); timerSpan.id='watcherTimer'; timerSpan.textContent='0';
 			var pauseBtn = document.createElement('button'); pauseBtn.id='watcherPause'; pauseBtn.className='btn btn-default'; pauseBtn.textContent='Pause';
 			// Arrange: inputs row + button column (refresh/pause stacked)
 			var inputsRow = document.createElement('div'); inputsRow.style.display='inline-block'; inputsRow.style.marginRight='8px';
-			inputsRow.appendChild(logSelect); inputsRow.appendChild(document.createTextNode(' Lines: ')); inputsRow.appendChild(linesInput); inputsRow.appendChild(refreshLabel); inputsRow.appendChild(timerSpan);
+			inputsRow.appendChild(logSelect); inputsRow.appendChild(document.createTextNode(' Lines: ')); inputsRow.appendChild(linesInput);
+			// Dedicated timer column to avoid affecting button alignment
+			var timerCol = document.createElement('div'); timerCol.style.display='inline-flex'; timerCol.style.alignItems='center'; timerCol.style.justifyContent='flex-end'; timerCol.style.width='120px'; timerCol.style.whiteSpace='nowrap'; timerCol.style.marginRight='8px';
+			timerCol.appendChild(refreshLabel); timerCol.appendChild(timerSpan);
 			var btnCol = document.createElement('div'); btnCol.style.display='inline-flex'; btnCol.style.flexDirection='column'; btnCol.style.gap='6px'; btnCol.style.alignItems='flex-end';
 			// Base width for layout, visually scaled by 50%
 			refreshBtn.style.width='120px'; pauseBtn.style.width='120px';
@@ -527,7 +530,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			refreshBtn.style.whiteSpace='nowrap'; refreshBtn.style.overflow='hidden'; refreshBtn.style.textOverflow='ellipsis';
 			pauseBtn.style.whiteSpace='nowrap'; pauseBtn.style.overflow='hidden'; pauseBtn.style.textOverflow='ellipsis';
 			btnCol.appendChild(refreshBtn); btnCol.appendChild(pauseBtn);
-			left.appendChild(inputsRow); left.appendChild(btnCol);
+			left.appendChild(inputsRow); left.appendChild(timerCol); left.appendChild(btnCol);
 			// No edit/save/cancel in watcher mode
 			mid.style.display='none';
 			var closeBtn = document.createElement('button'); closeBtn.id='quickViewCloseShim'; closeBtn.className='btn btn-default'; closeBtn.textContent='Close'; closeBtn.style.background='linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%)'; closeBtn.style.color='#721c24'; closeBtn.style.borderColor='#f1b0b7';
