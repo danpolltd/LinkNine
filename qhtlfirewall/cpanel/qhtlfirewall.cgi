@@ -520,7 +520,10 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			var inputsRow = document.createElement('div'); inputsRow.style.display='inline-block'; inputsRow.style.marginRight='8px';
 			inputsRow.appendChild(logSelect); inputsRow.appendChild(document.createTextNode(' Lines: ')); inputsRow.appendChild(linesInput); inputsRow.appendChild(refreshLabel); inputsRow.appendChild(timerSpan);
 			var btnCol = document.createElement('div'); btnCol.style.display='inline-flex'; btnCol.style.flexDirection='column'; btnCol.style.gap='6px'; btnCol.style.alignItems='flex-end';
-			refreshBtn.style.width='60px'; pauseBtn.style.width='60px';
+			// Base width for layout, visually scaled by 50%
+			refreshBtn.style.width='120px'; pauseBtn.style.width='120px';
+			refreshBtn.style.transform='scale(0.5)'; refreshBtn.style.transformOrigin='right center'; refreshBtn.style.marginRight='-30px';
+			pauseBtn.style.transform='scale(0.5)'; pauseBtn.style.transformOrigin='right center'; pauseBtn.style.marginRight='-30px';
 			refreshBtn.style.whiteSpace='nowrap'; refreshBtn.style.overflow='hidden'; refreshBtn.style.textOverflow='ellipsis';
 			pauseBtn.style.whiteSpace='nowrap'; pauseBtn.style.overflow='hidden'; pauseBtn.style.textOverflow='ellipsis';
 			btnCol.appendChild(refreshBtn); btnCol.appendChild(pauseBtn);
