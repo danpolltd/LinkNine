@@ -524,7 +524,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			timerCol.appendChild(refreshLabel); timerCol.appendChild(timerSpan);
 			var btnCol = document.createElement('div'); btnCol.style.display='inline-flex'; btnCol.style.flexDirection='column'; btnCol.style.gap='6px'; btnCol.style.alignItems='flex-end';
 			// Restore normal size and style (match Close button brightness and font)
-			refreshBtn.style.width='90px'; refreshBtn.style.marginRight='8px'; refreshBtn.style.transform='none';
+			refreshBtn.style.width='120px'; refreshBtn.style.marginRight='8px'; refreshBtn.style.transform='none';
 			// Light green (success-like) gradient, dark text, soft border
 			refreshBtn.style.background='linear-gradient(180deg, #d4edda 0%, #c3e6cb 100%)';
 			refreshBtn.style.color='#155724';
