@@ -539,14 +539,39 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 		}
 
 		function quickViewLoad(url, done){ var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); if(!b){ return; } b.innerHTML='Loading...'; var x=new XMLHttpRequest(); window.__qhtlWatcherLoading=true; x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200&&x.status<300){ var html=x.responseText || ''; // safely remove any <script> tags without embedding a literal closing tag marker in this inline script
-					try {
-						var tmp = document.createElement('div');
-						tmp.innerHTML = html;
-						var scripts = tmp.getElementsByTagName('script');
-						while (scripts.length) { scripts[0].parentNode.removeChild(scripts[0]); }
-						html = tmp.innerHTML;
-					} catch(e){}
-					b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>"; } } finally { window.__qhtlWatcherLoading=false; } } }; x.send(); m.style.display='block'; }
+				try {
+					// Preserve HTML line breaks before stripping markup
+					html = String(html).replace(/<br\s*\/?>(?=\s*\n?)/gi, '\n');
+					var tmp = document.createElement('div');
+					tmp.innerHTML = html;
+					var scripts = tmp.getElementsByTagName('script');
+					while (scripts.length) { scripts[0].parentNode.removeChild(scripts[0]); }
+					// Use text content to treat payload as plain text, then render one line per row
+					html = tmp.textContent || '';
+				} catch(e){}
+				// Render each line separately with truncation (no wrapping)
+				var text = (html||'').replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+				var lines = text.split('\n');
+				var frag = document.createDocumentFragment();
+				for (var i=0;i<lines.length;i++){
+					var line = lines[i];
+					// Skip trailing blank line
+					if (i===lines.length-1 && line==='') { continue; }
+					var div = document.createElement('div');
+					div.textContent = line;
+					div.title = line; // full text on hover
+					div.style.whiteSpace = 'nowrap';
+					div.style.overflow = 'hidden';
+					div.style.textOverflow = 'ellipsis';
+					div.style.width = '100%';
+					div.style.boxSizing = 'border-box';
+					frag.appendChild(div);
+				}
+				b.innerHTML='';
+				b.style.fontFamily='SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
+				b.appendChild(frag);
+				if (typeof done==='function') done();
+				} else { b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>"; } } finally { window.__qhtlWatcherLoading=false; } } }; x.send(); m.style.display='block'; }
 
 		// Global watcher opener that sets size and starts auto-refresh
 		window.__qhtlRealOpenWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){ d.style.width='800px'; d.style.height='450px'; d.style.maxWidth='95vw'; d.style.position='fixed'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0'; }
