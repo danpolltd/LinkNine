@@ -525,16 +525,18 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			var btnCol = document.createElement('div'); btnCol.style.display='inline-flex'; btnCol.style.flexDirection='column'; btnCol.style.gap='6px'; btnCol.style.alignItems='flex-end';
 			// Base width for layout, visually scaled by 50%
 			refreshBtn.style.width='120px'; pauseBtn.style.width='120px';
-			refreshBtn.style.transform='scale(0.5)'; refreshBtn.style.transformOrigin='right center'; refreshBtn.style.marginRight='-30px';
-			pauseBtn.style.transform='scale(0.5)'; pauseBtn.style.transformOrigin='right center'; pauseBtn.style.marginRight='-30px';
+			refreshBtn.style.transform='scale(0.5)'; refreshBtn.style.transformOrigin='right center'; refreshBtn.style.marginRight='0';
+			pauseBtn.style.transform='scale(0.5)'; pauseBtn.style.transformOrigin='right center'; pauseBtn.style.marginRight='0';
 			refreshBtn.style.whiteSpace='nowrap'; refreshBtn.style.overflow='hidden'; refreshBtn.style.textOverflow='ellipsis';
 			pauseBtn.style.whiteSpace='nowrap'; pauseBtn.style.overflow='hidden'; pauseBtn.style.textOverflow='ellipsis';
 			btnCol.appendChild(refreshBtn); btnCol.appendChild(pauseBtn);
-			left.appendChild(inputsRow); left.appendChild(timerCol); left.appendChild(btnCol);
+			left.appendChild(inputsRow); left.appendChild(timerCol);
 			// No edit/save/cancel in watcher mode
 			mid.style.display='none';
 			var closeBtn = document.createElement('button'); closeBtn.id='quickViewCloseShim'; closeBtn.className='btn btn-default'; closeBtn.textContent='Close'; closeBtn.style.background='linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%)'; closeBtn.style.color='#721c24'; closeBtn.style.borderColor='#f1b0b7';
-			right.appendChild(closeBtn);
+			// Right container: place control buttons before Close
+			right.style.display='inline-flex'; right.style.alignItems='center'; right.style.gap='8px';
+			right.appendChild(btnCol); right.appendChild(closeBtn);
 			// Populate log options
 			function populateLogs(){ try{ var xhr=new XMLHttpRequest(); xhr.open('GET', '$script?action=logtailcmd&meta=1', true); xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){ var opts = JSON.parse(xhr.responseText||'[]'); logSelect.innerHTML=''; for(var i=0;i<opts.length;i++){ var o=document.createElement('option'); o.value=opts[i].value; o.textContent=opts[i].label; if(opts[i].selected){ o.selected=true; } logSelect.appendChild(o);} } }; xhr.send(); }catch(e){} }
 			// Refresh logic: 5s autocheck or 1s real-time mode; in-flight guard
