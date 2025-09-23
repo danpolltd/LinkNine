@@ -506,6 +506,8 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			dialog.style.width='660px'; dialog.style.maxWidth='95vw'; dialog.style.height='500px'; dialog.style.background='#fff'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='fixed'; dialog.style.top='50%'; dialog.style.left='50%'; dialog.style.transform='translate(-50%, -50%)'; dialog.style.margin='0';
 			var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflowX='hidden'; body.style.overflowY='auto'; body.style.padding='10px'; body.style.minHeight='0';
 			var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';
+			// Header-right container for countdown next to title
+			var headerRight = document.createElement('div'); headerRight.id='quickViewHeaderRight'; headerRight.style.display='inline-flex'; headerRight.style.alignItems='center'; headerRight.style.gap='6px'; headerRight.style.whiteSpace='nowrap'; headerRight.style.marginRight='10px';
 			var footer = document.createElement('div'); footer.style.display='flex'; footer.style.justifyContent='space-between'; footer.style.alignItems='center'; footer.style.padding='10px'; footer.style.marginTop='auto';
 			var left = document.createElement('div'); left.id='quickViewFooterLeft'; var mid = document.createElement('div'); mid.id='quickViewFooterMid'; var right = document.createElement('div'); right.id='quickViewFooterRight';
 			left.style.display='flex'; left.style.alignItems='center'; left.style.flexWrap='wrap'; left.style.gap='8px';
@@ -515,13 +517,13 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			var refreshBtn = document.createElement('button'); refreshBtn.id='watcherRefresh'; refreshBtn.className='btn btn-default'; refreshBtn.textContent='Autocheck'; refreshBtn.style.marginRight='0';
 			var refreshLabel = document.createElement('span'); refreshLabel.id='watcherRefreshLabel'; refreshLabel.textContent=' Refresh in ';
 			var timerSpan = document.createElement('span'); timerSpan.id='watcherTimer'; timerSpan.textContent='0';
+			// Place countdown in header (right side of title)
+			headerRight.appendChild(refreshLabel); headerRight.appendChild(timerSpan);
 			var pauseBtn = document.createElement('button'); pauseBtn.id='watcherPause'; pauseBtn.className='btn btn-default'; pauseBtn.textContent='Pause';
 			// Arrange: inputs row + button column (refresh/pause stacked)
 			var inputsRow = document.createElement('div'); inputsRow.style.display='inline-block'; inputsRow.style.marginRight='8px';
 			inputsRow.appendChild(logSelect); inputsRow.appendChild(document.createTextNode(' Lines: ')); inputsRow.appendChild(linesInput);
-			// Dedicated timer column to avoid affecting button alignment
-			var timerCol = document.createElement('div'); timerCol.style.display='inline-flex'; timerCol.style.alignItems='center'; timerCol.style.justifyContent='flex-end'; timerCol.style.width='120px'; timerCol.style.whiteSpace='nowrap'; timerCol.style.marginRight='8px';
-			timerCol.appendChild(refreshLabel); timerCol.appendChild(timerSpan);
+			// (Timer moved to header)
 			var btnCol = document.createElement('div'); btnCol.style.display='inline-flex'; btnCol.style.flexDirection='column'; btnCol.style.gap='6px'; btnCol.style.alignItems='flex-end';
 			// Restore normal size and style (match Close button brightness and font)
 			refreshBtn.style.width='103px'; refreshBtn.style.marginRight='8px'; refreshBtn.style.transform='none';
@@ -539,9 +541,9 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			refreshBtn.style.whiteSpace='nowrap'; refreshBtn.style.overflow='hidden'; refreshBtn.style.textOverflow='ellipsis';
 			pauseBtn.style.whiteSpace='nowrap'; pauseBtn.style.overflow='hidden'; pauseBtn.style.textOverflow='ellipsis';
 			// Place Autocheck to the left of Pause in a horizontal row
-			btnCol.style.flexDirection='row'; btnCol.style.alignItems='center'; btnCol.style.gap='4px';
+			btnCol.style.flexDirection='row'; btnCol.style.alignItems='center'; btnCol.style.gap='3.6px';
 			btnCol.appendChild(refreshBtn); btnCol.appendChild(pauseBtn);
-			left.appendChild(inputsRow); left.appendChild(timerCol);
+			left.appendChild(inputsRow);
 			// No edit/save/cancel in watcher mode
 			mid.style.display='none';
 			var closeBtn = document.createElement('button'); closeBtn.id='quickViewCloseShim'; closeBtn.className='btn btn-default'; closeBtn.textContent='Close'; closeBtn.style.background='linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%)'; closeBtn.style.color='#721c24'; closeBtn.style.borderColor='#f1b0b7';
@@ -573,7 +575,10 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			linesInput.addEventListener('change', function(){ window.__qhtlWatcherState = { lines: [] }; doRefresh(); scheduleTick(); });
 			closeBtn.addEventListener('click', function(){ if(watcherTimerId){ clearInterval(watcherTimerId); watcherTimerId=null; } if(typeof dialog!=='undefined' && dialog){ dialog.classList.remove('fire-blue'); } modal.style.display='none'; });
 			populateLogs();
-			var inner = document.createElement('div'); inner.style.padding='10px'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.flex='1 1 auto'; inner.style.minHeight='0'; inner.appendChild(title); inner.appendChild(body);
+			var inner = document.createElement('div'); inner.style.padding='10px'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.flex='1 1 auto'; inner.style.minHeight='0';
+			var headerBar = document.createElement('div'); headerBar.style.display='flex'; headerBar.style.justifyContent='space-between'; headerBar.style.alignItems='center';
+			headerBar.appendChild(title); headerBar.appendChild(headerRight);
+			inner.appendChild(headerBar); inner.appendChild(body);
 			footer.appendChild(left); footer.appendChild(mid); footer.appendChild(right);
 			dialog.appendChild(inner); dialog.appendChild(footer); modal.appendChild(dialog); document.body.appendChild(modal);
 			modal.addEventListener('click', function(e){ if(e.target===modal){ if(typeof dialog!=='undefined' && dialog){ dialog.classList.remove('fire-blue'); } modal.style.display='none'; } });
