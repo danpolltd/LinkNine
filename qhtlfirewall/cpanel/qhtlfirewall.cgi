@@ -552,7 +552,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			return modal;
 		}
 
-		function quickViewLoad(url, done){ var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); if(!b){ return; } b.innerHTML='Loading...'; var x=new XMLHttpRequest(); window.__qhtlWatcherLoading=true; x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200&&x.status<300){ var html=x.responseText || ''; // safely remove any <script> tags without embedding a literal closing tag marker in this inline script
+		function quickViewLoad(url, done){ var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); if(!b){ return; } if(!(typeof watcherMode!=='undefined' && watcherMode==='live')){ b.innerHTML='Loading...'; } var x=new XMLHttpRequest(); window.__qhtlWatcherLoading=true; x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200&&x.status<300){ var html=x.responseText || ''; // safely remove any <script> tags without embedding a literal closing tag marker in this inline script
 				try {
 					// Preserve HTML line breaks before stripping markup. Avoid lookahead to prevent line terminators in regex literal.
 					html = String(html).replace(/<br\\s*\\\/?>(?:)/gi, '\\n');
@@ -607,13 +607,27 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 						div.style.boxSizing = 'border-box';
 						frag.appendChild(div);
 					}
-					b.innerHTML='';
-					b.appendChild(frag);
+					if (typeof watcherMode!=='undefined' && watcherMode==='live'){
+						// In live mode when we cannot append (e.g., truncation/rotation), avoid flicker by replacing children efficiently
+						while (b.firstChild) b.removeChild(b.firstChild);
+						b.appendChild(frag);
+					} else {
+						b.innerHTML='';
+						b.appendChild(frag);
+					}
 				}
 				// Update state
 				window.__qhtlWatcherState = { lines: lines };
-				// Scroll to bottom so the newest lines are visible
-				try { (window.requestAnimationFrame||function(f){setTimeout(f,0)})(function(){ b.scrollTop = b.scrollHeight; }); } catch(e){ b.scrollTop = b.scrollHeight; }
+				// Scroll to bottom so the newest lines are visible; respect manual scroll-up in live mode
+				try {
+					var raf = (window.requestAnimationFrame||function(f){setTimeout(f,0)});
+					var shouldStick = true;
+					if (typeof watcherMode!=='undefined' && watcherMode==='live'){
+						var nearBottom = (b.scrollHeight - b.clientHeight - b.scrollTop) < 24; // 24px tolerance
+						shouldStick = nearBottom;
+					}
+					raf(function(){ if(shouldStick){ b.scrollTop = b.scrollHeight; } });
+				} catch(e){ if(shouldStick){ b.scrollTop = b.scrollHeight; } }
 				if (typeof done==='function') done();
 				} else { b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>"; } } finally { window.__qhtlWatcherLoading=false; } } }; x.send(); m.style.display='block'; }
 
