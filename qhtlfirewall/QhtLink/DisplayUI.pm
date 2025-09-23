@@ -319,26 +319,70 @@ sub main {
 			QHTLFIREWALLscript = '$script?action=logtailcmd';
 			QHTLFIREWALLtimer();
 		</script>
-		<script>
-		// Clean jQuery handlers for font size controls
-		var myFont = 14;
-		$("#fontplus-btn").on('click', function () {
-			myFont++;
-			if (myFont > 20) { myFont = 20 }
-			$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
-		});
-		$("#fontminus-btn").on('click', function () {
-			myFont--;
-			if (myFont < 12) { myFont = 12 }
-			$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
-		});
-		</script>
-<!-- Quick View modal handlers are defined once in the main UI script below -->
 EOF
+		print <<'QHTL_JQ_TAIL';
+<script>
+// Clean jQuery handlers for font size controls
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+    myFont++;
+    if (myFont > 20) { myFont = 20 }
+    $('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+    myFont--;
+    if (myFont < 12) { myFont = 12 }
+    $('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+</script>
+<!-- Quick View modal handlers are defined once in the main UI script below -->
+QHTL_JQ_TAIL
 		if ($config{DIRECTADMIN}) {$script = $script_safe}
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "logtailcmd") {
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
 		$FORM{lines} =~ s/\D//g;
 		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
 
@@ -477,26 +521,28 @@ Please Note:
 	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
 	QHTLFIREWALLscript = '$script?action=loggrepcmd';
 </script>
+EOF
+		print <<'QHTL_JQ_GREP';
 <script>
 // Clean jQuery handlers for grep view
 var myFont = 14;
 $("#fontplus-btn").on('click', function () {
-    myFont++;
-    if (myFont > 20) { myFont = 20 }
-    $('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+	myFont++;
+	if (myFont > 20) { myFont = 20 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
 });
 $("#fontminus-btn").on('click', function () {
-    myFont--;
-    if (myFont < 12) { myFont = 12 }
-    $('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
 });
 </script>
-EOF
+QHTL_JQ_GREP
 		if ($config{DIRECTADMIN}) {$script = $script_safe}
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "loggrepcmd") {
-		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+	my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
 		foreach my $line (@data) {
 			if ($line =~ /^Include\s*(.*)$/) {
 				my @incfile = slurp($1);
@@ -2108,48 +2154,7 @@ EOF
 	print "<li><a data-toggle='tab' href='#extra'>Extra</a></li>\n";
 		print "</ul><br>\n";
 
-		# Early Quick View modal shim (no jQuery required) to guarantee popup availability
-		print "<script>\n";
-		print "(function(){\n";
-		print "  if (typeof window.showQuickView !== 'function') {\n";
-		print "    function ensureQuickViewModal(){\n";
-		print "      var modal = document.getElementById('quickViewModalShim');\n";
-		print "      if (modal) return modal;\n";
-		print "      modal = document.createElement('div');\n";
-		print "      modal.id = 'quickViewModalShim';\n";
-		print "      modal.setAttribute('role','dialog');\n";
-		print "      modal.style.position='fixed'; modal.style.inset='0'; modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='none'; modal.style.zIndex='9999';\n";
-		print "      var dialog = document.createElement('div');\n";
-		print "      dialog.style.width='660px'; dialog.style.maxWidth='95vw'; dialog.style.height='500px'; dialog.style.margin='10vh auto'; dialog.style.background='#fff'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box';\n";
-		print "      var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflow='hidden'; body.style.padding='10px'; body.style.minHeight='0';\n";
-		print "      var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';\n";
-		print "      var footer = document.createElement('div'); footer.style.display='flex'; footer.style.justifyContent='space-between'; footer.style.alignItems='center'; footer.style.padding='10px'; footer.style.marginTop='auto';\n";
-		print "      var left = document.createElement('div'); var mid = document.createElement('div'); var right = document.createElement('div');\n";
-		print "      var editBtn = document.createElement('button'); editBtn.id='quickViewEditBtnShim'; editBtn.className='btn btn-primary'; editBtn.textContent='Edit';\n";
-		print "      var saveBtn = document.createElement('button'); saveBtn.id='quickViewSaveBtnShim'; saveBtn.className='btn btn-success'; saveBtn.textContent='Save'; saveBtn.style.display='none'; saveBtn.style.marginLeft='4px';\n";
-		print "      var cancelBtn = document.createElement('button'); cancelBtn.id='quickViewCancelBtnShim'; cancelBtn.className='btn btn-warning'; cancelBtn.textContent='Cancel'; cancelBtn.style.display='none';\n";
-		print "      var closeBtn = document.createElement('button'); closeBtn.className='btn btn-default'; closeBtn.textContent='Close'; closeBtn.style.background='linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%)'; closeBtn.style.color='#721c24'; closeBtn.style.borderColor='#f1b0b7';\n";
-		print "      left.appendChild(editBtn); left.appendChild(saveBtn); mid.appendChild(cancelBtn); right.appendChild(closeBtn);\n";
-		print "      var inner = document.createElement('div'); inner.style.padding='10px'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.flex='1 1 auto'; inner.style.minHeight='0'; inner.appendChild(title); inner.appendChild(body);\n";
-		print "      footer.appendChild(left); footer.appendChild(mid); footer.appendChild(right);\n";
-		print "      dialog.appendChild(inner); dialog.appendChild(footer); modal.appendChild(dialog); document.body.appendChild(modal);\n";
-		print "      // basic close handlers\n";
-		print "      closeBtn.addEventListener('click', function(){ modal.style.display='none'; dialog.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny'); });\n";
-		print "      modal.addEventListener('click', function(e){ if(e.target===modal){ modal.style.display='none'; } });\n";
-		print "      modal.addEventListener('click', function(e){ if(e.target===modal){ dialog.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny'); } });\n";
-		print "      // wire buttons\n";
-		print "      editBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; quickViewLoad('$script?action=editlist&which='+encodeURIComponent(window.currentQuickWhich), function(){ editBtn.style.display='none'; saveBtn.style.display='inline-block'; cancelBtn.style.display='inline-block'; var c=(window.currentQuickWhich==='allow')?'fire-allow':(window.currentQuickWhich==='ignore'?'fire-ignore':'fire-deny'); dialog.classList.remove('fire-allow','fire-ignore','fire-deny'); dialog.classList.add('fire-border'); dialog.classList.add(c); }); });\n";
-		print "      saveBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; var ta=document.getElementById('quickEditArea'); var content=ta?ta.value:''; quickViewPost('$script?action=savelist&which='+encodeURIComponent(window.currentQuickWhich), 'formdata='+encodeURIComponent(content), function(){ showQuickView(window.currentQuickWhich); editBtn.style.display='inline-block'; saveBtn.style.display='none'; cancelBtn.style.display='none'; dialog.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny'); }); });\n";
-		print "      cancelBtn.addEventListener('click', function(){ if (!window.currentQuickWhich) return; showQuickView(window.currentQuickWhich); dialog.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny'); });\n";
-		print "      return modal;\n";
-		print "    }\n";
-		print "    function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ var html=x.responseText; try{ if(url.indexOf('action=viewlist')!==-1){ var mm=html.match(/<pre[\\s\\S]*?<\\/pre>/i); if(mm){ html=mm[0]; var bg=''; if(url.indexOf('which=allow')!==-1){ bg = 'background: linear-gradient(180deg, #d4edda 0%, #c3e6cb 100%);'; } else if(url.indexOf('which=ignore')!==-1){ bg = 'background: linear-gradient(180deg, #ffe0b2 0%, #ffcc80 100%);'; } else if(url.indexOf('which=deny')!==-1){ bg = 'background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%);'; } html=html.replace('<pre','<pre style=\\'white-space: pre; overflow-x: hidden; overflow-y: auto; height:100%; max-height:100%; '+bg+'\\'' ); } } }catch(e){} b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to load content</div>'; } } }; x.send(); m.style.display='block'; }\n";
-		print "    function quickViewPost(url, body, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBody'); b.innerHTML='Saving...'; var x=new XMLHttpRequest(); x.open('POST', url, true); x.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\\'alert alert-danger\\'>Failed to save changes</div>'; } } }; x.send(body); m.style.display='block'; }\n";
-		print "    function openQuickView(url, which){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var b=document.getElementById('quickViewBodyShim'); window.currentQuickWhich=which; var map={allow:'qhtlfirewall.allow',deny:'qhtlfirewall.deny',ignore:'qhtlfirewall.ignore'}; t.textContent='Quick View: '+(map[which]||which); var e=document.getElementById('quickViewEditBtnShim'), s=document.getElementById('quickViewSaveBtnShim'), c=document.getElementById('quickViewCancelBtnShim'); if(e&&s&&c){ e.style.display='inline-block'; s.style.display='none'; c.style.display='none'; } var d=m.querySelector('div'); if(d){ d.classList.remove('fire-border','fire-allow','fire-ignore','fire-deny','fire-allow-view','fire-ignore-view','fire-deny-view'); d.classList.add('fire-border'); if(which==='allow'){ d.classList.add('fire-allow-view'); } else if(which==='ignore'){ d.classList.add('fire-ignore-view'); } else if(which==='deny'){ d.classList.add('fire-deny-view'); } } quickViewLoad(url); }\n";
-		print "    window.showQuickView = function(which){ var url = '$script?action=viewlist&which=' + encodeURIComponent(which); openQuickView(url, which); return false; };\n";
-		print "  }\n";
-		print "})();\n";
-		print "</script>\n";
+		# Removed legacy inline Quick View shim here; the modal/watch functions are provided by the main CGI now.
 
 		print "<div class='tab-content'>\n";
 		print "<div id='upgrade' class='tab-pane active'>\n";
@@ -2269,7 +2274,6 @@ EOF
 		print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
 		print "<tr><td><button name='action' value='servercheck' type='submit' class='btn btn-default'>Check Server Security</button></td><td style='width:100%'>Perform a basic security, stability and settings check on the server</td></tr>\n";
 		print "<tr><td><button name='action' value='readme' type='submit' class='btn btn-default'>Firewall Information</button></td><td style='width:100%'>View the qhtlfirewall+qhtlwaterfall readme.txt file</td></tr>\n";
-		print "<tr><td><button name='action' value='logtail' type='submit' class='btn btn-default'>Watch System Logs</button></td><td style='width:100%'>Watch (tail) various system log files (listed in qhtlfirewall.syslogs)</td></tr>\n";
 		print "<tr><td><button name='action' value='loggrep' type='submit' class='btn btn-default'>Search System Logs</button></td><td style='width:100%'>Search (grep) various system log files (listed in qhtlfirewall.syslogs)</td></tr>\n";
 		print "<tr><td><button name='action' value='viewports' type='submit' class='btn btn-default'>View Listening Ports</button></td><td style='width:100%'>View ports on the server that have a running process behind them listening for external connections</td></tr>\n";
 		print "<tr><td><button name='action' value='rblcheck' type='submit' class='btn btn-default'>Check for IPs in RBLs</button></td><td style='width:100%'>Check whether any of the servers IP addresses are listed in RBLs</td></tr>\n";
@@ -2304,14 +2308,14 @@ EOF
 		print "</table>\n";
 	# Enforce Quick View modal sizing (500x400) with scrollable body
 	print "<style>\n";
-	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 660px !important; }\n";
-	print "#quickViewModal .modal-content { height: 500px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
+	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 95vw !important; position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; margin: 0 !important; }\n";
+	print "#quickViewModal .modal-content { height: 450px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
 	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow: hidden !important; min-height:0 !important; padding:10px !important; }\n";
 	print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; }\n";
-	print "#quickViewModal .modal-dialog { margin: 10vh auto !important; }\n";
 	print "#quickViewModal #quickViewTitle { margin:0 0 8px 0 !important; }\n";
 	print "#quickViewBody { flex:1 1 auto !important; min-height:0 !important; overflow:hidden !important; }\n";
-	print "#quickViewModal #quickViewBody pre { height: 100%; max-height: 100%; white-space: pre; overflow-x: hidden; overflow-y: auto; }\n";
+	print "#quickViewModal #quickViewBody { display:block; width:100%; height:100%; max-height:100%; overflow:auto; }\n";
+	print "#quickViewModal #quickViewBody pre { height: 100%; max-height: 100%; white-space: pre; overflow: auto; overflow-wrap: normal; word-break: normal; }\n";
 	print "#quickEditArea { height: 100% !important; max-height: 100% !important; }\n";
 	print "#quickViewModal #quickEditArea { resize: none !important; }\n";
 	print ".btn-close-red { background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%); color: #721c24 !important; border-color: #f1b0b7 !important; }\n";

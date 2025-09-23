@@ -161,7 +161,13 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
   if (window.__QHTLFW_INIT__) { return; }
   window.__QHTLFW_INIT__ = true;
 
-			function onReady(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn, { once:true }); } }
+						function onReady(fn){
+							if(document.readyState!=='loading'){ fn(); }
+							else {
+								var handler = function(){ document.removeEventListener('DOMContentLoaded', handler); fn(); };
+								document.addEventListener('DOMContentLoaded', handler, false);
+							}
+						}
 
 			onReady(function(){
 			// Don't inject on our own firewall UI page to avoid doubling there
@@ -216,8 +222,8 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 				})();
 
 				function computeStyle(data){
-					var cls = data && data.class || 'default';
-					var txt = data && data.text || 'Firewall';
+					var cls = (data && data['class']) || 'default';
+					var txt = (data && data['text']) || 'Firewall';
 					var bg = (cls==='success') ? '#5cb85c' : (cls==='warning' ? '#f0ad4e' : (cls==='danger' ? '#d9534f' : '#777'));
 					return {bg:bg, txt:txt};
 				}
@@ -465,6 +471,232 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	open ($SCRIPTOUT, '>', \$templatehtml);
 	select $SCRIPTOUT;
 
+	# Provide a smart wrapper so clicking Watcher waits briefly for modal init before falling back
+	print <<EOF;
+<script>
+(function(){
+	function fallback(){ try{ window.location='$script?action=logtail'; }catch(e){ window.location='$script?action=logtail'; } }
+	window.__qhtlOpenWatcherSmart = function(){
+		// Prefer calling the real opener if present; avoid calling the smart wrapper via window.openWatcher to prevent recursion
+		if (window.__qhtlQuickViewShim && typeof window.__qhtlRealOpenWatcher==='function') { try{ window.__qhtlRealOpenWatcher(); } catch(e){ fallback(); } return false; }
+		var attempts = 0, iv = setInterval(function(){
+			attempts++;
+			if (window.__qhtlQuickViewShim && typeof window.__qhtlRealOpenWatcher==='function'){
+				clearInterval(iv);
+				try{ window.__qhtlRealOpenWatcher(); } catch(e){ fallback(); }
+			} else if (attempts >= 30) { // ~3s total
+				clearInterval(iv);
+				fallback();
+			}
+		}, 100);
+		return false;
+	};
+
+		// Define a minimal Quick View modal shim early so Watcher can open without navigation
+	if (!window.__qhtlQuickViewShim) {
+		window.__qhtlQuickViewShim = true;
+		function ensureQuickViewModal(){
+			var modal = document.getElementById('quickViewModalShim');
+			if (modal) return modal;
+			modal = document.createElement('div');
+			modal.id = 'quickViewModalShim';
+			modal.setAttribute('role','dialog');
+			modal.style.position='fixed'; modal.style.inset='0'; modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='none'; modal.style.zIndex='9999';
+			var dialog = document.createElement('div');
+			dialog.style.width='660px'; dialog.style.maxWidth='95vw'; dialog.style.height='500px'; dialog.style.background='#fff'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='fixed'; dialog.style.top='50%'; dialog.style.left='50%'; dialog.style.transform='translate(-50%, -50%)'; dialog.style.margin='0';
+			var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflowX='hidden'; body.style.overflowY='auto'; body.style.padding='10px'; body.style.minHeight='0';
+			var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';
+			// Header-right container for countdown next to title
+			var headerRight = document.createElement('div'); headerRight.id='quickViewHeaderRight'; headerRight.style.display='inline-flex'; headerRight.style.alignItems='center'; headerRight.style.gap='6px'; headerRight.style.whiteSpace='nowrap'; headerRight.style.marginRight='10px';
+			var footer = document.createElement('div'); footer.style.display='flex'; footer.style.justifyContent='space-between'; footer.style.alignItems='center'; footer.style.padding='10px'; footer.style.marginTop='auto';
+			var left = document.createElement('div'); left.id='quickViewFooterLeft'; var mid = document.createElement('div'); mid.id='quickViewFooterMid'; var right = document.createElement('div'); right.id='quickViewFooterRight';
+			left.style.display='flex'; left.style.alignItems='center'; left.style.flexWrap='wrap'; left.style.gap='8px';
+			// Watcher controls
+			var logSelect = document.createElement('select'); logSelect.id='watcherLogSelect'; logSelect.className='form-control'; logSelect.style.display='inline-block'; logSelect.style.width='auto'; logSelect.style.marginRight='8px';
+			var linesInput = document.createElement('input'); linesInput.id='watcherLines'; linesInput.type='text'; linesInput.value='100'; linesInput.size='4'; linesInput.className='form-control'; linesInput.style.display='inline-block'; linesInput.style.width='70px'; linesInput.style.marginRight='8px';
+			var refreshBtn = document.createElement('button'); refreshBtn.id='watcherRefresh'; refreshBtn.className='btn btn-default'; refreshBtn.textContent='Autocheck'; refreshBtn.style.marginRight='0';
+			var refreshLabel = document.createElement('span'); refreshLabel.id='watcherRefreshLabel'; refreshLabel.textContent=' Refresh in ';
+			var timerSpan = document.createElement('span'); timerSpan.id='watcherTimer'; timerSpan.textContent='0';
+			// Place countdown in header (right side of title)
+			headerRight.appendChild(refreshLabel); headerRight.appendChild(timerSpan);
+			var pauseBtn = document.createElement('button'); pauseBtn.id='watcherPause'; pauseBtn.className='btn btn-default'; pauseBtn.textContent='Pause';
+			// Arrange: inputs row + button column (refresh/pause stacked)
+			var inputsRow = document.createElement('div'); inputsRow.style.display='inline-block'; inputsRow.style.marginRight='8px';
+			inputsRow.appendChild(logSelect); inputsRow.appendChild(document.createTextNode(' Lines: ')); inputsRow.appendChild(linesInput);
+			// (Timer moved to header)
+			var btnCol = document.createElement('div'); btnCol.style.display='inline-flex'; btnCol.style.flexDirection='column'; btnCol.style.gap='6px'; btnCol.style.alignItems='flex-end';
+			// Restore normal size and style (match Close button brightness and font)
+			refreshBtn.style.width='103px'; refreshBtn.style.marginRight='8px'; refreshBtn.style.transform='none';
+			// Light green (success-like) gradient, dark text, soft border
+			refreshBtn.style.background='linear-gradient(180deg, #d4edda 0%, #c3e6cb 100%)';
+			refreshBtn.style.color='#155724';
+			refreshBtn.style.borderColor='#b1dfbb';
+			refreshBtn.style.fontWeight='normal';
+			pauseBtn.style.width='77px'; pauseBtn.style.marginRight='0'; pauseBtn.style.transform='none';
+			// Light orange (warning-like) gradient, dark text, soft border
+			pauseBtn.style.background='linear-gradient(180deg, #fff3cd 0%, #ffe8a1 100%)';
+			pauseBtn.style.color='#856404';
+			pauseBtn.style.borderColor='#ffe8a1';
+			pauseBtn.style.fontWeight='normal';
+			refreshBtn.style.whiteSpace='nowrap'; refreshBtn.style.overflow='hidden'; refreshBtn.style.textOverflow='ellipsis';
+			pauseBtn.style.whiteSpace='nowrap'; pauseBtn.style.overflow='hidden'; pauseBtn.style.textOverflow='ellipsis';
+			// Place Autocheck to the left of Pause in a horizontal row
+			btnCol.style.flexDirection='row'; btnCol.style.alignItems='center'; btnCol.style.gap='3.6px';
+			btnCol.appendChild(refreshBtn); btnCol.appendChild(pauseBtn);
+			left.appendChild(inputsRow);
+			// No edit/save/cancel in watcher mode
+			mid.style.display='none';
+			var closeBtn = document.createElement('button'); closeBtn.id='quickViewCloseShim'; closeBtn.className='btn btn-default'; closeBtn.textContent='Close'; closeBtn.style.background='linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%)'; closeBtn.style.color='#721c24'; closeBtn.style.borderColor='#f1b0b7';
+			// Right container: place control buttons before Close
+			right.style.display='inline-flex'; right.style.alignItems='center'; right.style.gap='8px';
+			right.appendChild(btnCol); right.appendChild(closeBtn);
+			// Populate log options
+			function populateLogs(){ try{ var xhr=new XMLHttpRequest(); xhr.open('GET', '$script?action=logtailcmd&meta=1', true); xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){ var opts = JSON.parse(xhr.responseText||'[]'); logSelect.innerHTML=''; for(var i=0;i<opts.length;i++){ var o=document.createElement('option'); o.value=opts[i].value; o.textContent=opts[i].label; if(opts[i].selected){ o.selected=true; } logSelect.appendChild(o);} } }; xhr.send(); }catch(e){} }
+			// Refresh logic: 5s autocheck or 1s real-time mode; in-flight guard
+			var watcherPaused=false, watcherTick=5, watcherTimerId=null, watcherMode='auto'; window.__qhtlWatcherMode = 'auto'; window.__qhtlWatcherLoading = false;
+			// Define normal and more intense color sets for mode/state emphasis
+			var REFRESH_BG_NORMAL='linear-gradient(180deg, #d4edda 0%, #c3e6cb 100%)', REFRESH_BORDER_NORMAL='#b1dfbb';
+			var REFRESH_BG_INTENSE='linear-gradient(180deg, #b9e2c7 0%, #9fd8ae 100%)', REFRESH_BORDER_INTENSE='#8fd19d';
+			var PAUSE_BG_NORMAL='linear-gradient(180deg, #fff3cd 0%, #ffe8a1 100%)', PAUSE_BORDER_NORMAL='#ffe8a1';
+			var PAUSE_BG_INTENSE='linear-gradient(180deg, #ffe8a1 0%, #ffd66b 100%)', PAUSE_BORDER_INTENSE='#ffcf66';
+			function updateIntensity(){
+				var mode = window.__qhtlWatcherMode || watcherMode;
+				var isLive = (mode==='live');
+				var isPaused = !!watcherPaused; // 'Start' when paused
+				// Real Time button gets intense style only in live mode
+				refreshBtn.style.background = isLive ? REFRESH_BG_INTENSE : REFRESH_BG_NORMAL;
+				refreshBtn.style.borderColor = isLive ? REFRESH_BORDER_INTENSE : REFRESH_BORDER_NORMAL;
+				// Start button (pauseBtn while paused) gets intense style; otherwise normal Pause style
+				pauseBtn.style.background = isPaused ? PAUSE_BG_INTENSE : PAUSE_BG_NORMAL;
+				pauseBtn.style.borderColor = isPaused ? PAUSE_BORDER_INTENSE : PAUSE_BORDER_NORMAL;
+			}
+			function scheduleTick(){ if(watcherTimerId){ clearInterval(watcherTimerId);} watcherTick=5; var mode = window.__qhtlWatcherMode || watcherMode; if(mode==='auto'){ refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } else { refreshLabel.textContent=' '; timerSpan.textContent='live mode'; }
+				updateIntensity();
+				watcherTimerId=setInterval(function(){ if(watcherPaused){ return; } if(window.__qhtlWatcherLoading){ return; }
+					if((window.__qhtlWatcherMode||watcherMode)==='auto'){
+						watcherTick--; timerSpan.textContent=String(watcherTick);
+						if(watcherTick<=0){ doRefresh(); watcherTick=5; timerSpan.textContent=String(watcherTick); }
+					} else {
+						// Real-time: refresh every second
+						timerSpan.textContent='live mode'; doRefresh();
+					}
+				},1000);
+			}
+			window.__qhtlScheduleTick = scheduleTick;
+			function setWatcherMode(mode){ watcherMode = (mode==='live') ? 'live' : 'auto'; window.__qhtlWatcherMode = watcherMode; window.__qhtlWatcherState = { lines: [] }; if(watcherMode==='live'){ refreshBtn.textContent='Real Time'; refreshLabel.textContent=' '; timerSpan.textContent='live mode'; } else { refreshBtn.textContent='Autocheck'; refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } updateIntensity(); scheduleTick(); }
+			function doRefresh(){ if(window.__qhtlWatcherLoading){ return; } var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0'); quickViewLoad(url); }
+			// Mode toggle: Autocheck (5s) <-> Real Time (1s)
+			refreshBtn.addEventListener('click', function(e){ e.preventDefault(); setWatcherMode(watcherMode==='auto' ? 'live' : 'auto'); });
+			pauseBtn.addEventListener('click', function(e){ e.preventDefault(); watcherPaused=!watcherPaused; pauseBtn.textContent=watcherPaused?'Start':'Pause'; updateIntensity(); });
+			logSelect.addEventListener('change', function(){ window.__qhtlWatcherState = { lines: [] }; doRefresh(); scheduleTick(); });
+			linesInput.addEventListener('change', function(){ window.__qhtlWatcherState = { lines: [] }; doRefresh(); scheduleTick(); });
+			closeBtn.addEventListener('click', function(){ if(watcherTimerId){ clearInterval(watcherTimerId); watcherTimerId=null; } if(typeof dialog!=='undefined' && dialog){ dialog.classList.remove('fire-blue'); } modal.style.display='none'; });
+			populateLogs();
+			// Initialize emphasis based on defaults (auto mode, not paused)
+			updateIntensity();
+			var inner = document.createElement('div'); inner.style.padding='10px'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.flex='1 1 auto'; inner.style.minHeight='0';
+			var headerBar = document.createElement('div'); headerBar.style.display='flex'; headerBar.style.justifyContent='space-between'; headerBar.style.alignItems='center';
+			headerBar.appendChild(title); headerBar.appendChild(headerRight);
+			inner.appendChild(headerBar); inner.appendChild(body);
+			footer.appendChild(left); footer.appendChild(mid); footer.appendChild(right);
+			dialog.appendChild(inner); dialog.appendChild(footer); modal.appendChild(dialog); document.body.appendChild(modal);
+			modal.addEventListener('click', function(e){ if(e.target===modal){ if(typeof dialog!=='undefined' && dialog){ dialog.classList.remove('fire-blue'); } modal.style.display='none'; } });
+			return modal;
+		}
+
+		function quickViewLoad(url, done){ var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); if(!b){ return; } if(!window.__qhtlWatcherMode || window.__qhtlWatcherMode !== 'live'){ b.innerHTML='Loading...'; } var x=new XMLHttpRequest(); window.__qhtlWatcherLoading=true; x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200&&x.status<300){ var html=x.responseText || ''; // safely remove any <script> tags without embedding a literal closing tag marker in this inline script
+				try {
+					// Preserve HTML line breaks before stripping markup. Avoid lookahead to prevent line terminators in regex literal.
+					html = String(html).replace(/<br\\s*\\\/?>(?:)/gi, '\\n');
+					var tmp = document.createElement('div');
+					tmp.innerHTML = html;
+					var scripts = tmp.getElementsByTagName('script');
+					while (scripts.length) { scripts[0].parentNode.removeChild(scripts[0]); }
+					// Use text content to treat payload as plain text, then render one line per row
+					html = tmp.textContent || '';
+				} catch(e){}
+				// Render each line separately with truncation (no wrapping)
+				var text = (html||'').replace(/\\r\\n/g,'\\n').replace(/\\r/g,'\\n');
+				var parsed = text.split(String.fromCharCode(10));
+				// Normalize: drop a single trailing blank line
+				if (parsed.length && parsed[parsed.length-1] === '') { parsed.pop(); }
+				var lines = parsed;
+				b.style.fontFamily='SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
+				// Tail-like append in real-time mode when prior state exists and new content is an extension
+				var state = window.__qhtlWatcherState || { lines: [] };
+				var appended = false;
+				if (window.__qhtlWatcherMode==='live' && state.lines && state.lines.length && lines.length >= state.lines.length) {
+					var isExtension = true;
+					for (var pi=0; pi<state.lines.length; pi++){
+						if (state.lines[pi] !== lines[pi]) { isExtension = false; break; }
+					}
+					if (isExtension) {
+						// Append only new lines
+						var frag = document.createDocumentFragment();
+						for (var ai=state.lines.length; ai<lines.length; ai++){
+							var l = lines[ai];
+							var divA = document.createElement('div');
+							divA.textContent = l;
+							divA.title = l;
+							divA.style.whiteSpace='nowrap'; divA.style.overflow='hidden'; divA.style.textOverflow='ellipsis'; divA.style.width='100%'; divA.style.boxSizing='border-box';
+							frag.appendChild(divA);
+						}
+						b.appendChild(frag);
+						appended = true;
+					}
+				}
+				if (!appended){
+					var frag = document.createDocumentFragment();
+					for (var i=0;i<lines.length;i++){
+						var line = lines[i];
+						var div = document.createElement('div');
+						div.textContent = line;
+						div.title = line; // full text on hover
+						div.style.whiteSpace = 'nowrap';
+						div.style.overflow = 'hidden';
+						div.style.textOverflow = 'ellipsis';
+						div.style.width = '100%';
+						div.style.boxSizing = 'border-box';
+						frag.appendChild(div);
+					}
+					if (window.__qhtlWatcherMode==='live'){
+						// In live mode when we cannot append (e.g., truncation/rotation), avoid flicker by replacing children efficiently
+						while (b.firstChild) b.removeChild(b.firstChild);
+						b.appendChild(frag);
+					} else {
+						b.innerHTML='';
+						b.appendChild(frag);
+					}
+				}
+				// Update state
+				window.__qhtlWatcherState = { lines: lines };
+				// Scroll to bottom so the newest lines are visible; respect manual scroll-up in live mode
+				try {
+					var raf = (window.requestAnimationFrame||function(f){setTimeout(f,0)});
+					var shouldStick = true;
+					if (window.__qhtlWatcherMode==='live'){
+						var nearBottom = (b.scrollHeight - b.clientHeight - b.scrollTop) < 24; // 24px tolerance
+						shouldStick = nearBottom;
+					}
+					raf(function(){ if(shouldStick){ b.scrollTop = b.scrollHeight; } });
+				} catch(e){ if(shouldStick){ b.scrollTop = b.scrollHeight; } }
+				if (typeof done==='function') done();
+				} else { b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>"; } } finally { window.__qhtlWatcherLoading=false; } } }; x.send(); m.style.display='block'; }
+
+		// Global watcher opener that sets size and starts auto-refresh
+		window.__qhtlRealOpenWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){ d.style.width='800px'; d.style.height='450px'; d.style.maxWidth='95vw'; d.style.position='fixed'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0'; }
+				// Ensure blue pulsating glow CSS exists and apply class
+				(function(){ var css=document.getElementById('qhtl-blue-style'); if(!css){ css=document.createElement('style'); css.id='qhtl-blue-style'; css.textContent=String.fromCharCode(64)+'keyframes qhtl-blue {0%,100%{box-shadow: 0 0 14px 6px rgba(0,123,255,0.55), 0 0 24px 10px rgba(0,123,255,0.3);}50%{box-shadow: 0 0 28px 14px rgba(0,123,255,0.95), 0 0 46px 20px rgba(0,123,255,0.6);}} .fire-blue{ animation: qhtl-blue 2.2s infinite ease-in-out; }'; document.head.appendChild(css);} if(d){ d.classList.add('fire-blue'); } var bodyEl=document.getElementById('quickViewBodyShim'); if(bodyEl){ /* 50% brighter than glow base (#007bff) by mixing with white */ bodyEl.style.background='linear-gradient(180deg, rgb(127,189,255) 0%, rgb(159,205,255) 100%)'; bodyEl.style.borderRadius='4px'; bodyEl.style.padding='10px'; } })();
+			// initial load and start timer (no synthetic change event to avoid loops)
+			(function(){ var ls=document.getElementById('watcherLines'), sel=document.getElementById('watcherLogSelect'); var url='$script?action=logtailcmd&lines='+(ls?encodeURIComponent(ls.value||'100'):'100')+'&lognum='+(sel?encodeURIComponent(sel.value||'0'):'0'); quickViewLoad(url, function(){ var timer=document.getElementById('watcherTimer'); if(timer){ timer.textContent='5'; } if(typeof setWatcherMode==='function'){ setWatcherMode('auto'); } else if(window.__qhtlScheduleTick){ window.__qhtlScheduleTick(); } }); })();
+				m.style.display='block'; return false; };
+		// Also expose the real opener on the original name for direct callers
+		window.openWatcher = window.__qhtlRealOpenWatcher;
+	}
+})();
+</script>
+EOF
+
 	print <<EOF;
 	<!-- $bootstrapcss -->
 	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
@@ -497,6 +729,17 @@ EOF
 	print @header;
 }
 
+
+
+my $ui_error = '';
+eval {
+	require QhtLink::DisplayUI;
+	require QhtLink::DisplayResellerUI;
+	1;
+} or do { $ui_error = $@ || 'Failed to load UI modules'; };
+
+
+# After UI module is loaded and modal JS is injected, render header and Watcher button
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
 		# Build a compact status badge for the header's right column
 		my $status_badge = "<span class='label label-success'>Enabled and Running</span>";
@@ -527,13 +770,17 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 													"<input type='submit' class='btn btn-xs btn-default' value='Start'></form>";
 		}
 
- 		print <<EOF;
+		print <<EOF;
 <div class='panel panel-default' style='padding: 10px'>
 	<div class='row' style='display:flex;align-items:center;'>
 		<div class='col-sm-8 col-xs-12'>
 			<h4 style='margin:5px 0;'>QhtLink Firewall (qhtlfirewall) v$myv</h4>
 		</div>
 		<div class='col-sm-4 col-xs-12 text-right'>
+			<button type='button' class='btn btn-xs btn-default' style='margin-right:8px'
+				onclick="return (window.__qhtlOpenWatcherSmart ? window.__qhtlOpenWatcherSmart() : (typeof window.openWatcher==='function' ? (openWatcher(), false) : (window.location='$script?action=logtail', false)));">
+				Watcher
+			</button>
 			<img src='$images/qhtlfirewall_small.gif' onerror="this.onerror=null;this.src='$images/qhtlfirewall_small.png';" style='width:48px;height:48px;vertical-align:middle;margin-right:8px' alt='Logo'>
 			$status_badge $status_buttons
 		</div>
@@ -542,13 +789,6 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 EOF
 		if ($reregister ne "") {print $reregister}
 }
-
-my $ui_error = '';
-eval {
-	require QhtLink::DisplayUI;
-	require QhtLink::DisplayResellerUI;
-	1;
-} or do { $ui_error = $@ || 'Failed to load UI modules'; };
 
 if (!$ui_error) {
 	eval {
