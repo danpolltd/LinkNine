@@ -523,10 +523,10 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			// Populate log options
 			function populateLogs(){ try{ var xhr=new XMLHttpRequest(); xhr.open('GET', '$script?action=logtailcmd&meta=1', true); xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){ var opts = JSON.parse(xhr.responseText||'[]'); logSelect.innerHTML=''; for(var i=0;i<opts.length;i++){ var o=document.createElement('option'); o.value=opts[i].value; o.textContent=opts[i].label; if(opts[i].selected){ o.selected=true; } logSelect.appendChild(o);} } }; xhr.send(); }catch(e){} }
 			// Refresh logic: 5s autocheck or 1s real-time mode; in-flight guard
-			var watcherPaused=false, watcherTick=5, watcherTimerId=null, watcherMode='auto'; window.__qhtlWatcherLoading = false;
-			function scheduleTick(){ if(watcherTimerId){ clearInterval(watcherTimerId);} watcherTick=5; if(watcherMode==='auto'){ refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } else { refreshLabel.textContent=' '; timerSpan.textContent='live mode'; }
+			var watcherPaused=false, watcherTick=5, watcherTimerId=null, watcherMode='auto'; window.__qhtlWatcherMode = 'auto'; window.__qhtlWatcherLoading = false;
+			function scheduleTick(){ if(watcherTimerId){ clearInterval(watcherTimerId);} watcherTick=5; var mode = window.__qhtlWatcherMode || watcherMode; if(mode==='auto'){ refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } else { refreshLabel.textContent=' '; timerSpan.textContent='live mode'; }
 				watcherTimerId=setInterval(function(){ if(watcherPaused){ return; } if(window.__qhtlWatcherLoading){ return; }
-					if(watcherMode==='auto'){
+					if((window.__qhtlWatcherMode||watcherMode)==='auto'){
 						watcherTick--; timerSpan.textContent=String(watcherTick);
 						if(watcherTick<=0){ doRefresh(); watcherTick=5; timerSpan.textContent=String(watcherTick); }
 					} else {
@@ -536,7 +536,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 				},1000);
 			}
 			window.__qhtlScheduleTick = scheduleTick;
-			function setWatcherMode(mode){ watcherMode = (mode==='live') ? 'live' : 'auto'; window.__qhtlWatcherState = { lines: [] }; if(watcherMode==='live'){ refreshBtn.textContent='Real Time'; refreshLabel.textContent=' '; timerSpan.textContent='live mode'; } else { refreshBtn.textContent='Autocheck'; refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } scheduleTick(); }
+			function setWatcherMode(mode){ watcherMode = (mode==='live') ? 'live' : 'auto'; window.__qhtlWatcherMode = watcherMode; window.__qhtlWatcherState = { lines: [] }; if(watcherMode==='live'){ refreshBtn.textContent='Real Time'; refreshLabel.textContent=' '; timerSpan.textContent='live mode'; } else { refreshBtn.textContent='Autocheck'; refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } scheduleTick(); }
 			function doRefresh(){ if(window.__qhtlWatcherLoading){ return; } var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0'); quickViewLoad(url); }
 			// Mode toggle: Autocheck (5s) <-> Real Time (1s)
 			refreshBtn.addEventListener('click', function(e){ e.preventDefault(); setWatcherMode(watcherMode==='auto' ? 'live' : 'auto'); });
@@ -552,7 +552,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			return modal;
 		}
 
-		function quickViewLoad(url, done){ var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); if(!b){ return; } if(!(typeof watcherMode!=='undefined' && watcherMode==='live')){ b.innerHTML='Loading...'; } var x=new XMLHttpRequest(); window.__qhtlWatcherLoading=true; x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200&&x.status<300){ var html=x.responseText || ''; // safely remove any <script> tags without embedding a literal closing tag marker in this inline script
+		function quickViewLoad(url, done){ var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); if(!b){ return; } if(!window.__qhtlWatcherMode || window.__qhtlWatcherMode !== 'live'){ b.innerHTML='Loading...'; } var x=new XMLHttpRequest(); window.__qhtlWatcherLoading=true; x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200&&x.status<300){ var html=x.responseText || ''; // safely remove any <script> tags without embedding a literal closing tag marker in this inline script
 				try {
 					// Preserve HTML line breaks before stripping markup. Avoid lookahead to prevent line terminators in regex literal.
 					html = String(html).replace(/<br\\s*\\\/?>(?:)/gi, '\\n');
@@ -573,7 +573,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 				// Tail-like append in real-time mode when prior state exists and new content is an extension
 				var state = window.__qhtlWatcherState || { lines: [] };
 				var appended = false;
-				if (typeof watcherMode!=='undefined' && watcherMode==='live' && state.lines && state.lines.length && lines.length >= state.lines.length) {
+				if (window.__qhtlWatcherMode==='live' && state.lines && state.lines.length && lines.length >= state.lines.length) {
 					var isExtension = true;
 					for (var pi=0; pi<state.lines.length; pi++){
 						if (state.lines[pi] !== lines[pi]) { isExtension = false; break; }
@@ -607,7 +607,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 						div.style.boxSizing = 'border-box';
 						frag.appendChild(div);
 					}
-					if (typeof watcherMode!=='undefined' && watcherMode==='live'){
+					if (window.__qhtlWatcherMode==='live'){
 						// In live mode when we cannot append (e.g., truncation/rotation), avoid flicker by replacing children efficiently
 						while (b.firstChild) b.removeChild(b.firstChild);
 						b.appendChild(frag);
@@ -622,7 +622,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 				try {
 					var raf = (window.requestAnimationFrame||function(f){setTimeout(f,0)});
 					var shouldStick = true;
-					if (typeof watcherMode!=='undefined' && watcherMode==='live'){
+					if (window.__qhtlWatcherMode==='live'){
 						var nearBottom = (b.scrollHeight - b.clientHeight - b.scrollTop) < 24; // 24px tolerance
 						shouldStick = nearBottom;
 					}
