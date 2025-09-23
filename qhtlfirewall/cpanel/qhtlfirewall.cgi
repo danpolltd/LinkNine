@@ -524,13 +524,13 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			timerCol.appendChild(refreshLabel); timerCol.appendChild(timerSpan);
 			var btnCol = document.createElement('div'); btnCol.style.display='inline-flex'; btnCol.style.flexDirection='column'; btnCol.style.gap='6px'; btnCol.style.alignItems='flex-end';
 			// Restore normal size and style (match Close button brightness and font)
-			refreshBtn.style.width='114px'; refreshBtn.style.marginRight='8px'; refreshBtn.style.transform='none';
+			refreshBtn.style.width='103px'; refreshBtn.style.marginRight='8px'; refreshBtn.style.transform='none';
 			// Light green (success-like) gradient, dark text, soft border
 			refreshBtn.style.background='linear-gradient(180deg, #d4edda 0%, #c3e6cb 100%)';
 			refreshBtn.style.color='#155724';
 			refreshBtn.style.borderColor='#b1dfbb';
 			refreshBtn.style.fontWeight='normal';
-			pauseBtn.style.width='86px'; pauseBtn.style.marginRight='0'; pauseBtn.style.transform='none';
+			pauseBtn.style.width='77px'; pauseBtn.style.marginRight='0'; pauseBtn.style.transform='none';
 			// Light orange (warning-like) gradient, dark text, soft border
 			pauseBtn.style.background='linear-gradient(180deg, #fff3cd 0%, #ffe8a1 100%)';
 			pauseBtn.style.color='#856404';
@@ -539,7 +539,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			refreshBtn.style.whiteSpace='nowrap'; refreshBtn.style.overflow='hidden'; refreshBtn.style.textOverflow='ellipsis';
 			pauseBtn.style.whiteSpace='nowrap'; pauseBtn.style.overflow='hidden'; pauseBtn.style.textOverflow='ellipsis';
 			// Place Autocheck to the left of Pause in a horizontal row
-			btnCol.style.flexDirection='row'; btnCol.style.alignItems='center'; btnCol.style.gap='8px';
+			btnCol.style.flexDirection='row'; btnCol.style.alignItems='center'; btnCol.style.gap='4px';
 			btnCol.appendChild(refreshBtn); btnCol.appendChild(pauseBtn);
 			left.appendChild(inputsRow); left.appendChild(timerCol);
 			// No edit/save/cancel in watcher mode
