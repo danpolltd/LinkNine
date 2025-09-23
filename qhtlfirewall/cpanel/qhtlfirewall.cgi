@@ -570,6 +570,8 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 				b.innerHTML='';
 				b.style.fontFamily='SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
 				b.appendChild(frag);
+				// Scroll to bottom so the newest lines are visible
+				try { (window.requestAnimationFrame||function(f){setTimeout(f,0)})(function(){ b.scrollTop = b.scrollHeight; }); } catch(e){ b.scrollTop = b.scrollHeight; }
 				if (typeof done==='function') done();
 				} else { b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>"; } } finally { window.__qhtlWatcherLoading=false; } } }; x.send(); m.style.display='block'; }
 
