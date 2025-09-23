@@ -482,7 +482,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 		return false;
 	};
 
-	// Define a minimal Quick View modal shim early so Watcher can open without navigation
+		// Define a minimal Quick View modal shim early so Watcher can open without navigation
 	if (!window.__qhtlQuickViewShim) {
 		window.__qhtlQuickViewShim = true;
 		function ensureQuickViewModal(){
@@ -511,10 +511,10 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			right.appendChild(closeBtn);
 			// Populate log options
 			function populateLogs(){ try{ var xhr=new XMLHttpRequest(); xhr.open('GET', '$script?action=logtailcmd&meta=1', true); xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){ var opts = JSON.parse(xhr.responseText||'[]'); logSelect.innerHTML=''; for(var i=0;i<opts.length;i++){ var o=document.createElement('option'); o.value=opts[i].value; o.textContent=opts[i].label; if(opts[i].selected){ o.selected=true; } logSelect.appendChild(o);} } }; xhr.send(); }catch(e){} }
-			// Refresh logic with 5s countdown
-			var watcherPaused=false, watcherTick=5, watcherTimerId=null;
-			function scheduleTick(){ if(watcherTimerId){ clearInterval(watcherTimerId);} watcherTick=5; timerSpan.textContent=String(watcherTick); watcherTimerId=setInterval(function(){ if(watcherPaused){ return; } watcherTick--; timerSpan.textContent=String(watcherTick); if(watcherTick<=0){ doRefresh(); watcherTick=5; timerSpan.textContent=String(watcherTick);} },1000);}
-			function doRefresh(){ var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0'); quickViewLoad(url); }
+			// Refresh logic with 5s countdown and in-flight guard
+			var watcherPaused=false, watcherTick=5, watcherTimerId=null, watcherLoading=false;
+			function scheduleTick(){ if(watcherTimerId){ clearInterval(watcherTimerId);} watcherTick=5; timerSpan.textContent=String(watcherTick); watcherTimerId=setInterval(function(){ if(watcherPaused){ return; } if(watcherLoading){ return; } watcherTick--; timerSpan.textContent=String(watcherTick); if(watcherTick<=0){ doRefresh(); watcherTick=5; timerSpan.textContent=String(watcherTick);} },1000);}
+			function doRefresh(){ if(watcherLoading){ return; } var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0'); quickViewLoad(url); }
 			refreshBtn.addEventListener('click', function(e){ e.preventDefault(); doRefresh(); });
 			pauseBtn.addEventListener('click', function(e){ e.preventDefault(); watcherPaused=!watcherPaused; pauseBtn.textContent=watcherPaused?'Start':'Pause'; });
 			logSelect.addEventListener('change', function(){ doRefresh(); scheduleTick(); });
@@ -528,14 +528,14 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			return modal;
 		}
 
-		function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ var html=x.responseText; b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>"; } } }; x.send(); m.style.display='block'; }
+		function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); watcherLoading=true; x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ var finished=false; try{ if(x.status>=200&&x.status<300){ var html=x.responseText; b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>"; } finished=true; } finally { watcherLoading=false; } } }; x.send(); m.style.display='block'; }
 
 		// Global watcher opener that sets size and starts auto-refresh
 		window.__qhtlRealOpenWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){ d.style.width='800px'; d.style.height='450px'; d.style.maxWidth='95vw'; d.style.position='fixed'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0'; }
 				// Ensure blue pulsating glow CSS exists and apply class
 				(function(){ var css=document.getElementById('qhtl-blue-style'); if(!css){ css=document.createElement('style'); css.id='qhtl-blue-style'; css.textContent='@'+'keyframes qhtl-blue {0%,100%{box-shadow: 0 0 14px 6px rgba(0,123,255,0.55), 0 0 24px 10px rgba(0,123,255,0.3);}50%{box-shadow: 0 0 28px 14px rgba(0,123,255,0.95), 0 0 46px 20px rgba(0,123,255,0.6);}} .fire-blue{ animation: qhtl-blue 2.2s infinite ease-in-out; }'; document.head.appendChild(css);} if(d){ d.classList.add('fire-blue'); } })();
-			// initial load and start timer
-			(function(){ var ls=document.getElementById('watcherLines'), sel=document.getElementById('watcherLogSelect'); var url='$script?action=logtailcmd&lines='+(ls?encodeURIComponent(ls.value||'100'):'100')+'&lognum='+(sel?encodeURIComponent(sel.value||'0'):'0'); quickViewLoad(url, function(){ var timer=document.getElementById('watcherTimer'); if(timer){ timer.textContent='5'; } var evt=document.createEvent('Event'); evt.initEvent('change', true, true); if(sel){ sel.dispatchEvent(evt); } }); })();
+			// initial load and start timer (no synthetic change event to avoid loops)
+			(function(){ var ls=document.getElementById('watcherLines'), sel=document.getElementById('watcherLogSelect'); var url='$script?action=logtailcmd&lines='+(ls?encodeURIComponent(ls.value||'100'):'100')+'&lognum='+(sel?encodeURIComponent(sel.value||'0'):'0'); quickViewLoad(url, function(){ var timer=document.getElementById('watcherTimer'); if(timer){ timer.textContent='5'; } scheduleTick(); }); })();
 				m.style.display='block'; return false; };
 		// Also expose the real opener on the original name for direct callers
 		window.openWatcher = window.__qhtlRealOpenWatcher;
