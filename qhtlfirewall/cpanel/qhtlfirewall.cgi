@@ -536,13 +536,13 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 				},1000);
 			}
 			window.__qhtlScheduleTick = scheduleTick;
-			function setWatcherMode(mode){ watcherMode = (mode==='live') ? 'live' : 'auto'; if(watcherMode==='live'){ refreshBtn.textContent='Real Time'; refreshLabel.textContent=' '; timerSpan.textContent='live mode'; } else { refreshBtn.textContent='Autocheck'; refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } scheduleTick(); }
+			function setWatcherMode(mode){ watcherMode = (mode==='live') ? 'live' : 'auto'; window.__qhtlWatcherState = { lines: [] }; if(watcherMode==='live'){ refreshBtn.textContent='Real Time'; refreshLabel.textContent=' '; timerSpan.textContent='live mode'; } else { refreshBtn.textContent='Autocheck'; refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } scheduleTick(); }
 			function doRefresh(){ if(window.__qhtlWatcherLoading){ return; } var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0'); quickViewLoad(url); }
 			// Mode toggle: Autocheck (5s) <-> Real Time (1s)
 			refreshBtn.addEventListener('click', function(e){ e.preventDefault(); setWatcherMode(watcherMode==='auto' ? 'live' : 'auto'); });
 			pauseBtn.addEventListener('click', function(e){ e.preventDefault(); watcherPaused=!watcherPaused; pauseBtn.textContent=watcherPaused?'Start':'Pause'; });
-			logSelect.addEventListener('change', function(){ doRefresh(); scheduleTick(); });
-			linesInput.addEventListener('change', function(){ doRefresh(); scheduleTick(); });
+			logSelect.addEventListener('change', function(){ window.__qhtlWatcherState = { lines: [] }; doRefresh(); scheduleTick(); });
+			linesInput.addEventListener('change', function(){ window.__qhtlWatcherState = { lines: [] }; doRefresh(); scheduleTick(); });
 			closeBtn.addEventListener('click', function(){ if(watcherTimerId){ clearInterval(watcherTimerId); watcherTimerId=null; } if(typeof dialog!=='undefined' && dialog){ dialog.classList.remove('fire-blue'); } modal.style.display='none'; });
 			populateLogs();
 			var inner = document.createElement('div'); inner.style.padding='10px'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.flex='1 1 auto'; inner.style.minHeight='0'; inner.appendChild(title); inner.appendChild(body);
@@ -565,25 +565,53 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 				} catch(e){}
 				// Render each line separately with truncation (no wrapping)
 				var text = (html||'').replace(/\\r\\n/g,'\\n').replace(/\\r/g,'\\n');
-				var lines = text.split(String.fromCharCode(10));
-				var frag = document.createDocumentFragment();
-				for (var i=0;i<lines.length;i++){
-					var line = lines[i];
-					// Skip trailing blank line
-					if (i===lines.length-1 && line==='') { continue; }
-					var div = document.createElement('div');
-					div.textContent = line;
-					div.title = line; // full text on hover
-					div.style.whiteSpace = 'nowrap';
-					div.style.overflow = 'hidden';
-					div.style.textOverflow = 'ellipsis';
-					div.style.width = '100%';
-					div.style.boxSizing = 'border-box';
-					frag.appendChild(div);
-				}
-				b.innerHTML='';
+				var parsed = text.split(String.fromCharCode(10));
+				// Normalize: drop a single trailing blank line
+				if (parsed.length && parsed[parsed.length-1] === '') { parsed.pop(); }
+				var lines = parsed;
 				b.style.fontFamily='SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
-				b.appendChild(frag);
+				// Tail-like append in real-time mode when prior state exists and new content is an extension
+				var state = window.__qhtlWatcherState || { lines: [] };
+				var appended = false;
+				if (typeof watcherMode!=='undefined' && watcherMode==='live' && state.lines && state.lines.length && lines.length >= state.lines.length) {
+					var isExtension = true;
+					for (var pi=0; pi<state.lines.length; pi++){
+						if (state.lines[pi] !== lines[pi]) { isExtension = false; break; }
+					}
+					if (isExtension) {
+						// Append only new lines
+						var frag = document.createDocumentFragment();
+						for (var ai=state.lines.length; ai<lines.length; ai++){
+							var l = lines[ai];
+							var divA = document.createElement('div');
+							divA.textContent = l;
+							divA.title = l;
+							divA.style.whiteSpace='nowrap'; divA.style.overflow='hidden'; divA.style.textOverflow='ellipsis'; divA.style.width='100%'; divA.style.boxSizing='border-box';
+							frag.appendChild(divA);
+						}
+						b.appendChild(frag);
+						appended = true;
+					}
+				}
+				if (!appended){
+					var frag = document.createDocumentFragment();
+					for (var i=0;i<lines.length;i++){
+						var line = lines[i];
+						var div = document.createElement('div');
+						div.textContent = line;
+						div.title = line; // full text on hover
+						div.style.whiteSpace = 'nowrap';
+						div.style.overflow = 'hidden';
+						div.style.textOverflow = 'ellipsis';
+						div.style.width = '100%';
+						div.style.boxSizing = 'border-box';
+						frag.appendChild(div);
+					}
+					b.innerHTML='';
+					b.appendChild(frag);
+				}
+				// Update state
+				window.__qhtlWatcherState = { lines: lines };
 				// Scroll to bottom so the newest lines are visible
 				try { (window.requestAnimationFrame||function(f){setTimeout(f,0)})(function(){ b.scrollTop = b.scrollHeight; }); } catch(e){ b.scrollTop = b.scrollHeight; }
 				if (typeof done==='function') done();
