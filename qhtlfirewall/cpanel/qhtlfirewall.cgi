@@ -467,12 +467,13 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 (function(){
 	function fallback(){ try{ window.location='$script?action=logtail'; }catch(e){ window.location='$script?action=logtail'; } }
 	window.__qhtlOpenWatcherSmart = function(){
-		if (window.__qhtlQuickViewShim && typeof window.openWatcher==='function') { try{ window.openWatcher(); } catch(e){ fallback(); } return false; }
+		// Prefer calling the real opener if present; avoid calling the smart wrapper via window.openWatcher to prevent recursion
+		if (window.__qhtlQuickViewShim && typeof window.__qhtlRealOpenWatcher==='function') { try{ window.__qhtlRealOpenWatcher(); } catch(e){ fallback(); } return false; }
 		var attempts = 0, iv = setInterval(function(){
 			attempts++;
-			if (window.__qhtlQuickViewShim && typeof window.openWatcher==='function'){
+			if (window.__qhtlQuickViewShim && typeof window.__qhtlRealOpenWatcher==='function'){
 				clearInterval(iv);
-				try{ window.openWatcher(); } catch(e){ fallback(); }
+				try{ window.__qhtlRealOpenWatcher(); } catch(e){ fallback(); }
 			} else if (attempts >= 30) { // ~3s total
 				clearInterval(iv);
 				fallback();
@@ -480,9 +481,6 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 		}, 100);
 		return false;
 	};
-	if (typeof window.openWatcher !== 'function') {
-		window.openWatcher = function(){ return window.__qhtlOpenWatcherSmart(); };
-	}
 
 	// Define a minimal Quick View modal shim early so Watcher can open without navigation
 	if (!window.__qhtlQuickViewShim) {
@@ -530,13 +528,15 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			return modal;
 		}
 
-		function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ var html=x.responseText; b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = '<div class=\'alert alert-danger\'>Failed to load content</div>'; } } }; x.send(); m.style.display='block'; }
+		function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ var html=x.responseText; b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>"; } } }; x.send(); m.style.display='block'; }
 
 		// Global watcher opener that sets size and starts auto-refresh
-		window.openWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){ d.style.width='800px'; d.style.height='450px'; d.style.maxWidth='95vw'; d.style.position='fixed'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0'; }
+		window.__qhtlRealOpenWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){ d.style.width='800px'; d.style.height='450px'; d.style.maxWidth='95vw'; d.style.position='fixed'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0'; }
 			// initial load and start timer
 			(function(){ var ls=document.getElementById('watcherLines'), sel=document.getElementById('watcherLogSelect'); var url='$script?action=logtailcmd&lines='+(ls?encodeURIComponent(ls.value||'100'):'100')+'&lognum='+(sel?encodeURIComponent(sel.value||'0'):'0'); quickViewLoad(url, function(){ var timer=document.getElementById('watcherTimer'); if(timer){ timer.textContent='5'; } var evt=document.createEvent('Event'); evt.initEvent('change', true, true); if(sel){ sel.dispatchEvent(evt); } }); })();
-			m.style.display='block'; return false; };
+				m.style.display='block'; return false; };
+		// Also expose the real opener on the original name for direct callers
+		window.openWatcher = window.__qhtlRealOpenWatcher;
 	}
 })();
 </script>
