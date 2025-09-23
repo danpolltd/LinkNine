@@ -519,8 +519,10 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			// Arrange: inputs row + button column (refresh/pause stacked)
 			var inputsRow = document.createElement('div'); inputsRow.style.display='inline-block'; inputsRow.style.marginRight='8px';
 			inputsRow.appendChild(logSelect); inputsRow.appendChild(document.createTextNode(' Lines: ')); inputsRow.appendChild(linesInput); inputsRow.appendChild(refreshLabel); inputsRow.appendChild(timerSpan);
-			var btnCol = document.createElement('div'); btnCol.style.display='inline-flex'; btnCol.style.flexDirection='column'; btnCol.style.gap='6px';
-			refreshBtn.style.width='120px'; pauseBtn.style.width='120px';
+			var btnCol = document.createElement('div'); btnCol.style.display='inline-flex'; btnCol.style.flexDirection='column'; btnCol.style.gap='6px'; btnCol.style.alignItems='flex-end';
+			refreshBtn.style.width='60px'; pauseBtn.style.width='60px';
+			refreshBtn.style.whiteSpace='nowrap'; refreshBtn.style.overflow='hidden'; refreshBtn.style.textOverflow='ellipsis';
+			pauseBtn.style.whiteSpace='nowrap'; pauseBtn.style.overflow='hidden'; pauseBtn.style.textOverflow='ellipsis';
 			btnCol.appendChild(refreshBtn); btnCol.appendChild(pauseBtn);
 			left.appendChild(inputsRow); left.appendChild(btnCol);
 			// No edit/save/cancel in watcher mode
