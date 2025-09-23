@@ -161,7 +161,13 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
   if (window.__QHTLFW_INIT__) { return; }
   window.__QHTLFW_INIT__ = true;
 
-			function onReady(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn, { once:true }); } }
+						function onReady(fn){
+							if(document.readyState!=='loading'){ fn(); }
+							else {
+								var handler = function(){ document.removeEventListener('DOMContentLoaded', handler); fn(); };
+								document.addEventListener('DOMContentLoaded', handler, false);
+							}
+						}
 
 			onReady(function(){
 			// Don't inject on our own firewall UI page to avoid doubling there
