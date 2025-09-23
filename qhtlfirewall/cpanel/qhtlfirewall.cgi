@@ -540,8 +540,8 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 
 		function quickViewLoad(url, done){ var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); if(!b){ return; } b.innerHTML='Loading...'; var x=new XMLHttpRequest(); window.__qhtlWatcherLoading=true; x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200&&x.status<300){ var html=x.responseText || ''; // safely remove any <script> tags without embedding a literal closing tag marker in this inline script
 				try {
-					// Preserve HTML line breaks before stripping markup (escape backslashes for Perl heredoc)
-					html = String(html).replace(/<br\\s*\\\/?>(?=\\s*\\n?)/gi, '\\n');
+					// Preserve HTML line breaks before stripping markup. Avoid lookahead to prevent line terminators in regex literal.
+					html = String(html).replace(/<br\\s*\\\/?>(?:)/gi, '\\n');
 					var tmp = document.createElement('div');
 					tmp.innerHTML = html;
 					var scripts = tmp.getElementsByTagName('script');
@@ -551,7 +551,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 				} catch(e){}
 				// Render each line separately with truncation (no wrapping)
 				var text = (html||'').replace(/\\r\\n/g,'\\n').replace(/\\r/g,'\\n');
-				var lines = text.split('\n');
+				var lines = text.split(String.fromCharCode(10));
 				var frag = document.createDocumentFragment();
 				for (var i=0;i<lines.length;i++){
 					var line = lines[i];
