@@ -554,7 +554,24 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			function populateLogs(){ try{ var xhr=new XMLHttpRequest(); xhr.open('GET', '$script?action=logtailcmd&meta=1', true); xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){ var opts = JSON.parse(xhr.responseText||'[]'); logSelect.innerHTML=''; for(var i=0;i<opts.length;i++){ var o=document.createElement('option'); o.value=opts[i].value; o.textContent=opts[i].label; if(opts[i].selected){ o.selected=true; } logSelect.appendChild(o);} } }; xhr.send(); }catch(e){} }
 			// Refresh logic: 5s autocheck or 1s real-time mode; in-flight guard
 			var watcherPaused=false, watcherTick=5, watcherTimerId=null, watcherMode='auto'; window.__qhtlWatcherMode = 'auto'; window.__qhtlWatcherLoading = false;
+			// Define normal and more intense color sets for mode/state emphasis
+			var REFRESH_BG_NORMAL='linear-gradient(180deg, #d4edda 0%, #c3e6cb 100%)', REFRESH_BORDER_NORMAL='#b1dfbb';
+			var REFRESH_BG_INTENSE='linear-gradient(180deg, #b9e2c7 0%, #9fd8ae 100%)', REFRESH_BORDER_INTENSE='#8fd19d';
+			var PAUSE_BG_NORMAL='linear-gradient(180deg, #fff3cd 0%, #ffe8a1 100%)', PAUSE_BORDER_NORMAL='#ffe8a1';
+			var PAUSE_BG_INTENSE='linear-gradient(180deg, #ffe8a1 0%, #ffd66b 100%)', PAUSE_BORDER_INTENSE='#ffcf66';
+			function updateIntensity(){
+				var mode = window.__qhtlWatcherMode || watcherMode;
+				var isLive = (mode==='live');
+				var isPaused = !!watcherPaused; // 'Start' when paused
+				// Real Time button gets intense style only in live mode
+				refreshBtn.style.background = isLive ? REFRESH_BG_INTENSE : REFRESH_BG_NORMAL;
+				refreshBtn.style.borderColor = isLive ? REFRESH_BORDER_INTENSE : REFRESH_BORDER_NORMAL;
+				// Start button (pauseBtn while paused) gets intense style; otherwise normal Pause style
+				pauseBtn.style.background = isPaused ? PAUSE_BG_INTENSE : PAUSE_BG_NORMAL;
+				pauseBtn.style.borderColor = isPaused ? PAUSE_BORDER_INTENSE : PAUSE_BORDER_NORMAL;
+			}
 			function scheduleTick(){ if(watcherTimerId){ clearInterval(watcherTimerId);} watcherTick=5; var mode = window.__qhtlWatcherMode || watcherMode; if(mode==='auto'){ refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } else { refreshLabel.textContent=' '; timerSpan.textContent='live mode'; }
+				updateIntensity();
 				watcherTimerId=setInterval(function(){ if(watcherPaused){ return; } if(window.__qhtlWatcherLoading){ return; }
 					if((window.__qhtlWatcherMode||watcherMode)==='auto'){
 						watcherTick--; timerSpan.textContent=String(watcherTick);
@@ -566,15 +583,17 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 				},1000);
 			}
 			window.__qhtlScheduleTick = scheduleTick;
-			function setWatcherMode(mode){ watcherMode = (mode==='live') ? 'live' : 'auto'; window.__qhtlWatcherMode = watcherMode; window.__qhtlWatcherState = { lines: [] }; if(watcherMode==='live'){ refreshBtn.textContent='Real Time'; refreshLabel.textContent=' '; timerSpan.textContent='live mode'; } else { refreshBtn.textContent='Autocheck'; refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } scheduleTick(); }
+			function setWatcherMode(mode){ watcherMode = (mode==='live') ? 'live' : 'auto'; window.__qhtlWatcherMode = watcherMode; window.__qhtlWatcherState = { lines: [] }; if(watcherMode==='live'){ refreshBtn.textContent='Real Time'; refreshLabel.textContent=' '; timerSpan.textContent='live mode'; } else { refreshBtn.textContent='Autocheck'; refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } updateIntensity(); scheduleTick(); }
 			function doRefresh(){ if(window.__qhtlWatcherLoading){ return; } var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0'); quickViewLoad(url); }
 			// Mode toggle: Autocheck (5s) <-> Real Time (1s)
 			refreshBtn.addEventListener('click', function(e){ e.preventDefault(); setWatcherMode(watcherMode==='auto' ? 'live' : 'auto'); });
-			pauseBtn.addEventListener('click', function(e){ e.preventDefault(); watcherPaused=!watcherPaused; pauseBtn.textContent=watcherPaused?'Start':'Pause'; });
+			pauseBtn.addEventListener('click', function(e){ e.preventDefault(); watcherPaused=!watcherPaused; pauseBtn.textContent=watcherPaused?'Start':'Pause'; updateIntensity(); });
 			logSelect.addEventListener('change', function(){ window.__qhtlWatcherState = { lines: [] }; doRefresh(); scheduleTick(); });
 			linesInput.addEventListener('change', function(){ window.__qhtlWatcherState = { lines: [] }; doRefresh(); scheduleTick(); });
 			closeBtn.addEventListener('click', function(){ if(watcherTimerId){ clearInterval(watcherTimerId); watcherTimerId=null; } if(typeof dialog!=='undefined' && dialog){ dialog.classList.remove('fire-blue'); } modal.style.display='none'; });
 			populateLogs();
+			// Initialize emphasis based on defaults (auto mode, not paused)
+			updateIntensity();
 			var inner = document.createElement('div'); inner.style.padding='10px'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.flex='1 1 auto'; inner.style.minHeight='0';
 			var headerBar = document.createElement('div'); headerBar.style.display='flex'; headerBar.style.justifyContent='space-between'; headerBar.style.alignItems='center';
 			headerBar.appendChild(title); headerBar.appendChild(headerRight);
