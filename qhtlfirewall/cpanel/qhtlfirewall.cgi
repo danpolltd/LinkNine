@@ -518,9 +518,9 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			// Populate log options
 			function populateLogs(){ try{ var xhr=new XMLHttpRequest(); xhr.open('GET', '$script?action=logtailcmd&meta=1', true); xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){ var opts = JSON.parse(xhr.responseText||'[]'); logSelect.innerHTML=''; for(var i=0;i<opts.length;i++){ var o=document.createElement('option'); o.value=opts[i].value; o.textContent=opts[i].label; if(opts[i].selected){ o.selected=true; } logSelect.appendChild(o);} } }; xhr.send(); }catch(e){} }
 			// Refresh logic with 5s countdown and in-flight guard
-			var watcherPaused=false, watcherTick=5, watcherTimerId=null, watcherLoading=false;
-			function scheduleTick(){ if(watcherTimerId){ clearInterval(watcherTimerId);} watcherTick=5; timerSpan.textContent=String(watcherTick); watcherTimerId=setInterval(function(){ if(watcherPaused){ return; } if(watcherLoading){ return; } watcherTick--; timerSpan.textContent=String(watcherTick); if(watcherTick<=0){ doRefresh(); watcherTick=5; timerSpan.textContent=String(watcherTick);} },1000);}
-			function doRefresh(){ if(watcherLoading){ return; } var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0'); quickViewLoad(url); }
+			var watcherPaused=false, watcherTick=5, watcherTimerId=null; window.__qhtlWatcherLoading = false;
+			function scheduleTick(){ if(watcherTimerId){ clearInterval(watcherTimerId);} watcherTick=5; timerSpan.textContent=String(watcherTick); watcherTimerId=setInterval(function(){ if(watcherPaused){ return; } if(window.__qhtlWatcherLoading){ return; } watcherTick--; timerSpan.textContent=String(watcherTick); if(watcherTick<=0){ doRefresh(); watcherTick=5; timerSpan.textContent=String(watcherTick);} },1000);}
+			function doRefresh(){ if(window.__qhtlWatcherLoading){ return; } var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0'); quickViewLoad(url); }
 			refreshBtn.addEventListener('click', function(e){ e.preventDefault(); doRefresh(); });
 			pauseBtn.addEventListener('click', function(e){ e.preventDefault(); watcherPaused=!watcherPaused; pauseBtn.textContent=watcherPaused?'Start':'Pause'; });
 			logSelect.addEventListener('change', function(){ doRefresh(); scheduleTick(); });
@@ -534,7 +534,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			return modal;
 		}
 
-		function quickViewLoad(url, done){ var m=ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); b.innerHTML='Loading...'; var x=new XMLHttpRequest(); watcherLoading=true; x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ var finished=false; try{ if(x.status>=200&&x.status<300){ var html=x.responseText; b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>"; } finished=true; } finally { watcherLoading=false; } } }; x.send(); m.style.display='block'; }
+		function quickViewLoad(url, done){ var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); if(!b){ return; } b.innerHTML='Loading...'; var x=new XMLHttpRequest(); window.__qhtlWatcherLoading=true; x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200&&x.status<300){ var html=x.responseText; b.innerHTML = html; if (typeof done==='function') done(); } else { b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>"; } } finally { window.__qhtlWatcherLoading=false; } } }; x.send(); m.style.display='block'; }
 
 		// Global watcher opener that sets size and starts auto-refresh
 		window.__qhtlRealOpenWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){ d.style.width='800px'; d.style.height='450px'; d.style.maxWidth='95vw'; d.style.position='fixed'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0'; }
