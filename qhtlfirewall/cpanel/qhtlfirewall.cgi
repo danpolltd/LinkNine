@@ -523,9 +523,19 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			var timerCol = document.createElement('div'); timerCol.style.display='inline-flex'; timerCol.style.alignItems='center'; timerCol.style.justifyContent='flex-end'; timerCol.style.width='120px'; timerCol.style.whiteSpace='nowrap'; timerCol.style.marginRight='8px';
 			timerCol.appendChild(refreshLabel); timerCol.appendChild(timerSpan);
 			var btnCol = document.createElement('div'); btnCol.style.display='inline-flex'; btnCol.style.flexDirection='column'; btnCol.style.gap='6px'; btnCol.style.alignItems='flex-end';
-			// Restore normal size and style
-			refreshBtn.style.width='90px'; refreshBtn.style.marginRight='8px'; refreshBtn.style.transform='none'; refreshBtn.style.background='linear-gradient(180deg, #28a745 0%, #218838 100%)'; refreshBtn.style.color='#fff'; refreshBtn.style.borderColor='#218838'; refreshBtn.style.fontWeight='bold';
-			pauseBtn.style.width='90px'; pauseBtn.style.marginRight='0'; pauseBtn.style.transform='none'; pauseBtn.style.background='linear-gradient(180deg, #fd7e14 0%, #e8590c 100%)'; pauseBtn.style.color='#fff'; pauseBtn.style.borderColor='#e8590c'; pauseBtn.style.fontWeight='bold';
+			// Restore normal size and style (match Close button brightness and font)
+			refreshBtn.style.width='90px'; refreshBtn.style.marginRight='8px'; refreshBtn.style.transform='none';
+			// Light green (success-like) gradient, dark text, soft border
+			refreshBtn.style.background='linear-gradient(180deg, #d4edda 0%, #c3e6cb 100%)';
+			refreshBtn.style.color='#155724';
+			refreshBtn.style.borderColor='#b1dfbb';
+			refreshBtn.style.fontWeight='normal';
+			pauseBtn.style.width='90px'; pauseBtn.style.marginRight='0'; pauseBtn.style.transform='none';
+			// Light orange (warning-like) gradient, dark text, soft border
+			pauseBtn.style.background='linear-gradient(180deg, #fff3cd 0%, #ffe8a1 100%)';
+			pauseBtn.style.color='#856404';
+			pauseBtn.style.borderColor='#ffe8a1';
+			pauseBtn.style.fontWeight='normal';
 			refreshBtn.style.whiteSpace='nowrap'; refreshBtn.style.overflow='hidden'; refreshBtn.style.textOverflow='ellipsis';
 			pauseBtn.style.whiteSpace='nowrap'; pauseBtn.style.overflow='hidden'; pauseBtn.style.textOverflow='ellipsis';
 			// Place Autocheck to the left of Pause in a horizontal row
