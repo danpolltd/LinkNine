@@ -120,13 +120,17 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 
 	my ($enabled, $running, $class, $text, $status_key);
 	if ($is_disabled) {
-		($enabled, $running, $class, $text, $status_key) = (0, 0, 'danger', 'Disabled and Stopped', 'disabled_stopped');
+		# Disabled state
+		($enabled, $running, $class, $text, $status_key) = (0, 0, 'danger', 'Disabled', 'disabled_stopped');
 	} elsif (!$ipt_ok) {
-		($enabled, $running, $class, $text, $status_key) = (1, 0, 'danger', 'Enabled but Stopped', 'enabled_stopped');
+		# Not running effectively behaves like disabled for the banner text
+		($enabled, $running, $class, $text, $status_key) = (1, 0, 'danger', 'Disabled', 'enabled_stopped');
 	} elsif ($is_test) {
-		($enabled, $running, $class, $text, $status_key) = (1, 1, 'warning', 'Enabled (Test Mode)', 'enabled_test');
+		# Testing mode
+		($enabled, $running, $class, $text, $status_key) = (1, 1, 'warning', 'Testing', 'enabled_test');
 	} else {
-		($enabled, $running, $class, $text, $status_key) = (1, 1, 'success', 'Enabled and Running', 'enabled_running');
+		# Fully operational
+		($enabled, $running, $class, $text, $status_key) = (1, 1, 'success', 'Enabled', 'enabled_running');
 	}
 
 	# Simple JSON response, no external modules required here
@@ -332,13 +336,13 @@ JS
 		};
 		my ($cls, $txt);
 		if ($is_disabled) {
-			($cls, $txt) = ('danger', 'Disabled and Stopped');
+			($cls, $txt) = ('danger', 'Disabled');
 		} elsif (!$ipt_ok) {
-			($cls, $txt) = ('danger', 'Enabled but Stopped');
+			($cls, $txt) = ('danger', 'Disabled');
 		} elsif ($is_test) {
-			($cls, $txt) = ('warning', 'Enabled (Test Mode)');
+			($cls, $txt) = ('warning', 'Testing');
 		} else {
-			($cls, $txt) = ('success', 'Enabled and Running');
+			($cls, $txt) = ('success', 'Enabled');
 		}
 		print "Content-type: text/html\r\n";
 		print "X-Content-Type-Options: nosniff\r\n";
@@ -749,7 +753,7 @@ eval {
 # After UI module is loaded and modal JS is injected, render header and Watcher button
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
 		# Build a compact status badge for the header's right column
-		my $status_badge = "<span class='label label-success'>Enabled and Running</span>";
+	my $status_badge = "<span class='label label-success'>Enabled</span>";
 		my $status_buttons = '';
 		my $is_test = $config{TESTING} ? 1 : 0;
 		my $is_disabled = -e "/etc/qhtlfirewall/qhtlfirewall.disable" ? 1 : 0;
@@ -764,14 +768,14 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 				$ipt_ok = ($iptstatus[0] && $iptstatus[0] =~ /^Chain LOCALINPUT/) ? 1 : 0;
 		};
 		if ($is_disabled) {
-				$status_badge = "<span class='label label-danger'>Disabled and Stopped</span>";
+				$status_badge = "<span class='label label-danger'>Disabled</span>";
 				$status_buttons = "<form action='$script' method='post' style='display:inline;margin-left:8px'>".
 													"<input type='hidden' name='action' value='enable'>".
 													"<input type='submit' class='btn btn-xs btn-default' value='Enable'></form>";
 		} elsif ($is_test) {
-				$status_badge = "<span class='label label-warning'>Enabled (Test Mode)</span>";
+				$status_badge = "<span class='label label-warning'>Testing</span>";
 		} elsif (!$ipt_ok) {
-				$status_badge = "<span class='label label-danger'>Enabled but Stopped</span>";
+				$status_badge = "<span class='label label-danger'>Disabled</span>";
 				$status_buttons = "<form action='$script' method='post' style='display:inline;margin-left:8px'>".
 													"<input type='hidden' name='action' value='start'>".
 													"<input type='submit' class='btn btn-xs btn-default' value='Start'></form>";
@@ -790,7 +794,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 					onclick="return (window.__qhtlOpenWatcherSmart ? window.__qhtlOpenWatcherSmart() : (typeof window.openWatcher==='function' ? (openWatcher(), false) : (window.location='$script?action=logtail', false)));">
 					Watcher
 				</button>
-				<span class='btn-status success' id='qhtl-status-btn' style='text-transform:none;'>Enabled and Running</span>
+				<span class='btn-status success' id='qhtl-status-btn' style='text-transform:none;'>Enabled</span>
 			</div>
 		</div>
 	</div>
@@ -800,12 +804,12 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
   try {
     var el = document.getElementById('qhtl-status-btn');
     if (!el) return;
-    var txt = (function(){ var d = document.createElement('div'); d.innerHTML = "${status_badge}"; var s=d.querySelector('.label'); return s ? s.textContent.trim() : 'Enabled and Running'; })();
+	var txt = (function(){ var d = document.createElement('div'); d.innerHTML = "${status_badge}"; var s=d.querySelector('.label'); return s ? s.textContent.trim() : 'Enabled'; })();
     el.textContent = txt;
-    el.classList.remove('success','warning','danger');
-    if (/Disabled/i.test(txt) || /Stopped/i.test(txt)) { el.classList.add('danger'); }
-    else if (/Test/i.test(txt)) { el.classList.add('warning'); }
-    else { el.classList.add('success'); }
+	el.classList.remove('success','warning','danger');
+	if (/Disabled/i.test(txt)) { el.classList.add('danger'); }
+	else if (/Testing/i.test(txt)) { el.classList.add('warning'); }
+	else { el.classList.add('success'); }
 
 		// Squeeze font size to fit inside the button without wrapping
 		var min = 10, max = 16; // px
