@@ -3338,42 +3338,41 @@ sub confirmmodal {
 	print "\$('.modal').click(function(event){\n";
 	print "  \$(event.target).modal('hide')\n";
 	print "});\n";
-	print "</script>\n";
-	my $product = shift;
-	my $current = shift;
-	my $upgrade = 0;
-	my $newversion;
-	# Prefer a successful cron fetch file over any error file
-	if (-e "/var/lib/qhtlfirewall/".$product.".txt") {
-		open (my $VERSION, "<", "/var/lib/qhtlfirewall/".$product.".txt");
-		flock ($VERSION, LOCK_SH);
-		$newversion = <$VERSION>;
-		close ($VERSION);
-		chomp $newversion;
-		if ($newversion =~ /^[\d\.]+$/) {
-			if (ver_cmp($newversion, $current) == 1) { $upgrade = 1; }
-		} else { $newversion = ""; }
+	sub qhtlfirewallgetversion {
+		my ($product, $current) = @_;
+		my $upgrade = 0;
+		my $newversion = '';
+		# Prefer a successful cron fetch file over any error file
+		if (-e "/var/lib/qhtlfirewall/".$product.".txt") {
+			open (my $VERSION, "<", "/var/lib/qhtlfirewall/".$product.".txt");
+			flock ($VERSION, LOCK_SH);
+			$newversion = <$VERSION>;
+			close ($VERSION);
+			chomp $newversion;
+			if ($newversion =~ /^[\d\.]+$/) {
+				if (ver_cmp($newversion, $current) == 1) { $upgrade = 1; }
+			} else { $newversion = ""; }
+		}
+		elsif (-e "/var/lib/qhtlfirewall/".$product.".txt.error") {
+			open (my $VERSION, "<", "/var/lib/qhtlfirewall/".$product.".txt.error");
+			flock ($VERSION, LOCK_SH);
+			$newversion = <$VERSION>;
+			close ($VERSION);
+			chomp $newversion;
+			$newversion = $newversion ? "Failed to retrieve latest version from Danpol update server: $newversion" : "Failed to retrieve latest version from Danpol update server";
+		}
+		elsif (-e "/var/lib/qhtlfirewall/error") {
+			open (my $VERSION, "<", "/var/lib/qhtlfirewall/error");
+			flock ($VERSION, LOCK_SH);
+			$newversion = <$VERSION>;
+			close ($VERSION);
+			chomp $newversion;
+			$newversion = $newversion ? "Failed to retrieve latest version from Danpol update server: $newversion" : "Failed to retrieve latest version from Danpol update server";
+		} else {
+			$newversion = "Failed to retrieve latest version from Danpol update server";
+		}
+		return ($upgrade, $newversion);
 	}
-	elsif (-e "/var/lib/qhtlfirewall/".$product.".txt.error") {
-		open (my $VERSION, "<", "/var/lib/qhtlfirewall/".$product.".txt.error");
-		flock ($VERSION, LOCK_SH);
-		$newversion = <$VERSION>;
-		close ($VERSION);
-		chomp $newversion;
-		$newversion = $newversion ? "Failed to retrieve latest version from Danpol update server: $newversion" : "Failed to retrieve latest version from Danpol update server";
-	}
-	elsif (-e "/var/lib/qhtlfirewall/error") {
-		open (my $VERSION, "<", "/var/lib/qhtlfirewall/error");
-		flock ($VERSION, LOCK_SH);
-		$newversion = <$VERSION>;
-		close ($VERSION);
-		chomp $newversion;
-		$newversion = $newversion ? "Failed to retrieve latest version from Danpol update server: $newversion" : "Failed to retrieve latest version from Danpol update server";
-	} else {
-		$newversion = "Failed to retrieve latest version from Danpol update server";
-	}
-	return ($upgrade, $newversion);
-}
 # end qhtlfirewallgetversion
 ###############################################################################
 # start manualversion
