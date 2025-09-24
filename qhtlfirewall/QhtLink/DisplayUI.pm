@@ -9,6 +9,7 @@ use IPC::Open3;
 use File::Basename qw(fileparse);
 use QhtLink::Config;
 use QhtLink::Slurp qw(slurp);
+use QhtLink::Sanity qw(sanity);
 use QhtLink::URLGet;
 use QhtLink::ServerStats;
 use QhtLink::GetEthDev;
@@ -2298,8 +2299,8 @@ EOF
 	print "<style>\n";
 	print "#quickViewModal { position: absolute !important; inset: 0 !important; z-index: 1000 !important; }\n";
 	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 95% !important; position: absolute !important; top: 12px !important; left: 50% !important; transform: translateX(-50%) !important; margin: 0 !important; }\n";
-	print "#quickViewModal .modal-content { height: auto !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
-	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow: hidden !important; min-height:0 !important; padding:10px !important; }\n";
+	print "#quickViewModal .modal-content { height: auto !important; max-height:480px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
+	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow:auto !important; min-height:0 !important; padding:10px !important; }\n";
 		print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; display:flex !important; justify-content: space-between !important; align-items: center !important; gap:8px !important; }\n";
 	print "#quickViewModal #quickViewTitle { margin:0 0 8px 0 !important; }\n";
 	print "#quickViewBody { flex:1 1 auto !important; min-height:0 !important; overflow:hidden !important; }\n";
@@ -2312,8 +2313,8 @@ EOF
 	# Ensure confirm modal is anchored within the UI container and not the whole window
 	print "#confirmmodal { position: absolute !important; inset: 0 !important; z-index: 1000 !important; }\n";
 	print "#confirmmodal .modal-dialog { width: 320px !important; max-width: 95% !important; position: absolute !important; top: 12px !important; left: 50% !important; transform: translateX(-50%) !important; margin: 0 !important; }\n";
-	print "#confirmmodal .modal-content { display: flex !important; flex-direction: column !important; overflow: hidden !important; }\n";
-	print "#confirmmodal .modal-body { flex: 1 1 auto !important; min-height: 0 !important; }\n";
+	print "#confirmmodal .modal-content { display: flex !important; flex-direction: column !important; overflow: hidden !important; max-height:480px !important; }\n";
+	print "#confirmmodal .modal-body { flex: 1 1 auto !important; min-height: 0 !important; overflow:auto !important; }\n";
 	print "#confirmmodal .modal-footer { flex: 0 0 auto !important; display:flex !important; justify-content: space-between !important; align-items: center !important; gap:8px !important; }\n";
 		# Tabs wrap improvements: ensure full-width usage on wrap with even spacing
 		print "#myTabs { display:flex; flex-wrap: wrap; gap: 6px; }\n";
@@ -2370,8 +2371,8 @@ EOF
                    ".btn-bright-red:hover{ background:#e61e1e !important; color:#fff !important; }\n"+
 			   ".qhtl-promo-modal{ position:absolute !important; inset:0 !important; background: rgba(0,0,0,0.5); z-index:1000; }\n"+
 			   ".qhtl-promo-modal .modal-dialog{ width:320px; max-width:95vw; margin:0 !important; position:absolute; top:12px; left:50%; transform:translateX(-50%);}\n"+
-                   ".qhtl-promo-modal .modal-content{ display:flex; flex-direction:column; overflow:hidden;}\n"+
-                   ".qhtl-promo-modal .modal-body{ padding:6px !important;}\n"+
+				   ".qhtl-promo-modal .modal-content{ display:flex; flex-direction:column; overflow:hidden; max-height:480px;}\n"+
+				   ".qhtl-promo-modal .modal-body{ padding:6px !important; overflow:auto !important;}\n"+
                    "#qhtlPromoTitle{ margin:0 0 4px 0; }\n";
     document.head.appendChild(s);
   }
@@ -2422,8 +2423,8 @@ EOF
 				} else {
 					$modal.css({ position:'fixed', left: 0, top: 0, right: 0, bottom: 0, width:'auto', height:'auto', margin:0 });
 				}
-				$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, maxWidth: Math.min(320, Math.floor(w*0.95)) + 'px' });
-				var maxH = Math.max(140, Math.floor(h*0.85));
+				$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, width: Math.min(320, Math.floor(w*0.95)) + 'px', maxWidth: Math.min(320, Math.floor(w*0.95)) + 'px' });
+				var maxH = 480; // enforce global cap
 				$mc.css({ display:'flex', flexDirection:'column', overflow:'hidden', maxHeight: maxH+'px' });
 				$modal.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });
 			} catch(_) {}
@@ -2478,8 +2479,8 @@ function openQuickView(url, which) {
 	// Position overlay relative to the wrapper so it stays aligned and scrolls with content
 	try {
 		var scoped = $wrapper.length > 0;
-		var w = scoped ? ($wrapper[0].clientWidth || window.innerWidth) : window.innerWidth;
-		var h = scoped ? ($wrapper[0].clientHeight || window.innerHeight) : window.innerHeight;
+	var w = scoped ? ($wrapper[0].clientWidth || window.innerWidth) : window.innerWidth;
+	var h = scoped ? ($wrapper[0].clientHeight || window.innerHeight) : window.innerHeight;
 		var $dlg = $modal.find('.modal-dialog');
 		var $mc = $modal.find('.modal-content');
 		if (scoped) {
@@ -2487,9 +2488,9 @@ function openQuickView(url, which) {
 		} else {
 			$modal.css({ position:'fixed', left: 0, top: 0, right: 0, bottom: 0, width:'auto', height:'auto', margin:0, background:'rgba(0,0,0,0.5)' });
 		}
-		$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, maxWidth: Math.min(660, Math.floor(w*0.95)) + 'px' });
-		var maxH = Math.max(260, Math.floor(h*0.9));
-		$mc.css({ height:'auto', maxHeight: maxH+'px', display:'flex', flexDirection:'column', overflow:'hidden' });
+	$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, width: Math.min(660, Math.floor(w*0.95)) + 'px', maxWidth: Math.min(660, Math.floor(w*0.95)) + 'px' });
+	var maxH = 480; // enforce global cap
+	$mc.css({ height:'auto', maxHeight: maxH+'px', display:'flex', flexDirection:'column', overflow:'hidden' });
 		$modal.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });
 	} catch(_) {}
 	// Show without Bootstrap backdrop so it doesn't cover the full window

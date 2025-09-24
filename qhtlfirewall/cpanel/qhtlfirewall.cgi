@@ -775,9 +775,10 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			var w = (parent && parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? (parent.clientWidth || window.innerWidth) : window.innerWidth;
 			var h = (parent && parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? (parent.clientHeight || window.innerHeight) : window.innerHeight;
 			w = Math.min(800, Math.floor(w * 0.95));
-			h = Math.min(450, Math.floor(h * 0.9));
+			// Enforce global modal max height 480px
+			h = Math.min(480, Math.floor(h * 0.9));
 			d.style.width = w + 'px'; d.style.height = h + 'px';
-			d.style.maxWidth='95%'; d.style.maxHeight='90%';
+			d.style.maxWidth='95%'; d.style.maxHeight='480px';
 			d.style.position='absolute'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0';
 		}
 				// Ensure blue pulsating glow CSS exists and apply class
