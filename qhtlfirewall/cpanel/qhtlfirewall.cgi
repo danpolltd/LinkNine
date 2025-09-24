@@ -698,7 +698,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 EOF
 
 	print <<EOF;
-	<!-- $bootstrapcss -->
+	$bootstrapcss
 	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
 	$jqueryjs
 	$bootstrapjs
