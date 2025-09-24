@@ -773,19 +773,48 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 		print <<EOF;
 <div class='panel panel-default' style='padding: 10px'>
 	<div class='row' style='display:flex;align-items:center;'>
-		<div class='col-sm-8 col-xs-12'>
-			<h4 style='margin:5px 0;'>QhtLink Firewall (qhtlfirewall) v$myv</h4>
+		<div class='col-sm-8 col-xs-12' style='display:flex;align-items:center;gap:10px;'>
+			<img src='$images/qhtlfirewall_small.gif' onerror="this.onerror=null;this.src='$images/qhtlfirewall_small.png';" style='width:48px;height:48px;vertical-align:middle' alt='Logo'>
+			<h4 style='margin:5px 0;'>QhtLink Firewall v$myv</h4>
 		</div>
 		<div class='col-sm-4 col-xs-12 text-right'>
-			<button type='button' class='btn btn-xs btn-default' style='margin-right:8px'
-				onclick="return (window.__qhtlOpenWatcherSmart ? window.__qhtlOpenWatcherSmart() : (typeof window.openWatcher==='function' ? (openWatcher(), false) : (window.location='$script?action=logtail', false)));">
-				Watcher
-			</button>
-			<img src='$images/qhtlfirewall_small.gif' onerror="this.onerror=null;this.src='$images/qhtlfirewall_small.png';" style='width:48px;height:48px;vertical-align:middle;margin-right:8px' alt='Logo'>
-			$status_badge $status_buttons
+			<div style='display:flex;flex-direction:column;align-items:flex-end;gap:12px;padding-right:12px;'>
+				<button type='button' class='btn btn-watcher-bubble' style='margin-left:auto;'
+					onclick="return (window.__qhtlOpenWatcherSmart ? window.__qhtlOpenWatcherSmart() : (typeof window.openWatcher==='function' ? (openWatcher(), false) : (window.location='$script?action=logtail', false)));">
+					Watcher
+				</button>
+				<div style='display:flex;justify-content:center;width:100%;'>
+					<span class='btn-status success' id='qhtl-status-btn' style='text-transform:none;'>Enabled and Running</span>
+				</div>
+			</div>
 		</div>
 	</div>
 </div>
+<script>
+// Keep the status text within the green button centered and sync with computed status_badge
+(function(){
+  try {
+    var el = document.getElementById('qhtl-status-btn');
+    if (!el) return;
+    var txt = (function(){ var d = document.createElement('div'); d.innerHTML = "${status_badge}"; var s=d.querySelector('.label'); return s ? s.textContent.trim() : 'Enabled and Running'; })();
+    el.textContent = txt;
+    el.classList.remove('success','warning','danger');
+    if (/Disabled/i.test(txt) || /Stopped/i.test(txt)) { el.classList.add('danger'); }
+    else if (/Test/i.test(txt)) { el.classList.add('warning'); }
+    else { el.classList.add('success'); }
+
+		// Squeeze font size to fit inside the button without wrapping
+		var min = 10, max = 16; // px
+		var size = parseFloat(window.getComputedStyle(el).fontSize) || 14;
+		size = Math.min(max, Math.max(min, size));
+		el.style.fontSize = size + 'px';
+		var guard = 0;
+		while (el.scrollWidth > el.clientWidth && size > min && guard < 12) {
+			size -= 1; el.style.fontSize = size + 'px'; guard++;
+		}
+  } catch(e){}
+})();
+</script>
 EOF
 		if ($reregister ne "") {print $reregister}
 }

@@ -2268,18 +2268,18 @@ EOF
 		print "</table>\n";
 		print "</div>\n";
 
-		print "<div id='home' class='tab-pane'>\n";
+	print "<div id='home' class='tab-pane'>\n";
 		print "<form action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
-		print "<tr><td><button name='action' value='servercheck' type='submit' class='btn btn-default'>Check Server Security</button></td><td style='width:100%'>Perform a basic security, stability and settings check on the server</td></tr>\n";
-		print "<tr><td><button name='action' value='readme' type='submit' class='btn btn-default'>Firewall Information</button></td><td style='width:100%'>View the qhtlfirewall+qhtlwaterfall readme.txt file</td></tr>\n";
-		print "<tr><td><button name='action' value='loggrep' type='submit' class='btn btn-default'>Search System Logs</button></td><td style='width:100%'>Search (grep) various system log files (listed in qhtlfirewall.syslogs)</td></tr>\n";
-		print "<tr><td><button name='action' value='viewports' type='submit' class='btn btn-default'>View Listening Ports</button></td><td style='width:100%'>View ports on the server that have a running process behind them listening for external connections</td></tr>\n";
-		print "<tr><td><button name='action' value='rblcheck' type='submit' class='btn btn-default'>Check for IPs in RBLs</button></td><td style='width:100%'>Check whether any of the servers IP addresses are listed in RBLs</td></tr>\n";
-		print "<tr><td><button name='action' value='viewlogs' type='submit' class='btn btn-default'>View iptables Log</button></td><td style='width:100%'>View the last $config{ST_IPTABLES} iptables log lines</td></tr>\n";
-		print "<tr><td><button name='action' value='chart' type='submit' class='btn btn-default'>View qhtlwaterfall Statistics</button></td><td style='width:100%'>View qhtlwaterfall blocking statistics</td></tr>\n";
-		print "<tr><td><button name='action' value='systemstats' type='submit' class='btn btn-default'>View System Statistics</button></td><td style='width:100%'>View basic system statistics</td></tr>\n";
+	print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
+	print "<tr><td><button name='action' value='servercheck' type='submit' class='btn btn-default'>Test Security</button></td><td style='width:100%'>Perform a basic security, stability and settings check on the server</td></tr>\n";
+	print "<tr><td><button name='action' value='readme' type='submit' class='btn btn-default'>Qht Link Info</button></td><td style='width:100%'>View the qhtlfirewall+qhtlwaterfall readme.txt file</td></tr>\n";
+	print "<tr><td><button name='action' value='loggrep' type='submit' class='btn btn-default'>Search Logs</button></td><td style='width:100%'>Search (grep) various system log files (listed in qhtlfirewall.syslogs)</td></tr>\n";
+	print "<tr><td><button name='action' value='viewports' type='submit' class='btn btn-default'>Active Ports</button></td><td style='width:100%'>View ports on the server that have a running process behind them listening for external connections</td></tr>\n";
+	print "<tr><td><button name='action' value='rblcheck' type='submit' class='btn btn-default'>Check in RBLs</button></td><td style='width:100%'>Check whether any of the servers IP addresses are listed in RBLs</td></tr>\n";
+	print "<tr><td><button name='action' value='viewlogs' type='submit' class='btn btn-default'>View ipt Log</button></td><td style='width:100%'>View the last $config{ST_IPTABLES} iptables log lines</td></tr>\n";
+	print "<tr><td><button name='action' value='chart' type='submit' class='btn btn-default'>QhtL Stats</button></td><td style='width:100%'>View qhtlwaterfall blocking statistics</td></tr>\n";
+	print "<tr><td><button name='action' value='systemstats' type='submit' class='btn btn-default'>View Sys Stats</button></td><td style='width:100%'>View basic system statistics</td></tr>\n";
 		print "</table>\n";
 		print "</form>\n";
 		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
@@ -2290,21 +2290,21 @@ EOF
 	print "<div id='qhtlfirewall' class='tab-pane'>\n";
 
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>QHTL \"Firewall\"</th></tr></thead>";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='conf' type='submit' class='btn btn-default'>Firewall Configuration</button></form></td><td style='width:100%'>Edit the configuration file for the qhtlfirewall firewall and qhtlwaterfall</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='profiles' type='submit' class='btn btn-default'>Firewall Profiles</button></form></td><td style='width:100%'>Apply pre-configured qhtlfirewall.conf profiles and backup/restore qhtlfirewall.conf</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='status' type='submit' class='btn btn-default'>View iptables Rules</button></form></td><td style='width:100%'>Display the active iptables rules</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='allow' type='submit' class='btn btn-default'>Firewall Allow IPs</button></form></td><td style='width:100%'>Edit qhtlfirewall.allow, the IP address allow file $permallows</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Firewall Deny IPs</button></form></td><td style='width:100%'>Edit qhtlfirewall.deny, the IP address deny file $permbans</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='enable' type='submit' class='btn btn-default'>Firewall Enable</button></form></td><td style='width:100%'>Enables qhtlfirewall and qhtlwaterfall if previously Disabled</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='disable' type='submit' class='btn btn-default'>Firewall Disable</button></form></td><td style='width:100%'>Completely disables qhtlfirewall and qhtlwaterfall</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='restart' type='submit' class='btn btn-default'>Firewall Restart</button></form></td><td style='width:100%'>Restart the qhtlfirewall iptables firewall</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='restartq' type='submit' class='btn btn-default'>Firewall Quick Restart</button></form></td><td style='width:100%'>Have qhtlwaterfall restart the qhtlfirewall iptables firewall</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='temp' type='submit' class='btn btn-default'>Temporary IP Entries</button></form></td><td style='width:100%'>View/Remove the <i>temporary</i> IP entries $tempbans</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='sips' type='submit' class='btn btn-default'>Deny Server IPs</button></form></td><td style='width:100%'>Deny access to and from specific IP addresses configured on the server (qhtlfirewall.sips)</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='denyf' type='submit' class='btn btn-default'>Flush all Blocks</button></form></td><td style='width:100%'>Removes and unblocks all entries in qhtlfirewall.deny (excluding those marked \"do not delete\") and all temporary IP entries (blocks <i>and</i> allows)</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='redirect' type='submit' class='btn btn-default'>Firewall Redirect</button></form></td><td style='width:100%'>Redirect connections to this server to other ports/IP addresses</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='fix' type='submit' class='btn btn-default'>Fix Common Problems</button></form></td><td style='width:100%'>Offers solutions to some common problems when using an SPI firewall</td></tr>\n";
+	print "<thead><tr><th colspan='2'>QHTL \"Firewall\"</th></tr></thead>";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='conf' type='submit' class='btn btn-default'>Config</button></form></td><td style='width:100%'>Edit the configuration file for the qhtlfirewall firewall and qhtlwaterfall</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='profiles' type='submit' class='btn btn-default'>Profiles</button></form></td><td style='width:100%'>Apply pre-configured qhtlfirewall.conf profiles and backup/restore qhtlfirewall.conf</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='status' type='submit' class='btn btn-default'>View Rules</button></form></td><td style='width:100%'>Display the active iptables rules</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='allow' type='submit' class='btn btn-default'>Allow IPs</button></form></td><td style='width:100%'>Edit qhtlfirewall.allow, the IP address allow file $permallows</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Deny IPs</button></form></td><td style='width:100%'>Edit qhtlfirewall.deny, the IP address deny file $permbans</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='enable' type='submit' class='btn btn-default'>Enable</button></form></td><td style='width:100%'>Enables qhtlfirewall and qhtlwaterfall if previously Disabled</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='disable' type='submit' class='btn btn-default'>Disable</button></form></td><td style='width:100%'>Completely disables qhtlfirewall and qhtlwaterfall</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='restart' type='submit' class='btn btn-default'>Restart</button></form></td><td style='width:100%'>Restart the qhtlfirewall iptables firewall</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='restartq' type='submit' class='btn btn-default'>Reboot</button></form></td><td style='width:100%'>Have qhtlwaterfall restart the qhtlfirewall iptables firewall</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='temp' type='submit' class='btn btn-default'>Temp IPs</button></form></td><td style='width:100%'>View/Remove the <i>temporary</i> IP entries $tempbans</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='sips' type='submit' class='btn btn-default'>Deny IPs</button></form></td><td style='width:100%'>Deny access to and from specific IP addresses configured on the server (qhtlfirewall.sips)</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='denyf' type='submit' class='btn btn-default'>Flush All</button></form></td><td style='width:100%'>Removes and unblocks all entries in qhtlfirewall.deny (excluding those marked \"do not delete\") and all temporary IP entries (blocks <i>and</i> allows)</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='redirect' type='submit' class='btn btn-default'>Redirect</button></form></td><td style='width:100%'>Redirect connections to this server to other ports/IP addresses</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='fix' type='submit' class='btn btn-default'>Fix Tool</button></form></td><td style='width:100%'>Offers solutions to some common problems when using an SPI firewall</td></tr>\n";
 		print "</table>\n";
 	# Enforce Quick View modal sizing (500x400) with scrollable body
 	print "<style>\n";
@@ -2452,9 +2452,9 @@ JS
 
 	print "<div id='qhtlwaterfall' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
-		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallstatus'><input type='submit' class='btn btn-default' value='qhtlwaterfall Status'></form></td><td style='width:100%'>Display qhtlwaterfall status</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallrestart'><input type='submit' class='btn btn-default' value='qhtlwaterfall Restart'></form></td><td style='width:100%'>Restart qhtlwaterfall</td></tr>\n";
+	print "<thead><tr><th colspan='2'>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
+	print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallstatus'><input type='submit' class='btn btn-default' value='Status'></form></td><td style='width:100%'>Display qhtlwaterfall status</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallrestart'><input type='submit' class='btn btn-default' value='Restart'></form></td><td style='width:100%'>Restart qhtlwaterfall</td></tr>\n";
 		print "<tr><td style='white-space: nowrap;'><form action='$script' method='post'><input type='hidden' name='action' value='ignorefiles'><select name='ignorefile'>\n";
 		print "<option value='qhtlfirewall.ignore'>qhtlfirewall.ignore - IP Blocking</option>\n";
 		print "<option value='qhtlfirewall.pignore'>qhtlfirewall.pignore, Process Tracking</option>\n";
@@ -2471,9 +2471,9 @@ JS
 		print "<tr><td><form action='$script' method='post'><select name='template'>\n";
 		foreach my $tmp ("alert.txt","tracking.txt","connectiontracking.txt","processtracking.txt","accounttracking.txt","usertracking.txt","sshalert.txt","webminalert.txt","sualert.txt","sudoalert.txt","uialert.txt","cpanelalert.txt","scriptalert.txt","filealert.txt","watchalert.txt","loadalert.txt","resalert.txt","integrityalert.txt","exploitalert.txt","relayalert.txt","portscan.txt","uidscan.txt","permblock.txt","netblock.txt","queuealert.txt","logfloodalert.txt","logalert.txt","modsecipdbcheck.txt") {print "<option>$tmp</option>\n"}
 		print "</select> <button name='action' value='templates' type='submit' class='btn btn-default'>Edit</button></form></td><td style='width:100%'>Edit email alert templates. See Firewall Information for details of each file</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='logfiles' type='submit' class='btn btn-default'>qhtlwaterfall Log Scanner Files</button></form></td><td style='width:100%'>Edit the Log Scanner file (qhtlfirewall.logfiles) - Scan listed log files for log lines and periodically send a report</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='blocklists' type='submit' class='btn btn-default'>qhtlwaterfall Blocklists</button></form></td><td style='width:100%'>Edit the Blocklists configuration file (qhtlfirewall.blocklists)</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='syslogusers' type='submit' class='btn btn-default'>qhtlwaterfall Syslog Users</button></form></td><td style='width:100%'>Edit the syslog/rsyslog allowed users file (qhtlfirewall.syslogusers)</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='logfiles' type='submit' class='btn btn-default'>Log Scanner Files</button></form></td><td style='width:100%'>Edit the Log Scanner file (qhtlfirewall.logfiles) - Scan listed log files for log lines and periodically send a report</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='blocklists' type='submit' class='btn btn-default'>Blocklists</button></form></td><td style='width:100%'>Edit the Blocklists configuration file (qhtlfirewall.blocklists)</td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='syslogusers' type='submit' class='btn btn-default'>Syslog Users</button></form></td><td style='width:100%'>Edit the syslog/rsyslog allowed users file (qhtlfirewall.syslogusers)</td></tr>\n";
 		print "</table>\n";
 		print "</div>\n";
 
@@ -2543,16 +2543,22 @@ JS
 			print "</table>\n";
 		}
 
-		# Close the 'More' tab-pane before starting Extra
-		print "</div>\n";
+	# Move About section into the 'More' tab so it is only visible there
+	print "<div class='panel panel-info'>\n";
+	print "<div class='panel-heading'>About</div>";
+	print "<div class='panel-body'>This software is maintained by Danpol Community. Visit <a href='https://www.forum.danpol.co.uk' target='_blank'>www.forum.danpol.co.uk</a> for updates and support.</div>\n";
+	print "</div>\n";
 
-		# New Extra tab-pane at the end
-		print "<div id='extra' class='tab-pane'>\n";
-		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>Extra</th></tr></thead>";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='qhtlfirewalltest' type='submit' class='btn btn-default'>Test iptables</button></form></td><td style='width:100%'>Check that iptables has the required modules to run qhtlfirewall</td></tr>\n";
-		print "</table>\n";
-		print "</div>\n";
+	# Close the 'More' tab-pane before starting Extra
+	print "</div>\n";
+
+	# New Extra tab-pane at the end
+	print "<div id='extra' class='tab-pane'>\n";
+	print "<table class='table table-bordered table-striped'>\n";
+	print "<thead><tr><th colspan='2'>Extra</th></tr></thead>";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='qhtlfirewalltest' type='submit' class='btn btn-default'>Test iptables</button></form></td><td style='width:100%'>Check that iptables has the required modules to run qhtlfirewall</td></tr>\n";
+	print "</table>\n";
+	print "</div>\n";
 		# Close tab-content container
 		print "</div>\n";
 
@@ -2562,17 +2568,14 @@ JS
 #		}
 		# Note: Mobile View panel moved to Upgrade tab above
 
-		print "<div class='panel panel-info'>\n";
-		print "<div class='panel-heading'>About</div>";
-		print "<div class='panel-body'>This software is maintained by Danpol Community. Visit <a href='https://www.forum.danpol.co.uk' target='_blank'>www.forum.danpol.co.uk</a> for updates and support.</div>\n";
-		print "</div>\n";
+	# About already moved under 'More' tab above
 
 	}
 
 	unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
 		print "<br>\n";
 		print "<div class='well well-sm'>qhtlfirewall: v$myv</div>";
-		print "<p>&copy;2025, <a href='https://www.qhtlfirewall.danpol.co.uk' target='_blank'>Danpol Limited</a> (Daniel Nowakowski</p>\n";
+		print "<p>&copy;2025, <a href='https://www.qhtlfirewall.danpol.co.uk' target='_blank'>Danpol Limited</a> (<span style='color:#0d6efd;font-weight:bold;'>Daniel Nowakowski</span>)</p>\n";
 		print "</div>\n";
 	}
 
