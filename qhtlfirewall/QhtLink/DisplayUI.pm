@@ -4,79 +4,59 @@
 # https://qhtlf.danpol.co.uk
 ###############################################################################
 ## no critic (RequireUseWarnings, ProhibitExplicitReturnUndef, ProhibitMixedBooleanOperators, RequireBriefOpen)
-package QhtLink::DisplayUI;
-
-use strict;
-use lib '/usr/local/qhtlfirewall/lib';
-use Fcntl qw(:DEFAULT :flock);
-use File::Basename;
-use File::Copy;
-use Net::CIDR::Lite;
-use IPC::Open3;
-
-use QhtLink::Config;
-use QhtLink::CheckIP qw(checkip);
-use QhtLink::Ports;
-use QhtLink::URLGet;
-use QhtLink::Sanity qw(sanity);;
-use QhtLink::ServerCheck;
-use QhtLink::ServerStats;
-use QhtLink::Service;
-use QhtLink::RBLCheck;
-use QhtLink::GetEthDev;
-use QhtLink::Slurp qw(slurp);
-
-use Exporter qw(import);
-our $VERSION     = 1.01;
-our @ISA         = qw(Exporter);
-our @EXPORT_OK   = qw();
-
-umask(0177);
-
-our ($chart, $ipscidr6, $ipv6reg, $ipv4reg, %config, %ips, $mobile,
-	 $urlget, %FORM, $script, $script_da, $images, $myv);
-
-my $slurpreg = QhtLink::Slurp->slurpreg;
-my $cleanreg = QhtLink::Slurp->cleanreg;
-
-# Fallback no-op resize helper to avoid undefined sub errors
-sub resize {
-	# Historically used to wrap resizable pre blocks; safe to no-op now
+sub confirmmodal {
+	print "<style>\n";
+	print "#confirmmodal { position: absolute !important; inset: 0 !important; }\n";
+	print "#confirmmodal .modal-dialog { width: 420px !important; max-width: 95% !important; position: absolute !important; top: 18px !important; left: 50% !important; transform: translateX(-50%) !important; margin: 0 !important; }\n";
+	print "#confirmmodal .modal-content { display:flex !important; flex-direction:column !important; overflow:hidden !important; }\n";
+	print "#confirmmodal .modal-body { flex:1 1 auto !important; min-height:0 !important; overflow:auto !important; }\n";
+	print "</style>\n";
+	print "<div class='modal fade' id='confirmmodal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
+	print "<div class='modal-dialog modal-sm'>\n";
+	print "<div class='modal-content'>\n";
+	print "<div class='modal-body'>\n";
+	print "<h4 id='modal-text'>text</h4>\n";
+	print "</div>\n";
+	print "<div class='modal-footer'>\n";
+	print "<a id='modal-submit' href='#' class='btn btn-success'>Yes - Continue</a>\n";
+	print "<button type='button' class='btn btn-danger' data-dismiss='modal'>No - Cancel</button>\n";
+	print "</div>\n";
+	print "</div>\n";
+	print "</div>\n";
+	print "</div>\n";
+	print "<script>\n";
+	print "\t\$('button.confirmButton').on('click', function(e) {\n";
+	print "\tvar dataquery = \$(this).attr('data-query');\n";
+	print "\tvar datahref = \$(this).attr('data-href');\n";
+	print "\t\$('#modal-text').html(dataquery);\n";
+	print "\t\$('#modal-submit').attr({'href':datahref});\n";
+	print "});\n";
+	print "(function(){\n";
+	print "\tvar cm = \$('#confirmmodal');\n";
+	print "\tcm.on('show.bs.modal', function(){\n";
+	print "\t\ttry {\n";
+	print "\t\tvar parent = document.querySelector('.qhtl-bubble-bg') || document.body;\n";
+	print "\t\tvar rect = (parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? parent.getBoundingClientRect() : {left:0, top:0, width:window.innerWidth, height:window.innerHeight};\n";
+	print "\t\tvar $dlg = cm.find('.modal-dialog');\n";
+	print "\t\tvar $mc = cm.find('.modal-content');\n";
+	print "\t\tcm.css({ position:'fixed', left: rect.left+'px', top: rect.top+'px', width: rect.width+'px', height: rect.height+'px', margin:0, background:'rgba(0,0,0,0.5)' });\n";
+	print "\t\t$dlg.css({ position:'absolute', left:'50%', top:'18px', transform:'translateX(-50%)', margin:0, maxWidth: Math.min(420, Math.floor(rect.width*0.95)) + 'px' });\n";
+	print "\t\tvar maxH = Math.max(140, Math.floor(rect.height*0.85));\n";
+	print "\t\t$mc.css({ display:'flex', flexDirection:'column', overflow:'hidden', maxHeight: maxH+'px' });\n";
+	print "\t\tcm.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });\n";
+	print "\t\t} catch(_) {}\n";
+	print "\t});\n";
+	print "})();\n";
+	print "\$('.modal').click(function(event){\n";
+	print "  \$(event.target).modal('hide')\n";
+	print "});\n";
+	print "</script>\n";
 	return;
 }
-
-#
+# end confirmmodal
 ###############################################################################
-# start main
-sub main {
-	my $form_ref = shift;
-	%FORM = %{$form_ref};
-	$script = shift;
-	$script_da = shift;
-	$images = shift;
-	$myv = shift;
-	$config{THIS_UI} = shift;
-	$| = 1;
-
-	$ipscidr6 = Net::CIDR::Lite->new;
-
-	my $thisui = $config{THIS_UI};
-	my $config = QhtLink::Config->loadconfig();
-	%config = $config->config;
-	$config{THIS_UI} = $thisui;
-
-	$ipv4reg = $config->ipv4reg;
-	$ipv6reg = $config->ipv6reg;
-
-	if ($config{CF_ENABLE}) {
-		require QhtLink::CloudFlare;
-		import QhtLink::CloudFlare;
-	}
-
-	$mobile = 0;
-	if ($FORM{mobi}) {$mobile = 1}
-
-	$chart = 1;
+# start qhtlfirewallgetversion
+sub qhtlfirewallgetversion {
 	if ($config{ST_ENABLE}) {
 		if (!defined QhtLink::ServerStats::init()) {$chart = 0}
 	}
@@ -2412,8 +2392,8 @@ EOF
 	# Enforce Quick View modal sizing (500x400) with scrollable body
 	print "<style>\n";
 	print "#quickViewModal { position: absolute !important; inset: 0 !important; }\n";
-	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 95% !important; position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; margin: 0 !important; }\n";
-	print "#quickViewModal .modal-content { height: 450px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
+	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 95% !important; position: absolute !important; top: 12px !important; left: 50% !important; transform: translateX(-50%) !important; margin: 0 !important; }\n";
+	print "#quickViewModal .modal-content { height: auto !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
 	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow: hidden !important; min-height:0 !important; padding:10px !important; }\n";
 		print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; display:flex !important; justify-content: space-between !important; align-items: center !important; gap:8px !important; }\n";
 	print "#quickViewModal #quickViewTitle { margin:0 0 8px 0 !important; }\n";
@@ -2477,8 +2457,8 @@ EOF
                    ".btn-golden:hover{ background: linear-gradient(180deg, #ffe387 0%, #ffc41a 100%); color: #f0f0f0 !important; }\n"+
                    ".btn-bright-red{ background: #ff2d2d !important; color:#fff !important; border:1px solid #d61e1e; }\n"+
                    ".btn-bright-red:hover{ background:#e61e1e !important; color:#fff !important; }\n"+
-				   ".qhtl-promo-modal{ position:absolute !important; inset:0 !important; background: rgba(0,0,0,0.5); }\n"+
-				   ".qhtl-promo-modal .modal-dialog{ width:320px; max-width:95vw; margin:0 !important; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);}\n"+
+			   ".qhtl-promo-modal{ position:absolute !important; inset:0 !important; background: rgba(0,0,0,0.5); }\n"+
+			   ".qhtl-promo-modal .modal-dialog{ width:320px; max-width:95vw; margin:0 !important; position:absolute; top:12px; left:50%; transform:translateX(-50%);}\n"+
                    ".qhtl-promo-modal .modal-content{ display:flex; flex-direction:column; overflow:hidden;}\n"+
                    ".qhtl-promo-modal .modal-body{ padding:6px !important;}\n"+
                    "#qhtlPromoTitle{ margin:0 0 4px 0; }\n";
@@ -2502,17 +2482,17 @@ EOF
       var modal = buildPromoModal();
 			var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
 			parent.appendChild(modal);
+			var $modal = $('#qhtlPromoModal');
 			try {
 				var rect = (parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? parent.getBoundingClientRect() : {left:0, top:0, width:window.innerWidth, height:window.innerHeight};
 				var $dlg = $modal.find('.modal-dialog');
 				var $mc = $modal.find('.modal-content');
 				$modal.css({ position:'fixed', left: rect.left+'px', top: rect.top+'px', width: rect.width+'px', height: rect.height+'px', margin:0 });
-				$dlg.css({ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)', margin:0, maxWidth: Math.min(320, Math.floor(rect.width*0.95)) + 'px' });
-				var maxH = Math.max(140, Math.floor(rect.height*0.8));
+				$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, maxWidth: Math.min(320, Math.floor(rect.width*0.95)) + 'px' });
+				var maxH = Math.max(140, Math.floor(rect.height*0.85));
 				$mc.css({ display:'flex', flexDirection:'column', overflow:'hidden', maxHeight: maxH+'px' });
 				$modal.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });
 			} catch(_) {}
-      var $modal = $('#qhtlPromoModal');
       // add orange glow
       $modal.find('.modal-content').addClass('fire-orange');
       // wire buttons
@@ -2554,7 +2534,7 @@ function openQuickView(url, which) {
 		var $dlg = $modal.find('.modal-dialog');
 		var $mc = $modal.find('.modal-content');
 		$modal.css({ position:'fixed', left: rect.left+'px', top: rect.top+'px', width: rect.width+'px', height: rect.height+'px', margin:0, background:'rgba(0,0,0,0.5)' });
-		$dlg.css({ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)', margin:0, maxWidth: Math.min(660, Math.floor(rect.width*0.95)) + 'px' });
+		$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, maxWidth: Math.min(660, Math.floor(rect.width*0.95)) + 'px' });
 		var maxH = Math.max(260, Math.floor(rect.height*0.9));
 		$mc.css({ height:'auto', maxHeight: maxH+'px', display:'flex', flexDirection:'column', overflow:'hidden' });
 		$modal.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });
@@ -3267,12 +3247,52 @@ sub confirmmodal {
 	print "  \$(event.target).modal('hide')\n";
 	print "});\n";
 	print "</script>\n";
-	return;
-}
-# end confirmmodal
-###############################################################################
-# start qhtlfirewallgetversion
-sub qhtlfirewallgetversion {
+	print "<style>\n";
+	print "#confirmmodal { position: absolute !important; inset: 0 !important; }\n";
+	print "#confirmmodal .modal-dialog { width: 420px !important; max-width: 95% !important; position: absolute !important; top: 12px !important; left: 50% !important; transform: translateX(-50%) !important; margin: 0 !important; }\n";
+	print "#confirmmodal .modal-content { display:flex !important; flex-direction:column !important; overflow:hidden !important; }\n";
+	print "#confirmmodal .modal-body { flex:1 1 auto !important; min-height:0 !important; overflow:auto !important; }\n";
+	print "</style>\n";
+	print "<div class='modal fade' id='confirmmodal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
+	print "<div class='modal-dialog modal-sm'>\n";
+	print "<div class='modal-content'>\n";
+	print "<div class='modal-body'>\n";
+	print "<h4 id='modal-text'>text</h4>\n";
+	print "</div>\n";
+	print "<div class='modal-footer'>\n";
+	print "<a id='modal-submit' href='#' class='btn btn-success'>Yes - Continue</a>\n";
+	print "<button type='button' class='btn btn-danger' data-dismiss='modal'>No - Cancel</button>\n";
+	print "</div>\n";
+	print "</div>\n";
+	print "</div>\n";
+	print "</div>\n";
+	print "<script>\n";
+	print "\t\$('button.confirmButton').on('click', function(e) {\n";
+	print "\tvar dataquery = \$(this).attr('data-query');\n";
+	print "\tvar datahref = \$(this).attr('data-href');\n";
+	print "\t\$('#modal-text').html(dataquery);\n";
+	print "\t\$('#modal-submit').attr({'href':datahref});\n";
+	print "});\n";
+	print "(function(){\n";
+	print "\tvar cm = \$('#confirmmodal');\n";
+	print "\tcm.on('show.bs.modal', function(){\n";
+	print "\t\ttry {\n";
+	print "\t\tvar parent = document.querySelector('.qhtl-bubble-bg') || document.body;\n";
+	print "\t\tvar rect = (parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? parent.getBoundingClientRect() : {left:0, top:0, width:window.innerWidth, height:window.innerHeight};\n";
+	print "\t\tvar $dlg = cm.find('.modal-dialog');\n";
+	print "\t\tvar $mc = cm.find('.modal-content');\n";
+	print "\t\tcm.css({ position:'fixed', left: rect.left+'px', top: rect.top+'px', width: rect.width+'px', height: rect.height+'px', margin:0, background:'rgba(0,0,0,0.5)' });\n";
+	print "\t\t$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, maxWidth: Math.min(420, Math.floor(rect.width*0.95)) + 'px' });\n";
+	print "\t\tvar maxH = Math.max(140, Math.floor(rect.height*0.85));\n";
+	print "\t\t$mc.css({ display:'flex', flexDirection:'column', overflow:'hidden', maxHeight: maxH+'px' });\n";
+	print "\t\tcm.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });\n";
+	print "\t\t} catch(_) {}\n";
+	print "\t});\n";
+	print "})();\n";
+	print "\$('.modal').click(function(event){\n";
+	print "  \$(event.target).modal('hide')\n";
+	print "});\n";
+	print "</script>\n";
 	my $product = shift;
 	my $current = shift;
 	my $upgrade = 0;
