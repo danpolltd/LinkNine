@@ -4368,6 +4368,33 @@ JS
 
 }
 # end cloudflare
+###############################################################################
+# start version helpers (restored)
+sub manualversion {
+	my ($curv) = @_;
+	my $upgrade = 0; my $actv = ""; my $src = ""; my $err = "";
+	# Attempt to fetch remote version information using existing $urlget object
+	eval {
+		if (defined $urlget) {
+			my $data = $urlget->get('https://update.qhtl.link/version.txt');
+			if (defined $data && $data =~ /^(\d+\.\d+(?:\.\d+)?)/) {
+				$actv = $1; $src = 'remote';
+				if (ver_cmp($actv, $curv) == 1) { $upgrade = 1; }
+			}
+		}
+	};
+	if ($@) { $err = 'Version check failed'; }
+	return ($upgrade, $actv, $src, $err);
+}
+
+sub qhtlfirewallgetversion {
+	my ($product, $curv) = @_;
+	# Wrapper returning (upgrade, activeVersion)
+	my ($upgrade, $actv, $src, $err) = manualversion($curv);
+	return ($upgrade, $actv);
+}
+# end version helpers
+
 1;
 sub printreturn {
 	print "<hr><div><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input id='qhtlfirewallreturn' type='submit' class='btn btn-default' value='Return'></form></div>\n";
