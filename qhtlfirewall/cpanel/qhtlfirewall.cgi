@@ -820,18 +820,35 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 		while (el.scrollWidth > el.clientWidth && size > min && guard < 12) {
 			size -= 1; el.style.fontSize = size + 'px'; guard++;
 		}
-		// Match width to the Watcher button for visual balance
+		// Match width to the Watcher button for visual balance and reduce both by ~20%
 		try {
 			var watcher = document.querySelector('.btn-watcher-bubble');
 			if (watcher) {
 				// Use computed width to include padding/border
-				var cw = parseFloat(window.getComputedStyle(watcher).width);
+				var cs = window.getComputedStyle(watcher);
+				var cw = parseFloat(cs.width);
 				if (!isNaN(cw) && cw > 0) {
+					var target = Math.max(60, Math.round(cw * 0.8)); // reduce ~20%
+					// shrink watcher width similarly by applying a min-width
+					watcher.style.minWidth = target + 'px';
 					el.style.display = 'inline-block';
-					el.style.minWidth = cw + 'px';
+					el.style.minWidth = target + 'px';
 					el.style.textAlign = 'center';
 				}
 			}
+		} catch(_) {}
+
+		// Apply bubble-like gradient styling to status to mirror Watcher feel
+		try {
+			var bg = '#5cb85c', border = '#3fae50', fg = '#fff';
+			if (el.classList.contains('warning')) { bg = '#f0ad4e'; border = '#e19d3f'; }
+			else if (el.classList.contains('danger')) { bg = '#d9534f'; border = '#c4413d'; }
+			el.style.background = 'linear-gradient(180deg, ' + bg + ' 0%, ' + bg + ' 100%)';
+			el.style.color = fg;
+			el.style.border = '1px solid ' + border;
+			el.style.borderRadius = '4px';
+			el.style.padding = '6px 10px';
+			el.style.boxShadow = '0 0 0 5px ' + bg + '33';
 		} catch(_) {}
 	} catch(e){}
 })();
