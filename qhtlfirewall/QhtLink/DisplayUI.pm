@@ -1,3 +1,5 @@
+package QhtLink::DisplayUI;
+
 ###############################################################################
 # Copyright (C) 2025 Daniel Nowakowski
 #
@@ -55,8 +57,8 @@ sub confirmmodal {
 }
 # end confirmmodal
 ###############################################################################
-# start qhtlfirewallgetversion
-sub qhtlfirewallgetversion {
+# start main
+sub main {
 	if ($config{ST_ENABLE}) {
 		if (!defined QhtLink::ServerStats::init()) {$chart = 0}
 	}
