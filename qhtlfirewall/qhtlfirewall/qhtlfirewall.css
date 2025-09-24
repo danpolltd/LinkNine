@@ -211,3 +211,102 @@ td .btn, th .btn {
 }
 /* Ensure nested elements inside buttons don\'t force wrapping */
 .btn * { white-space: inherit !important; }
+
+/* Watcher "water bubble" button */
+.btn-watcher-bubble {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 10px 16px;
+	min-width: 110px;
+	border-radius: 999px;
+	border: 1px solid #2b79ff;
+	color: #ffffff !important;
+	background: radial-gradient(circle at 30% 30%, #9fd3ff 0%, #4aa3ff 45%, #1976d2 80%);
+	box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 16px rgba(25, 118, 210, 0.35);
+	text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
+.btn-watcher-bubble:before {
+	content: '';
+	position: absolute;
+	top: 4px; left: 10px; right: 10px; height: 40%;
+	border-radius: 999px;
+	background: linear-gradient( to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0) );
+	pointer-events: none;
+}
+.btn-watcher-bubble:hover {
+	background: radial-gradient(circle at 30% 30%, #b7e0ff 0%, #5bb0ff 45%, #237ad6 80%);
+	box-shadow: inset 0 2px 6px rgba(255,255,255,0.4), 0 8px 18px rgba(25, 118, 210, 0.45);
+	color: #ffffff !important;
+}
+
+/* Header status button styles */
+.btn-status {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 6px 10px;
+	min-width: 180px;
+	max-width: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	border-radius: 6px;
+	font-weight: 600;
+}
+.btn-status.success { background: #4CAF50; color:#fff; border:1px solid #3b9140; }
+.btn-status.warning { background: #f0ad4e; color:#fff; border:1px solid #d69339; }
+.btn-status.danger  { background: #d9534f; color:#fff; border:1px solid #b94441; }
+
+/* Bubble-shaped page wrapper with vertical gradient header->footer */
+.qhtl-bubble-bg {
+	background: linear-gradient(180deg, #a8e6a1 0%, #7ec8ff 50%, #c39bff 100%);
+	border-radius: 14px;
+	padding: 10px 10px 14px 10px;
+	margin: 10px 0 14px 0;
+	box-shadow: 0 10px 28px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.3);
+	overflow: hidden;
+}
+
+/* Preserve readable white panels inside the bubble */
+.qhtl-bubble-bg .panel { background: #fff; }
+.qhtl-bubble-bg .panel > .panel-heading,
+.qhtl-bubble-bg .panel > .panel-body,
+.qhtl-bubble-bg .panel > .panel-footer { background: #fff; }
+
+/* Scoped Bootstrap-lite for this UI inside the gradient wrapper */
+.qhtl-bubble-bg .btn { display:inline-block; padding:6px 12px; margin-bottom:0; font-size:14px; font-weight:400; line-height:1.42857143; text-align:center; white-space:nowrap; vertical-align:middle; cursor:pointer; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none; background-image:none; border:1px solid transparent; border-radius:4px; }
+.qhtl-bubble-bg .btn:focus, .qhtl-bubble-bg .btn:active:focus, .qhtl-bubble-bg .btn.active:focus { outline:thin dotted; outline:5px auto -webkit-focus-ring-color; outline-offset:-2px; }
+.qhtl-bubble-bg .btn:active, .qhtl-bubble-bg .btn.active { background-image:none; box-shadow: inset 0 3px 5px rgba(0,0,0,.125); }
+.qhtl-bubble-bg .btn-default { color:#333; background-color:#fff; border-color:#ccc; }
+.qhtl-bubble-bg .btn-default:hover { color:#333; background-color:#e6e6e6; border-color:#adadad; }
+.qhtl-bubble-bg .btn-primary { background-color:#337ab7; border-color:#2e6da4; color:#fff !important; }
+.qhtl-bubble-bg .btn-primary:hover { background-color:#286090; border-color:#204d74; color:#fff !important; }
+.qhtl-bubble-bg .btn-success { background-color:#5cb85c; border-color:#4cae4c; color:#fff !important; }
+.qhtl-bubble-bg .btn-success:hover { background-color:#449d44; border-color:#398439; color:#fff !important; }
+.qhtl-bubble-bg .btn-warning { background-color:#f0ad4e; border-color:#eea236; color:#fff !important; }
+.qhtl-bubble-bg .btn-warning:hover { background-color:#ec971f; border-color:#d58512; color:#fff !important; }
+.qhtl-bubble-bg .btn-danger { background-color:#d9534f; border-color:#d43f3a; color:#fff !important; }
+.qhtl-bubble-bg .btn-danger:hover { background-color:#c9302c; border-color:#ac2925; color:#fff !important; }
+.qhtl-bubble-bg .btn-info { background-color:#5bc0de; border-color:#46b8da; color:#fff !important; }
+.qhtl-bubble-bg .btn-info:hover { background-color:#31b0d5; border-color:#269abc; color:#fff !important; }
+
+/* Tabs (Bootstrap-like) scoped */
+.qhtl-bubble-bg .nav { padding-left:0; margin-bottom:0; list-style:none; }
+.qhtl-bubble-bg .nav>li { position:relative; display:block; }
+.qhtl-bubble-bg .nav>li>a { position:relative; display:block; padding:10px 15px; }
+.qhtl-bubble-bg .nav-tabs { border-bottom:1px solid #ddd; background: transparent; }
+.qhtl-bubble-bg .nav-tabs>li { float:left; margin-bottom:-1px; }
+.qhtl-bubble-bg .nav-tabs>li>a { margin-right:2px; line-height:1.42857143; border:1px solid transparent; border-radius:4px 4px 0 0; background:#ffffff66; }
+.qhtl-bubble-bg .nav-tabs>li>a:hover { border-color:#eee #eee #ddd; text-decoration:none; }
+.qhtl-bubble-bg .nav-tabs>li.active>a,
+.qhtl-bubble-bg .nav-tabs>li.active>a:focus,
+.qhtl-bubble-bg .nav-tabs>li.active>a:hover { color:#555; cursor:default; background-color:#fff; border:1px solid #ddd; border-bottom-color:transparent; }
+.qhtl-bubble-bg .tab-content>.tab-pane { display:none; }
+.qhtl-bubble-bg .tab-content>.active { display:block; }
+
+/* Slight glow so status stands out on gradient */
+.qhtl-bubble-bg .btn-status.success { box-shadow: 0 0 0 3px rgba(76,175,80,0.15); }
+.qhtl-bubble-bg .btn-status.warning { box-shadow: 0 0 0 3px rgba(240,173,78,0.15); }
+.qhtl-bubble-bg .btn-status.danger  { box-shadow: 0 0 0 3px rgba(217,83,79,0.15); }
