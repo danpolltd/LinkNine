@@ -112,9 +112,9 @@ sub main {
 		print "<div><p>Checking version...</p>\n\n";
 		my ($upgrade, $actv, $src, $err) = &manualversion($myv);
 		if ($upgrade) {
-			my $changelog = ($src ne '' ? "$src/qhtlfirewall/changelog.txt" : "https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt");
-			print "<form action='$script' method='post'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button> A new version of qhtlfirewall (v$actv) is available";
-			print ". Upgrading will retain your settings. <a href='${changelog}' target='_blank'>View ChangeLog</a></form>\n";
+			print "<form action='$script' method='post' style='display:inline-block;margin-right:8px'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button></form>";
+			print "<form action='$script' method='post' style='display:inline-block'><button name='action' value='changelog' type='submit' class='btn btn-default'>View ChangeLog</button></form>";
+			print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div>\n";
 		} else {
 			if (defined $err and $err ne "") {
 				print "<div class='bs-callout bs-callout-danger'>$err</div>\n";
@@ -679,6 +679,35 @@ QHTL_JQ_GREP
 			$line =~ s/\</\&lt\;/g;
 			$line =~ s/\>/\&gt\;/g;
 			print $line."\n";
+		}
+		print "</pre>\n";
+		&resize("bot",0);
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "changelog") {
+		# Render the installed changelog file the same way as readme
+		&resize("top");
+		print "<pre id='output' class='comment' style='white-space: pre-wrap;height: 500px; overflow: auto; resize:both; clear:both'>\n";
+		my $cl = "/etc/qhtlfirewall/changelog.txt";
+		if (-e $cl) {
+			open (my $CL, "<", $cl) or die $!;
+			flock ($CL, LOCK_SH);
+			while (my $line = <$CL>) {
+				$line =~ s/\</\&lt\;/g;
+				$line =~ s/\>/\&gt\;/g;
+				print $line;
+			}
+			close ($CL);
+		} else {
+			# Fallback: try to fetch remotely if local file is missing
+			my $url = "https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt";
+			my ($status, $body) = $urlget->urlget($url);
+			if ($status == 200 && defined $body && length $body) {
+				$body =~ s/</&lt;/g; $body =~ s/>/&gt;/g;
+				print $body;
+			} else {
+				print "Changelog file not found at $cl and unable to fetch from $url\n";
+			}
 		}
 		print "</pre>\n";
 		&resize("bot",0);
@@ -2192,11 +2221,14 @@ EOF
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
 	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
 	if ($upgrade) {
-			print "<tr><td colspan='2'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button><div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings<br><a href='https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt' target='_blank'>View ChangeLog</a></div></td></tr>\n";
+		print "<tr><td colspan='2'><div style='display:flex;gap:8px;flex-wrap:wrap'>";
+		print "<button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button>";
+		print "<button name='action' value='changelog' type='submit' class='btn btn-default'>View ChangeLog</button>";
+		print "</div><div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings</div></td></tr>\n";
 	} else {
-			# Show ChangeLog link above the Manual Check button
+		# Show ChangeLog button above the Manual Check button
 			print "<tr><td colspan='2'>";
-			print "<div class='text-muted small' style='margin-bottom:6px'><a href='https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt' target='_blank'>View ChangeLog</a></div>";
+		print "<div style='margin-bottom:6px'><form action='$script' method='post'><button name='action' value='changelog' type='submit' class='btn btn-default'>View ChangeLog</button></form></div>";
 			print "<button name='action' value='manualcheck' type='submit' class='btn btn-default'>Manual Check</button>";
 			if ($actv ne "" && ver_cmp($actv, $myv) == 1) {
 					print "<div class='text-muted small' style='margin-top:6px'>Latest available version is v$actv. Your version is v$myv. Please upgrade.</div></td></tr>\n";
