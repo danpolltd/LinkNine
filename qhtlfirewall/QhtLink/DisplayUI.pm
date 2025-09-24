@@ -2376,7 +2376,24 @@ EOF
     modal.setAttribute('tabindex','-1');
     modal.setAttribute('role','dialog');
     modal.setAttribute('aria-hidden','true');
-	modal.innerHTML = "\n<div class='modal-dialog'>\n  <div class='modal-content'>\n    <div class='modal-body'>\n      <h4 id='qhtlPromoTitle'>Information</h4>\n      <div id='qhtlPromoBody' style='display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px;line-height:1.25;padding:4px;'>\n        <div style='padding:2px 4px;'><strong>You need promotion active to access this function !</strong></div>\n      </div>\n    </div>\n    <div class='modal-footer' style='display:flex;justify-content:space-between;align-items:center;'>\n      <div><button type='button' class='btn btn-golden' id='qhtlPromoBuyBtn'>Buy Promotions</button></div>\n      <div><button type='button' class='btn btn-bright-red' id='qhtlPromoCloseBtn' data-dismiss='modal'>Close</button></div>\n    </div>\n  </div>\n</div>\n";
+	modal.innerHTML = "\n<div class='modal-dialog'>\n  <div class='modal-content'>\n    <div class='modal-body'>\n      <h4 id='qhtlPromoTitle'>Information</h4>\n      <div id='qhtlPromoBody' style='display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px;line-height:1.35;padding:4px;'>\n        <div style='padding:2px 4px;'>"+
+					"<b>You need promotion active to access !</b><br>"+
+					"Yeah, well i wish this is the case<br>"+
+					"but not yet, for now you can donate ;)<br>"+
+					"Coding soft and hardware cost a loot.<br>"+
+					"If you want me keep going pls donate.<br>"+
+					"Use button below or contact me via email<br>"+
+					"You can change donated amount here:<br>"+
+					"<input type='text' id='qhtlPromoAmount' inputmode='numeric' pattern='[0-9]*' maxlength='10' style='width:140px;text-align:center;' placeholder='10'>"+
+				"</div>\n"+
+			"</div>\n"+
+		"</div>\n"+
+		"<div class='modal-footer' style='display:flex;justify-content:space-between;align-items:center;'>\n"+
+			"<div><button type='button' class='btn btn-golden' id='qhtlPromoBuyBtn'>Promotion</button></div>\n"+
+			"<div><button type='button' class='btn btn-bright-red' id='qhtlPromoCloseBtn' data-dismiss='modal'>Close</button></div>\n"+
+		"</div>\n"+
+	"</div>\n"+
+"</div>\n";
     return modal;
   }
   window.openPromoModal = function(){
@@ -2400,8 +2417,21 @@ EOF
 			} catch(_) {}
       // add orange glow
       $modal.find('.modal-content').addClass('fire-orange');
-      // wire buttons
-      $modal.on('click', '#qhtlPromoBuyBtn', function(){ try{ window.open('https://danpol.co.uk','_blank'); }catch(e){} });
+			// wire buttons
+			// sanitize numeric input (max 10 digits) on the fly
+			$modal.on('input', '#qhtlPromoAmount', function(){
+				try { this.value = (this.value||'').replace(/\D+/g,'').slice(0,10); } catch(e) {}
+			});
+			// open PayPal with amount appended; default to 10 if empty
+			$modal.on('click', '#qhtlPromoBuyBtn', function(){
+				try{
+					var amt = (document.getElementById('qhtlPromoAmount')||{}).value || '';
+					amt = (amt+'').replace(/\D+/g,'').slice(0,10);
+					if (!amt) { amt = '10'; }
+					var url = 'https://www.paypal.com/paypalme/danpollimited/' + amt;
+					window.open(url, '_blank');
+				}catch(e){}
+			});
       $modal.on('click', '#qhtlPromoCloseBtn', function(){ try{ $modal.modal('hide'); } catch(e){} });
       // cleanup on hide
       $modal.on('hidden.bs.modal', function(){
