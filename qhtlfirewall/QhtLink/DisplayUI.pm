@@ -400,7 +400,7 @@ QHTL_JQ_TAIL
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear: both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -438,7 +438,52 @@ QHTL_JQ_GREP
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "loggrepcmd") {
-	my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
 		foreach my $line (@data) {
 			if ($line =~ /^Include\s*(.*)$/) {
 				my @incfile = slurp($1);
@@ -470,82 +515,1236 @@ QHTL_JQ_GREP
 			}
 			if ($hit) {last}
 		}
-		my @cmd;
-		my $grepbin = $config{GREP};
-		if ($FORM{grepZ}) {$grepbin = $config{ZGREP}}
-		if ($FORM{grepi}) {push @cmd, "-i"}
-		if ($FORM{grepE}) {push @cmd, "-E"}
-		push @cmd, $FORM{grep};
-
 		if (-z $logfile) {
 			print "<---- $logfile is currently empty ---->";
 		} else {
-			if (-x $grepbin) {
+			if (-x $config{TAIL}) {
 				my $timeout = 30;
 				eval {
 					local $SIG{__DIE__} = undef;
 					local $SIG{'ALRM'} = sub {die};
 					alarm($timeout);
-					my $total;
-					if ($FORM{grepZ}) {
-						foreach my $file (glob $logfile."\*") {
-							print "\nSearching $file:\n";
-							alarm($timeout);
-							my ($childin, $childout);
-							my $pid = open3($childin, $childout, $childout,$grepbin,@cmd,$file);
-							while (<$childout>) {
-								my $line = $_;
-								$line =~ s/&/&amp;/g;
-								$line =~ s/</&lt;/g;
-								$line =~ s/>/&gt;/g;
-								if ($FORM{grep} ne "") {
-									eval {
-										local $SIG{__DIE__} = undef;
-										if ($FORM{grepi}) {
-											$line =~ s/$FORM{grep}/<mark>$&<\/mark>/ig;
-										} else {
-											$line =~ s/$FORM{grep}/<mark>$&<\/mark>/g;
-										}
-									};
-								}
-								print $line;
-								$total += length $line;
-							}
-							waitpid ($pid, 0);
-							unless ($total) {print "<---- No matches found for \"$FORM{grep}\" in $file ---->\n"}
-							alarm(0);
-						}
-					} else {
-						alarm($timeout);
-						my ($childin, $childout);
-						my $pid = open3($childin, $childout, $childout,$grepbin,@cmd,$logfile);
-						while (<$childout>) {
-							my $line = $_;
-							$line =~ s/&/&amp;/g;
-							$line =~ s/</&lt;/g;
-							$line =~ s/>/&gt;/g;
-							if ($FORM{grep} ne "") {
-								eval {
-									local $SIG{__DIE__} = undef;
-									if ($FORM{grepi}) {
-										$line =~ s/$FORM{grep}/<mark>$&<\/mark>/ig;
-									} else {
-										$line =~ s/$FORM{grep}/<mark>$&<\/mark>/g;
-									}
-								};
-							}
-							print $line;
-							$total += length $line;
-						}
-						waitpid ($pid, 0);
-						unless ($total) {print "<---- No matches found for \"$FORM{grep}\" in $logfile ---->\n"}
-						alarm(0);
+					my ($childin, $childout);
+					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					while (<$childout>) {
+						my $line = $_;
+						$line =~ s/&/&amp;/g;
+						$line =~ s/</&lt;/g;
+						$line =~ s/>/&gt;/g;
+						print $line;
 					}
+					waitpid ($pid, 0);
+					alarm(0);
 				};
 				alarm(0);
-				if ($@) {print "TIMEOUT: grep command took too long. Timed out after $timeout seconds\n"}
 			} else {
-				print "Executable [$grepbin] invalid";
+				print "Executable [$config{TAIL}] invalid";
+			}
+		}
+	}
+	elsif ($FORM{action} eq "loggrep") {
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+		my $script_safe = $script;
+		my $QHTLFIREWALLfrombot = 120;
+		my $QHTLFIREWALLfromright = 10;
+		if ($config{DIRECTADMIN}) {
+			$script = $script_da;
+			$QHTLFIREWALLfrombot = 400;
+			$QHTLFIREWALLfromright = 150;
+		}
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $options = "<select id='QHTLFIREWALLlognum'>\n";
+		my $cnt = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					my $size = int((stat($globfile))[7]/1024);
+					$options .= "<option value='$cnt'";
+					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
+					$options .= ">$globfile ($size kb)</option>\n";
+					$cnt++;
+				}
+			}
+		}
+		$options .= "</select>\n";
+		
+		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/qhtlfirewallajaxtail.js");
+		flock ($AJAX, LOCK_SH);
+		my @jsdata = <$AJAX>;
+		close ($AJAX);
+		print "<script>\n";
+		print @jsdata;
+		print "</script>\n";
+		print <<EOF;
+<div>Log: $options</div>
+<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="QHTLFIREWALLgrep" onClick="this.select()">&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
+<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
+<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
+<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+Please Note:
+
+ 1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
+ 2. Use the "-i" option to ignore case
+ 3. Use the "-E" option to perform an extended regular expression search
+ 4. Searching large log files can take a long time. This feature has a 30 second timeout
+ 5. The searched for text will usually be <mark>highlighted</mark> but may not always be successful
+ 6. Only log files listed in /etc/qhtlfirewall/qhtlfirewall.syslogs can be searched. You can add to this file
+ 7. The wildcard option will use $config{ZGREP} and search logs with a wildcard suffix, e.g. /var/log/qhtlwaterfall.log*
+</pre>
+
+<script>
+	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+</script>
+EOF
+		print <<'QHTL_JQ_GREP';
+<script>
+// Clean jQuery handlers for grep view
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+	myFont++;
+	if (myFont > 20) { myFont = 20 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+</script>
+QHTL_JQ_GREP
+		if ($config{DIRECTADMIN}) {$script = $script_safe}
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "loggrepcmd") {
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $cnt = 0;
+		my $logfile = "/var/log/qhtlwaterfall.log";
+		my $hit = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					if ($FORM{lognum} == $cnt) {
+						$logfile = $globfile;
+						$hit = 1;
+						last;
+					}
+					$cnt++;
+				}
+			}
+			if ($hit) {last}
+		}
+		if (-z $logfile) {
+			print "<---- $logfile is currently empty ---->";
+		} else {
+			if (-x $config{TAIL}) {
+				my $timeout = 30;
+				eval {
+					local $SIG{__DIE__} = undef;
+					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
+					my ($childin, $childout);
+					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					while (<$childout>) {
+						my $line = $_;
+						$line =~ s/&/&amp;/g;
+						$line =~ s/</&lt;/g;
+						$line =~ s/>/&gt;/g;
+						print $line;
+					}
+					waitpid ($pid, 0);
+					alarm(0);
+				};
+				alarm(0);
+			} else {
+				print "Executable [$config{TAIL}] invalid";
+			}
+		}
+	}
+	elsif ($FORM{action} eq "loggrep") {
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+		my $script_safe = $script;
+		my $QHTLFIREWALLfrombot = 120;
+		my $QHTLFIREWALLfromright = 10;
+		if ($config{DIRECTADMIN}) {
+			$script = $script_da;
+			$QHTLFIREWALLfrombot = 400;
+			$QHTLFIREWALLfromright = 150;
+		}
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $options = "<select id='QHTLFIREWALLlognum'>\n";
+		my $cnt = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					my $size = int((stat($globfile))[7]/1024);
+					$options .= "<option value='$cnt'";
+					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
+					$options .= ">$globfile ($size kb)</option>\n";
+					$cnt++;
+				}
+			}
+		}
+		$options .= "</select>\n";
+		
+		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/qhtlfirewallajaxtail.js");
+		flock ($AJAX, LOCK_SH);
+		my @jsdata = <$AJAX>;
+		close ($AJAX);
+		print "<script>\n";
+		print @jsdata;
+		print "</script>\n";
+		print <<EOF;
+<div>Log: $options</div>
+<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="QHTLFIREWALLgrep" onClick="this.select()">&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
+<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
+<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
+<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+Please Note:
+
+ 1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
+ 2. Use the "-i" option to ignore case
+ 3. Use the "-E" option to perform an extended regular expression search
+ 4. Searching large log files can take a long time. This feature has a 30 second timeout
+ 5. The searched for text will usually be <mark>highlighted</mark> but may not always be successful
+ 6. Only log files listed in /etc/qhtlfirewall/qhtlfirewall.syslogs can be searched. You can add to this file
+ 7. The wildcard option will use $config{ZGREP} and search logs with a wildcard suffix, e.g. /var/log/qhtlwaterfall.log*
+</pre>
+
+<script>
+	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+</script>
+EOF
+		print <<'QHTL_JQ_GREP';
+<script>
+// Clean jQuery handlers for grep view
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+	myFont++;
+	if (myFont > 20) { myFont = 20 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+</script>
+QHTL_JQ_GREP
+		if ($config{DIRECTADMIN}) {$script = $script_safe}
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "loggrepcmd") {
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $cnt = 0;
+		my $logfile = "/var/log/qhtlwaterfall.log";
+		my $hit = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					if ($FORM{lognum} == $cnt) {
+						$logfile = $globfile;
+						$hit = 1;
+						last;
+					}
+					$cnt++;
+				}
+			}
+			if ($hit) {last}
+		}
+		if (-z $logfile) {
+			print "<---- $logfile is currently empty ---->";
+		} else {
+			if (-x $config{TAIL}) {
+				my $timeout = 30;
+				eval {
+					local $SIG{__DIE__} = undef;
+					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
+					my ($childin, $childout);
+					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					while (<$childout>) {
+						my $line = $_;
+						$line =~ s/&/&amp;/g;
+						$line =~ s/</&lt;/g;
+						$line =~ s/>/&gt;/g;
+						print $line;
+					}
+					waitpid ($pid, 0);
+					alarm(0);
+				};
+				alarm(0);
+			} else {
+				print "Executable [$config{TAIL}] invalid";
+			}
+		}
+	}
+	elsif ($FORM{action} eq "loggrep") {
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+		my $script_safe = $script;
+		my $QHTLFIREWALLfrombot = 120;
+		my $QHTLFIREWALLfromright = 10;
+		if ($config{DIRECTADMIN}) {
+			$script = $script_da;
+			$QHTLFIREWALLfrombot = 400;
+			$QHTLFIREWALLfromright = 150;
+		}
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $options = "<select id='QHTLFIREWALLlognum'>\n";
+		my $cnt = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					my $size = int((stat($globfile))[7]/1024);
+					$options .= "<option value='$cnt'";
+					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
+					$options .= ">$globfile ($size kb)</option>\n";
+					$cnt++;
+				}
+			}
+		}
+		$options .= "</select>\n";
+		
+		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/qhtlfirewallajaxtail.js");
+		flock ($AJAX, LOCK_SH);
+		my @jsdata = <$AJAX>;
+		close ($AJAX);
+		print "<script>\n";
+		print @jsdata;
+		print "</script>\n";
+		print <<EOF;
+<div>Log: $options</div>
+<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="QHTLFIREWALLgrep" onClick="this.select()">&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
+<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
+<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
+<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+Please Note:
+
+ 1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
+ 2. Use the "-i" option to ignore case
+ 3. Use the "-E" option to perform an extended regular expression search
+ 4. Searching large log files can take a long time. This feature has a 30 second timeout
+ 5. The searched for text will usually be <mark>highlighted</mark> but may not always be successful
+ 6. Only log files listed in /etc/qhtlfirewall/qhtlfirewall.syslogs can be searched. You can add to this file
+ 7. The wildcard option will use $config{ZGREP} and search logs with a wildcard suffix, e.g. /var/log/qhtlwaterfall.log*
+</pre>
+
+<script>
+	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+</script>
+EOF
+		print <<'QHTL_JQ_GREP';
+<script>
+// Clean jQuery handlers for grep view
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+	myFont++;
+	if (myFont > 20) { myFont = 20 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+</script>
+QHTL_JQ_GREP
+		if ($config{DIRECTADMIN}) {$script = $script_safe}
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "loggrepcmd") {
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $cnt = 0;
+		my $logfile = "/var/log/qhtlwaterfall.log";
+		my $hit = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					if ($FORM{lognum} == $cnt) {
+						$logfile = $globfile;
+						$hit = 1;
+						last;
+					}
+					$cnt++;
+				}
+			}
+			if ($hit) {last}
+		}
+		if (-z $logfile) {
+			print "<---- $logfile is currently empty ---->";
+		} else {
+			if (-x $config{TAIL}) {
+				my $timeout = 30;
+				eval {
+					local $SIG{__DIE__} = undef;
+					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
+					my ($childin, $childout);
+					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					while (<$childout>) {
+						my $line = $_;
+						$line =~ s/&/&amp;/g;
+						$line =~ s/</&lt;/g;
+						$line =~ s/>/&gt;/g;
+						print $line;
+					}
+					waitpid ($pid, 0);
+					alarm(0);
+				};
+				alarm(0);
+			} else {
+				print "Executable [$config{TAIL}] invalid";
+			}
+		}
+	}
+	elsif ($FORM{action} eq "loggrep") {
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+		my $script_safe = $script;
+		my $QHTLFIREWALLfrombot = 120;
+		my $QHTLFIREWALLfromright = 10;
+		if ($config{DIRECTADMIN}) {
+			$script = $script_da;
+			$QHTLFIREWALLfrombot = 400;
+			$QHTLFIREWALLfromright = 150;
+		}
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $options = "<select id='QHTLFIREWALLlognum'>\n";
+		my $cnt = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					my $size = int((stat($globfile))[7]/1024);
+					$options .= "<option value='$cnt'";
+					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
+					$options .= ">$globfile ($size kb)</option>\n";
+					$cnt++;
+				}
+			}
+		}
+		$options .= "</select>\n";
+		
+		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/qhtlfirewallajaxtail.js");
+		flock ($AJAX, LOCK_SH);
+		my @jsdata = <$AJAX>;
+		close ($AJAX);
+		print "<script>\n";
+		print @jsdata;
+		print "</script>\n";
+		print <<EOF;
+<div>Log: $options</div>
+<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="QHTLFIREWALLgrep" onClick="this.select()">&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
+<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
+<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
+<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+Please Note:
+
+ 1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
+ 2. Use the "-i" option to ignore case
+ 3. Use the "-E" option to perform an extended regular expression search
+ 4. Searching large log files can take a long time. This feature has a 30 second timeout
+ 5. The searched for text will usually be <mark>highlighted</mark> but may not always be successful
+ 6. Only log files listed in /etc/qhtlfirewall/qhtlfirewall.syslogs can be searched. You can add to this file
+ 7. The wildcard option will use $config{ZGREP} and search logs with a wildcard suffix, e.g. /var/log/qhtlwaterfall.log*
+</pre>
+
+<script>
+	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+</script>
+EOF
+		print <<'QHTL_JQ_GREP';
+<script>
+// Clean jQuery handlers for grep view
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+	myFont++;
+	if (myFont > 20) { myFont = 20 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+</script>
+QHTL_JQ_GREP
+		if ($config{DIRECTADMIN}) {$script = $script_safe}
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "loggrepcmd") {
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $cnt = 0;
+		my $logfile = "/var/log/qhtlwaterfall.log";
+		my $hit = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					if ($FORM{lognum} == $cnt) {
+						$logfile = $globfile;
+						$hit = 1;
+						last;
+					}
+					$cnt++;
+				}
+			}
+			if ($hit) {last}
+		}
+		if (-z $logfile) {
+			print "<---- $logfile is currently empty ---->";
+		} else {
+			if (-x $config{TAIL}) {
+				my $timeout = 30;
+				eval {
+					local $SIG{__DIE__} = undef;
+					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
+					my ($childin, $childout);
+					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					while (<$childout>) {
+						my $line = $_;
+						$line =~ s/&/&amp;/g;
+						$line =~ s/</&lt;/g;
+						$line =~ s/>/&gt;/g;
+						print $line;
+					}
+					waitpid ($pid, 0);
+					alarm(0);
+				};
+				alarm(0);
+			} else {
+				print "Executable [$config{TAIL}] invalid";
+			}
+		}
+	}
+	elsif ($FORM{action} eq "loggrep") {
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+		my $script_safe = $script;
+		my $QHTLFIREWALLfrombot = 120;
+		my $QHTLFIREWALLfromright = 10;
+		if ($config{DIRECTADMIN}) {
+			$script = $script_da;
+			$QHTLFIREWALLfrombot = 400;
+			$QHTLFIREWALLfromright = 150;
+		}
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $options = "<select id='QHTLFIREWALLlognum'>\n";
+		my $cnt = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					my $size = int((stat($globfile))[7]/1024);
+					$options .= "<option value='$cnt'";
+					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
+					$options .= ">$globfile ($size kb)</option>\n";
+					$cnt++;
+				}
+			}
+		}
+		$options .= "</select>\n";
+		
+		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/qhtlfirewallajaxtail.js");
+		flock ($AJAX, LOCK_SH);
+		my @jsdata = <$AJAX>;
+		close ($AJAX);
+		print "<script>\n";
+		print @jsdata;
+		print "</script>\n";
+		print <<EOF;
+<div>Log: $options</div>
+<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="QHTLFIREWALLgrep" onClick="this.select()">&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
+<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
+<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
+<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+Please Note:
+
+ 1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
+ 2. Use the "-i" option to ignore case
+ 3. Use the "-E" option to perform an extended regular expression search
+ 4. Searching large log files can take a long time. This feature has a 30 second timeout
+ 5. The searched for text will usually be <mark>highlighted</mark> but may not always be successful
+ 6. Only log files listed in /etc/qhtlfirewall/qhtlfirewall.syslogs can be searched. You can add to this file
+ 7. The wildcard option will use $config{ZGREP} and search logs with a wildcard suffix, e.g. /var/log/qhtlwaterfall.log*
+</pre>
+
+<script>
+	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+</script>
+EOF
+		print <<'QHTL_JQ_GREP';
+<script>
+// Clean jQuery handlers for grep view
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+	myFont++;
+	if (myFont > 20) { myFont = 20 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+</script>
+QHTL_JQ_GREP
+		if ($config{DIRECTADMIN}) {$script = $script_safe}
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "loggrepcmd") {
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $cnt = 0;
+		my $logfile = "/var/log/qhtlwaterfall.log";
+		my $hit = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					if ($FORM{lognum} == $cnt) {
+						$logfile = $globfile;
+						$hit = 1;
+						last;
+					}
+					$cnt++;
+				}
+			}
+			if ($hit) {last}
+		}
+		if (-z $logfile) {
+			print "<---- $logfile is currently empty ---->";
+		} else {
+			if (-x $config{TAIL}) {
+				my $timeout = 30;
+				eval {
+					local $SIG{__DIE__} = undef;
+					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
+					my ($childin, $childout);
+					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					while (<$childout>) {
+						my $line = $_;
+						$line =~ s/&/&amp;/g;
+						$line =~ s/</&lt;/g;
+						$line =~ s/>/&gt;/g;
+						print $line;
+					}
+					waitpid ($pid, 0);
+					alarm(0);
+				};
+				alarm(0);
+			} else {
+				print "Executable [$config{TAIL}] invalid";
+			}
+		}
+	}
+	elsif ($FORM{action} eq "loggrep") {
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+		my $script_safe = $script;
+		my $QHTLFIREWALLfrombot = 120;
+		my $QHTLFIREWALLfromright = 10;
+		if ($config{DIRECTADMIN}) {
+			$script = $script_da;
+			$QHTLFIREWALLfrombot = 400;
+			$QHTLFIREWALLfromright = 150;
+		}
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $options = "<select id='QHTLFIREWALLlognum'>\n";
+		my $cnt = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					my $size = int((stat($globfile))[7]/1024);
+					$options .= "<option value='$cnt'";
+					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
+					$options .= ">$globfile ($size kb)</option>\n";
+					$cnt++;
+				}
+			}
+		}
+		$options .= "</select>\n";
+		
+		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/qhtlfirewallajaxtail.js");
+		flock ($AJAX, LOCK_SH);
+		my @jsdata = <$AJAX>;
+		close ($AJAX);
+		print "<script>\n";
+		print @jsdata;
+		print "</script>\n";
+		print <<EOF;
+<div>Log: $options</div>
+<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="QHTLFIREWALLgrep" onClick="this.select()">&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
+<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
+<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
+<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+Please Note:
+
+ 1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
+ 2. Use the "-i" option to ignore case
+ 3. Use the "-E" option to perform an extended regular expression search
+ 4. Searching large log files can take a long time. This feature has a 30 second timeout
+ 5. The searched for text will usually be <mark>highlighted</mark> but may not always be successful
+ 6. Only log files listed in /etc/qhtlfirewall/qhtlfirewall.syslogs can be searched. You can add to this file
+ 7. The wildcard option will use $config{ZGREP} and search logs with a wildcard suffix, e.g. /var/log/qhtlwaterfall.log*
+</pre>
+
+<script>
+	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+</script>
+EOF
+		print <<'QHTL_JQ_GREP';
+<script>
+// Clean jQuery handlers for grep view
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+	myFont++;
+	if (myFont > 20) { myFont = 20 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+</script>
+QHTL_JQ_GREP
+		if ($config{DIRECTADMIN}) {$script = $script_safe}
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "loggrepcmd") {
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $cnt = 0;
+		my $logfile = "/var/log/qhtlwaterfall.log";
+		my $hit = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					if ($FORM{lognum} == $cnt) {
+						$logfile = $globfile;
+						$hit = 1;
+						last;
+					}
+					$cnt++;
+				}
+			}
+			if ($hit) {last}
+		}
+		if (-z $logfile) {
+			print "<---- $logfile is currently empty ---->";
+		} else {
+			if (-x $config{TAIL}) {
+				my $timeout = 30;
+				eval {
+					local $SIG{__DIE__} = undef;
+					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
+					my ($childin, $childout);
+					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					while (<$childout>) {
+						my $line = $_;
+						$line =~ s/&/&amp;/g;
+						$line =~ s/</&lt;/g;
+						$line =~ s/>/&gt;/g;
+						print $line;
+					}
+					waitpid ($pid, 0);
+					alarm(0);
+				};
+				alarm(0);
+			} else {
+				print "Executable [$config{TAIL}] invalid";
 			}
 		}
 	}
@@ -1203,7 +2402,7 @@ EOF
 				if ($comment) {print "</div>\n"}
 				$comment = 0;
 				my ($start,$end) = split (/=/,$line,2);
-				my $name = $start;
+							my $name = $start;
 				my $cleanname = $start;
 				$cleanname =~ s/\s//g;
 				$name =~ s/\s/\_/g;
@@ -1281,7 +2480,7 @@ EOF
 		}
 		print "</div><br />\n";
 		print "<div id='paginatediv' class='text-center'>\n<a class='btn btn-default' href='javascript:pagecontent.showall()'>Show All</a> <a class='btn btn-default' href='#' rel='previous'>Prev</a> <select style='width: 250px'></select> <a class='btn btn-default' href='#' rel='next' >Next</a>\n</div>\n";
-		print <<EOD;
+		print <<'EOD';
 <script type="text/javascript">
 var pagecontent=new virtualpaginate({
  piececlass: "virtualpage", //class of container for each piece of content
@@ -1981,6 +3180,8 @@ EOF
 		print "</div>\n";
 		print "<div class='panel-footer panel-footer'>Completed</div>\n";
 		print "</div>\n";
+		print "<div>You MUST now restart both qhtlfirewall and qhtlwaterfall:</div>\n";
+		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall+qhtlwaterfall'></form></div>\n";
 		&printreturn;
 	}
 	else {
@@ -2098,7 +3299,7 @@ EOF
 	print "<li><a data-toggle='tab' href='#extra'>Extra</a></li>\n";
 		print "</ul><br>\n";
 
-		# Removed legacy inline Quick View shim here; the modal/watch functions are provided by the main CGI now.
+		# Removed legacy inline Quick View shim here; the modal/watch functions are provided by the main CGI now
 
 		print "<div class='tab-content'>\n";
 		print "<div id='upgrade' class='tab-pane active'>\n";
@@ -2108,9 +3309,9 @@ EOF
 	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
 	if ($upgrade) {
 		print "<tr><td colspan='2'><div style='display:flex;gap:8px;flex-wrap:wrap'>";
-		print "<button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button>";
-		print "<button name='action' value='changelog' type='submit' class='btn btn-default'>View ChangeLog</button>";
-		print "</div><div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings</div></td></tr>\n";
+		print "<button name='action' value='upgrade' type='submit' class='btn btn-default' data-bubble-color='green'>Upgrade qhtlfirewall</button>";
+		print "<button name='action' value='changelog' type='submit' class='btn btn-default' data-bubble-color='blue'>View ChangeLog</button>";
+		print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div></td></tr>\n";
 	} else {
 		# Show ChangeLog button above the Manual Check button
 			print "<tr><td colspan='2'>";
@@ -2161,7 +3362,7 @@ EOF
 		print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' href='$script?action=viewlist&which=allow' onclick=\"if(typeof showQuickView==='function'){showQuickView('allow'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='allowip' value='' size='36' style='background-color: #BDECB6; width:100%;'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qallow\\\").submit();\\\" class='btn btn-default'>Quick Allow</button></div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qallow\\\").submit();\\\" class='btn btn-default' data-bubble-color='green'>Quick Allow</button></div>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
 		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Allow:</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
@@ -2177,7 +3378,7 @@ EOF
 		print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' href='$script?action=viewlist&which=deny' onclick=\"if(typeof showQuickView==='function'){showQuickView('deny'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='denyip' value='' size='36' style='background-color: #FFD1DC; width:100%;'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qdeny\\\").submit();\\\" class='btn btn-default'>Quick Deny</button></div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qdeny\\\").submit();\\\" class='btn btn-default' data-bubble-color='red'>Quick Deny</button></div>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
 		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Block:</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
@@ -2193,7 +3394,7 @@ EOF
 		print "    <div style='flex:0 0 30%; max-width:30%'>Ignore IP address <a class='quickview-link' data-which='ignore' href='$script?action=viewlist&which=ignore' onclick=\"if(typeof showQuickView==='function'){showQuickView('ignore'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='ignoreip' value='' size='36' style='background-color: #D9EDF7; width:100%;'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qignore\\\").submit();\\\" class='btn btn-default'>Quick Ignore</button></div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qignore\\\").submit();\\\" class='btn btn-default' data-bubble-color='orange'>Quick Ignore</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
@@ -2205,7 +3406,7 @@ EOF
 		print "    <div style='flex:0 0 30%; max-width:30%'>Search IP address</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#grep\\\").submit();\\\" class='btn btn-default'>Search for IP</button></div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#grep\\\").submit();\\\" class='btn btn-default' data-bubble-color='blue'>Search for IP</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
@@ -2217,7 +3418,7 @@ EOF
 		print "    <div style='flex:0 0 30%; max-width:30%'>Remove IP address</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='killip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qkill\\\").submit();\\\" class='btn btn-default'>Quick Unblock</button></div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qkill\\\").submit();\\\" class='btn btn-default' data-bubble-color='gray'>Quick Unblock</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
@@ -2247,7 +3448,7 @@ EOF
 		print "    <div style='flex:1 1 auto'><input type='text' name='comment' value='' size='30' class='form-control' style='max-width:520px'></div>";
 		print "  </div>";
 		print "  <div class='text-muted' style='font-size:12px; margin-bottom:8px'>(ports can be either * for all ports, a single port, or a comma separated list of ports)</div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#tempdeny\\\").submit();\\\" class='btn btn-default'>Apply Temporary Rule</button></div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#tempdeny\\\").submit();\\\" class='btn btn-default' data-bubble-color='purple'>Apply Temporary Rule</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
@@ -2258,14 +3459,14 @@ EOF
 		print "<form action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 	print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
-	print "<tr><td colspan='2'><button name='action' value='servercheck' type='submit' class='btn btn-default'>Test Security</button><div class='text-muted small' style='margin-top:6px'>Perform a basic security, stability and settings check on the server</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='readme' type='submit' class='btn btn-default'>Qht Link Info</button><div class='text-muted small' style='margin-top:6px'>View the qhtlfirewall+qhtlwaterfall readme.txt file</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='loggrep' type='submit' class='btn btn-default'>Search Logs</button><div class='text-muted small' style='margin-top:6px'>Search (grep) various system log files (listed in qhtlfirewall.syslogs)</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='viewports' type='submit' class='btn btn-default'>Active Ports</button><div class='text-muted small' style='margin-top:6px'>View ports on the server that have a running process behind them listening for external connections</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='rblcheck' type='submit' class='btn btn-default'>Check in RBLs</button><div class='text-muted small' style='margin-top:6px'>Check whether any of the servers IP addresses are listed in RBLs</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='viewlogs' type='submit' class='btn btn-default'>View ipt Log</button><div class='text-muted small' style='margin-top:6px'>View the last $config{ST_IPTABLES} iptables log lines</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='chart' type='submit' class='btn btn-default'>QhtL Stats</button><div class='text-muted small' style='margin-top:6px'>View qhtlwaterfall blocking statistics</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='systemstats' type='submit' class='btn btn-default'>View Sys Stats</button><div class='text-muted small' style='margin-top:6px'>View basic system statistics</div></td></tr>\n";
+	print "<tr><td colspan='2'><button name='action' value='servercheck' type='submit' class='btn btn-default' data-bubble-color='blue'>Test Security</button><div class='text-muted small' style='margin-top:6px'>Perform a basic security, stability and settings check on the server</div></td></tr>\n";
+	print "<tr><td colspan='2'><button name='action' value='readme' type='submit' class='btn btn-default' data-bubble-color='gray'>Qht Link Info</button><div class='text-muted small' style='margin-top:6px'>View the qhtlfirewall+qhtlwaterfall readme.txt file</div></td></tr>\n";
+	print "<tr><td colspan='2'><button name='action' value='loggrep' type='submit' class='btn btn-default' data-bubble-color='purple'>Search Logs</button><div class='text-muted small' style='margin-top:6px'>Search (grep) various system log files (listed in qhtlfirewall.syslogs)</div></td></tr>\n";
+	print "<tr><td colspan='2'><button name='action' value='viewports' type='submit' class='btn btn-default' data-bubble-color='green'>Active Ports</button><div class='text-muted small' style='margin-top:6px'>View ports on the server that have a running process behind them listening for external connections</div></td></tr>\n";
+	print "<tr><td colspan='2'><button name='action' value='rblcheck' type='submit' class='btn btn-default' data-bubble-color='orange'>Check in RBLs</button><div class='text-muted small' style='margin-top:6px'>Check whether any of the servers IP addresses are listed in RBLs</div></td></tr>\n";
+	print "<tr><td colspan='2'><button name='action' value='viewlogs' type='submit' class='btn btn-default' data-bubble-color='red'>View ipt Log</button><div class='text-muted small' style='margin-top:6px'>View the last $config{ST_IPTABLES} iptables log lines</div></td></tr>\n";
+	print "<tr><td colspan='2'><button name='action' value='chart' type='submit' class='btn btn-default' data-bubble-color='blue'>QhtL Stats</button><div class='text-muted small' style='margin-top:6px'>View qhtlwaterfall blocking statistics</div></td></tr>\n";
+	print "<tr><td colspan='2'><button name='action' value='systemstats' type='submit' class='btn btn-default' data-bubble-color='gray'>View Sys Stats</button><div class='text-muted small' style='margin-top:6px'>View basic system statistics</div></td></tr>\n";
 		print "</table>\n";
 		print "</form>\n";
 		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
@@ -2459,8 +3660,6 @@ EOF
 })();
 QHTL_PROMO_JS
 	print "</script>\n";
-	print "</div>\n";
-	print "</div>\n";
 
 		# Inline script to wire up Quick View modal behavior
 		print "<script>\n";
@@ -2538,7 +3737,7 @@ $(document).on('click', '#quickViewEditBtn', function(){
 			$('#quickViewCancelBtn').show();
 			// add fire effect according to which list is being edited
 			var cls = (currentQuickWhich==='allow') ? 'fire-allow' : (currentQuickWhich==='ignore' ? 'fire-ignore' : 'fire-deny');
-			var $mc = $('#quickViewModal .modal-content'); $mc.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); $mc.addClass('fire-border').removeClass('fire-allow fire-ignore fire-deny').addClass(cls);
+			var $mc = $('#quickViewModal .modal-content'); $mc.removeClass('fire-allow fire-ignore fire-deny').addClass('fire-border').addClass(cls);
 		})
 		.fail(function(){
 			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to load editor</div>');
@@ -2613,7 +3812,7 @@ JS
 			print "<tr><td colspan='2'><button onClick='\$(\"#cdeny\").submit();' class='btn btn-default'>Cluster Deny</button><div style='margin-top:6px'><form action='$script' method='post' id='cdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='cdeny'>Block IP address <input type='text' name='ip' value='' size='18' style='background-color: pink'> in the Cluster and add to the deny file (qhtlfirewall.deny)<br>Comment: <input type='text' name='comment' value='' size='30'></form></div></td></tr>\n";
 			print "<tr><td colspan='2'><button onClick='\$(\"#cignore\").submit();' class='btn btn-default'>Cluster Ignore</button><div style='margin-top:6px'><form action='$script' method='post' id='cignore'><input type='submit' class='hide'><input type='hidden' name='action' value='cignore'>Ignore IP address <input type='text' name='ip' value='' size='18'> in the Cluster and add to the ignore file (qhtlfirewall.ignore)<br>Comment: <input type='text' name='comment' value='' size='30'> Note: This will result in qhtlwaterfall being restarted</form></div></td></tr>\n";
 			print "<tr><td colspan='2'><button onClick='\$(\"#cgrep\").submit();' class='btn btn-default'>Search the Cluster for IP</button><div style='margin-top:6px'><form action='$script' method='post' id='cgrep'><input type='submit' class='hide'><input type='hidden' name='action' value='cgrep'>Search iptables for IP address <input type='text' name='ip' value='' size='18'></form></div></td></tr>\n";
-			print "<tr><td colspan='2'><button onClick='\$(\"#ctempdeny\").submit();' class='btn btn-default'>Cluster Temp Allow/Deny</button><div style='margin-top:6px'><form action='$script' method='post' id='ctempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='ctempdeny'>Temporarily <select name='do' id='do'><option>allow</option><option>deny</option></select> IP address <input type='text' name='target' value='' size='18' id='target'> for $config{CF_TEMP} secs in CloudFlare AND qhtlfirewall for the chosen accounts and those with to \"any\"<br>Comment: <input type='text' name='comment' value='' size='30'></form></div></td></tr>\n";
+			print "<tr><td colspan='2'><button onClick='\$(\"#ctempdeny\").submit();' class='btn btn-default'>Cluster Temp Allow/Deny</button><div style='margin-top:6px'><form action='$script' method='post' id='ctempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='ctempdeny'>Temporarily <select name='do' id='do'><option>allow</option><option>deny</option></select> IP address <input type='text' name='target' value='' size='18' id='target'> for $config{CF_TEMP} secs in CloudFlare AND qhtlfirewall for the chosen accounts and those with to \"any\"</form></div></td></tr>\n";
 			print "<tr><td colspan='2'><button onClick='\$(\"#crm\").submit();' class='btn btn-default'>Cluster Remove Deny</button><div style='margin-top:6px'><form action='$script' method='post' id='crm'><input type='submit' class='hide'><input type='hidden' name='action' value='crm'>Remove Deny IP address <input type='text' name='ip' value='' size='18' style=''> in the Cluster (temporary or permanent)</form></div></td></tr>\n";
 			print "<tr><td colspan='2'><button onClick='\$(\"#carm\").submit();' class='btn btn-default'>Cluster Remove Allow</button><div style='margin-top:6px'><form action='$script' method='post' id='carm'><input type='submit' class='hide'><input type='hidden' name='action' value='carm'>Remove Allow IP address <input type='text' name='ip' value='' size='18' style=''> in the Cluster (temporary or permanent)</form></div></td></tr>\n";
 			print "<tr><td colspan='2'><button onClick='\$(\"#cirm\").submit();' class='btn btn-default'>Cluster Remove Ignore</button><div style='margin-top:6px'><form action='$script' method='post' id='cirm'><input type='submit' class='hide'><input type='hidden' name='action' value='cirm'>Remove Ignore IP address <input type='text' name='ip' value='' size='18'> in the Cluster<br>Note: This will result in qhtlwaterfall being restarted</form></div></td></tr>\n";
@@ -2670,12 +3869,6 @@ JS
 		}
 
 	# Move About section into the 'More' tab so it is only visible there
-	print "<div class='panel panel-info'>\n";
-	print "<div class='panel-heading'>About</div>";
-	print "<div class='panel-body'>This software is maintained by Danpol Community. Visit <a href='https://www.forum.danpol.co.uk' target='_blank'>www.forum.danpol.co.uk</a> for updates and support.</div>\n";
-	print "</div>\n";
-
-	# Close the 'More' tab-pane before starting Extra
 	print "</div>\n";
 
 	# New Extra tab-pane at the end
@@ -2728,6 +3921,11 @@ JS_HIDE_HEADERS
 				# Close the normal container opened earlier
 				print "</div>\n";
 		}
+
+		# Lightweight runtime helper: change a bubble button's color variant dynamically.
+		# Usage example (browser console or future features):
+		#   qhtlSetBubbleColor('#someButton','red');
+		print "<script>window.qhtlSetBubbleColor=function(sel,color){try{var el=(typeof sel==='string')?document.querySelector(sel):sel;if(el){el.setAttribute('data-bubble-color',color);}}catch(e){}};</script>\n";
 
 	return;
 }
@@ -3176,172 +4374,3 @@ sub printreturn {
 	return;
 }
 # end printreturn
-###############################################################################
-# start confirmmodal
-sub confirmmodal {
-	print "<div class='modal fade' id='confirmmodal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
-	print "<div class='modal-dialog modal-sm'>\n";
-	print "<div class='modal-content'>\n";
-	print "<div class='modal-body'>\n";
-	print "<h4 id='modal-text'>text</h4>\n";
-	print "</div>\n";
-	print "<div class='modal-footer'>\n";
-	print "<a id='modal-submit' href='#' class='btn btn-success'>Yes - Continue</a>\n";
-	print "<button type='button' class='btn btn-danger' data-dismiss='modal'>No - Cancel</button>\n";
-	print "</div>\n";
-	print "</div>\n";
-	print "</div>\n";
-	print "</div>\n";
-	print "<script>\n";
-	print "	\$('button.confirmButton').on('click', function(e) {\n";
-	print "	var dataquery = \$(this).attr('data-query');\n";
-	print "	var datahref = \$(this).attr('data-href');\n";
-	print "	\$('#modal-text').html(dataquery);\n";
-	print "	\$('#modal-submit').attr({'href':datahref});\n";
-	print "});\n";
-	print "\$('.modal').click(function(event){\n";
-	print "  \$(event.target).modal('hide')\n";
-	print "});\n";
-	print "</script>\n";
-	return;
-}
-# end confirmmodal
-###############################################################################
-
-# start qhtlfirewallgetversion
-sub qhtlfirewallgetversion {
-	my ($product, $current) = @_;
-	my $upgrade = 0;
-	my $newversion = '';
-	# Prefer a successful cron fetch file over any error file
-	if (-e "/var/lib/qhtlfirewall/".$product.".txt") {
-		open (my $VERSION, "<", "/var/lib/qhtlfirewall/".$product.".txt");
-		flock ($VERSION, LOCK_SH);
-		$newversion = <$VERSION>;
-		close ($VERSION);
-		chomp $newversion;
-		if ($newversion =~ /^[\d\.]+$/) {
-			if (ver_cmp($newversion, $current) == 1) { $upgrade = 1; }
-		} else { $newversion = ""; }
-	}
-	elsif (-e "/var/lib/qhtlfirewall/".$product.".txt.error") {
-		open (my $VERSION, "<", "/var/lib/qhtlfirewall/".$product.".txt.error");
-		flock ($VERSION, LOCK_SH);
-		$newversion = <$VERSION>;
-		close ($VERSION);
-		chomp $newversion;
-		$newversion = $newversion ? "Failed to retrieve latest version from Danpol update server: $newversion" : "Failed to retrieve latest version from Danpol update server";
-	}
-	elsif (-e "/var/lib/qhtlfirewall/error") {
-		open (my $VERSION, "<", "/var/lib/qhtlfirewall/error");
-		flock ($VERSION, LOCK_SH);
-		$newversion = <$VERSION>;
-		close ($VERSION);
-		chomp $newversion;
-		$newversion = $newversion ? "Failed to retrieve latest version from Danpol update server: $newversion" : "Failed to retrieve latest version from Danpol update server";
-	} else {
-		$newversion = "Failed to retrieve latest version from Danpol update server";
-	}
-	return ($upgrade, $newversion);
-}
-
-###############################################################################
-# start resize
-# Minimal no-op stub for legacy UI helpers used around command output sections.
-# Keeps older calls like &resize("top") / &resize("bot",1) from crashing.
-sub resize {
-	my ($pos, $sticky) = @_;
-	return;
-}
-# end resize
-###############################################################################
-# end qhtlfirewallgetversion
-###############################################################################
-# start manualversion
-sub manualversion {
-	my $current = shift;
-	my $upgrade = 0;
-	my @servers;
-	my $errtext = '';
-
-	# Prefer /etc/qhtlfirewall/downloadservers if present, else fall back to configured DOWNLOADSERVER
-	my $list = '/etc/qhtlfirewall/downloadservers';
-	if (-r $list) {
-		if (open my $fh, '<', $list) {
-			while (my $line = <$fh>) {
-				chomp $line;
-				$line =~ s/\r?\n$//;
-				$line =~ s/#.*$//;
-				$line =~ s/^\s+|\s+$//g;
-				next unless length $line;
-				if ($line !~ m{^https?://}i) { $line = 'https://' . $line; }
-				$line =~ s{/+\z}{};
-				push @servers, $line;
-			}
-			close $fh;
-		}
-	}
-	if (!@servers) {
-		my $scheme = ($config{URLGET} == 1) ? 'http' : 'https';
-		push @servers, "$scheme://$config{DOWNLOADSERVER}";
-	}
-
-	my $best_version = '';
-	my $best_server  = '';
-
-	foreach my $srv (@servers) {
-		my $url = "$srv/qhtlfirewall/version.txt";
-		my ($status, $body) = $urlget->urlget($url);
-		if (!$status && defined $body && $body ne '') {
-			my $v = $body; chomp $v; $v =~ s/^\s+|\s+$//g;
-			if ($v =~ /^[\d\.]+$/) {
-				# Keep the highest semver-ish numeric version
-				if ($best_version eq '' || ver_cmp($v, $best_version) == 1) {
-					$best_version = $v;
-					$best_server  = $srv;
-				}
-			} else {
-				$errtext ||= "Invalid version format from $srv";
-			}
-		} else {
-			my $why = (defined $body && $body ne '') ? $body : 'request failed';
-			$errtext ||= "$url - $why";
-		}
-	}
-
-	if ($best_version ne '' && ver_cmp($best_version, $current) == 1) { $upgrade = 1; }
-
-	# If no upgrade but we have a valid fetched version, return it for display
-	if ($best_version ne '' && !$upgrade) {
-		return (0, $best_version, $best_server, '');
-	}
-	# If upgrade available
-	if ($upgrade) {
-		return (1, $best_version, $best_server, '');
-	}
-	# If nothing valid fetched, surface an error
-	return (0, '', '', ($errtext ne '' ? "Failed to retrieve latest version from Danpol update server: $errtext" : 'Failed to retrieve latest version from Danpol update server'));
-}
-# end manualversion
-
-###############################################################################
-# Simple semantic-ish version comparator: returns 1 if a>b, 0 if a==b, -1 if a<b
-sub ver_cmp {
-	my ($a, $b) = @_;
-	return 0 if !defined $a && !defined $b;
-	return 1 if defined $a && !defined $b;
-	return -1 if !defined $a && defined $b;
-	my @A = split /\./, ($a // '');
-	my @B = split /\./, ($b // '');
-	my $len = @A > @B ? scalar @A : scalar @B;
-	for (my $i=0; $i<$len; $i++) {
-		my $x = ($A[$i] // 0); $x =~ s/\D//g; $x = int($x);
-		my $y = ($B[$i] // 0); $y =~ s/\D//g; $y = int($y);
-		return 1 if $x > $y;
-		return -1 if $x < $y;
-	}
-	return 0;
-}
-###############################################################################
-
-1;
