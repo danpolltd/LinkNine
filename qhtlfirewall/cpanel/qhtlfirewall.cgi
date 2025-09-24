@@ -777,15 +777,13 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			<img src='$images/qhtlfirewall_small.gif' onerror="this.onerror=null;this.src='$images/qhtlfirewall_small.png';" style='width:48px;height:48px;vertical-align:middle' alt='Logo'>
 			<h4 style='margin:5px 0;'>QhtLink Firewall v$myv</h4>
 		</div>
-		<div class='col-sm-4 col-xs-12 text-right'>
-			<div style='display:flex;flex-direction:column;align-items:flex-end;gap:12px;padding-right:12px;'>
-				<button type='button' class='btn btn-watcher-bubble' style='margin-left:auto;'
+		<div class='col-sm-4 col-xs-12'>
+			<div style='display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:10px;padding-right:10px;'>
+				<button type='button' class='btn btn-watcher-bubble'
 					onclick="return (window.__qhtlOpenWatcherSmart ? window.__qhtlOpenWatcherSmart() : (typeof window.openWatcher==='function' ? (openWatcher(), false) : (window.location='$script?action=logtail', false)));">
 					Watcher
 				</button>
-				<div style='display:flex;justify-content:center;width:100%;'>
-					<span class='btn-status success' id='qhtl-status-btn' style='text-transform:none;'>Enabled and Running</span>
-				</div>
+				<span class='btn-status success' id='qhtl-status-btn' style='text-transform:none;'>Enabled and Running</span>
 			</div>
 		</div>
 	</div>
