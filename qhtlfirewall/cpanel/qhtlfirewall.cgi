@@ -272,8 +272,10 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 						existing.style.boxShadow = 'inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 14px '+(sty.glow||'rgba(0,0,0,0.15)');
 						existing.textContent = sty.txt;
 						existing.style.borderRadius = '999px';
-						existing.style.padding = '6px 12px';
-						existing.style.minWidth = '96px';
+						// Scale down ~30% for WHM header badge
+						existing.style.padding = '4px 8px';
+						existing.style.minWidth = '67px';
+						existing.style.fontSize = '12px';
 						existing.style.display = 'inline-flex';
 						existing.style.alignItems = 'center';
 						existing.style.justifyContent = 'center';
@@ -299,7 +301,8 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					// Inner badge span for color/status
 					var span = document.createElement('span');
 					span.id = 'qhtlfw-header-badge';
-					span.style.padding = '6px 12px';
+					// Scale down ~30% for WHM header badge
+					span.style.padding = '4px 8px';
 					span.style.borderRadius = '999px';
 					span.style.color = '#fff';
 					span.style.background = sty.bg;
@@ -307,7 +310,8 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					span.style.cursor = 'pointer';
 					// inset highlight + outer glow for bubble feel
 					span.style.boxShadow = 'inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 14px '+(sty.glow||'rgba(0,0,0,0.15)');
-					span.style.minWidth = '96px';
+					span.style.minWidth = '67px';
+					span.style.fontSize = '12px';
 					span.style.display = 'inline-flex';
 					span.style.alignItems = 'center';
 					span.style.justifyContent = 'center';
