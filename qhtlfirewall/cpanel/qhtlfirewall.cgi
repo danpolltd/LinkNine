@@ -43,10 +43,12 @@ my $sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
 my $sec_user = lc($ENV{HTTP_SEC_FETCH_USER} // ''); # '?1' for user navigations
 my $accept   = lc($ENV{HTTP_ACCEPT} // '');
 if (!defined $FORM{action} || $FORM{action} eq '') {
-	my $is_script_dest= ($sec_dest eq 'script');
-	my $accept_js     = ($accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
-	# Treat script-like only when clearly a script destination or Accept looks like JS
-	my $scriptish     = $is_script_dest || $accept_js;
+	my $is_script_dest = ($sec_dest eq 'script');
+	my $accept_js      = ($accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
+	# Consider it a normal navigation if Sec-Fetch indicates navigation/document/frame or a user gesture is present
+	my $is_nav = ($sec_mode eq 'navigate' || $sec_dest eq 'document' || $sec_dest eq 'frame' || $sec_dest eq 'iframe' || $sec_user eq '?1');
+	# Treat script-like only when clearly a script destination, or when Accept looks like JS AND it's not a navigation
+	my $scriptish = $is_script_dest || (!$is_nav && $accept_js);
 	if ($scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
@@ -451,9 +453,10 @@ if (defined $FORM{action} && $FORM{action} ne '' && $FORM{action} !~ /^(?:status
 	my $g_sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
 	my $g_sec_user = lc($ENV{HTTP_SEC_FETCH_USER} // '');
 	my $g_accept   = lc($ENV{HTTP_ACCEPT} // '');
-	my $g_is_script_dest= ($g_sec_dest eq 'script');
-	my $g_accept_js     = ($g_accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
-	my $g_scriptish     = $g_is_script_dest || $g_accept_js;
+	my $g_is_script_dest = ($g_sec_dest eq 'script');
+	my $g_accept_js      = ($g_accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
+	my $g_is_nav = ($g_sec_mode eq 'navigate' || $g_sec_dest eq 'document' || $g_sec_dest eq 'frame' || $g_sec_dest eq 'iframe' || $g_sec_user eq '?1');
+	my $g_scriptish = $g_is_script_dest || (!$g_is_nav && $g_accept_js);
 	if ($g_scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
