@@ -39,6 +39,12 @@ our ($chart, $ipscidr6, $ipv6reg, $ipv4reg, %config, %ips, $mobile,
 my $slurpreg = QhtLink::Slurp->slurpreg;
 my $cleanreg = QhtLink::Slurp->cleanreg;
 
+# Fallback no-op resize helper to avoid undefined sub errors
+sub resize {
+	# Historically used to wrap resizable pre blocks; safe to no-op now
+	return;
+}
+
 #
 ###############################################################################
 # start main

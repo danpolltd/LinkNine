@@ -467,13 +467,15 @@ for my $frag (\@header, \@footer) {
 # If footer contains legacy Danpol branding or bare version text, replace it with a compact version link
 if (@footer) {
 	my $ft = join('', @footer);
-	if ($ft =~ /Danpol\s+Limited/i || $ft =~ /qhtlfirewall:\s*v/i) {
-		@footer = (
-			"<div style='display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;'>\n",
-			"\t<div style='font-size:12px;'><a href='$script?action=readme' target='_self' style='text-decoration:none;'>Qht Link Firewall v$myv</a></div>\n",
-			"</div>\n"
-		);
-	}
+	# Remove just 'Danpol Limited' from any footer lines, keep everything else (e.g., year and name)
+	$ft =~ s/Danpol\s+Limited\s*\(?\)?//ig;
+	# If legacy right-side 'qhtlfirewall: vX' exists, strip it; we will add our own link consistently
+	$ft =~ s/qhtlfirewall:\s*v\S+//ig;
+	# Recompose sanitized footer and append our right-aligned version link
+	my $right = "<div style='font-size:12px;'><a href='$script?action=readme' target='_self' style='text-decoration:none;'>Qht Link Firewall v$myv</a></div>";
+	my $container_start = "<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;'>";
+	my $container_end = "</div>\n";
+	@footer = ($container_start, "<div style='font-size:12px;'>$ft</div>", $right, $container_end);
 }
 
 my $thisapp = "qhtlfirewall";
