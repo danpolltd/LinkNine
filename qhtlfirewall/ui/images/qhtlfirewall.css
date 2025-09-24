@@ -14,10 +14,17 @@
 	border:1px solid #A6C150;
 	background: #F5F5F5;
 }
-/* Ensure Bootstrap primary/success still show their colors (don’t override) */
-.btn-primary, .btn-success, .btn-warning, .btn-danger, .btn-info {
-    color: #fff !important;
-}
+/* Minimal contextual button colors (when Bootstrap CSS isn't present here) */
+.btn-primary { background-color: #337ab7; border-color: #2e6da4; color: #fff !important; }
+.btn-primary:hover { background-color: #286090; border-color: #204d74; color: #fff !important; }
+.btn-success { background-color: #5cb85c; border-color: #4cae4c; color: #fff !important; }
+.btn-success:hover { background-color: #449d44; border-color: #398439; color: #fff !important; }
+.btn-warning { background-color: #f0ad4e; border-color: #eea236; color: #fff !important; }
+.btn-warning:hover { background-color: #ec971f; border-color: #d58512; color: #fff !important; }
+.btn-danger { background-color: #d9534f; border-color: #d43f3a; color: #fff !important; }
+.btn-danger:hover { background-color: #c9302c; border-color: #ac2925; color: #fff !important; }
+.btn-info { background-color: #5bc0de; border-color: #46b8da; color: #fff !important; }
+.btn-info:hover { background-color: #31b0d5; border-color: #269abc; color: #fff !important; }
 .btn-qhtlfirewall-config:focus,
 .btn-qhtlfirewall-config:hover,
 .btn-qhtlfirewall-config:active,
@@ -289,13 +296,14 @@ td .btn, th .btn {
 }
 
 /* Ensure panels inside bubble don’t paint opaque backgrounds so the gradient shows through */
+/* Preserve readable white panels inside the bubble */
 .qhtl-bubble-bg .panel {
-	background: transparent;
+	background: #fff;
 }
 .qhtl-bubble-bg .panel > .panel-heading,
 .qhtl-bubble-bg .panel > .panel-body,
 .qhtl-bubble-bg .panel > .panel-footer {
-	background: transparent;
+	background: #fff;
 }
 
 /* Let tabs sit visually on top of the gradient bubble */

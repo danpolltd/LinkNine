@@ -698,7 +698,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 EOF
 
 	print <<EOF;
-	$bootstrapcss
+	<!-- $bootstrapcss -->
 	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
 	$jqueryjs
 	$bootstrapjs
@@ -770,8 +770,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 													"<input type='submit' class='btn btn-xs btn-default' value='Start'></form>";
 		}
 
-		print <<EOF;
-<div class='qhtl-bubble-bg'>
+	print <<EOF;
 <div class='panel panel-default' style='padding: 10px; margin:0;'>
 	<div class='row' style='display:flex;align-items:center;'>
 		<div class='col-sm-8 col-xs-12' style='display:flex;align-items:center;gap:10px;'>
@@ -790,7 +789,6 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			</div>
 		</div>
 	</div>
-</div>
 <script>
 // Keep the status text within the green button centered and sync with computed status_badge
 (function(){
@@ -820,6 +818,11 @@ EOF
 		if ($reregister ne "") {print $reregister}
 }
 
+# Open gradient wrapper just before main content (exclude header)
+unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
+	print "<div class='qhtl-bubble-bg'>\n";
+}
+
 if (!$ui_error) {
 	eval {
 		if ($reseller) {
@@ -829,6 +832,11 @@ if (!$ui_error) {
 		}
 		1;
 	} or do { $ui_error = $@ || 'Unknown error in UI renderer'; };
+}
+
+# Close gradient wrapper right after main content
+unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
+	print "</div>\n";
 }
 
 if ($ui_error) {
@@ -844,7 +852,6 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 <div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;'>
 	<div style='font-size:12px;'>&copy;2025, <a href='https://www.qhtlfirewall.danpol.co.uk' target='_blank'>Danpol Limited</a> (<span style='color:#0d6efd;font-weight:bold;'>Daniel Nowakowski</span>)</div>
 	<div style='font-size:12px;'>qhtlfirewall: v$myv</div>
-</div>
 </div>
 FOOTER_BAR
 }
