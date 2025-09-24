@@ -464,6 +464,18 @@ for my $frag (\@header, \@footer) {
     }
 }
 
+# If footer contains legacy Danpol branding or bare version text, replace it with a compact version link
+if (@footer) {
+	my $ft = join('', @footer);
+	if ($ft =~ /Danpol\s+Limited/i || $ft =~ /qhtlfirewall:\s*v/i) {
+		@footer = (
+			"<div style='display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;'>\n",
+			"\t<div style='font-size:12px;'><a href='$script?action=readme' target='_self' style='text-decoration:none;'>Qht Link Firewall v$myv</a></div>\n",
+			"</div>\n"
+		);
+	}
+}
+
 my $thisapp = "qhtlfirewall";
 my $reregister;
 my $modalstyle;
@@ -557,10 +569,11 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';
 			// Header-right container for countdown next to title
 			var headerRight = document.createElement('div'); headerRight.id='quickViewHeaderRight'; headerRight.style.display='inline-flex'; headerRight.style.alignItems='center'; headerRight.style.gap='6px'; headerRight.style.whiteSpace='nowrap'; headerRight.style.marginRight='10px'; headerRight.style.flex='0 0 auto';
-			var footer = document.createElement('div'); footer.style.display='flex'; footer.style.flexWrap='wrap'; footer.style.justifyContent='space-between'; footer.style.alignItems='center'; footer.style.gap='8px'; footer.style.padding='10px'; footer.style.marginTop='auto';
+			var footer = document.createElement('div'); footer.style.display='flex'; footer.style.flexWrap='wrap'; footer.style.justifyContent='flex-start'; footer.style.alignItems='center'; footer.style.gap='8px'; footer.style.padding='10px'; footer.style.marginTop='auto';
 			var left = document.createElement('div'); left.id='quickViewFooterLeft'; var mid = document.createElement('div'); mid.id='quickViewFooterMid'; var right = document.createElement('div'); right.id='quickViewFooterRight';
 			left.style.display='flex'; left.style.alignItems='center'; left.style.flexWrap='wrap'; left.style.gap='8px'; left.style.minWidth='240px';
-			right.style.display='flex'; right.style.alignItems='center'; right.style.flexWrap='wrap'; right.style.gap='8px'; right.style.minWidth='220px'; right.style.justifyContent='flex-end';
+			right.style.display='flex'; right.style.alignItems='center'; right.style.flexWrap='wrap'; right.style.gap='8px'; right.style.justifyContent='flex-end'; right.style.marginLeft='auto';
+			left.style.flex='1 1 auto';
 			// Watcher controls
 			var logSelect = document.createElement('select'); logSelect.id='watcherLogSelect'; logSelect.className='form-control'; logSelect.style.display='inline-block'; logSelect.style.width='auto'; logSelect.style.maxWidth='48vw'; logSelect.style.marginRight='8px';
 			var linesInput = document.createElement('input'); linesInput.id='watcherLines'; linesInput.type='text'; linesInput.value='100'; linesInput.size='4'; linesInput.className='form-control'; linesInput.style.display='inline-block'; linesInput.style.width='70px'; linesInput.style.marginRight='8px';
@@ -942,16 +955,12 @@ if ($ui_error) {
 }
 
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
-	# No local fallback loader here; global WHM includes handle banner injection with a valid cpsess token.
-	print @footer;
-}
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
-		print <<FOOTER_BAR;
-<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;'>
-	<div style='font-size:12px;'>&copy;2025, <a href='https://www.qhtlfirewall.danpol.co.uk' target='_blank'>Danpol Limited</a> (<span style='color:#0d6efd;font-weight:bold;'>Daniel Nowakowski</span>)</div>
-	<div style='font-size:12px;'>qhtlfirewall: v$myv</div>
-</div>
-FOOTER_BAR
+	# Print sanitized footer if provided; otherwise print a minimal version link
+	if (@footer) {
+		print \@footer;
+	} else {
+		print "<div style='display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;'><div style='font-size:12px;'><a href='$script?action=readme' target='_self' style='text-decoration:none;'>Qht Link Firewall v$myv</a></div></div>\n";
+	}
 }
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
 	close ($SCRIPTOUT);
