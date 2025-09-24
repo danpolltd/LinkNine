@@ -114,17 +114,24 @@ sub main {
 		if ($upgrade) {
 			my $changelog = ($src ne '' ? "$src/qhtlfirewall/changelog.txt" : "https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt");
 			print "<form action='$script' method='post'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button> A new version of qhtlfirewall (v$actv) is available";
-			if ($src ne '') { print " from <code>$src</code>"; }
 			print ". Upgrading will retain your settings. <a href='${changelog}' target='_blank'>View ChangeLog</a></form>\n";
 		} else {
 			if (defined $err and $err ne "") {
 				print "<div class='bs-callout bs-callout-danger'>$err</div>\n";
 			}
 			else {
-				# No upgrade available, but if we fetched a version, show it for transparency
+				# No upgrade available; if we fetched a version, clarify relation
 				if (defined $actv and $actv ne "") {
 					my $src_text = ($src ne '' ? " (from $src)" : "");
-					print "<div class='bs-callout bs-callout-info'>Up to date: qhtlfirewall v$myv (latest available is also v$actv$src_text)</div>\n";
+					my $cmp = ver_cmp($actv, $myv);
+					if ($cmp == 0) {
+						print "<div class='bs-callout bs-callout-info'>Up to date: qhtlfirewall v$myv (latest available is also v$actv$src_text)</div>\n";
+					} elsif ($cmp == -1) {
+						print "<div class='bs-callout bs-callout-warning'>You are running qhtlfirewall v$myv which is newer than the latest available on the update servers (v$actv$src_text)</div>\n";
+					} else {
+						# Should not happen as $upgrade would be true, but fall back safely
+						print "<div class='bs-callout bs-callout-info'>Latest available version is v$actv$src_text. Your version is v$myv.</div>\n";
+					}
 				} else {
 					print "<div class='bs-callout bs-callout-info'>You are running the latest version of qhtlfirewall (v$myv). An Upgrade button will appear here if a new version becomes available</div>\n";
 				}
@@ -845,6 +852,22 @@ QHTL_JQ_GREP
 	elsif ($FORM{action} eq "qallow") {
 		print "<div><p>Allowing $FORM{ip}...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 		&printcmd("/usr/sbin/qhtlfirewall","-a",$FORM{ip},$FORM{comment});
+		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "applytemp") {
+		# Apply Temporary Allow/Deny based on UI form (primary path)
+		my $do = ($FORM{do} && $FORM{do} eq 'allow') ? 'allow' : 'block';
+		$FORM{timeout} =~ s/\D//g;
+		if ($FORM{dur} eq "minutes") {$FORM{timeout} = $FORM{timeout} * 60}
+		elsif ($FORM{dur} eq "hours") {$FORM{timeout} = $FORM{timeout} * 60 * 60}
+		elsif ($FORM{dur} eq "days") {$FORM{timeout} = $FORM{timeout} * 60 * 60 * 24}
+		my @cmd = ($do eq 'block') ? ("-td", $FORM{ip}, $FORM{timeout}) : ("-ta", $FORM{ip}, $FORM{timeout});
+		if (defined $FORM{ports} && $FORM{ports} ne '' && $FORM{ports} ne '*') { push @cmd, ("-p", $FORM{ports}); }
+		if (defined $FORM{comment} && $FORM{comment} ne '') { push @cmd, $FORM{comment}; }
+		my $verb = ($do eq 'block') ? 'Blocking' : 'Allowing';
+		print "<div><p>Temporarily $verb $FORM{ip} for $FORM{timeout} seconds...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
+		&printcmd("/usr/sbin/qhtlfirewall", @cmd);
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
@@ -2172,8 +2195,8 @@ EOF
 		print "<tr><td colspan='2'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button><div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings<br><a href='https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt' target='_blank'>View ChangeLog</a></div></td></tr>\n";
 	} else {
 		print "<tr><td colspan='2'><button name='action' value='manualcheck' type='submit' class='btn btn-default'>Manual Check</button>";
-		if ($actv ne "" && $actv > $myv) {
-			print "<div class='text-muted small' style='margin-top:6px'>Latest available version is v$actv (from https://$config{DOWNLOADSERVER}/qhtlfirewall/version.txt). Your version is v$myv. Please upgrade.</div></td></tr>\n";
+			if ($actv ne "" && ver_cmp($actv, $myv) == 1) {
+				print "<div class='text-muted small' style='margin-top:6px'>Latest available version is v$actv. Your version is v$myv. Please upgrade.</div></td></tr>\n";
 		} elsif ($actv ne "") {
 			print "<div class='text-muted small' style='margin-top:6px'>(qhtlfirewallget cron check) $actv</div></td></tr>\n";
 		} else {
@@ -2279,7 +2302,7 @@ EOF
 
 		# Temporary Allow/Deny (merged into a single full-width row)
 		print "<tr><td colspan='2'>";
-		print "<form action='$script' method='post' id='tempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='tempdeny'>";
+		print "<form action='$script' method='post' id='tempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='applytemp'>";
 		print "<div style='width:100%'>";
 		print "  <div class='h4' style='margin:0 0 8px 0;'>Temporary Allow/Deny</div>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
@@ -2290,10 +2313,13 @@ EOF
 		print "    <div style='flex:0 0 20%; max-width:20%'>IP address</div>";
 		print "    <div style='flex:1 1 auto'><input type='text' name='ip' value='' size='18' class='form-control' style='max-width:340px'></div>";
 		print "  </div>";
-	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px; flex-wrap:wrap'>";
+	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
 	print "    <div style='flex:0 0 20%; max-width:20%'>Ports</div>";
-	print "    <div style='flex:1 1 30%'><input type='text' name='ports' value='*' size='5' class='form-control' style='max-width:200px'></div>";
-	print "    <div style='flex:1 1 50%'>Duration for <input type='text' name='timeout' value='' size='4' class='form-control' style='display:inline-block; width:90px;'> <select name='dur' class='form-control' style='display:inline-block; width:auto; min-width:120px'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select></div>";
+	print "    <div style='flex:1 1 auto'><input type='text' name='ports' value='*' size='5' class='form-control' style='max-width:200px'></div>";
+	print "  </div>";
+	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+	print "    <div style='flex:0 0 20%; max-width:20%'>Duration for</div>";
+	print "    <div style='flex:1 1 auto'><input type='text' name='timeout' value='' size='4' class='form-control' style='display:inline-block; width:90px; margin-right:8px;'> <select name='dur' class='form-control' style='display:inline-block; width:auto; min-width:120px'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select></div>";
 	print "  </div>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
 		print "    <div style='flex:0 0 20%; max-width:20%'>Comment</div>";
@@ -3133,31 +3159,24 @@ sub qhtlfirewallgetversion {
 	my $current = shift;
 	my $upgrade = 0;
 	my $newversion;
-	if (-e "/var/lib/qhtlfirewall/".$product.".txt.error") {
-		open (my $VERSION, "<", "/var/lib/qhtlfirewall/".$product.".txt.error");
-		flock ($VERSION, LOCK_SH);
-		$newversion = <$VERSION>;
-		close ($VERSION);
-		chomp $newversion;
-		if ($newversion eq "") {
-			$newversion = "Failed to retrieve latest version from Danpol update server";
-		} else {
-			$newversion = "Failed to retrieve latest version from Danpol update server: $newversion";
-		}
-	}
-	elsif (-e "/var/lib/qhtlfirewall/".$product.".txt") {
+	# Prefer a successful cron fetch file over any error file
+	if (-e "/var/lib/qhtlfirewall/".$product.".txt") {
 		open (my $VERSION, "<", "/var/lib/qhtlfirewall/".$product.".txt");
 		flock ($VERSION, LOCK_SH);
 		$newversion = <$VERSION>;
 		close ($VERSION);
 		chomp $newversion;
-		if ($newversion eq "") {
-			$newversion = "Failed to retrieve latest version from Danpol update server";
-		} else {
-			if ($newversion =~ /^[\d\.]*$/) {
-				if ($newversion > $current) {$upgrade = 1} else {$newversion = ""}
-			} else {$newversion = ""}
-		}
+		if ($newversion =~ /^[\d\.]+$/) {
+			if (ver_cmp($newversion, $current) == 1) { $upgrade = 1; }
+		} else { $newversion = ""; }
+	}
+	elsif (-e "/var/lib/qhtlfirewall/".$product.".txt.error") {
+		open (my $VERSION, "<", "/var/lib/qhtlfirewall/".$product.".txt.error");
+		flock ($VERSION, LOCK_SH);
+		$newversion = <$VERSION>;
+		close ($VERSION);
+		chomp $newversion;
+		$newversion = $newversion ? "Failed to retrieve latest version from Danpol update server: $newversion" : "Failed to retrieve latest version from Danpol update server";
 	}
 	elsif (-e "/var/lib/qhtlfirewall/error") {
 		open (my $VERSION, "<", "/var/lib/qhtlfirewall/error");
@@ -3165,11 +3184,7 @@ sub qhtlfirewallgetversion {
 		$newversion = <$VERSION>;
 		close ($VERSION);
 		chomp $newversion;
-		if ($newversion eq "") {
-			$newversion = "Failed to retrieve latest version from Danpol update server";
-		} else {
-			$newversion = "Failed to retrieve latest version from Danpol update server: $newversion";
-		}
+		$newversion = $newversion ? "Failed to retrieve latest version from Danpol update server: $newversion" : "Failed to retrieve latest version from Danpol update server";
 	} else {
 		$newversion = "Failed to retrieve latest version from Danpol update server";
 	}
@@ -3216,7 +3231,7 @@ sub manualversion {
 			my $v = $body; chomp $v; $v =~ s/^\s+|\s+$//g;
 			if ($v =~ /^[\d\.]+$/) {
 				# Keep the highest semver-ish numeric version
-				if ($best_version eq '' || $v > $best_version) {
+				if ($best_version eq '' || ver_cmp($v, $best_version) == 1) {
 					$best_version = $v;
 					$best_server  = $srv;
 				}
@@ -3229,7 +3244,7 @@ sub manualversion {
 		}
 	}
 
-	if ($best_version ne '' && $best_version > $current) { $upgrade = 1; }
+	if ($best_version ne '' && ver_cmp($best_version, $current) == 1) { $upgrade = 1; }
 
 	# If no upgrade but we have a valid fetched version, return it for display
 	if ($best_version ne '' && !$upgrade) {
@@ -3243,6 +3258,25 @@ sub manualversion {
 	return (0, '', '', ($errtext ne '' ? "Failed to retrieve latest version from Danpol update server: $errtext" : 'Failed to retrieve latest version from Danpol update server'));
 }
 # end manualversion
+
+###############################################################################
+# Simple semantic-ish version comparator: returns 1 if a>b, 0 if a==b, -1 if a<b
+sub ver_cmp {
+	my ($a, $b) = @_;
+	return 0 if !defined $a && !defined $b;
+	return 1 if defined $a && !defined $b;
+	return -1 if !defined $a && defined $b;
+	my @A = split /\./, ($a // '');
+	my @B = split /\./, ($b // '');
+	my $len = @A > @B ? scalar @A : scalar @B;
+	for (my $i=0; $i<$len; $i++) {
+		my $x = ($A[$i] // 0); $x =~ s/\D//g; $x = int($x);
+		my $y = ($B[$i] // 0); $y =~ s/\D//g; $y = int($y);
+		return 1 if $x > $y;
+		return -1 if $x < $y;
+	}
+	return 0;
+}
 ###############################################################################
 
 1;
