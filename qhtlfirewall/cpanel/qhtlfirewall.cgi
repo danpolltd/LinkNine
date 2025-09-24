@@ -248,6 +248,21 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					if (!stats || !stats.shadowRoot) return false;
 					var host = stats.shadowRoot.querySelector('.header-stats, header, div');
 					if (!host) return false;
+					// Ensure a scoped style inside the shadow root for bubble highlight and layout
+					(function(){
+					  try {
+					    var styleEl = stats.shadowRoot.getElementById('qhtlfw-bubble-style');
+					    if (!styleEl) {
+					      styleEl = document.createElement('style');
+					      styleEl.id = 'qhtlfw-bubble-style';
+					      styleEl.textContent = [
+					        '#qhtlfw-header-badge{ position:relative; display:inline-flex; align-items:center; justify-content:center; text-shadow:0 1px 2px rgba(0,0,0,0.25); }',
+					        '#qhtlfw-header-badge:before{ content:\'\'; position:absolute; top:4px; left:10px; right:10px; height:40%; border-radius:999px; background:linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0)); pointer-events:none; }'
+					      ].join('\n');
+					      stats.shadowRoot.appendChild(styleEl);
+					    }
+					  } catch(_) {}
+					})();
 					var sty = computeStyle(lastData);
 					var existing = stats.shadowRoot.getElementById('qhtlfw-header-badge');
 					if (existing) {
@@ -259,11 +274,15 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 						existing.style.borderRadius = '999px';
 						existing.style.padding = '6px 12px';
 						existing.style.minWidth = '96px';
+						existing.style.display = 'inline-flex';
+						existing.style.alignItems = 'center';
+						existing.style.justifyContent = 'center';
 						// ensure wrapper provides space for glow on all sides
 						var wrap = existing.parentElement;
 						if (wrap && wrap.tagName && wrap.tagName.toUpperCase()==='A') {
 							wrap.style.marginTop = '7px';
 							wrap.style.marginBottom = '7px';
+							wrap.style.marginRight = '7px';
 						}
 						return true;
 					}
@@ -273,10 +292,10 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					a.target = '_self';
 					a.setAttribute('aria-label','Open QhtLink Firewall');
 					a.style.textDecoration = 'none';
-					a.style.marginLeft = '8px';
-					// add vertical spacing so top/bottom glow is visible
+					// 7px from top and right edge per request
 					a.style.marginTop = '7px';
 					a.style.marginBottom = '7px';
+					a.style.marginRight = '7px';
 					// Inner badge span for color/status
 					var span = document.createElement('span');
 					span.id = 'qhtlfw-header-badge';
@@ -289,6 +308,10 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					// inset highlight + outer glow for bubble feel
 					span.style.boxShadow = 'inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 14px '+(sty.glow||'rgba(0,0,0,0.15)');
 					span.style.minWidth = '96px';
+					span.style.display = 'inline-flex';
+					span.style.alignItems = 'center';
+					span.style.justifyContent = 'center';
+					span.style.textShadow = '0 1px 2px rgba(0,0,0,0.25)';
 					span.textContent = sty.txt;
 					a.appendChild(span);
 					host.appendChild(a);
@@ -753,6 +776,14 @@ EOF
 	}
 	print "</style>\n";
 	print @header;
+
+	print <<'EXTRA_BUBBLE_STYLE';
+	<style id="qhtl-plugin-bubble-style">
+		/* Water bubble highlight for the plugin header status */
+		#qhtl-status-btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; text-shadow:0 1px 2px rgba(0,0,0,0.25); }
+		#qhtl-status-btn::before{ content:''; position:absolute; top:4px; left:10px; right:10px; height:40%; border-radius:999px; background:linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0)); pointer-events:none; }
+	</style>
+	EXTRA_BUBBLE_STYLE
 }
 
 
