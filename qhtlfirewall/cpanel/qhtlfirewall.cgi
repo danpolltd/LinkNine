@@ -230,8 +230,15 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 				function computeStyle(data){
 					var cls = (data && data['class']) || 'default';
 					var txt = (data && data['text']) || 'Firewall';
-					var bg = (cls==='success') ? '#5cb85c' : (cls==='warning' ? '#f0ad4e' : (cls==='danger' ? '#d9534f' : '#777'));
-					return {bg:bg, txt:txt};
+					// Bubble-style radial gradient palettes by state
+					var palette = {
+						 success: { grad: 'radial-gradient(circle at 30% 30%, #b9f6ca 0%, #66e08a 45%, #34a853 80%)', border: '#2f8f49', glow: 'rgba(76,175,80,0.20)' },
+						 warning: { grad: 'radial-gradient(circle at 30% 30%, #ffe6a1 0%, #ffc766 45%, #f0ad4e 80%)', border: '#d69339', glow: 'rgba(240,173,78,0.20)' },
+						 danger:  { grad: 'radial-gradient(circle at 30% 30%, #ffb3ad 0%, #ff6f69 45%, #d9534f 80%)', border: '#b94441', glow: 'rgba(217,83,79,0.20)' },
+						 default: { grad: 'radial-gradient(circle at 30% 30%, #e0e0e0 0%, #bdbdbd 45%, #757575 80%)', border: '#616161', glow: 'rgba(117,117,117,0.20)' }
+					};
+					var p = palette[cls] || palette.default;
+					return {bg:p.grad, border:p.border, glow:p.glow, txt:txt};
 				}
 
 				function tryInject(){
@@ -244,10 +251,14 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					var sty = computeStyle(lastData);
 					var existing = stats.shadowRoot.getElementById('qhtlfw-header-badge');
 					if (existing) {
-						// existing is the inner span; update its style/text
+						// existing is the inner span; update its style/text and bubble visuals
 						existing.style.background = sty.bg;
-						existing.style.boxShadow = '0 0 0 5px '+sty.bg+'33';
+						existing.style.border = '1px solid '+(sty.border||'#616161');
+						existing.style.boxShadow = 'inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 14px '+(sty.glow||'rgba(0,0,0,0.15)');
 						existing.textContent = sty.txt;
+						existing.style.borderRadius = '999px';
+						existing.style.padding = '6px 12px';
+						existing.style.minWidth = '96px';
 						// ensure wrapper provides space for glow on all sides
 						var wrap = existing.parentElement;
 						if (wrap && wrap.tagName && wrap.tagName.toUpperCase()==='A') {
@@ -269,13 +280,15 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					// Inner badge span for color/status
 					var span = document.createElement('span');
 					span.id = 'qhtlfw-header-badge';
-					span.style.padding = '4px 8px';
-					span.style.borderRadius = '3px';
+					span.style.padding = '6px 12px';
+					span.style.borderRadius = '999px';
 					span.style.color = '#fff';
 					span.style.background = sty.bg;
+					span.style.border = '1px solid '+(sty.border||'#616161');
 					span.style.cursor = 'pointer';
-					// 5px glow in same color (with slight transparency)
-					span.style.boxShadow = '0 0 0 5px '+sty.bg+'33';
+					// inset highlight + outer glow for bubble feel
+					span.style.boxShadow = 'inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 14px '+(sty.glow||'rgba(0,0,0,0.15)');
+					span.style.minWidth = '96px';
 					span.textContent = sty.txt;
 					a.appendChild(span);
 					host.appendChild(a);
@@ -350,8 +363,10 @@ JS
 		print "Content-Security-Policy: frame-ancestors 'self';\r\n\r\n";
 		print "<!doctype html><html><head><meta charset=\"utf-8\">\n";
 		print "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'none'\">\n";
-		print "<style>html,body{margin:0;padding:0;background:transparent} .label{display:inline-block;font:12px/1.2 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#fff;border-radius:3px;padding:4px 8px} .label-success{background:#5cb85c} .label-warning{background:#f0ad4e} .label-danger{background:#d9534f}</style>\n";
-	print "</head><body style=\"margin:0\"><span class=\"label label-$cls\" style=\"display:inline-block;white-space:nowrap\">$txt</span></body></html>";
+		# Bubble-style badge using radial gradient and pill shape in the iframe fallback
+		print "<style>html,body{margin:0;padding:0;background:transparent} .bubble{display:inline-block;font:12px/1.2 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#fff;border-radius:999px;padding:6px 12px;border:1px solid transparent;min-width:96px;box-shadow:inset 0 2px 6px rgba(255,255,255,0.35),0 6px 14px rgba(0,0,0,0.15);white-space:nowrap} .bubble-success{background:radial-gradient(circle at 30% 30%, #b9f6ca 0%, #66e08a 45%, #34a853 80%);border-color:#2f8f49} .bubble-warning{background:radial-gradient(circle at 30% 30%, #ffe6a1 0%, #ffc766 45%, #f0ad4e 80%);border-color:#d69339} .bubble-danger{background:radial-gradient(circle at 30% 30%, #ffb3ad 0%, #ff6f69 45%, #d9534f 80%);border-color:#b94441}</style>\n";
+	my $bcls = ($cls eq 'success') ? 'bubble-success' : ($cls eq 'warning' ? 'bubble-warning' : 'bubble-danger');
+	print "</head><body style=\"margin:0\"><span class=\"bubble $bcls\">$txt</span></body></html>";
 		exit 0;
 	}
 
@@ -838,17 +853,21 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			}
 		} catch(_) {}
 
-		// Apply bubble-like gradient styling to status to mirror Watcher feel
+		// Apply bubble-style radial gradient styling to status to mirror Watcher feel
 		try {
-			var bg = '#5cb85c', border = '#3fae50', fg = '#fff';
-			if (el.classList.contains('warning')) { bg = '#f0ad4e'; border = '#e19d3f'; }
-			else if (el.classList.contains('danger')) { bg = '#d9534f'; border = '#c4413d'; }
-			el.style.background = 'linear-gradient(180deg, ' + bg + ' 0%, ' + bg + ' 100%)';
-			el.style.color = fg;
-			el.style.border = '1px solid ' + border;
-			el.style.borderRadius = '4px';
+			var palette = {
+				 success: { grad: 'radial-gradient(circle at 30% 30%, #b9f6ca 0%, #66e08a 45%, #34a853 80%)', border: '#2f8f49', glow: 'rgba(76,175,80,0.20)' },
+				 warning: { grad: 'radial-gradient(circle at 30% 30%, #ffe6a1 0%, #ffc766 45%, #f0ad4e 80%)', border: '#d69339', glow: 'rgba(240,173,78,0.20)' },
+				 danger:  { grad: 'radial-gradient(circle at 30% 30%, #ffb3ad 0%, #ff6f69 45%, #d9534f 80%)', border: '#b94441', glow: 'rgba(217,83,79,0.20)' }
+			};
+			var mode = el.classList.contains('warning') ? 'warning' : (el.classList.contains('danger') ? 'danger' : 'success');
+			var p = palette[mode];
+			el.style.background = p.grad;
+			el.style.color = '#fff';
+			el.style.border = '1px solid ' + p.border;
+			el.style.borderRadius = '999px';
 			el.style.padding = '6px 10px';
-			el.style.boxShadow = '0 0 0 5px ' + bg + '33';
+			el.style.boxShadow = 'inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 14px ' + p.glow;
 		} catch(_) {}
 	} catch(e){}
 })();
