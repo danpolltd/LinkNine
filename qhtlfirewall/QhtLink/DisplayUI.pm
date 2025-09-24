@@ -2194,20 +2194,7 @@ EOF
 			}
 		}
 
-		# Move Mobile View panel so it appears only on the Upgrade tab
-		if ($config{STYLE_MOBILE}) {
-			if (-e "/usr/local/cpanel/version" and !$config{THIS_UI}) {
-				require Cpanel::Version::Tiny;
-				if ($Cpanel::Version::Tiny::major_version < 65) {
-					print "<a id='cpframetr2' href='$ENV{cp_security_token}' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> cPanel Main Page</a>\n";
-				}
-			}
-			if  (defined $ENV{WEBMIN_VAR} and defined $ENV{WEBMIN_CONFIG} and !$config{THIS_UI}) {
-				print "<a id='webmintr2' href='/' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> Webmin Main Page</a>\n";
-			}
-			print "<div id='mobileview-upgrade-panel' class='panel panel-default'><div class='panel-heading panel-heading-qhtlwatcher'>Shows a subset of functions suitable for viewing on mobile devices</div>\n";
-			print "<div class='panel-body text-center'><a class='btn btn-primary btn-block' style='margin:10px;padding: 18px 28px;font-size: 22px; line-height: normal;border-radius: 8px;' id='MobileView'>Mobile View</a></div></div>\n";
-		}
+		# Removed legacy Mobile View panel/button; tabs are now mobile-friendly by default
 		print "</div>\n";
 
 		# New Quick Actions tab content (moved from QhtLink Firewall tab)
