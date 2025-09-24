@@ -2245,17 +2245,17 @@ EOF
 		# Moved informational callouts from General Options to Upgrade tab
 		unless (-e "/etc/qhtlwatcher/qhtlwatcher.pl") {
 			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN} or $config{INTERWORX} or $config{VESTA} or $config{CWP} or $config{CYBERPANEL}) {
-				print "<div class='bs-callout bs-callout-info h4'>Add server and user data protection against exploits using <a href='https://danpol.co.uk' target='_blank'>QHTL eXploit Scanner (qhtlscanner)</a></div>\n";
+				print "<div class='bs-callout bs-callout-info h4'>Add server and user data protection against exploits using <a href='#' onclick=\"if(window.openPromoModal){openPromoModal(); return false;} return false;\">QHTL eXploit Scanner (qhtlscanner)</a></div>\n";
 			}
 		}
 		unless (-e "/etc/qhtlmoderator/qhtlmoderator.pl") {
 			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
-				print "<div class='bs-callout bs-callout-info h4'>Add outgoing spam monitoring and prevention using <a href='https://danpol.co.uk' target='_blank'>QHTL Outgoing Mail Moderator (qhtlmoderator)</a></div>\n";
+				print "<div class='bs-callout bs-callout-info h4'>Add outgoing spam monitoring and prevention using <a href='#' onclick=\"if(window.openPromoModal){openPromoModal(); return false;} return false;\">QHTL Outgoing Mail Moderator (qhtlmoderator)</a></div>\n";
 			}
 		}
 		unless (-e "/usr/msfe/mschange.pl") {
 			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
-				print "<div class='bs-callout bs-callout-info h4'>Add effective incoming virus and spam detection and user level processing using <a href='https://danpol.co.uk' target='_blank'>QHTL MailScanner Front-End (qhtlscanner)</a></div>\n";
+				print "<div class='bs-callout bs-callout-info h4'>Add effective incoming virus and spam detection and user level processing using <a href='#' onclick=\"if(window.openPromoModal){openPromoModal(); return false;} return false;\">QHTL MailScanner Front-End (qhtlscanner)</a></div>\n";
 			}
 		}
 
@@ -2462,6 +2462,73 @@ EOF
 	print "    <button type='button' class='btn btn-default btn-close-red' data-dismiss='modal'>Close</button>\n";
 	print "  </div>\n";
 	print "</div>\n";
+
+	# Promo modal opener using the existing Quick View modal
+	print "<script>\n";
+	print <<'QHTL_PROMO_JS';
+(function(){
+	function ensureOrangeCSS(){
+		if (document.getElementById('qhtl-orange-style')) return;
+		var s=document.createElement('style'); s.id='qhtl-orange-style';
+		s.textContent = String.fromCharCode(64)+"keyframes qhtl-orange {0%,100%{box-shadow: 0 0 14px 6px rgba(255,140,0,0.55), 0 0 24px 10px rgba(255,140,0,0.28);}50%{box-shadow: 0 0 28px 14px rgba(255,140,0,0.95), 0 0 46px 20px rgba(255,140,0,0.55);}}\n"+
+									 ".fire-orange{ animation: qhtl-orange 2s infinite ease-in-out; }\n"+
+									 ".btn-golden{ background: linear-gradient(180deg, #ffd766 0%, #ffbf00 100%); color: #c0c0c0 !important; font-weight: 800; border: 1px solid #e6c200; }\n"+
+									 ".btn-golden:hover{ background: linear-gradient(180deg, #ffe387 0%, #ffc41a 100%); color: #f0f0f0 !important; }\n"+
+									 ".btn-bright-red{ background: #ff2d2d !important; color:#fff !important; border:1px solid #d61e1e; }\n"+
+									 ".btn-bright-red:hover{ background:#e61e1e !important; color:#fff !important; }\n";
+		document.head.appendChild(s);
+	}
+	function restoreFooter(){
+		var modal = document.getElementById('quickViewModal'); if(!modal) return;
+		var footer = modal.querySelector('.modal-footer'); if(!footer) return;
+		var promo = document.getElementById('promoFooter'); if(promo){ promo.remove(); }
+		var kids = footer.querySelectorAll('.orig-footer');
+		for (var i=0;i<kids.length;i++){ kids[i].style.display=''; }
+		// remove orange class
+		var mc = modal.querySelector('.modal-content'); if(mc){ mc.classList.remove('fire-orange'); }
+	}
+	window.openPromoModal = function(){
+		try{
+			ensureOrangeCSS();
+			var $modal = $('#quickViewModal');
+			if (!$modal.length) return alert('Modal not available');
+			if (!$modal.parent().is('body')) { $modal.appendTo('body'); }
+			var $dlg = $modal.find('.modal-dialog');
+			var $mc = $modal.find('.modal-content');
+			var $body = $modal.find('#quickViewBody');
+			var $title = $modal.find('#quickViewTitle');
+			var $footer = $modal.find('.modal-footer');
+			// size to small promo
+			$dlg.css({ width:'520px', maxWidth:'95vw', margin:'0', position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)' });
+			$mc.css({ height:'260px', display:'flex', flexDirection:'column', overflow:'hidden' });
+			$body.css({ flex:'1 1 auto', display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', fontSize:'16px', padding:'10px' });
+			$title.text('Promotion Required');
+			// content
+			$body.html("<div style='padding:10px;'><strong>You need promotion active to access this function !</strong></div>");
+			// orange pulsating glow
+			$mc.removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view').addClass('fire-orange');
+			// hide original footer content but preserve
+			$footer.children().each(function(){ if(!$(this).hasClass('orig-footer')) $(this).addClass('orig-footer'); $(this).hide(); });
+			// add promo footer
+			var promo = document.createElement('div'); promo.id='promoFooter'; promo.style.display='flex'; promo.style.justifyContent='space-between'; promo.style.alignItems='center'; promo.style.width='100%';
+			var left = document.createElement('div');
+			var buy = document.createElement('button'); buy.className='btn btn-golden'; buy.textContent='Buy Promotions'; buy.onclick=function(){ try{ window.open('https://danpol.co.uk','_blank'); }catch(e){} };
+			left.appendChild(buy);
+			var right = document.createElement('div');
+			var close = document.createElement('button'); close.className='btn btn-bright-red'; close.textContent='Close'; close.onclick=function(){ $modal.modal('hide'); restoreFooter(); };
+			right.appendChild(close);
+			promo.appendChild(left); promo.appendChild(right);
+			$footer.append(promo);
+			// show
+			$modal.modal({ show:true, backdrop:true, keyboard:true });
+			// ensure restore on hidden
+			$modal.off('hidden.bs.modal.qhtlPromo').on('hidden.bs.modal.qhtlPromo', function(){ restoreFooter(); });
+		}catch(e){ alert('Unable to open modal'); }
+		return false;
+	};
+})();
+QHTL_PROMO_JS
+	print "</script>\n";
 	print "</div>\n";
 	print "</div>\n";
 
