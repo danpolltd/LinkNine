@@ -2572,12 +2572,36 @@ JS
 
 	}
 
-	unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
-		print "<br>\n";
-		print "<div class='well well-sm'>qhtlfirewall: v$myv</div>";
-		print "<p>&copy;2025, <a href='https://www.qhtlfirewall.danpol.co.uk' target='_blank'>Danpol Limited</a> (<span style='color:#0d6efd;font-weight:bold;'>Daniel Nowakowski</span>)</p>\n";
-		print "</div>\n";
-	}
+		unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
+				# Auto-hide single section headers within a tab (show only when a tab has 2+ sections)
+				print <<'JS_HIDE_HEADERS';
+<script>
+function qhtlUpdateSectionHeaders(scope){
+	try {
+		var nodes = scope ? $(scope) : $('.tab-pane');
+		nodes.each(function(){
+			var $tp = $(this);
+			var $tables = $tp.find('table.table');
+			if ($tables.length === 1) {
+				$tables.first().find('thead').hide();
+			} else if ($tables.length > 1) {
+				$tables.find('thead').show();
+			}
+		});
+	} catch(e){}
+}
+$(function(){
+	qhtlUpdateSectionHeaders();
+	$(document).on('shown.bs.tab','a[data-toggle="tab"]',function(e){
+		var target = $(e.target).attr('href');
+		if (target) { qhtlUpdateSectionHeaders(target); }
+	});
+});
+</script>
+JS_HIDE_HEADERS
+				# Close the normal container opened earlier
+				print "</div>\n";
+		}
 
 	return;
 }

@@ -695,6 +695,13 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	}
 })();
 </script>
+print <<FOOTER_BAR;
+<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;'>
+	<div style='font-size:12px;'>&copy;2025, <a href='https://www.qhtlfirewall.danpol.co.uk' target='_blank'>Danpol Limited</a> (<span style='color:#0d6efd;font-weight:bold;'>Daniel Nowakowski</span>)</div>
+	<div style='font-size:12px;'>qhtlfirewall: v$myv</div>
+</div>
+</div>
+FOOTER_BAR
 EOF
 
 	print <<EOF;
@@ -771,7 +778,8 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 		}
 
 		print <<EOF;
-<div class='panel panel-default' style='padding: 10px'>
+<div class='qhtl-bubble-bg'>
+<div class='panel panel-default' style='padding: 10px; margin:0;'>
 	<div class='row' style='display:flex;align-items:center;'>
 		<div class='col-sm-8 col-xs-12' style='display:flex;align-items:center;gap:10px;'>
 			<img src='$images/qhtlfirewall_small.gif' onerror="this.onerror=null;this.src='$images/qhtlfirewall_small.png';" style='width:48px;height:48px;vertical-align:middle' alt='Logo'>

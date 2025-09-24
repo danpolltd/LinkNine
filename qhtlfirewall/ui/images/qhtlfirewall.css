@@ -273,3 +273,12 @@ td .btn, th .btn {
 	color: #ffffff !important;
 	border-color: #2196f3 !important;
 }
+
+/* Bubble-shaped page wrapper with vertical gradient header->footer */
+.qhtl-bubble-bg {
+	background: linear-gradient(180deg, #a8e6a1 0%, #7ec8ff 50%, #c39bff 100%);
+	border-radius: 14px;
+	padding: 10px 10px 14px 10px;
+	margin: 10px 0 14px 0;
+	box-shadow: 0 10px 28px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.3);
+}
