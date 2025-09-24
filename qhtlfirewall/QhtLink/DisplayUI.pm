@@ -72,89 +72,11 @@ sub confirmmodal {
 	print "\t\tvar maxH = Math.max(140, Math.floor(rect.height*0.85));\n";
 	print "\t\t$mc.css({ display:'flex', flexDirection:'column', overflow:'hidden', maxHeight: maxH+'px' });\n";
 	print "\t\tcm.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });\n";
-	print "\t\t} catch(_) {}\n";
-	print "\t});\n";
-	print "})();\n";
-	print "\$('.modal').click(function(event){\n";
-	print "  \$(event.target).modal('hide')\n";
-	print "});\n";
-	print "</script>\n";
-	return;
-}
-# end confirmmodal
-###############################################################################
-# start main
-sub main {
-	# Accept parameters from the CGI entrypoint and initialize shared state
-	my ($form_ref, $script_in, $mobile_in, $images_in, $myv_in, $where_in) = @_;
-	if (ref $form_ref eq 'HASH') { %FORM = %{$form_ref}; }
-	$script  = defined $script_in  ? $script_in  : $script;
-	$mobile  = defined $mobile_in  ? $mobile_in  : $mobile;
-	$images  = defined $images_in  ? $images_in  : $images;
-	$myv     = defined $myv_in     ? $myv_in     : $myv;
-	$where   = defined $where_in   ? $where_in   : $where;
-
-	# Load config and helper regexes (available to all handlers)
-	my $cfg_obj = QhtLink::Config->loadconfig();
-	%config     = $cfg_obj->config();
-	$slurpreg   = QhtLink::Slurp->slurpreg;
-	$cleanreg   = QhtLink::Slurp->cleanreg;
-
-	# Optional charts: initialize stats backend when enabled
-	if ($config{ST_ENABLE}) {
-		if (!defined QhtLink::ServerStats::init()) {$chart = 0}
-	}
-
-	# HTTP client used for version/changelog fetches
-	$urlget = QhtLink::URLGet->new($config{URLGET}, "qhtlfirewall/$myv", $config{URLPROXY});
-	unless (defined $urlget) {
-		$config{URLGET} = 1;
-		$urlget = QhtLink::URLGet->new($config{URLGET}, "qhtlfirewall/$myv", $config{URLPROXY});
-		print "<p>*WARNING* URLGET set to use LWP but perl module is not installed, reverting to HTTP::Tiny<p>\n";
-	}
-
-	if ($config{RESTRICT_UI} == 2) {
-		print "<table class='table table-bordered table-striped'>\n";
-		print "<tr><td><font color='red'>qhtlfirewall UI Disabled via the RESTRICT_UI option in /etc/qhtlfirewall/qhtlfirewall.conf</font></td></tr>\n";
-		print "</tr></table>\n";
-
-		return;
-	}
-
-
-	if ($FORM{ip} ne "") {$FORM{ip} =~ s/(^\s+)|(\s+$)//g}
-
-	if (($FORM{ip} ne "") and ($FORM{ip} ne "all") and (!checkip(\$FORM{ip}))) {
-		print "[$FORM{ip}] is not a valid IP/CIDR";
-	}
-	elsif (($FORM{ignorefile} ne "") and ($FORM{ignorefile} =~ /[^\w\.]/)) {
-		print "[$FORM{ignorefile}] is not a valid file";
-	}
-	elsif (($FORM{template} ne "") and ($FORM{template} =~ /[^\w\.]/)) {
-		print "[$FORM{template}] is not a valid file";
-	}
-	elsif ($FORM{action} eq "manualcheck") {
-		print "<div><p>Checking version...</p>\n\n";
-		my ($upgrade, $actv, $src, $err) = &manualversion($myv);
-		if ($upgrade) {
-			print "<form action='$script' method='post' style='display:inline-block;margin-right:8px'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button></form>";
-			print "<form action='$script' method='post' style='display:inline-block'><button name='action' value='changelog' type='submit' class='btn btn-default'>View ChangeLog</button></form>";
-			print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div>\n";
-		} else {
-			if (defined $err and $err ne "") {
-				print "<div class='bs-callout bs-callout-danger'>$err</div>\n";
-			}
+	sub qhtlfirewallgetversion {
 			else {
 				# No upgrade available; if we fetched a version, clarify relation
 				if (defined $actv and $actv ne "") {
 					my $src_text = ($src ne '' ? " (from $src)" : "");
-					sub printreturn {
-						print "<hr><div><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input id='qhtlfirewallreturn' type='submit' class='btn btn-default' value='Return'></form></div>\n";
-
-						return;
-					}
-					# end printreturn
-					###############################################################################
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "restartq") {
