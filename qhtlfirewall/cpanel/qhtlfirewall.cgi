@@ -123,8 +123,8 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 		# Disabled state
 		($enabled, $running, $class, $text, $status_key) = (0, 0, 'danger', 'Disabled', 'disabled_stopped');
 	} elsif (!$ipt_ok) {
-		# Not running effectively behaves like disabled for the banner text
-		($enabled, $running, $class, $text, $status_key) = (1, 0, 'danger', 'Disabled', 'enabled_stopped');
+		# Not running
+		($enabled, $running, $class, $text, $status_key) = (1, 0, 'danger', 'Stopped', 'enabled_stopped');
 	} elsif ($is_test) {
 		# Testing mode
 		($enabled, $running, $class, $text, $status_key) = (1, 1, 'warning', 'Testing', 'enabled_test');
@@ -338,7 +338,7 @@ JS
 		if ($is_disabled) {
 			($cls, $txt) = ('danger', 'Disabled');
 		} elsif (!$ipt_ok) {
-			($cls, $txt) = ('danger', 'Disabled');
+			($cls, $txt) = ('danger', 'Stopped');
 		} elsif ($is_test) {
 			($cls, $txt) = ('warning', 'Testing');
 		} else {
@@ -807,7 +807,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	var txt = (function(){ var d = document.createElement('div'); d.innerHTML = "${status_badge}"; var s=d.querySelector('.label'); return s ? s.textContent.trim() : 'Enabled'; })();
     el.textContent = txt;
 	el.classList.remove('success','warning','danger');
-	if (/Disabled/i.test(txt)) { el.classList.add('danger'); }
+	if (/Disabled|Stopped/i.test(txt)) { el.classList.add('danger'); }
 	else if (/Testing/i.test(txt)) { el.classList.add('warning'); }
 	else { el.classList.add('success'); }
 
