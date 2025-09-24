@@ -788,7 +788,7 @@ EOF
 	  #qhtl-status-btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; text-shadow:0 1px 2px rgba(0,0,0,0.25); }
 	  #qhtl-status-btn::before{ content:''; position:absolute; top:4px; left:10px; right:10px; height:40%; border-radius:999px; background:linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0)); pointer-events:none; }
 	</style>
-	EXTRA_BUBBLE_STYLE
+EXTRA_BUBBLE_STYLE
 }
 
 
