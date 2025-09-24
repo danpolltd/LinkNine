@@ -2347,7 +2347,7 @@ EOF
 	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 95vw !important; position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; margin: 0 !important; }\n";
 	print "#quickViewModal .modal-content { height: 450px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
 	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow: hidden !important; min-height:0 !important; padding:10px !important; }\n";
-	print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; }\n";
+		print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; display:flex !important; justify-content: space-between !important; align-items: center !important; gap:8px !important; }\n";
 	print "#quickViewModal #quickViewTitle { margin:0 0 8px 0 !important; }\n";
 	print "#quickViewBody { flex:1 1 auto !important; min-height:0 !important; overflow:hidden !important; }\n";
 	print "#quickViewModal #quickViewBody { display:block; width:100%; height:100%; max-height:100%; overflow:auto; }\n";
@@ -2356,6 +2356,12 @@ EOF
 	print "#quickViewModal #quickEditArea { resize: none !important; }\n";
 	print ".btn-close-red { background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%); color: #721c24 !important; border-color: #f1b0b7 !important; }\n";
 	print ".btn-close-red:hover { background: #dc3545 !important; color: #fff !important; border-color: #dc3545 !important; }\n";
+		# Tabs wrap improvements: ensure full-width usage on wrap with even spacing
+		print "#myTabs { display:flex; flex-wrap: wrap; gap: 6px; }\n";
+		print "#myTabs > li { float:none !important; }\n";
+		print "#myTabs > li > a { display:block; }\n";
+		print "#myTabs > li { flex: 1 1 auto; }\n";
+		print "#myTabs > li > a { width: 100%; text-align: center; }\n";
 	# Fire border effect radiating OUTSIDE the edges for Edit mode
 	print ".fire-border { position: relative; }\n";
 	print ".fire-allow { box-shadow: 0 0 20px 10px rgba(40,167,69,0.75), 0 0 40px 18px rgba(40,167,69,0.45); animation: flicker-allow 1.4s infinite ease-in-out; }\n";
