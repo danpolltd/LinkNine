@@ -2463,123 +2463,58 @@ EOF
 	print "  </div>\n";
 	print "</div>\n";
 
-	# Promo modal opener using the existing Quick View modal
+	# Promo modal opener as a standalone compact Bootstrap modal (no Quick View reuse)
 	print "<script>\n";
 	print <<'QHTL_PROMO_JS';
 (function(){
-	function ensureOrangeCSS(){
-		if (document.getElementById('qhtl-orange-style')) return;
-		var s=document.createElement('style'); s.id='qhtl-orange-style';
-		s.textContent = String.fromCharCode(64)+"keyframes qhtl-orange {0%,100%{box-shadow: 0 0 14px 6px rgba(255,140,0,0.55), 0 0 24px 10px rgba(255,140,0,0.28);}50%{box-shadow: 0 0 28px 14px rgba(255,140,0,0.95), 0 0 46px 20px rgba(255,140,0,0.55);}}\n"+
-									 ".fire-orange{ animation: qhtl-orange 2s infinite ease-in-out; }\n"+
-									 ".btn-golden{ background: linear-gradient(180deg, #ffd766 0%, #ffbf00 100%); color: #c0c0c0 !important; font-weight: 800; border: 1px solid #e6c200; }\n"+
-									 ".btn-golden:hover{ background: linear-gradient(180deg, #ffe387 0%, #ffc41a 100%); color: #f0f0f0 !important; }\n"+
-									 ".btn-bright-red{ background: #ff2d2d !important; color:#fff !important; border:1px solid #d61e1e; }\n"+
-									 ".btn-bright-red:hover{ background:#e61e1e !important; color:#fff !important; }\n";
-		document.head.appendChild(s);
-	}
-	function restoreFooter(){
-		var modal = document.getElementById('quickViewModal'); if(!modal) return;
-		var footer = modal.querySelector('.modal-footer'); if(!footer) return;
-		var promo = document.getElementById('promoFooter'); if(promo){ promo.remove(); }
-		var kids = footer.querySelectorAll('.orig-footer');
-		for (var i=0;i<kids.length;i++){ kids[i].style.display=''; }
-		// remove orange class
-			var mc = modal.querySelector('.modal-content'); if(mc){
-				mc.classList.remove('fire-orange');
-				// clear sizing overrides to restore default quick view sizes
-				mc.style.removeProperty('height');
-				mc.style.removeProperty('display');
-				mc.style.removeProperty('flex-direction');
-				mc.style.removeProperty('overflow');
-			}
-			var dlg = modal.querySelector('.modal-dialog'); if(dlg){
-				dlg.style.removeProperty('width');
-				dlg.style.removeProperty('max-width');
-				dlg.style.removeProperty('position');
-				dlg.style.removeProperty('top');
-				dlg.style.removeProperty('left');
-				dlg.style.removeProperty('transform');
-				dlg.style.removeProperty('margin');
-			}
-			var body = document.getElementById('quickViewBody'); if(body){
-				body.style.removeProperty('display');
-				body.style.removeProperty('align-items');
-				body.style.removeProperty('justify-content');
-				body.style.removeProperty('text-align');
-				body.style.removeProperty('font-size');
-				body.style.removeProperty('padding');
-				body.style.removeProperty('min-height');
-			}
-			var mb = document.querySelector('#quickViewModal .modal-body'); if(mb){ mb.style.removeProperty('padding'); }
-			var qt = document.getElementById('quickViewTitle'); if(qt){ qt.style.removeProperty('margin'); }
-	}
-	window.openPromoModal = function(){
-		try{
-			ensureOrangeCSS();
-			var $modal = $('#quickViewModal');
-			if (!$modal.length) return alert('Modal not available');
-			if (!$modal.parent().is('body')) { $modal.appendTo('body'); }
-					var $dlg = $modal.find('.modal-dialog');
-					var $mc = $modal.find('.modal-content');
-			var $body = $modal.find('#quickViewBody');
-			var $title = $modal.find('#quickViewTitle');
-			var $footer = $modal.find('.modal-footer');
-					// size to very compact promo; override earlier !important sizing
-					try {
-						var dlgEl = $dlg[0];
-						if (dlgEl && dlgEl.style && dlgEl.style.setProperty) {
-							dlgEl.style.setProperty('width','320px','important');
-							dlgEl.style.setProperty('max-width','95vw','important');
-							dlgEl.style.setProperty('margin','0','important');
-							dlgEl.style.setProperty('position','fixed','important');
-							dlgEl.style.setProperty('top','50%','important');
-							dlgEl.style.setProperty('left','50%','important');
-							dlgEl.style.setProperty('transform','translate(-50%, -50%)','important');
-						} else {
-							$dlg.css({ width:'320px', maxWidth:'95vw', margin:'0', position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)' });
-						}
-					} catch(_) { $dlg.css({ width:'320px', maxWidth:'95vw' }); }
-					try {
-						var mcEl = $mc[0];
-						if (mcEl && mcEl.style && mcEl.style.setProperty) {
-							mcEl.style.setProperty('height','auto','important');
-							mcEl.style.setProperty('min-height','0','important');
-							mcEl.style.setProperty('display','flex','important');
-							mcEl.style.setProperty('flex-direction','column','important');
-							mcEl.style.setProperty('overflow','hidden','important');
-						} else {
-							$mc.css({ height:'auto', display:'flex', flexDirection:'column', overflow:'hidden' });
-						}
-					} catch(_) { $mc.css({ height:'auto' }); }
-					$body.css({ flex:'1 1 auto', display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', fontSize:'13px', lineHeight:'1.25', padding:'4px', minHeight:'0' });
-			// tighten surrounding modal-body padding and title margin
-			var mb = $modal.find('.modal-body')[0]; if(mb && mb.style && mb.style.setProperty){ mb.style.setProperty('padding','6px','important'); }
-			var qt = document.getElementById('quickViewTitle'); if(qt){ qt.style.margin = '0 0 4px 0'; }
-			$title.text('Information');
-			// content
-			$body.html("<div style='padding:2px 4px;'><strong>You need promotion active to access this function !</strong></div>");
-			// orange pulsating glow
-			$mc.removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view').addClass('fire-orange');
-			// hide original footer content but preserve
-			$footer.children().each(function(){ if(!$(this).hasClass('orig-footer')) $(this).addClass('orig-footer'); $(this).hide(); });
-			// add promo footer
-			var promo = document.createElement('div'); promo.id='promoFooter'; promo.style.display='flex'; promo.style.justifyContent='space-between'; promo.style.alignItems='center'; promo.style.width='100%';
-			var left = document.createElement('div');
-			var buy = document.createElement('button'); buy.className='btn btn-golden'; buy.textContent='Buy Promotions'; buy.onclick=function(){ try{ window.open('https://danpol.co.uk','_blank'); }catch(e){} };
-			left.appendChild(buy);
-			var right = document.createElement('div');
-			var close = document.createElement('button'); close.className='btn btn-bright-red'; close.textContent='Close'; close.onclick=function(){ $modal.modal('hide'); restoreFooter(); };
-			right.appendChild(close);
-			promo.appendChild(left); promo.appendChild(right);
-			$footer.append(promo);
-			// show
-			$modal.modal({ show:true, backdrop:true, keyboard:true });
-			// ensure restore on hidden
-			$modal.off('hidden.bs.modal.qhtlPromo').on('hidden.bs.modal.qhtlPromo', function(){ restoreFooter(); });
-		}catch(e){ alert('Unable to open modal'); }
-		return false;
-	};
+  function ensureOrangeCSS(){
+    if (document.getElementById('qhtl-orange-style')) return;
+    var s=document.createElement('style'); s.id='qhtl-orange-style';
+    s.textContent = String.fromCharCode(64)+"keyframes qhtl-orange {0%,100%{box-shadow: 0 0 14px 6px rgba(255,140,0,0.55), 0 0 24px 10px rgba(255,140,0,0.28);}50%{box-shadow: 0 0 28px 14px rgba(255,140,0,0.95), 0 0 46px 20px rgba(255,140,0,0.55);}}\n"+
+                   ".fire-orange{ animation: qhtl-orange 2s infinite ease-in-out; }\n"+
+                   ".btn-golden{ background: linear-gradient(180deg, #ffd766 0%, #ffbf00 100%); color: #c0c0c0 !important; font-weight: 800; border: 1px solid #e6c200; }\n"+
+                   ".btn-golden:hover{ background: linear-gradient(180deg, #ffe387 0%, #ffc41a 100%); color: #f0f0f0 !important; }\n"+
+                   ".btn-bright-red{ background: #ff2d2d !important; color:#fff !important; border:1px solid #d61e1e; }\n"+
+                   ".btn-bright-red:hover{ background:#e61e1e !important; color:#fff !important; }\n"+
+                   ".qhtl-promo-modal .modal-dialog{ width:320px; max-width:95vw; margin:0 !important; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);}\n"+
+                   ".qhtl-promo-modal .modal-content{ display:flex; flex-direction:column; overflow:hidden;}\n"+
+                   ".qhtl-promo-modal .modal-body{ padding:6px !important;}\n"+
+                   "#qhtlPromoTitle{ margin:0 0 4px 0; }\n";
+    document.head.appendChild(s);
+  }
+  function buildPromoModal(){
+    var modal = document.createElement('div');
+    modal.id = 'qhtlPromoModal';
+    modal.className = 'modal fade qhtl-promo-modal';
+    modal.setAttribute('tabindex','-1');
+    modal.setAttribute('role','dialog');
+    modal.setAttribute('aria-hidden','true');
+    modal.innerHTML = "\n<div class='modal-dialog'>\n  <div class='modal-content'>\n    <div class='modal-body'>\n      <h4 id='qhtlPromoTitle'>Information</h4>\n      <div id='qhtlPromoBody' style='display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px;line-height:1.25;padding:4px;'>\n        <div style='padding:2px 4px;'><strong>You need promotion active to access this function !</strong></div>\n      </div>\n    </div>\n    <div class='modal-footer' style='display:flex;justify-content:space-between;align-items:center;'>\n      <div><button type='button' class='btn btn-golden' id='qhtlPromoBuyBtn'>Buy Promotions</button></div>\n      <div><button type='button' class='btn btn-bright-red' id='qhtlPromoCloseBtn' data-dismiss='modal'>Close</button></div>\n    </div>\n  </div>\n</div>\n";
+    return modal;
+  }
+  window.openPromoModal = function(){
+    try{
+      ensureOrangeCSS();
+      var existing = document.getElementById('qhtlPromoModal');
+      if (existing) { try { $(existing).modal('hide'); } catch(_) {} existing.remove(); }
+      var modal = buildPromoModal();
+      document.body.appendChild(modal);
+      var $modal = $('#qhtlPromoModal');
+      // add orange glow
+      $modal.find('.modal-content').addClass('fire-orange');
+      // wire buttons
+      $modal.on('click', '#qhtlPromoBuyBtn', function(){ try{ window.open('https://danpol.co.uk','_blank'); }catch(e){} });
+      $modal.on('click', '#qhtlPromoCloseBtn', function(){ try{ $modal.modal('hide'); } catch(e){} });
+      // cleanup on hide
+      $modal.on('hidden.bs.modal', function(){
+        try { $modal.off(); } catch(_) {}
+        try { $modal.remove(); } catch(_) {}
+      });
+      // show modal
+      $modal.modal({ show:true, backdrop:true, keyboard:true });
+    }catch(e){ /* optional: fallback */ alert('Unable to open promo'); }
+    return false;
+  };
 })();
 QHTL_PROMO_JS
 	print "</script>\n";
