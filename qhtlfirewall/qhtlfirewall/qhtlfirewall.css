@@ -232,7 +232,8 @@ td .btn, th .btn {
 	position: absolute;
 	top: 4px; left: 10px; right: 10px; height: 40%;
 	border-radius: 999px;
-	background: linear-gradient( to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0) );
+	/* Reduce vertical padding ~20% to shorten height */
+	padding: 8px 16px;
 	pointer-events: none;
 }
 .btn-watcher-bubble:hover {
@@ -245,7 +246,8 @@ td .btn, th .btn {
 .btn-status {
 	display: inline-flex;
 	align-items: center;
-	justify-content: center;
+	/* Nudge highlight to keep proportions with reduced height */
+	top: 3px; left: 10px; right: 10px; height: 40%;
 	padding: 6px 10px;
 	min-width: 180px;
 	max-width: 100%;

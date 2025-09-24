@@ -469,13 +469,26 @@ if (@footer) {
 	my $ft = join('', @footer);
 	# Remove just 'Danpol Limited' from any footer lines, keep everything else (e.g., year and name)
 	$ft =~ s/Danpol\s+Limited\s*\(?\)?//ig;
+	# Remove stray commas left behind like ", ," or preceding/trailing commas next to parentheses
+	$ft =~ s/\(\s*,\s*\)/()/g;          # remove lone comma inside parentheses
+	$ft =~ s/\s*,\s*\)/)/g;              # comma before )
+	$ft =~ s/\(\s*,\s*/(/g;              # comma after (
+	$ft =~ s/\s+,\s+,\s+/, /g;           # double commas
+	$ft =~ s/\s+,\s+/, /g;                # normalize commas
+	$ft =~ s/\s{2,}/ /g;                   # collapse multiple spaces
+	$ft =~ s/^\s+|\s+$//g;                # trim
 	# If legacy right-side 'qhtlfirewall: vX' exists, strip it; we will add our own link consistently
 	$ft =~ s/qhtlfirewall:\s*v\S+//ig;
+	# If after sanitization left side is empty or missing the author, force the exact text requested
+	my $left_text = $ft;
+	if (!defined $left_text || $left_text !~ /\S/) {
+		$left_text = "©2025 (Daniel Nowakowski)";
+	}
 	# Recompose sanitized footer and append our right-aligned version link
 	my $right = "<div style='font-size:12px;'><a href='$script?action=readme' target='_self' style='text-decoration:none;'>Qht Link Firewall v$myv</a></div>";
 	my $container_start = "<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;'>";
 	my $container_end = "</div>\n";
-	@footer = ($container_start, "<div style='font-size:12px;'>$ft</div>", $right, $container_end);
+	@footer = ($container_start, "<div style='font-size:12px;'>$left_text</div>", $right, $container_end);
 }
 
 my $thisapp = "qhtlfirewall";
@@ -957,11 +970,11 @@ if ($ui_error) {
 }
 
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
-	# Print sanitized footer if provided; otherwise print a minimal version link
+	# Print sanitized footer if provided; otherwise print a minimal version link with the exact left text
 	if (@footer) {
 		print \@footer;
 	} else {
-		print "<div style='display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px;'><div style='font-size:12px;'><a href='$script?action=readme' target='_self' style='text-decoration:none;'>Qht Link Firewall v$myv</a></div></div>\n";
+		print "<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;'><div style='font-size:12px;'>©2025 (Daniel Nowakowski)</div><div style='font-size:12px;'><a href='$script?action=readme' target='_self' style='text-decoration:none;'>Qht Link Firewall v$myv</a></div></div>\n";
 	}
 }
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
