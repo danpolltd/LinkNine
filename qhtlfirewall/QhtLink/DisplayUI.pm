@@ -1183,16 +1183,6 @@ function QHTLFIREWALLexpand(obj){
 	obj.size = newsize;
 }
 
-###############################################################################
-# start resize
-# Minimal no-op stub for legacy UI helpers used around command output sections.
-# Keeps older calls like &resize("top") / &resize("bot",1) from crashing.
-sub resize {
-	my ($pos, $sticky) = @_;
-	return;
-}
-# end resize
-###############################################################################
 </script>
 EOF
 		print "<style>.hidepiece\{display:none\}</style>\n";
@@ -3205,6 +3195,17 @@ sub qhtlfirewallgetversion {
 	}
 	return ($upgrade, $newversion);
 }
+
+###############################################################################
+# start resize
+# Minimal no-op stub for legacy UI helpers used around command output sections.
+# Keeps older calls like &resize("top") / &resize("bot",1) from crashing.
+sub resize {
+	my ($pos, $sticky) = @_;
+	return;
+}
+# end resize
+###############################################################################
 # end qhtlfirewallgetversion
 ###############################################################################
 # start manualversion
