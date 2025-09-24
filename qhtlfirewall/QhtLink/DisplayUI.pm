@@ -2066,9 +2066,10 @@ EOF
 		}
 		my $permallows = "(Currently: <code>$permcnt</code> permanent IP allows)";
 
-		# If invoked from cPanel UI, the header already shows a compact status. Only print extras here.
+		# If invoked from cPanel/WHM UI, the header already shows status next to the Watcher button.
+		# Suppress the inline ribbon entirely in that context to avoid duplication.
 		if ($config{THIS_UI} && $config{THIS_UI} eq 'cpanel') {
-			print $status_extras;
+			# no-op: don't print $status or extras here; header covers it
 		} else {
 			print $status;
 			print $status_extras;
