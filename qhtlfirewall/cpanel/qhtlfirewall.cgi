@@ -717,13 +717,17 @@ display:block;
 }
 EOF
 	if ($config{STYLE_MOBILE} or $reseller) {
+		# On small screens, allow the optional mobilecontainer to display,
+		# but do NOT hide the normalcontainer (tabs live there). This keeps
+		# the tabbed UI visible on mobile while still allowing any simplified
+		# mobile elements to show if present.
 		print <<EOF;
 \@media (max-width: 600px) {
 .mobilecontainer {
 	display:block;
 }
 .normalcontainer {
-	display:none;
+	display:block;
 }
 }
 EOF
