@@ -1825,33 +1825,8 @@ EOD
 
 		print "</table>\n";
 		&printreturn;
-		&confirmmodal;
-	}
-	elsif ($FORM{action} eq "fixpasvftp") {
-		print "<div class='panel panel-default'>\n";
-		print "<div class='panel-heading panel-heading'>Enabling pure-ftpd PASV hole:</div>\n";
-		print "<div class='panel-body'>";
-		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-
-		my $ftpdone = 0;
-		if (-e "/usr/local/cpanel/version") {
-			require Cpanel::Config;
-			import Cpanel::Config;
-			my $cpconf = Cpanel::Config::loadcpconf();
-			if ($cpconf->{ftpserver} eq "pure-ftpd") {
-				copy("/etc/pure-ftpd.conf","/etc/pure-ftpd.conf-".time."_prefixpasvftp");
-				sysopen (my $PUREFTP,"/etc/pure-ftpd.conf", O_RDWR | O_CREAT);
-				flock ($PUREFTP, LOCK_EX);
-				my @ftp = <$PUREFTP>;
-				chomp @ftp;
-				seek ($PUREFTP, 0, 0);
-				truncate ($PUREFTP, 0);
-				my $hit = 0;
-				foreach my $line (@ftp) {
-					if ($line =~ /^#?\s*PassivePortRange/i) {
-						if ($hit) {next}
-						$line = "PassivePortRange 30000 35000";
+		# start confirmmodal (duplicate removed)
+		sub qhtlfirewallgetversion {
 						$hit = 1;
 					}
 					print $PUREFTP "$line\n";
