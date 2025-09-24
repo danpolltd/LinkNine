@@ -218,7 +218,8 @@ td .btn, th .btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	padding: 10px 16px;
+	/* Match Enabled status badge height */
+	padding: 6px 12px;
 	min-width: 110px;
 	border-radius: 999px;
 	border: 1px solid #2b79ff;
@@ -230,10 +231,9 @@ td .btn, th .btn {
 .btn-watcher-bubble:before {
 	content: '';
 	position: absolute;
-	top: 4px; left: 10px; right: 10px; height: 40%;
+	/* Nudge highlight to keep proportions with matched height */
+	top: 3px; left: 10px; right: 10px; height: 40%;
 	border-radius: 999px;
-	/* Reduce vertical padding ~20% to shorten height */
-	padding: 8px 16px;
 	pointer-events: none;
 }
 .btn-watcher-bubble:hover {

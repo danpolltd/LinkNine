@@ -2192,15 +2192,18 @@ EOF
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
 	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
 	if ($upgrade) {
-		print "<tr><td colspan='2'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button><div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings<br><a href='https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt' target='_blank'>View ChangeLog</a></div></td></tr>\n";
+			print "<tr><td colspan='2'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button><div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings<br><a href='https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt' target='_blank'>View ChangeLog</a></div></td></tr>\n";
 	} else {
-		print "<tr><td colspan='2'><button name='action' value='manualcheck' type='submit' class='btn btn-default'>Manual Check</button>";
+			# Show ChangeLog link above the Manual Check button
+			print "<tr><td colspan='2'>";
+			print "<div class='text-muted small' style='margin-bottom:6px'><a href='https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt' target='_blank'>View ChangeLog</a></div>";
+			print "<button name='action' value='manualcheck' type='submit' class='btn btn-default'>Manual Check</button>";
 			if ($actv ne "" && ver_cmp($actv, $myv) == 1) {
-				print "<div class='text-muted small' style='margin-top:6px'>Latest available version is v$actv. Your version is v$myv. Please upgrade.</div></td></tr>\n";
+					print "<div class='text-muted small' style='margin-top:6px'>Latest available version is v$actv. Your version is v$myv. Please upgrade.</div></td></tr>\n";
 		} elsif ($actv ne "") {
-			print "<div class='text-muted small' style='margin-top:6px'>(qhtlfirewallget cron check) $actv</div></td></tr>\n";
+				print "<div class='text-muted small' style='margin-top:6px'>(qhtlfirewallget cron check) $actv</div></td></tr>\n";
 		} else {
-			print "<div class='text-muted small' style='margin-top:6px'>You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (qhtlfirewallget)</div></td></tr>\n";
+				print "<div class='text-muted small' style='margin-top:6px'>You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (qhtlfirewallget)</div></td></tr>\n";
 		}
 	}
 		print "</table>\n";
