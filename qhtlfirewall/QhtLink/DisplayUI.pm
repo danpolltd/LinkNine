@@ -2214,57 +2214,103 @@ EOF
 		print "<div id='quickactions' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Quick Actions</th></tr></thead>";
-	print "<tr><td><button onClick='$(\"#qallow\").submit();' class='btn btn-default'>Quick Allow</button></td><td style='width:100%'>";
-	print "<form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>";
-	print "<div style='width:100%'>";
-	print "  <div style='display:flex; align-items:center; gap:12px; width:100%'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' href='$script?action=viewlist&which=allow' onclick=\"if(typeof showQuickView==='function'){showQuickView('allow'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
-	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' id='allowip' value='' size='36' style='background-color: #BDECB6; width:100%;'></div>";
-	print "  </div>";
-	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Allow:</div>";
-	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
-	print "  </div>";
-	print "</div></form></td></tr>\n";
-	print "<tr><td><button onClick='$(\"#qdeny\").submit();' class='btn btn-default'>Quick Deny</button></td><td style='width:100%'>";
-	print "<form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>";
-	print "<div style='width:100%'>";
-	print "  <div style='display:flex; align-items:center; gap:12px; width:100%'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' href='$script?action=viewlist&which=deny' onclick=\"if(typeof showQuickView==='function'){showQuickView('deny'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
-	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' id='denyip' value='' size='36' style='background-color: #FFD1DC; width:100%;'></div>";
-	print "  </div>";
-	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Block:</div>";
-	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
-	print "  </div>";
-	print "</div></form></td></tr>\n";
-	print "<tr><td><button onClick='$(\"#qignore\").submit();' class='btn btn-default'>Quick Ignore</button></td><td style='width:100%'>";
-	print "<form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>";
-	print "<div style='width:100%'>";
-	print "  <div style='display:flex; align-items:center; gap:12px; width:100%'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Ignore IP address <a class='quickview-link' data-which='ignore' href='$script?action=viewlist&which=ignore' onclick=\"if(typeof showQuickView==='function'){showQuickView('ignore'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
-	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' id='ignoreip' value='' size='36' style='background-color: #D9EDF7; width:100%;'></div>";
-	print "  </div>";
-	print "</div></form></td></tr>\n";
-			# Moved from QHTL "Firewall": Search for IP, aligned with quick input layout
-			print "<tr><td><button onClick='$(\"#grep\").submit();' class='btn btn-default'>Search for IP</button></td><td style='width:100%'>";
-			print "<form action='$script' method='post' id='grep'><input type='submit' class='hide'><input type='hidden' name='action' value='grep'>";
-			print "<div style='width:100%'>";
-			print "  <div style='display:flex; align-items:center; gap:12px; width:100%'>";
-			print "    <div style='flex:0 0 30%; max-width:30%'>Search IP address</div>";
-			print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
-			print "  </div>";
-			print "</div></form></td></tr>\n";
-		print "<tr><td><button onClick='$(\"#qkill\").submit();' class='btn btn-default'>Quick Unblock</button></td><td style='width:100%'>";
+
+		# Quick Allow (inputs above/below the button)
+		print "<tr><td colspan='2'>";
+		print "<form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>";
+		print "<div style='width:100%'>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+		print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' href='$script?action=viewlist&which=allow' onclick=\"if(typeof showQuickView==='function'){showQuickView('allow'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
+		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='allowip' value='' size='36' style='background-color: #BDECB6; width:100%;'></div>";
+		print "  </div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qallow\\\").submit();\\\" class='btn btn-default'>Quick Allow</button></div>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
+		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Allow:</div>";
+		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
+		print "  </div>";
+		print "</div></form>";
+		print "</td></tr>\n";
+
+		# Quick Deny
+		print "<tr><td colspan='2'>";
+		print "<form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>";
+		print "<div style='width:100%'>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+		print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' href='$script?action=viewlist&which=deny' onclick=\"if(typeof showQuickView==='function'){showQuickView('deny'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
+		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='denyip' value='' size='36' style='background-color: #FFD1DC; width:100%;'></div>";
+		print "  </div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qdeny\\\").submit();\\\" class='btn btn-default'>Quick Deny</button></div>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
+		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Block:</div>";
+		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
+		print "  </div>";
+		print "</div></form>";
+		print "</td></tr>\n";
+
+		# Quick Ignore
+		print "<tr><td colspan='2'>";
+		print "<form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>";
+		print "<div style='width:100%'>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+		print "    <div style='flex:0 0 30%; max-width:30%'>Ignore IP address <a class='quickview-link' data-which='ignore' href='$script?action=viewlist&which=ignore' onclick=\"if(typeof showQuickView==='function'){showQuickView('ignore'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
+		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='ignoreip' value='' size='36' style='background-color: #D9EDF7; width:100%;'></div>";
+		print "  </div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qignore\\\").submit();\\\" class='btn btn-default'>Quick Ignore</button></div>";
+		print "</div></form>";
+		print "</td></tr>\n";
+
+		# Search for IP
+		print "<tr><td colspan='2'>";
+		print "<form action='$script' method='post' id='grep'><input type='submit' class='hide'><input type='hidden' name='action' value='grep'>";
+		print "<div style='width:100%'>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+		print "    <div style='flex:0 0 30%; max-width:30%'>Search IP address</div>";
+		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
+		print "  </div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#grep\\\").submit();\\\" class='btn btn-default'>Search for IP</button></div>";
+		print "</div></form>";
+		print "</td></tr>\n";
+
+		# Quick Unblock
+		print "<tr><td colspan='2'>";
 		print "<form action='$script' method='post' id='qkill'><input type='submit' class='hide'><input type='hidden' name='action' value='kill'>";
 		print "<div style='width:100%'>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%'>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
 		print "    <div style='flex:0 0 30%; max-width:30%'>Remove IP address</div>";
-		print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' id='killip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
+		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='killip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
 		print "  </div>";
-		print "</div></form></td></tr>\n";
-			# Moved from QHTL "Firewall": place Temporary Allow/Deny as the last quick action
-			print "<tr><td><button onClick='$(\"#tempdeny\").submit();' class='btn btn-default'>Temporary Allow/Deny</button></td><td style='width:100%'><form action='$script' method='post' id='tempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='tempdeny'>Temporarily <select name='do'><option>block</option><option>allow</option></select> IP address <input type='text' name='ip' value='' size='18'> to port(s) <input type='text' name='ports' value='*' size='5'> for <input type='text' name='timeout' value='' size='4'> <select name='dur'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select>.<br>Comment: <input type='text' name='comment' value='' size='30'><br>\n(ports can be either * for all ports, a single port, or a comma separated list of ports)</form></td></tr>\n";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qkill\\\").submit();\\\" class='btn btn-default'>Quick Unblock</button></div>";
+		print "</div></form>";
+		print "</td></tr>\n";
+
+		# Temporary Allow/Deny (merged into a single full-width row)
+		print "<tr><td colspan='2'>";
+		print "<form action='$script' method='post' id='tempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='tempdeny'>";
+		print "<div style='width:100%'>";
+		print "  <div class='h4' style='margin:0 0 8px 0;'>Temporary Allow/Deny</div>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+		print "    <div style='flex:0 0 20%; max-width:20%'>Action</div>";
+		print "    <div style='flex:1 1 auto'><select name='do' class='form-control' style='width:auto; display:inline-block; min-width:140px'><option>block</option><option>allow</option></select></div>";
+		print "  </div>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+		print "    <div style='flex:0 0 20%; max-width:20%'>IP address</div>";
+		print "    <div style='flex:1 1 auto'><input type='text' name='ip' value='' size='18' class='form-control' style='max-width:340px'></div>";
+		print "  </div>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px; flex-wrap:wrap'>";
+		print "    <div style='flex:0 0 20%; max-width:20%'>Ports</div>";
+		print "    <div style='flex:1 1 30%'><input type='text' name='ports' value='*' size='5' class='form-control' style='max-width:200px'></div>";
+		print "    <div style='flex:0 0 20%; max-width:20%'>Duration</div>";
+		print "    <div style='flex:1 1 30%'>for <input type='text' name='timeout' value='' size='4' class='form-control' style='display:inline-block; width:90px;'> <select name='dur' class='form-control' style='display:inline-block; width:auto; min-width:120px'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select></div>";
+		print "  </div>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+		print "    <div style='flex:0 0 20%; max-width:20%'>Comment</div>";
+		print "    <div style='flex:1 1 auto'><input type='text' name='comment' value='' size='30' class='form-control' style='max-width:520px'></div>";
+		print "  </div>";
+		print "  <div class='text-muted' style='font-size:12px; margin-bottom:8px'>(ports can be either * for all ports, a single port, or a comma separated list of ports)</div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#tempdeny\\\").submit();\\\" class='btn btn-default'>Apply Temporary Rule</button></div>";
+		print "</div></form>";
+		print "</td></tr>\n";
+
 		print "</table>\n";
 		print "</div>\n";
 

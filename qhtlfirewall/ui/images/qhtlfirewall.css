@@ -14,6 +14,10 @@
 	border:1px solid #A6C150;
 	background: #F5F5F5;
 }
+/* Ensure Bootstrap primary/success still show their colors (don’t override) */
+.btn-primary, .btn-success, .btn-warning, .btn-danger, .btn-info {
+    color: #fff !important;
+}
 .btn-qhtlfirewall-config:focus,
 .btn-qhtlfirewall-config:hover,
 .btn-qhtlfirewall-config:active,

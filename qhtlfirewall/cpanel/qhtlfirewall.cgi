@@ -695,13 +695,6 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	}
 })();
 </script>
-print <<FOOTER_BAR;
-<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;'>
-	<div style='font-size:12px;'>&copy;2025, <a href='https://www.qhtlfirewall.danpol.co.uk' target='_blank'>Danpol Limited</a> (<span style='color:#0d6efd;font-weight:bold;'>Daniel Nowakowski</span>)</div>
-	<div style='font-size:12px;'>qhtlfirewall: v$myv</div>
-</div>
-</div>
-FOOTER_BAR
 EOF
 
 	print <<EOF;
@@ -845,6 +838,15 @@ if ($ui_error) {
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
 	# No local fallback loader here; global WHM includes handle banner injection with a valid cpsess token.
 	print @footer;
+}
+unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
+		print <<FOOTER_BAR;
+<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;'>
+	<div style='font-size:12px;'>&copy;2025, <a href='https://www.qhtlfirewall.danpol.co.uk' target='_blank'>Danpol Limited</a> (<span style='color:#0d6efd;font-weight:bold;'>Daniel Nowakowski</span>)</div>
+	<div style='font-size:12px;'>qhtlfirewall: v$myv</div>
+</div>
+</div>
+FOOTER_BAR
 }
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
 	close ($SCRIPTOUT);
