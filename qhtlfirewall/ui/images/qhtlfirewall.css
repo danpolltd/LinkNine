@@ -249,8 +249,8 @@ td .btn, th .btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	/* Match Enabled status badge height */
-	padding: 6px 12px;
+	/* Slightly reduced height (~15%) */
+	padding: 5px 12px;
 	min-width: 110px;
 	border-radius: 999px;
 	border: 1px solid #2b79ff;
@@ -263,8 +263,8 @@ td .btn, th .btn {
 	/* glossy highlight */
 	content: '';
 	position: absolute;
-	/* Nudge highlight to keep proportions with matched height */
-	top: 3px; left: 10px; right: 10px; height: 40%;
+	/* Nudge highlight to keep proportions with reduced height */
+	top: 2px; left: 10px; right: 10px; height: 40%;
 	border-radius: 999px;
 	background: linear-gradient( to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0) );
 	pointer-events: none;
@@ -318,6 +318,8 @@ td .btn, th .btn {
 	margin: 10px 0 14px 0;
 	box-shadow: 0 10px 28px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.3);
 	overflow: hidden;
+	/* Make this a positioning context for in-page modals/popups */
+	position: relative;
 }
 
 /* Ensure panels inside bubble don’t paint opaque backgrounds so the gradient shows through */

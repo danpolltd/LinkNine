@@ -2411,7 +2411,8 @@ EOF
 		print "</table>\n";
 	# Enforce Quick View modal sizing (500x400) with scrollable body
 	print "<style>\n";
-	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 95vw !important; position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; margin: 0 !important; }\n";
+	print "#quickViewModal { position: absolute !important; inset: 0 !important; }\n";
+	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 95% !important; position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; margin: 0 !important; }\n";
 	print "#quickViewModal .modal-content { height: 450px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
 	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow: hidden !important; min-height:0 !important; padding:10px !important; }\n";
 		print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; display:flex !important; justify-content: space-between !important; align-items: center !important; gap:8px !important; }\n";
@@ -2476,7 +2477,8 @@ EOF
                    ".btn-golden:hover{ background: linear-gradient(180deg, #ffe387 0%, #ffc41a 100%); color: #f0f0f0 !important; }\n"+
                    ".btn-bright-red{ background: #ff2d2d !important; color:#fff !important; border:1px solid #d61e1e; }\n"+
                    ".btn-bright-red:hover{ background:#e61e1e !important; color:#fff !important; }\n"+
-                   ".qhtl-promo-modal .modal-dialog{ width:320px; max-width:95vw; margin:0 !important; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);}\n"+
+				   ".qhtl-promo-modal{ position:absolute !important; inset:0 !important; background: rgba(0,0,0,0.5); }\n"+
+				   ".qhtl-promo-modal .modal-dialog{ width:320px; max-width:95vw; margin:0 !important; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);}\n"+
                    ".qhtl-promo-modal .modal-content{ display:flex; flex-direction:column; overflow:hidden;}\n"+
                    ".qhtl-promo-modal .modal-body{ padding:6px !important;}\n"+
                    "#qhtlPromoTitle{ margin:0 0 4px 0; }\n";
@@ -2498,7 +2500,8 @@ EOF
       var existing = document.getElementById('qhtlPromoModal');
       if (existing) { try { $(existing).modal('hide'); } catch(_) {} existing.remove(); }
       var modal = buildPromoModal();
-      document.body.appendChild(modal);
+	var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
+	parent.appendChild(modal);
       var $modal = $('#qhtlPromoModal');
       // add orange glow
       $modal.find('.modal-content').addClass('fire-orange');
@@ -2511,7 +2514,7 @@ EOF
         try { $modal.remove(); } catch(_) {}
       });
       // show modal
-      $modal.modal({ show:true, backdrop:true, keyboard:true });
+	$modal.modal({ show:true, backdrop:false, keyboard:true });
     }catch(e){ /* optional: fallback */ alert('Unable to open promo'); }
     return false;
   };
@@ -2532,8 +2535,11 @@ function openQuickView(url, which) {
 	$('#quickViewBody').html('Loading...');
 	currentQuickWhich = which;
 	var $modal = $('#quickViewModal');
-	if (!$modal.parent().is('body')) { $modal.appendTo('body'); }
-	$modal.modal({ show: true, backdrop: true, keyboard: true });
+	// Append modal to the bubble wrapper to scope its overlay and centering to the firewall page
+	var $wrapper = $('.qhtl-bubble-bg').first();
+	if ($wrapper.length) { $modal.appendTo($wrapper); } else if (!$modal.parent().is('body')) { $modal.appendTo('body'); }
+	// Show without Bootstrap backdrop so it doesn't cover the full window
+	$modal.modal({ show: true, backdrop: false, keyboard: true });
 	$('#quickViewEditBtn').show();
 	$('#quickViewSaveBtn').hide();
 	$('#quickViewCancelBtn').hide();
