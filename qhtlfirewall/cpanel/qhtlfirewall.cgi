@@ -578,9 +578,10 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			modal.id = 'quickViewModalShim';
 			modal.setAttribute('role','dialog');
 			var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
-			var rect = (parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? parent.getBoundingClientRect() : null;
-			if (rect) {
-				modal.style.position='fixed'; modal.style.left=rect.left+'px'; modal.style.top=rect.top+'px'; modal.style.width=rect.width+'px'; modal.style.height=rect.height+'px';
+			var inScoped = (parent.classList && parent.classList.contains('qhtl-bubble-bg'));
+			if (inScoped) {
+				// Anchor to container so it scrolls with the page content
+				modal.style.position='absolute'; modal.style.left='0'; modal.style.top='0'; modal.style.right='0'; modal.style.bottom='0';
 			} else {
 				modal.style.position='fixed'; modal.style.inset='0';
 			}
@@ -771,9 +772,10 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 		// Global watcher opener that sets size and starts auto-refresh
 		window.__qhtlRealOpenWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){
 			var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
-			var rect = (parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? parent.getBoundingClientRect() : {width: window.innerWidth, height: window.innerHeight};
-			var w = Math.min(800, Math.floor(rect.width * 0.95));
-			var h = Math.min(450, Math.floor(rect.height * 0.9));
+			var w = (parent && parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? (parent.clientWidth || window.innerWidth) : window.innerWidth;
+			var h = (parent && parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? (parent.clientHeight || window.innerHeight) : window.innerHeight;
+			w = Math.min(800, Math.floor(w * 0.95));
+			h = Math.min(450, Math.floor(h * 0.9));
 			d.style.width = w + 'px'; d.style.height = h + 'px';
 			d.style.maxWidth='95%'; d.style.maxHeight='90%';
 			d.style.position='absolute'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0';

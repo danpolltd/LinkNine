@@ -2296,7 +2296,7 @@ EOF
 		print "</table>\n";
 	# Enforce Quick View modal sizing (500x400) with scrollable body
 	print "<style>\n";
-	print "#quickViewModal { position: absolute !important; inset: 0 !important; }\n";
+	print "#quickViewModal { position: absolute !important; inset: 0 !important; z-index: 1000 !important; }\n";
 	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 95% !important; position: absolute !important; top: 12px !important; left: 50% !important; transform: translateX(-50%) !important; margin: 0 !important; }\n";
 	print "#quickViewModal .modal-content { height: auto !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
 	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow: hidden !important; min-height:0 !important; padding:10px !important; }\n";
@@ -2309,6 +2309,12 @@ EOF
 	print "#quickViewModal #quickEditArea { resize: none !important; }\n";
 	print ".btn-close-red { background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%); color: #721c24 !important; border-color: #f1b0b7 !important; }\n";
 	print ".btn-close-red:hover { background: #dc3545 !important; color: #fff !important; border-color: #dc3545 !important; }\n";
+	# Ensure confirm modal is anchored within the UI container and not the whole window
+	print "#confirmmodal { position: absolute !important; inset: 0 !important; z-index: 1000 !important; }\n";
+	print "#confirmmodal .modal-dialog { width: 320px !important; max-width: 95% !important; position: absolute !important; top: 12px !important; left: 50% !important; transform: translateX(-50%) !important; margin: 0 !important; }\n";
+	print "#confirmmodal .modal-content { display: flex !important; flex-direction: column !important; overflow: hidden !important; }\n";
+	print "#confirmmodal .modal-body { flex: 1 1 auto !important; min-height: 0 !important; }\n";
+	print "#confirmmodal .modal-footer { flex: 0 0 auto !important; display:flex !important; justify-content: space-between !important; align-items: center !important; gap:8px !important; }\n";
 		# Tabs wrap improvements: ensure full-width usage on wrap with even spacing
 		print "#myTabs { display:flex; flex-wrap: wrap; gap: 6px; }\n";
 		print "#myTabs > li { float:none !important; }\n";
@@ -2362,7 +2368,7 @@ EOF
                    ".btn-golden:hover{ background: linear-gradient(180deg, #ffe387 0%, #ffc41a 100%); color: #f0f0f0 !important; }\n"+
                    ".btn-bright-red{ background: #ff2d2d !important; color:#fff !important; border:1px solid #d61e1e; }\n"+
                    ".btn-bright-red:hover{ background:#e61e1e !important; color:#fff !important; }\n"+
-			   ".qhtl-promo-modal{ position:absolute !important; inset:0 !important; background: rgba(0,0,0,0.5); }\n"+
+			   ".qhtl-promo-modal{ position:absolute !important; inset:0 !important; background: rgba(0,0,0,0.5); z-index:1000; }\n"+
 			   ".qhtl-promo-modal .modal-dialog{ width:320px; max-width:95vw; margin:0 !important; position:absolute; top:12px; left:50%; transform:translateX(-50%);}\n"+
                    ".qhtl-promo-modal .modal-content{ display:flex; flex-direction:column; overflow:hidden;}\n"+
                    ".qhtl-promo-modal .modal-body{ padding:6px !important;}\n"+
@@ -2406,12 +2412,18 @@ EOF
 			parent.appendChild(modal);
 			var $modal = $('#qhtlPromoModal');
 			try {
-				var rect = (parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? parent.getBoundingClientRect() : {left:0, top:0, width:window.innerWidth, height:window.innerHeight};
+				var inScoped = (parent.classList && parent.classList.contains('qhtl-bubble-bg'));
+				var w = inScoped ? (parent.clientWidth || window.innerWidth) : window.innerWidth;
+				var h = inScoped ? (parent.clientHeight || window.innerHeight) : window.innerHeight;
 				var $dlg = $modal.find('.modal-dialog');
 				var $mc = $modal.find('.modal-content');
-				$modal.css({ position:'fixed', left: rect.left+'px', top: rect.top+'px', width: rect.width+'px', height: rect.height+'px', margin:0 });
-				$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, maxWidth: Math.min(320, Math.floor(rect.width*0.95)) + 'px' });
-				var maxH = Math.max(140, Math.floor(rect.height*0.85));
+				if (inScoped) {
+					$modal.css({ position:'absolute', left: 0, top: 0, right: 0, bottom: 0, width:'auto', height:'auto', margin:0 });
+				} else {
+					$modal.css({ position:'fixed', left: 0, top: 0, right: 0, bottom: 0, width:'auto', height:'auto', margin:0 });
+				}
+				$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, maxWidth: Math.min(320, Math.floor(w*0.95)) + 'px' });
+				var maxH = Math.max(140, Math.floor(h*0.85));
 				$mc.css({ display:'flex', flexDirection:'column', overflow:'hidden', maxHeight: maxH+'px' });
 				$modal.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });
 			} catch(_) {}
@@ -2461,16 +2473,22 @@ function openQuickView(url, which) {
 	currentQuickWhich = which;
 	var $modal = $('#quickViewModal');
 	var $wrapper = $('.qhtl-bubble-bg').first();
-	// Append where available, but we will position using bounding rect to avoid clipping and keep centering relative to page area
-	if ($wrapper.length) { $modal.appendTo('body'); }
-	// Compute wrapper rect and position overlay + dialog within that rect
+	// Append into the wrapper if present so it scrolls with the page area; fallback to body
+	if ($wrapper.length) { $modal.appendTo($wrapper); } else { $modal.appendTo('body'); }
+	// Position overlay relative to the wrapper so it stays aligned and scrolls with content
 	try {
-		var rect = ($wrapper.length ? $wrapper[0].getBoundingClientRect() : {left:0, top:0, width:window.innerWidth, height:window.innerHeight});
+		var scoped = $wrapper.length > 0;
+		var w = scoped ? ($wrapper[0].clientWidth || window.innerWidth) : window.innerWidth;
+		var h = scoped ? ($wrapper[0].clientHeight || window.innerHeight) : window.innerHeight;
 		var $dlg = $modal.find('.modal-dialog');
 		var $mc = $modal.find('.modal-content');
-		$modal.css({ position:'fixed', left: rect.left+'px', top: rect.top+'px', width: rect.width+'px', height: rect.height+'px', margin:0, background:'rgba(0,0,0,0.5)' });
-		$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, maxWidth: Math.min(660, Math.floor(rect.width*0.95)) + 'px' });
-		var maxH = Math.max(260, Math.floor(rect.height*0.9));
+		if (scoped) {
+			$modal.css({ position:'absolute', left: 0, top: 0, right: 0, bottom: 0, width:'auto', height:'auto', margin:0, background:'rgba(0,0,0,0.5)' });
+		} else {
+			$modal.css({ position:'fixed', left: 0, top: 0, right: 0, bottom: 0, width:'auto', height:'auto', margin:0, background:'rgba(0,0,0,0.5)' });
+		}
+		$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, maxWidth: Math.min(660, Math.floor(w*0.95)) + 'px' });
+		var maxH = Math.max(260, Math.floor(h*0.9));
 		$mc.css({ height:'auto', maxHeight: maxH+'px', display:'flex', flexDirection:'column', overflow:'hidden' });
 		$modal.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });
 	} catch(_) {}
