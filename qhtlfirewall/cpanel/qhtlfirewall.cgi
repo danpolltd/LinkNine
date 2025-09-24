@@ -247,7 +247,7 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 						// existing is the inner span; update its style/text
 						existing.style.background = sty.bg;
 						existing.style.boxShadow = '0 0 0 5px '+sty.bg+'33';
-						existing.textContent = 'Firewall: ' + sty.txt;
+						existing.textContent = sty.txt;
 						// ensure wrapper provides space for glow on all sides
 						var wrap = existing.parentElement;
 						if (wrap && wrap.tagName && wrap.tagName.toUpperCase()==='A') {
@@ -276,7 +276,7 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					span.style.cursor = 'pointer';
 					// 5px glow in same color (with slight transparency)
 					span.style.boxShadow = '0 0 0 5px '+sty.bg+'33';
-					span.textContent = 'Firewall: ' + sty.txt;
+					span.textContent = sty.txt;
 					a.appendChild(span);
 					host.appendChild(a);
 					return true;
@@ -351,7 +351,7 @@ JS
 		print "<!doctype html><html><head><meta charset=\"utf-8\">\n";
 		print "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'none'\">\n";
 		print "<style>html,body{margin:0;padding:0;background:transparent} .label{display:inline-block;font:12px/1.2 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#fff;border-radius:3px;padding:4px 8px} .label-success{background:#5cb85c} .label-warning{background:#f0ad4e} .label-danger{background:#d9534f}</style>\n";
-		print "</head><body style=\"margin:0\"><span class=\"label label-$cls\" style=\"display:inline-block;white-space:nowrap\">Firewall: $txt</span></body></html>";
+	print "</head><body style=\"margin:0\"><span class=\"label label-$cls\" style=\"display:inline-block;white-space:nowrap\">$txt</span></body></html>";
 		exit 0;
 	}
 
@@ -805,8 +805,8 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
     var el = document.getElementById('qhtl-status-btn');
     if (!el) return;
 	var txt = (function(){ var d = document.createElement('div'); d.innerHTML = "${status_badge}"; var s=d.querySelector('.label'); return s ? s.textContent.trim() : 'Enabled'; })();
-    el.textContent = txt;
-	el.classList.remove('success','warning','danger');
+	el.textContent = txt;
+		el.classList.remove('success','warning','danger');
 	if (/Disabled|Stopped/i.test(txt)) { el.classList.add('danger'); }
 	else if (/Testing/i.test(txt)) { el.classList.add('warning'); }
 	else { el.classList.add('success'); }
@@ -820,7 +820,20 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 		while (el.scrollWidth > el.clientWidth && size > min && guard < 12) {
 			size -= 1; el.style.fontSize = size + 'px'; guard++;
 		}
-  } catch(e){}
+		// Match width to the Watcher button for visual balance
+		try {
+			var watcher = document.querySelector('.btn-watcher-bubble');
+			if (watcher) {
+				// Use computed width to include padding/border
+				var cw = parseFloat(window.getComputedStyle(watcher).width);
+				if (!isNaN(cw) && cw > 0) {
+					el.style.display = 'inline-block';
+					el.style.minWidth = cw + 'px';
+					el.style.textAlign = 'center';
+				}
+			}
+		} catch(_) {}
+	} catch(e){}
 })();
 </script>
 EOF
