@@ -2168,17 +2168,18 @@ EOF
 		print "<table class='table table-bordered table-striped' id='upgradetable'>\n";
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
 	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
-		if ($upgrade) {
-				print "<tr><td colspan='2'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button><div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings<br><a href='https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt' target='_blank'>View ChangeLog</a></div></td></tr>\n";
+	if ($upgrade) {
+		print "<tr><td colspan='2'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button><div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings<br><a href='https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt' target='_blank'>View ChangeLog</a></div></td></tr>\n";
+	} else {
+		print "<tr><td colspan='2'><button name='action' value='manualcheck' type='submit' class='btn btn-default'>Manual Check</button>";
+		if ($actv ne "" && $actv > $myv) {
+			print "<div class='text-muted small' style='margin-top:6px'>Latest available version is v$actv (from https://$config{DOWNLOADSERVER}/qhtlfirewall/version.txt). Your version is v$myv. Please upgrade.</div></td></tr>\n";
+		} elsif ($actv ne "") {
+			print "<div class='text-muted small' style='margin-top:6px'>(qhtlfirewallget cron check) $actv</div></td></tr>\n";
 		} else {
-				print "<tr><td colspan='2'><button name='action' value='manualcheck' type='submit' class='btn btn-default'>Manual Check</button>";
-			if ($actv ne "") {
-					print "<div class='text-muted small' style='margin-top:6px'>(qhtlfirewallget cron check) $actv</div></td></tr>\n";
-			}
-			else {
-					print "<div class='text-muted small' style='margin-top:6px'>You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (qhtlfirewallget)</div></td></tr>\n";
-			}
+			print "<div class='text-muted small' style='margin-top:6px'>You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (qhtlfirewallget)</div></td></tr>\n";
 		}
+	}
 		print "</table>\n";
 		print "</form>\n";
 		if ($upgrade) {print "<script>\$('\#upgradebs').show();</script>\n"}
@@ -2289,12 +2290,11 @@ EOF
 		print "    <div style='flex:0 0 20%; max-width:20%'>IP address</div>";
 		print "    <div style='flex:1 1 auto'><input type='text' name='ip' value='' size='18' class='form-control' style='max-width:340px'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px; flex-wrap:wrap'>";
-		print "    <div style='flex:0 0 20%; max-width:20%'>Ports</div>";
-		print "    <div style='flex:1 1 30%'><input type='text' name='ports' value='*' size='5' class='form-control' style='max-width:200px'></div>";
-		print "    <div style='flex:0 0 20%; max-width:20%'>Duration</div>";
-		print "    <div style='flex:1 1 30%'>for <input type='text' name='timeout' value='' size='4' class='form-control' style='display:inline-block; width:90px;'> <select name='dur' class='form-control' style='display:inline-block; width:auto; min-width:120px'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select></div>";
-		print "  </div>";
+	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px; flex-wrap:wrap'>";
+	print "    <div style='flex:0 0 20%; max-width:20%'>Ports</div>";
+	print "    <div style='flex:1 1 30%'><input type='text' name='ports' value='*' size='5' class='form-control' style='max-width:200px'></div>";
+	print "    <div style='flex:1 1 50%'>Duration for <input type='text' name='timeout' value='' size='4' class='form-control' style='display:inline-block; width:90px;'> <select name='dur' class='form-control' style='display:inline-block; width:auto; min-width:120px'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select></div>";
+	print "  </div>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
 		print "    <div style='flex:0 0 20%; max-width:20%'>Comment</div>";
 		print "    <div style='flex:1 1 auto'><input type='text' name='comment' value='' size='30' class='form-control' style='max-width:520px'></div>";
