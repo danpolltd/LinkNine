@@ -552,12 +552,13 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflowX='hidden'; body.style.overflowY='auto'; body.style.padding='10px'; body.style.minHeight='0';
 			var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';
 			// Header-right container for countdown next to title
-			var headerRight = document.createElement('div'); headerRight.id='quickViewHeaderRight'; headerRight.style.display='inline-flex'; headerRight.style.alignItems='center'; headerRight.style.gap='6px'; headerRight.style.whiteSpace='nowrap'; headerRight.style.marginRight='10px';
-			var footer = document.createElement('div'); footer.style.display='flex'; footer.style.justifyContent='space-between'; footer.style.alignItems='center'; footer.style.padding='10px'; footer.style.marginTop='auto';
+			var headerRight = document.createElement('div'); headerRight.id='quickViewHeaderRight'; headerRight.style.display='inline-flex'; headerRight.style.alignItems='center'; headerRight.style.gap='6px'; headerRight.style.whiteSpace='nowrap'; headerRight.style.marginRight='10px'; headerRight.style.flex='0 0 auto';
+			var footer = document.createElement('div'); footer.style.display='flex'; footer.style.flexWrap='wrap'; footer.style.justifyContent='space-between'; footer.style.alignItems='center'; footer.style.gap='8px'; footer.style.padding='10px'; footer.style.marginTop='auto';
 			var left = document.createElement('div'); left.id='quickViewFooterLeft'; var mid = document.createElement('div'); mid.id='quickViewFooterMid'; var right = document.createElement('div'); right.id='quickViewFooterRight';
-			left.style.display='flex'; left.style.alignItems='center'; left.style.flexWrap='wrap'; left.style.gap='8px';
+			left.style.display='flex'; left.style.alignItems='center'; left.style.flexWrap='wrap'; left.style.gap='8px'; left.style.minWidth='240px';
+			right.style.display='flex'; right.style.alignItems='center'; right.style.flexWrap='wrap'; right.style.gap='8px'; right.style.minWidth='220px'; right.style.justifyContent='flex-end';
 			// Watcher controls
-			var logSelect = document.createElement('select'); logSelect.id='watcherLogSelect'; logSelect.className='form-control'; logSelect.style.display='inline-block'; logSelect.style.width='auto'; logSelect.style.marginRight='8px';
+			var logSelect = document.createElement('select'); logSelect.id='watcherLogSelect'; logSelect.className='form-control'; logSelect.style.display='inline-block'; logSelect.style.width='auto'; logSelect.style.maxWidth='48vw'; logSelect.style.marginRight='8px';
 			var linesInput = document.createElement('input'); linesInput.id='watcherLines'; linesInput.type='text'; linesInput.value='100'; linesInput.size='4'; linesInput.className='form-control'; linesInput.style.display='inline-block'; linesInput.style.width='70px'; linesInput.style.marginRight='8px';
 			var refreshBtn = document.createElement('button'); refreshBtn.id='watcherRefresh'; refreshBtn.className='btn btn-default'; refreshBtn.textContent='Autocheck'; refreshBtn.style.marginRight='0';
 			var refreshLabel = document.createElement('span'); refreshLabel.id='watcherRefreshLabel'; refreshLabel.textContent=' Refresh in ';
@@ -566,7 +567,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			headerRight.appendChild(refreshLabel); headerRight.appendChild(timerSpan);
 			var pauseBtn = document.createElement('button'); pauseBtn.id='watcherPause'; pauseBtn.className='btn btn-default'; pauseBtn.textContent='Pause';
 			// Arrange: inputs row + button column (refresh/pause stacked)
-			var inputsRow = document.createElement('div'); inputsRow.style.display='inline-block'; inputsRow.style.marginRight='8px';
+			var inputsRow = document.createElement('div'); inputsRow.style.display='inline-flex'; inputsRow.style.flexWrap='wrap'; inputsRow.style.alignItems='center'; inputsRow.style.gap='6px'; inputsRow.style.marginRight='8px';
 			inputsRow.appendChild(logSelect); inputsRow.appendChild(document.createTextNode(' Lines: ')); inputsRow.appendChild(linesInput);
 			// (Timer moved to header)
 			var btnCol = document.createElement('div'); btnCol.style.display='inline-flex'; btnCol.style.flexDirection='column'; btnCol.style.gap='6px'; btnCol.style.alignItems='flex-end';
@@ -586,7 +587,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			refreshBtn.style.whiteSpace='nowrap'; refreshBtn.style.overflow='hidden'; refreshBtn.style.textOverflow='ellipsis';
 			pauseBtn.style.whiteSpace='nowrap'; pauseBtn.style.overflow='hidden'; pauseBtn.style.textOverflow='ellipsis';
 			// Place Autocheck to the left of Pause in a horizontal row
-			btnCol.style.flexDirection='row'; btnCol.style.alignItems='center'; btnCol.style.gap='3.6px';
+			btnCol.style.flexDirection='row'; btnCol.style.alignItems='center'; btnCol.style.gap='6px'; btnCol.style.flexWrap='wrap'; btnCol.style.justifyContent='flex-end';
 			btnCol.appendChild(refreshBtn); btnCol.appendChild(pauseBtn);
 			left.appendChild(inputsRow);
 			// No edit/save/cancel in watcher mode
@@ -639,8 +640,8 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			populateLogs();
 			// Initialize emphasis based on defaults (auto mode, not paused)
 			updateIntensity();
-			var inner = document.createElement('div'); inner.style.padding='10px'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.flex='1 1 auto'; inner.style.minHeight='0';
-			var headerBar = document.createElement('div'); headerBar.style.display='flex'; headerBar.style.justifyContent='space-between'; headerBar.style.alignItems='center';
+			var inner = document.createElement('div'); inner.style.padding='10px'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.flex='1 1 auto'; inner.style.minHeight='0'; inner.style.minWidth='0';
+			var headerBar = document.createElement('div'); headerBar.style.display='flex'; headerBar.style.justifyContent='space-between'; headerBar.style.alignItems='center'; headerBar.style.gap='8px'; headerBar.style.flexWrap='wrap';
 			headerBar.appendChild(title); headerBar.appendChild(headerRight);
 			inner.appendChild(headerBar); inner.appendChild(body);
 			footer.appendChild(left); footer.appendChild(mid); footer.appendChild(right);
@@ -729,7 +730,11 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 				} else { b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>"; } } finally { window.__qhtlWatcherLoading=false; } } }; x.send(); m.style.display='block'; }
 
 		// Global watcher opener that sets size and starts auto-refresh
-		window.__qhtlRealOpenWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){ d.style.width='800px'; d.style.height='450px'; d.style.maxWidth='95vw'; d.style.position='fixed'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0'; }
+		window.__qhtlRealOpenWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){
+			d.style.width='800px'; d.style.height='450px';
+			d.style.maxWidth='95vw'; d.style.maxHeight='90vh';
+			d.style.position='fixed'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0';
+		}
 				// Ensure blue pulsating glow CSS exists and apply class
 				(function(){ var css=document.getElementById('qhtl-blue-style'); if(!css){ css=document.createElement('style'); css.id='qhtl-blue-style'; css.textContent=String.fromCharCode(64)+'keyframes qhtl-blue {0%,100%{box-shadow: 0 0 14px 6px rgba(0,123,255,0.55), 0 0 24px 10px rgba(0,123,255,0.3);}50%{box-shadow: 0 0 28px 14px rgba(0,123,255,0.95), 0 0 46px 20px rgba(0,123,255,0.6);}} .fire-blue{ animation: qhtl-blue 2.2s infinite ease-in-out; }'; document.head.appendChild(css);} if(d){ d.classList.add('fire-blue'); } var bodyEl=document.getElementById('quickViewBodyShim'); if(bodyEl){ /* 50% brighter than glow base (#007bff) by mixing with white */ bodyEl.style.background='linear-gradient(180deg, rgb(127,189,255) 0%, rgb(159,205,255) 100%)'; bodyEl.style.borderRadius='4px'; bodyEl.style.padding='10px'; } })();
 			// initial load and start timer (no synthetic change event to avoid loops)
@@ -779,9 +784,9 @@ EOF
 
 	print <<'EXTRA_BUBBLE_STYLE';
 	<style id="qhtl-plugin-bubble-style">
-		/* Water bubble highlight for the plugin header status */
-		#qhtl-status-btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; text-shadow:0 1px 2px rgba(0,0,0,0.25); }
-		#qhtl-status-btn::before{ content:''; position:absolute; top:4px; left:10px; right:10px; height:40%; border-radius:999px; background:linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0)); pointer-events:none; }
+	  /* Water bubble highlight for the plugin header status */
+	  #qhtl-status-btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; text-shadow:0 1px 2px rgba(0,0,0,0.25); }
+	  #qhtl-status-btn::before{ content:''; position:absolute; top:4px; left:10px; right:10px; height:40%; border-radius:999px; background:linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0)); pointer-events:none; }
 	</style>
 	EXTRA_BUBBLE_STYLE
 }
