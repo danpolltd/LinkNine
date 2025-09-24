@@ -8,7 +8,7 @@ use Carp;
 use IPC::Open3;
 use File::Basename qw(fileparse);
 use QhtLink::Config;
-use QhtLink::Slurp;
+use QhtLink::Slurp qw(slurp);
 use QhtLink::URLGet;
 use QhtLink::ServerStats;
 use QhtLink::GetEthDev;
@@ -35,6 +35,11 @@ sub main {
 	# Load config for this module's scope
 	my $cfg = QhtLink::Config->loadconfig();
 	%config = $cfg->config();
+
+	# Honor explicit panel context (e.g., 'cpanel') passed from caller
+	if (defined $panel && $panel ne '') {
+		$config{THIS_UI} = $panel;
+	}
 
 	$cleanreg   = QhtLink::Slurp->cleanreg;
 
@@ -1177,6 +1182,17 @@ function QHTLFIREWALLexpand(obj){
 	if (newsize > 120) {newsize = 120;}
 	obj.size = newsize;
 }
+
+###############################################################################
+# start resize
+# Minimal no-op stub for legacy UI helpers used around command output sections.
+# Keeps older calls like &resize("top") / &resize("bot",1) from crashing.
+sub resize {
+	my ($pos, $sticky) = @_;
+	return;
+}
+# end resize
+###############################################################################
 </script>
 EOF
 		print "<style>.hidepiece\{display:none\}</style>\n";
