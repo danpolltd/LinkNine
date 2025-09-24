@@ -1,5 +1,31 @@
 package QhtLink::DisplayUI;
 
+# Lightweight module wiring and shared state used across handlers in this package
+# Avoid enabling strict here due to legacy globals; keep changes minimal and targeted
+use lib '/usr/local/qhtlfirewall/lib';
+use Fcntl qw(:DEFAULT :flock);
+use Carp;
+use IPC::Open3;
+use File::Basename qw(fileparse);
+use File::Copy qw(copy);
+
+# QhtLink modules referenced throughout the UI
+use QhtLink::Config;
+use QhtLink::Slurp qw(slurp);
+use QhtLink::Sanity qw(sanity);
+use QhtLink::CheckIP qw(checkip cccheckip);
+use QhtLink::Service;
+use QhtLink::ServerStats;
+use QhtLink::Ports;
+use QhtLink::ServerCheck;
+use QhtLink::RBLCheck;
+use QhtLink::GetEthDev;
+use QhtLink::URLGet;  # ensures QhtLink::URLGet->new(...) is available
+
+# Package-scoped globals (intentionally no 'strict') populated at runtime by main()
+our (%FORM, %config, $script, $images, $myv, $mobile, $where, $slurpreg, $cleanreg, $chart, $urlget);
+$chart = 1;
+
 ###############################################################################
 # Copyright (C) 2025 Daniel Nowakowski
 #
@@ -59,10 +85,27 @@ sub confirmmodal {
 ###############################################################################
 # start main
 sub main {
+	# Accept parameters from the CGI entrypoint and initialize shared state
+	my ($form_ref, $script_in, $mobile_in, $images_in, $myv_in, $where_in) = @_;
+	if (ref $form_ref eq 'HASH') { %FORM = %{$form_ref}; }
+	$script  = defined $script_in  ? $script_in  : $script;
+	$mobile  = defined $mobile_in  ? $mobile_in  : $mobile;
+	$images  = defined $images_in  ? $images_in  : $images;
+	$myv     = defined $myv_in     ? $myv_in     : $myv;
+	$where   = defined $where_in   ? $where_in   : $where;
+
+	# Load config and helper regexes (available to all handlers)
+	my $cfg_obj = QhtLink::Config->loadconfig();
+	%config     = $cfg_obj->config();
+	$slurpreg   = QhtLink::Slurp->slurpreg;
+	$cleanreg   = QhtLink::Slurp->cleanreg;
+
+	# Optional charts: initialize stats backend when enabled
 	if ($config{ST_ENABLE}) {
 		if (!defined QhtLink::ServerStats::init()) {$chart = 0}
 	}
 
+	# HTTP client used for version/changelog fetches
 	$urlget = QhtLink::URLGet->new($config{URLGET}, "qhtlfirewall/$myv", $config{URLPROXY});
 	unless (defined $urlget) {
 		$config{URLGET} = 1;
@@ -684,7 +727,8 @@ QHTL_JQ_GREP
 			# Fallback: try to fetch remotely if local file is missing
 			my $url = "https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt";
 			my ($status, $body) = $urlget->urlget($url);
-			if ($status == 200 && defined $body && length $body) {
+			# QhtLink::URLGet returns status 0 on success
+			if (!$status && defined $body && length $body) {
 				$body =~ s/</&lt;/g; $body =~ s/>/&gt;/g;
 				print $body;
 			} else {
