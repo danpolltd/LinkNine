@@ -7,9 +7,35 @@ use Fcntl qw(:DEFAULT :flock);
 use Carp;
 use IPC::Open3;
 use File::Basename qw(fileparse);
+use QhtLink::Config;
+use QhtLink::Slurp;
+use QhtLink::URLGet;
+use QhtLink::ServerStats;
+use QhtLink::GetEthDev;
+use QhtLink::Ports;
+use QhtLink::ServerCheck;
+use QhtLink::RBLCheck;
+use QhtLink::Service;
+use QhtLink::CloudFlare;
+
+# Shared state used across handlers in this package
+our ($chart, $ipscidr6, $ipv6reg, $ipv4reg, %config, %ips, $mobile,
+	 %FORM, $script, $script_da, $images, $myv, $hostname,
+	 $hostshort, $panel, $urlget, $cleanreg);
 ###############################################################################
 # start main
 sub main {
+	my $form_ref = shift; %FORM = %{$form_ref} if $form_ref;
+	$script      = shift; # cgi script path/name
+	$script_da   = shift; # directadmin script path (or 0)
+	$images      = shift; # images base path
+	$myv         = shift; # version string
+	$panel       = shift; # optional panel name
+
+	# Load config for this module's scope
+	my $cfg = QhtLink::Config->loadconfig();
+	%config = $cfg->config();
+
 	$cleanreg   = QhtLink::Slurp->cleanreg;
 
 	# Optional charts: initialize stats backend when enabled
