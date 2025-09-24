@@ -7,70 +7,9 @@ use Fcntl qw(:DEFAULT :flock);
 use Carp;
 use IPC::Open3;
 use File::Basename qw(fileparse);
-use File::Copy qw(copy);
-
-# QhtLink modules referenced throughout the UI
-use QhtLink::Config;
-use QhtLink::Slurp qw(slurp);
-use QhtLink::Sanity qw(sanity);
-use QhtLink::CheckIP qw(checkip cccheckip);
-use QhtLink::Service;
-use QhtLink::ServerStats;
-use QhtLink::Ports;
-use QhtLink::ServerCheck;
-use QhtLink::RBLCheck;
-use QhtLink::GetEthDev;
-use QhtLink::URLGet;  # ensures QhtLink::URLGet->new(...) is available
-
-# Package-scoped globals (intentionally no 'strict') populated at runtime by main()
-our (%FORM, %config, $script, $images, $myv, $mobile, $where, $slurpreg, $cleanreg, $chart, $urlget);
-$chart = 1;
-
 ###############################################################################
-# Copyright (C) 2025 Daniel Nowakowski
-#
-# https://qhtlf.danpol.co.uk
-###############################################################################
-## no critic (RequireUseWarnings, ProhibitExplicitReturnUndef, ProhibitMixedBooleanOperators, RequireBriefOpen)
-sub confirmmodal {
-	print "<style>\n";
-	print "#confirmmodal { position: absolute !important; inset: 0 !important; }\n";
-	print "#confirmmodal .modal-dialog { width: 420px !important; max-width: 95% !important; position: absolute !important; top: 18px !important; left: 50% !important; transform: translateX(-50%) !important; margin: 0 !important; }\n";
-	print "#confirmmodal .modal-content { display:flex !important; flex-direction:column !important; overflow:hidden !important; }\n";
-	print "#confirmmodal .modal-body { flex:1 1 auto !important; min-height:0 !important; overflow:auto !important; }\n";
-	print "</style>\n";
-	print "<div class='modal fade' id='confirmmodal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
-	print "<div class='modal-dialog modal-sm'>\n";
-	print "<div class='modal-content'>\n";
-	print "<div class='modal-body'>\n";
-	print "<h4 id='modal-text'>text</h4>\n";
-	print "</div>\n";
-	print "<div class='modal-footer'>\n";
-	print "<a id='modal-submit' href='#' class='btn btn-success'>Yes - Continue</a>\n";
-	print "<button type='button' class='btn btn-danger' data-dismiss='modal'>No - Cancel</button>\n";
-	print "</div>\n";
-	print "</div>\n";
-	print "</div>\n";
-	print "</div>\n";
-	print "<script>\n";
-	print "\t\$('button.confirmButton').on('click', function(e) {\n";
-	print "\tvar dataquery = \$(this).attr('data-query');\n";
-	print "\tvar datahref = \$(this).attr('data-href');\n";
-	print "\t\$('#modal-text').html(dataquery);\n";
-	print "\t\$('#modal-submit').attr({'href':datahref});\n";
-	print "});\n";
-	print "(function(){\n";
-	print "\tvar cm = \$('#confirmmodal');\n";
-	print "\tcm.on('show.bs.modal', function(){\n";
-	print "\t\ttry {\n";
-	print "\t\tvar parent = document.querySelector('.qhtl-bubble-bg') || document.body;\n";
-	print "\t\tvar rect = (parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? parent.getBoundingClientRect() : {left:0, top:0, width:window.innerWidth, height:window.innerHeight};\n";
-	# start qhtlfirewallgetversion
-	sub qhtlfirewallgetversion {
-	# Load config and helper regexes (available to all handlers)
-	my $cfg_obj = QhtLink::Config->loadconfig();
-	%config     = $cfg_obj->config();
-	$slurpreg   = QhtLink::Slurp->slurpreg;
+# start main
+sub main {
 	$cleanreg   = QhtLink::Slurp->cleanreg;
 
 	# Optional charts: initialize stats backend when enabled
@@ -3086,7 +3025,7 @@ sub savefile {
 
 	return;
 }
-# end cloudflare
+	# end savefile
 ###############################################################################
 # start cloudflare
 sub cloudflare {
@@ -3141,12 +3080,14 @@ $(document).ready(function(){
       $('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', true);
     } else {
       $('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', false);
-    }
-  });
+		}
+	});
 });
 JS
 	print "</script>\n";
-	}
+
+}
+# end cloudflare
 sub printreturn {
 	print "<hr><div><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input id='qhtlfirewallreturn' type='submit' class='btn btn-default' value='Return'></form></div>\n";
 
@@ -3180,41 +3121,47 @@ sub confirmmodal {
 	print "  \$(event.target).modal('hide')\n";
 	print "});\n";
 	print "</script>\n";
-	sub qhtlfirewallgetversion {
-		my ($product, $current) = @_;
-		my $upgrade = 0;
-		my $newversion = '';
-		# Prefer a successful cron fetch file over any error file
-		if (-e "/var/lib/qhtlfirewall/".$product.".txt") {
-			open (my $VERSION, "<", "/var/lib/qhtlfirewall/".$product.".txt");
-			flock ($VERSION, LOCK_SH);
-			$newversion = <$VERSION>;
-			close ($VERSION);
-			chomp $newversion;
-			if ($newversion =~ /^[\d\.]+$/) {
-				if (ver_cmp($newversion, $current) == 1) { $upgrade = 1; }
-			} else { $newversion = ""; }
-		}
-		elsif (-e "/var/lib/qhtlfirewall/".$product.".txt.error") {
-			open (my $VERSION, "<", "/var/lib/qhtlfirewall/".$product.".txt.error");
-			flock ($VERSION, LOCK_SH);
-			$newversion = <$VERSION>;
-			close ($VERSION);
-			chomp $newversion;
-			$newversion = $newversion ? "Failed to retrieve latest version from Danpol update server: $newversion" : "Failed to retrieve latest version from Danpol update server";
-		}
-		elsif (-e "/var/lib/qhtlfirewall/error") {
-			open (my $VERSION, "<", "/var/lib/qhtlfirewall/error");
-			flock ($VERSION, LOCK_SH);
-			$newversion = <$VERSION>;
-			close ($VERSION);
-			chomp $newversion;
-			$newversion = $newversion ? "Failed to retrieve latest version from Danpol update server: $newversion" : "Failed to retrieve latest version from Danpol update server";
-		} else {
-			$newversion = "Failed to retrieve latest version from Danpol update server";
-		}
-		return ($upgrade, $newversion);
+	return;
+}
+# end confirmmodal
+###############################################################################
+
+# start qhtlfirewallgetversion
+sub qhtlfirewallgetversion {
+	my ($product, $current) = @_;
+	my $upgrade = 0;
+	my $newversion = '';
+	# Prefer a successful cron fetch file over any error file
+	if (-e "/var/lib/qhtlfirewall/".$product.".txt") {
+		open (my $VERSION, "<", "/var/lib/qhtlfirewall/".$product.".txt");
+		flock ($VERSION, LOCK_SH);
+		$newversion = <$VERSION>;
+		close ($VERSION);
+		chomp $newversion;
+		if ($newversion =~ /^[\d\.]+$/) {
+			if (ver_cmp($newversion, $current) == 1) { $upgrade = 1; }
+		} else { $newversion = ""; }
 	}
+	elsif (-e "/var/lib/qhtlfirewall/".$product.".txt.error") {
+		open (my $VERSION, "<", "/var/lib/qhtlfirewall/".$product.".txt.error");
+		flock ($VERSION, LOCK_SH);
+		$newversion = <$VERSION>;
+		close ($VERSION);
+		chomp $newversion;
+		$newversion = $newversion ? "Failed to retrieve latest version from Danpol update server: $newversion" : "Failed to retrieve latest version from Danpol update server";
+	}
+	elsif (-e "/var/lib/qhtlfirewall/error") {
+		open (my $VERSION, "<", "/var/lib/qhtlfirewall/error");
+		flock ($VERSION, LOCK_SH);
+		$newversion = <$VERSION>;
+		close ($VERSION);
+		chomp $newversion;
+		$newversion = $newversion ? "Failed to retrieve latest version from Danpol update server: $newversion" : "Failed to retrieve latest version from Danpol update server";
+	} else {
+		$newversion = "Failed to retrieve latest version from Danpol update server";
+	}
+	return ($upgrade, $newversion);
+}
 # end qhtlfirewallgetversion
 ###############################################################################
 # start manualversion
