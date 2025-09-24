@@ -2485,7 +2485,34 @@ EOF
 		var kids = footer.querySelectorAll('.orig-footer');
 		for (var i=0;i<kids.length;i++){ kids[i].style.display=''; }
 		// remove orange class
-		var mc = modal.querySelector('.modal-content'); if(mc){ mc.classList.remove('fire-orange'); }
+			var mc = modal.querySelector('.modal-content'); if(mc){
+				mc.classList.remove('fire-orange');
+				// clear sizing overrides to restore default quick view sizes
+				mc.style.removeProperty('height');
+				mc.style.removeProperty('display');
+				mc.style.removeProperty('flex-direction');
+				mc.style.removeProperty('overflow');
+			}
+			var dlg = modal.querySelector('.modal-dialog'); if(dlg){
+				dlg.style.removeProperty('width');
+				dlg.style.removeProperty('max-width');
+				dlg.style.removeProperty('position');
+				dlg.style.removeProperty('top');
+				dlg.style.removeProperty('left');
+				dlg.style.removeProperty('transform');
+				dlg.style.removeProperty('margin');
+			}
+			var body = document.getElementById('quickViewBody'); if(body){
+				body.style.removeProperty('display');
+				body.style.removeProperty('align-items');
+				body.style.removeProperty('justify-content');
+				body.style.removeProperty('text-align');
+				body.style.removeProperty('font-size');
+				body.style.removeProperty('padding');
+				body.style.removeProperty('min-height');
+			}
+			var mb = document.querySelector('#quickViewModal .modal-body'); if(mb){ mb.style.removeProperty('padding'); }
+			var qt = document.getElementById('quickViewTitle'); if(qt){ qt.style.removeProperty('margin'); }
 	}
 	window.openPromoModal = function(){
 		try{
@@ -2493,18 +2520,45 @@ EOF
 			var $modal = $('#quickViewModal');
 			if (!$modal.length) return alert('Modal not available');
 			if (!$modal.parent().is('body')) { $modal.appendTo('body'); }
-			var $dlg = $modal.find('.modal-dialog');
-			var $mc = $modal.find('.modal-content');
+					var $dlg = $modal.find('.modal-dialog');
+					var $mc = $modal.find('.modal-content');
 			var $body = $modal.find('#quickViewBody');
 			var $title = $modal.find('#quickViewTitle');
 			var $footer = $modal.find('.modal-footer');
-			// size to small promo
-			$dlg.css({ width:'520px', maxWidth:'95vw', margin:'0', position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)' });
-			$mc.css({ height:'260px', display:'flex', flexDirection:'column', overflow:'hidden' });
-			$body.css({ flex:'1 1 auto', display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', fontSize:'16px', padding:'10px' });
-			$title.text('Promotion Required');
+					// size to very compact promo; override earlier !important sizing
+					try {
+						var dlgEl = $dlg[0];
+						if (dlgEl && dlgEl.style && dlgEl.style.setProperty) {
+							dlgEl.style.setProperty('width','320px','important');
+							dlgEl.style.setProperty('max-width','95vw','important');
+							dlgEl.style.setProperty('margin','0','important');
+							dlgEl.style.setProperty('position','fixed','important');
+							dlgEl.style.setProperty('top','50%','important');
+							dlgEl.style.setProperty('left','50%','important');
+							dlgEl.style.setProperty('transform','translate(-50%, -50%)','important');
+						} else {
+							$dlg.css({ width:'320px', maxWidth:'95vw', margin:'0', position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)' });
+						}
+					} catch(_) { $dlg.css({ width:'320px', maxWidth:'95vw' }); }
+					try {
+						var mcEl = $mc[0];
+						if (mcEl && mcEl.style && mcEl.style.setProperty) {
+							mcEl.style.setProperty('height','auto','important');
+							mcEl.style.setProperty('min-height','0','important');
+							mcEl.style.setProperty('display','flex','important');
+							mcEl.style.setProperty('flex-direction','column','important');
+							mcEl.style.setProperty('overflow','hidden','important');
+						} else {
+							$mc.css({ height:'auto', display:'flex', flexDirection:'column', overflow:'hidden' });
+						}
+					} catch(_) { $mc.css({ height:'auto' }); }
+					$body.css({ flex:'1 1 auto', display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', fontSize:'13px', lineHeight:'1.25', padding:'4px', minHeight:'0' });
+			// tighten surrounding modal-body padding and title margin
+			var mb = $modal.find('.modal-body')[0]; if(mb && mb.style && mb.style.setProperty){ mb.style.setProperty('padding','6px','important'); }
+			var qt = document.getElementById('quickViewTitle'); if(qt){ qt.style.margin = '0 0 4px 0'; }
+			$title.text('Information');
 			// content
-			$body.html("<div style='padding:10px;'><strong>You need promotion active to access this function !</strong></div>");
+			$body.html("<div style='padding:2px 4px;'><strong>You need promotion active to access this function !</strong></div>");
 			// orange pulsating glow
 			$mc.removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view').addClass('fire-orange');
 			// hide original footer content but preserve
