@@ -148,90 +148,13 @@ sub main {
 				# No upgrade available; if we fetched a version, clarify relation
 				if (defined $actv and $actv ne "") {
 					my $src_text = ($src ne '' ? " (from $src)" : "");
-					my $cmp = ver_cmp($actv, $myv);
-					if ($cmp == 0) {
-						print "<div class='bs-callout bs-callout-info'>Up to date: qhtlfirewall v$myv (latest available is also v$actv$src_text)</div>\n";
-					} elsif ($cmp == -1) {
-						print "<div class='bs-callout bs-callout-warning'>You are running qhtlfirewall v$myv which is newer than the latest available on the update servers (v$actv$src_text)</div>\n";
-					} else {
-						# Should not happen as $upgrade would be true, but fall back safely
-						print "<div class='bs-callout bs-callout-info'>Latest available version is v$actv$src_text. Your version is v$myv.</div>\n";
+					sub printreturn {
+						print "<hr><div><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input id='qhtlfirewallreturn' type='submit' class='btn btn-default' value='Return'></form></div>\n";
+
+						return;
 					}
-				} else {
-					print "<div class='bs-callout bs-callout-info'>You are running the latest version of qhtlfirewall (v$myv). An Upgrade button will appear here if a new version becomes available</div>\n";
-				}
-			}
-		}
-		print "</div>\n";
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "qhtlwaterfallstatus") {
-		print "<div><p>Show qhtlwaterfall status...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		QhtLink::Service::statusqhtlwaterfall();
-		print "</pre>\n<p>...<b>Done</b>.</div>\n";
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "ms_list") {
-		&modsec;
-	}
-	elsif ($FORM{action} eq "chart") {
-		&chart;
-	}
-	elsif ($FORM{action} eq "systemstats") {
-		&systemstats($FORM{graph});
-	}
-	elsif ($FORM{action} eq "qhtlwaterfallstart") {
-		print "<div><p>Starting qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		QhtLink::Service::startqhtlwaterfall();
-		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "qhtlwaterfallrestart") {
-		if ($config{THIS_UI}) {
-			print "<div><p>Signal qhtlwaterfall to <i>restart</i>...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-			open (my $OUT, ">", "/var/lib/qhtlfirewall/qhtlwaterfall.restart") or die "Unable to open file: $!";
-			close ($OUT);
-		} else {
-			print "<div><p>Restarting qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-			QhtLink::Service::restartqhtlwaterfall();
-		}
-		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "qhtlwaterfallstop") {
-		print "<div><p>Stopping qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		QhtLink::Service::stopqhtlwaterfall();
-		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "status") {
-		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-		&printcmd("/usr/sbin/qhtlfirewall","-l");
-		if ($config{IPV6}) {
-			print "\n\nip6tables:\n\n";
-			&printcmd("/usr/sbin/qhtlfirewall","-l6");
-		}
-		print "</pre>\n";
-		&resize("bot",1);
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "start") {
-		print "<div><p>Starting qhtlfirewall...</p>\n";
-		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-		&printcmd("/usr/sbin/qhtlfirewall","-sf");
-		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		&resize("bot",1);
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "restart") {
-		print "<div><p>Restarting qhtlfirewall...</p>\n";
-		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-		&printcmd("/usr/sbin/qhtlfirewall","-sf");
-		print "</pre>\n<p>...<b>Done</b>.</div>\n";
-		&resize("bot",1);
+					# end printreturn
+					###############################################################################
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "restartq") {
