@@ -65,35 +65,8 @@ sub confirmmodal {
 	print "\t\ttry {\n";
 	print "\t\tvar parent = document.querySelector('.qhtl-bubble-bg') || document.body;\n";
 	print "\t\tvar rect = (parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? parent.getBoundingClientRect() : {left:0, top:0, width:window.innerWidth, height:window.innerHeight};\n";
-	print "\t\tvar $dlg = cm.find('.modal-dialog');\n";
-	print "\t\tvar $mc = cm.find('.modal-content');\n";
-	print "\t\tcm.css({ position:'fixed', left: rect.left+'px', top: rect.top+'px', width: rect.width+'px', height: rect.height+'px', margin:0, background:'rgba(0,0,0,0.5)' });\n";
-	print "\t\t$dlg.css({ position:'absolute', left:'50%', top:'18px', transform:'translateX(-50%)', margin:0, maxWidth: Math.min(420, Math.floor(rect.width*0.95)) + 'px' });\n";
-	print "\t\tvar maxH = Math.max(140, Math.floor(rect.height*0.85));\n";
-	print "\t\t$mc.css({ display:'flex', flexDirection:'column', overflow:'hidden', maxHeight: maxH+'px' });\n";
-	print "\t\tcm.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });\n";
-	print "\t\t} catch(_) {}\n";
-	print "\t});\n";
-	print "})();\n";
-	print "\$('.modal').click(function(event){\n";
-	print "  \$(event.target).modal('hide')\n";
-	print "});\n";
-	print "</script>\n";
-	return;
-}
-# end confirmmodal
-###############################################################################
-# start main
-sub main {
-	# Accept parameters from the CGI entrypoint and initialize shared state
-	my ($form_ref, $script_in, $mobile_in, $images_in, $myv_in, $where_in) = @_;
-	if (ref $form_ref eq 'HASH') { %FORM = %{$form_ref}; }
-	$script  = defined $script_in  ? $script_in  : $script;
-	$mobile  = defined $mobile_in  ? $mobile_in  : $mobile;
-	$images  = defined $images_in  ? $images_in  : $images;
-	$myv     = defined $myv_in     ? $myv_in     : $myv;
-	$where   = defined $where_in   ? $where_in   : $where;
-
+	# start qhtlfirewallgetversion
+	sub qhtlfirewallgetversion {
 	# Load config and helper regexes (available to all handlers)
 	my $cfg_obj = QhtLink::Config->loadconfig();
 	%config     = $cfg_obj->config();
