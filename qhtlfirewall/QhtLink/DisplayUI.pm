@@ -4368,6 +4368,7 @@ JS
 
 }
 # end cloudflare
+1;
 sub printreturn {
 	print "<hr><div><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input id='qhtlfirewallreturn' type='submit' class='btn btn-default' value='Return'></form></div>\n";
 
