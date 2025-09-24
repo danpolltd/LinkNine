@@ -23,6 +23,58 @@ use QhtLink::CloudFlare;
 our ($chart, $ipscidr6, $ipv6reg, $ipv4reg, %config, %ips, $mobile,
 	 %FORM, $script, $script_da, $images, $myv, $hostname,
 	 $hostshort, $panel, $urlget, $cleanreg);
+
+# ---------------------------------------------------------------------------
+# Utility helpers (must appear before main() so calls work during early actions)
+# ---------------------------------------------------------------------------
+
+# Safe no-op resize stub retained for legacy template compatibility
+sub resize {
+	# Expected legacy signatures: resize("top"); resize("bot", optionalFlag)
+	# We intentionally do nothing to avoid layout side-effects in modern UI.
+	return;
+}
+
+# Version compare: returns 1 if a > b, -1 if a < b, 0 if equal
+sub ver_cmp {
+	my ($a,$b) = @_;
+	return 0 if !defined $a || !defined $b;
+	my @a = split /\./, $a;
+	my @b = split /\./, $b;
+	for (my $i=0; $i < @a || $i < @b; $i++) {
+		my $ai = $a[$i] // 0; $ai =~ s/\D//g; # strip non-numeric safety
+		my $bi = $b[$i] // 0; $bi =~ s/\D//g;
+		return 1 if $ai > $bi;
+		return -1 if $ai < $bi;
+	}
+	return 0;
+}
+
+# Lightweight version retrieval helpers (placed before main for early use)
+sub manualversion {
+	my ($curv) = @_;
+	my ($upgrade, $actv, $src, $err) = (0, '', '', '');
+	eval {
+		if (defined $urlget) {
+			my $data = $urlget->get('https://update.qhtl.link/version.txt');
+			if (defined $data && $data =~ /^(\d+\.\d+(?:\.\d+)?)/) {
+				$actv = $1; $src = 'remote';
+				$upgrade = 1 if ver_cmp($actv, $curv) == 1;
+			}
+		}
+	};
+	if ($@) { $err = 'Version check failed'; }
+	return ($upgrade, $actv, $src, $err);
+}
+
+sub qhtlfirewallgetversion {
+	my ($product, $curv) = @_;
+	my ($upgrade, $actv) = (0,'');
+	my ($u,$a) = (0,'');
+	my ($flag, $act, $src, $err) = manualversion($curv);
+	$upgrade = $flag; $actv = $act;
+	return ($upgrade, $actv);
+}
 ###############################################################################
 # start main
 sub main {
@@ -3299,6 +3351,30 @@ EOF
 	print "<li><a data-toggle='tab' href='#extra'>Extra</a></li>\n";
 		print "</ul><br>\n";
 
+		# Ensure tabs switch even if Bootstrap JS isn't active (fallback minimal handler)
+		print <<'QHTL_TAB_FALLBACK';
+<script>
+(function(){
+	try {
+		var nav = document.getElementById('myTabs');
+		if (!nav) return;
+		var links = nav.querySelectorAll('a[data-toggle="tab"]');
+		function activate(hash){
+			if(!hash) return; if(hash.charAt(0)!='#') return;
+			var panes = document.querySelectorAll('.tab-content > .tab-pane');
+			for (var i=0;i<panes.length;i++){ panes[i].classList.remove('active'); }
+			var act = document.querySelector(hash); if (act) act.classList.add('active');
+			for (var j=0;j<links.length;j++){ var li=links[j].parentNode; if(li) li.classList.remove('active'); }
+			for (var k=0;k<links.length;k++){ if(links[k].getAttribute('href')===hash){ var pli=links[k].parentNode; if(pli) pli.classList.add('active'); break; } }
+		}
+		for (var i=0;i<links.length;i++){
+			links[i].addEventListener('click', function(e){ e.preventDefault(); activate(this.getAttribute('href')); });
+		}
+	} catch(e) {}
+})();
+</script>
+QHTL_TAB_FALLBACK
+
 		# Removed legacy inline Quick View shim here; the modal/watch functions are provided by the main CGI now
 
 		print "<div class='tab-content'>\n";
@@ -4368,33 +4444,6 @@ JS
 
 }
 # end cloudflare
-###############################################################################
-# start version helpers (restored)
-sub manualversion {
-	my ($curv) = @_;
-	my $upgrade = 0; my $actv = ""; my $src = ""; my $err = "";
-	# Attempt to fetch remote version information using existing $urlget object
-	eval {
-		if (defined $urlget) {
-			my $data = $urlget->get('https://update.qhtl.link/version.txt');
-			if (defined $data && $data =~ /^(\d+\.\d+(?:\.\d+)?)/) {
-				$actv = $1; $src = 'remote';
-				if (ver_cmp($actv, $curv) == 1) { $upgrade = 1; }
-			}
-		}
-	};
-	if ($@) { $err = 'Version check failed'; }
-	return ($upgrade, $actv, $src, $err);
-}
-
-sub qhtlfirewallgetversion {
-	my ($product, $curv) = @_;
-	# Wrapper returning (upgrade, activeVersion)
-	my ($upgrade, $actv, $src, $err) = manualversion($curv);
-	return ($upgrade, $actv);
-}
-# end version helpers
-
 1;
 sub printreturn {
 	print "<hr><div><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input id='qhtlfirewallreturn' type='submit' class='btn btn-default' value='Return'></form></div>\n";
