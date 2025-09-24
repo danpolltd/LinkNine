@@ -2471,7 +2471,7 @@ EOF
   function ensureOrangeCSS(){
     if (document.getElementById('qhtl-orange-style')) return;
     var s=document.createElement('style'); s.id='qhtl-orange-style';
-    s.textContent = String.fromCharCode(64)+"keyframes qhtl-orange {0%,100%{box-shadow: 0 0 14px 6px rgba(255,140,0,0.55), 0 0 24px 10px rgba(255,140,0,0.28);}50%{box-shadow: 0 0 28px 14px rgba(255,140,0,0.95), 0 0 46px 20px rgba(255,140,0,0.55);}}\n"+
+	s.textContent = String.fromCharCode(64)+"keyframes qhtl-orange {0%,100%{box-shadow: 0 0 12px 5px rgba(255,140,0,0.55), 0 0 20px 9px rgba(255,140,0,0.28);}50%{box-shadow: 0 0 22px 12px rgba(255,140,0,0.95), 0 0 36px 16px rgba(255,140,0,0.5);}}\n"+
                    ".fire-orange{ animation: qhtl-orange 2s infinite ease-in-out; }\n"+
                    ".btn-golden{ background: linear-gradient(180deg, #ffd766 0%, #ffbf00 100%); color: #c0c0c0 !important; font-weight: 800; border: 1px solid #e6c200; }\n"+
                    ".btn-golden:hover{ background: linear-gradient(180deg, #ffe387 0%, #ffc41a 100%); color: #f0f0f0 !important; }\n"+
@@ -2491,7 +2491,7 @@ EOF
     modal.setAttribute('tabindex','-1');
     modal.setAttribute('role','dialog');
     modal.setAttribute('aria-hidden','true');
-    modal.innerHTML = "\n<div class='modal-dialog'>\n  <div class='modal-content'>\n    <div class='modal-body'>\n      <h4 id='qhtlPromoTitle'>Information</h4>\n      <div id='qhtlPromoBody' style='display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px;line-height:1.25;padding:4px;'>\n        <div style='padding:2px 4px;'><strong>You need promotion active to access this function !</strong></div>\n      </div>\n    </div>\n    <div class='modal-footer' style='display:flex;justify-content:space-between;align-items:center;'>\n      <div><button type='button' class='btn btn-golden' id='qhtlPromoBuyBtn'>Buy Promotions</button></div>\n      <div><button type='button' class='btn btn-bright-red' id='qhtlPromoCloseBtn' data-dismiss='modal'>Close</button></div>\n    </div>\n  </div>\n</div>\n";
+	modal.innerHTML = "\n<div class='modal-dialog'>\n  <div class='modal-content'>\n    <div class='modal-body'>\n      <h4 id='qhtlPromoTitle'>Information</h4>\n      <div id='qhtlPromoBody' style='display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px;line-height:1.25;padding:4px;'>\n        <div style='padding:2px 4px;'><strong>You need promotion active to access this function !</strong></div>\n      </div>\n    </div>\n    <div class='modal-footer' style='display:flex;justify-content:space-between;align-items:center;'>\n      <div><button type='button' class='btn btn-golden' id='qhtlPromoBuyBtn'>Buy Promotions</button></div>\n      <div><button type='button' class='btn btn-bright-red' id='qhtlPromoCloseBtn' data-dismiss='modal'>Close</button></div>\n    </div>\n  </div>\n</div>\n";
     return modal;
   }
   window.openPromoModal = function(){
@@ -2500,8 +2500,18 @@ EOF
       var existing = document.getElementById('qhtlPromoModal');
       if (existing) { try { $(existing).modal('hide'); } catch(_) {} existing.remove(); }
       var modal = buildPromoModal();
-	var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
-	parent.appendChild(modal);
+			var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
+			parent.appendChild(modal);
+			try {
+				var rect = (parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? parent.getBoundingClientRect() : {left:0, top:0, width:window.innerWidth, height:window.innerHeight};
+				var $dlg = $modal.find('.modal-dialog');
+				var $mc = $modal.find('.modal-content');
+				$modal.css({ position:'fixed', left: rect.left+'px', top: rect.top+'px', width: rect.width+'px', height: rect.height+'px', margin:0 });
+				$dlg.css({ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)', margin:0, maxWidth: Math.min(320, Math.floor(rect.width*0.95)) + 'px' });
+				var maxH = Math.max(140, Math.floor(rect.height*0.8));
+				$mc.css({ display:'flex', flexDirection:'column', overflow:'hidden', maxHeight: maxH+'px' });
+				$modal.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });
+			} catch(_) {}
       var $modal = $('#qhtlPromoModal');
       // add orange glow
       $modal.find('.modal-content').addClass('fire-orange');
@@ -2513,7 +2523,7 @@ EOF
         try { $modal.off(); } catch(_) {}
         try { $modal.remove(); } catch(_) {}
       });
-      // show modal
+	// show modal
 	$modal.modal({ show:true, backdrop:false, keyboard:true });
     }catch(e){ /* optional: fallback */ alert('Unable to open promo'); }
     return false;
@@ -2535,9 +2545,20 @@ function openQuickView(url, which) {
 	$('#quickViewBody').html('Loading...');
 	currentQuickWhich = which;
 	var $modal = $('#quickViewModal');
-	// Append modal to the bubble wrapper to scope its overlay and centering to the firewall page
 	var $wrapper = $('.qhtl-bubble-bg').first();
-	if ($wrapper.length) { $modal.appendTo($wrapper); } else if (!$modal.parent().is('body')) { $modal.appendTo('body'); }
+	// Append where available, but we will position using bounding rect to avoid clipping and keep centering relative to page area
+	if ($wrapper.length) { $modal.appendTo('body'); }
+	// Compute wrapper rect and position overlay + dialog within that rect
+	try {
+		var rect = ($wrapper.length ? $wrapper[0].getBoundingClientRect() : {left:0, top:0, width:window.innerWidth, height:window.innerHeight});
+		var $dlg = $modal.find('.modal-dialog');
+		var $mc = $modal.find('.modal-content');
+		$modal.css({ position:'fixed', left: rect.left+'px', top: rect.top+'px', width: rect.width+'px', height: rect.height+'px', margin:0, background:'rgba(0,0,0,0.5)' });
+		$dlg.css({ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)', margin:0, maxWidth: Math.min(660, Math.floor(rect.width*0.95)) + 'px' });
+		var maxH = Math.max(260, Math.floor(rect.height*0.9));
+		$mc.css({ height:'auto', maxHeight: maxH+'px', display:'flex', flexDirection:'column', overflow:'hidden' });
+		$modal.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });
+	} catch(_) {}
 	// Show without Bootstrap backdrop so it doesn't cover the full window
 	$modal.modal({ show: true, backdrop: false, keyboard: true });
 	$('#quickViewEditBtn').show();
