@@ -61,7 +61,9 @@ sub manualversion {
 				$actv = $1; $src = 'remote';
 				$upgrade = 1 if ver_cmp($actv, $curv) == 1;
 			} elsif ($rc) {
-				$err = 'Version check failed';
+				my $why = defined $data ? $data : '';
+				$why =~ s/[\r\n]+/ /g; $why =~ s/\s{2,}/ /g; $why = substr($why,0,180);
+				$err = 'Version check failed' . ($why ne '' ? ": $why" : '');
 			}
 		}
 	};
@@ -3448,7 +3450,7 @@ QHTL_TAB_FALLBACK
 		print "<form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>";
 		print "<div style='width:100%'>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-		print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' href='$script?action=viewlist&which=allow' onclick=\"if(typeof showQuickView==='function'){showQuickView('allow'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
+	print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' data-url='$script?action=viewlist&which=allow' href='#'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='allowip' value='' size='36' style='background-color: #BDECB6; width:100%;'></div>";
 		print "  </div>";
 		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qallow\\\").submit();\\\" class='btn btn-default' data-bubble-color='green'>Quick Allow</button></div>";
@@ -3464,7 +3466,7 @@ QHTL_TAB_FALLBACK
 		print "<form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>";
 		print "<div style='width:100%'>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-		print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' href='$script?action=viewlist&which=deny' onclick=\"if(typeof showQuickView==='function'){showQuickView('deny'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
+	print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' data-url='$script?action=viewlist&which=deny' href='#'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='denyip' value='' size='36' style='background-color: #FFD1DC; width:100%;'></div>";
 		print "  </div>";
 		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qdeny\\\").submit();\\\" class='btn btn-default' data-bubble-color='red'>Quick Deny</button></div>";
@@ -3480,7 +3482,7 @@ QHTL_TAB_FALLBACK
 		print "<form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>";
 		print "<div style='width:100%'>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-		print "    <div style='flex:0 0 30%; max-width:30%'>Ignore IP address <a class='quickview-link' data-which='ignore' href='$script?action=viewlist&which=ignore' onclick=\"if(typeof showQuickView==='function'){showQuickView('ignore'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
+	print "    <div style='flex:0 0 30%; max-width:30%'>Ignore IP address <a class='quickview-link' data-which='ignore' data-url='$script?action=viewlist&which=ignore' href='#'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='ignoreip' value='' size='36' style='background-color: #D9EDF7; width:100%;'></div>";
 		print "  </div>";
 		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qignore\\\").submit();\\\" class='btn btn-default' data-bubble-color='orange'>Quick Ignore</button></div>";
@@ -3817,13 +3819,14 @@ $(document).on('click', 'a.quickview-link', function(e){
 			var actA = document.querySelector('#myTabs li.active > a[href^="#"]');
 			if (actA) { currentTab = actA.getAttribute('href'); }
 		} catch(_e){}
-		var url = $(this).attr('href');
+		var url = $(this).data('url') || $(this).attr('href');
 		var which = $(this).data('which');
 		openQuickView(url, which);
 		// Re-stick to the current tab to avoid any external handlers flipping it behind the modal
 		try {
 			if (currentTab && typeof window.qhtlActivateTab === 'function') {
 				setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, 0);
+				setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, 100);
 			}
 		} catch(__e){}
 		return false;
