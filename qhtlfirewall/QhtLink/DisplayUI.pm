@@ -3398,12 +3398,12 @@ EOF
 		print "<li class='active'><a data-toggle='tab' href='#home'>General Options</a></li>\n";
     	print "<li><a data-toggle='tab' href='#waterfall'>Waterfall</a></li>\n";
     	print "<li><a data-toggle='tab' href='#moreplus'>More...</a></li>\n";
+    	print "<li><a data-toggle='tab' href='#promotion'>Promotion</a></li>\n";
 	print "<li><a data-toggle='tab' href='#qhtlfirewall'>QhtLink Firewall</a></li>\n";
 	# Old QhtLink Waterfall tab removed; replaced by new 'Waterfall'
 		if ($config{CLUSTER_SENDTO}) {
 			print "<li><a data-toggle='tab' href='#cluster'>Cluster</a></li>\n";
 		}
-	print "<li><a data-toggle='tab' href='#other'>More</a></li>\n";
 	print "<li><a data-toggle='tab' href='#extra'>Extra</a></li>\n";
 		print "</ul><br>\n";
 
@@ -4284,53 +4284,16 @@ JS
 			print "</div>\n";
 		}
 
-	print "<div id='other' class='tab-pane'>\n";
-		my $other_has_content = 0;
-		if ($config{CF_ENABLE}) {
-            $other_has_content = 1;
-			print "<table class='table table-bordered table-striped'>\n";
-			print "<thead><tr><th colspan='2'>CloudFlare Firewall</th></tr></thead>";
-			print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='cloudflare' type='submit' class='btn btn-default'>CloudFlare</button></form><div class='text-muted small' style='margin-top:6px'>Access CloudFlare firewall functionality</div></td></tr>\n";
-			print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='cloudflareedit' type='submit' class='btn btn-default'>CloudFlare Config</button></form><div class='text-muted small' style='margin-top:6px'>Edit the CloudFlare Configuration file (qhtlfirewall.cloudflare)</div></td></tr>\n";
-			print "</table>\n";
-		}
-		if ($config{SMTPAUTH_RESTRICT}) {
-            $other_has_content = 1;
-			print "<table class='table table-bordered table-striped'>\n";
-			print "<thead><tr><th colspan='2'>cPanel SMTP AUTH Restrictions</th></tr></thead>";
-			print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='smtpauth' type='submit' class='btn btn-default'>Edit SMTP AUTH</button></form><div class='text-muted small' style='margin-top:6px'>Edit the file that allows SMTP AUTH to be advertised to listed IP addresses (qhtlfirewall.smtpauth)</div></td></tr>\n";
-			print "</table>\n";
-		}
 
-		if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN} or $config{INTERWORX}) {
-            $other_has_content = 1;
-			my $resellers = "cPanel Resellers";
-			if ($config{DIRECTADMIN}) {$resellers = "DirectAdmin Resellers"}
-			elsif ($config{INTERWORX}) {$resellers = "InterWorx Resellers"}
-			print "<table class='table table-bordered table-striped'>\n";
-			print "<thead><tr><th colspan='2'>$resellers</th></tr></thead>";
-			print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='reseller' type='submit' class='btn btn-default'>Edit Reseller Privs</button></form><div class='text-muted small' style='margin-top:6px'>Privileges can be assigned to $resellers accounts by editing this file (qhtlfirewall.resellers)</div></td></tr>\n";
-			print "</table>\n";
-		}
-
-		unless ($other_has_content) {
-				print "<div class='text-muted small' style='padding:8px'>No additional modules are enabled for this section.</div>\n";
-				print "<table class='table table-bordered table-striped'>\n";
-				print "<thead><tr><th>About qhtlfirewall</th></tr></thead>";
-				print "<tr><td>This interface provides quick access to qhtlfirewall and qhtlwaterfall management. Use the tabs above to navigate. The Upgrade tab will show when updates are available and provide a link to the ChangeLog.</td></tr>\n";
-				print "</table>\n";
-		}
-
-	# Move About section into the 'More' tab so it is only visible there
-	print "</div>\n";
+		# New Promotion tab-pane between More... and QhtLink Firewall, copy content from Extra
+		print "<div id='promotion' class='tab-pane'>\n";
+		print "<table class='table table-bordered table-striped'>\n";
+		print "<thead><tr><th colspan='2'>Extra</th></tr></thead>";
+		print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='qhtlfirewalltest' type='submit' class='btn btn-default'>Test iptables</button></form><div class='text-muted small' style='margin-top:6px'>Check that iptables has the required modules to run qhtlfirewall</div></td></tr>\n";
+		print "</table>\n";
+		print "</div>\n";
 
 	# New Extra tab-pane at the end
-	print "<div id='extra' class='tab-pane'>\n";
-	print "<table class='table table-bordered table-striped'>\n";
-	print "<thead><tr><th colspan='2'>Extra</th></tr></thead>";
-	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='qhtlfirewalltest' type='submit' class='btn btn-default'>Test iptables</button></form><div class='text-muted small' style='margin-top:6px'>Check that iptables has the required modules to run qhtlfirewall</div></td></tr>\n";
-	print "</table>\n";
-	print "</div>\n";
 		# Close tab-content container
 		print "</div>\n";
 
