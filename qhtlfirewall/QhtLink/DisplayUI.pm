@@ -320,47 +320,6 @@ sub main {
 			QHTLFIREWALLtimer();
 		</script>
 EOF
-		// Helpers to disable/enable tab links while Quick View is open
-		function qhtlLockTabs(){
-			try {
-				var links = document.querySelectorAll('#myTabs a');
-				for (var i=0;i<links.length;i++){
-					var a = links[i];
-					if (!a.getAttribute('data-qhtl-disabled')){
-						var href = a.getAttribute('href');
-						if (href) a.setAttribute('data-qhtl-href', href);
-						var dt = a.getAttribute('data-toggle');
-						if (dt) a.setAttribute('data-qhtl-toggle', dt);
-						a.setAttribute('data-qhtl-disabled', '1');
-						try { a.setAttribute('aria-disabled','true'); } catch(_e){}
-						try { a.removeAttribute('data-toggle'); } catch(_e){}
-						try { a.setAttribute('href','javascript:void(0)'); } catch(_e){}
-					}
-				}
-			} catch(e){}
-		}
-		function qhtlUnlockTabs(){
-			try {
-				var links = document.querySelectorAll('#myTabs a[data-qhtl-disabled="1"]');
-				for (var i=0;i<links.length;i++){
-					var a = links[i];
-					try {
-						var href = a.getAttribute('data-qhtl-href');
-						if (href) a.setAttribute('href', href);
-						else a.removeAttribute('href');
-						a.removeAttribute('data-qhtl-href');
-					} catch(_1){}
-					try {
-						var dt = a.getAttribute('data-qhtl-toggle');
-						if (dt) a.setAttribute('data-toggle', dt);
-						else a.removeAttribute('data-toggle');
-						a.removeAttribute('data-qhtl-toggle');
-					} catch(_2){}
-					try { a.removeAttribute('aria-disabled'); } catch(_3){}
-					try { a.removeAttribute('data-qhtl-disabled'); } catch(_4){}
-				}
-			} catch(e){}
-		}
 		print <<'QHTL_JQ_TAIL';
 <script>
 // Clean jQuery handlers for font size controls
@@ -3898,6 +3857,47 @@ QHTL_PROMO_JS
 		print "var QHTL_SCRIPT = '$script';\n";
 		print <<'JS';
 var currentQuickWhich = null;
+// Helpers to disable/enable tab links while Quick View is open
+function qhtlLockTabs(){
+	try {
+		var links = document.querySelectorAll('#myTabs a');
+		for (var i=0;i<links.length;i++){
+			var a = links[i];
+			if (!a.getAttribute('data-qhtl-disabled')){
+				var href = a.getAttribute('href');
+				if (href) a.setAttribute('data-qhtl-href', href);
+				var dt = a.getAttribute('data-toggle');
+				if (dt) a.setAttribute('data-qhtl-toggle', dt);
+				a.setAttribute('data-qhtl-disabled', '1');
+				try { a.setAttribute('aria-disabled','true'); } catch(_e){}
+				try { a.removeAttribute('data-toggle'); } catch(_e){}
+				try { a.setAttribute('href','javascript:void(0)'); } catch(_e){}
+			}
+		}
+	} catch(e){}
+}
+function qhtlUnlockTabs(){
+	try {
+		var links = document.querySelectorAll('#myTabs a[data-qhtl-disabled="1"]');
+		for (var i=0;i<links.length;i++){
+			var a = links[i];
+			try {
+				var href = a.getAttribute('data-qhtl-href');
+				if (href) a.setAttribute('href', href);
+				else a.removeAttribute('href');
+				a.removeAttribute('data-qhtl-href');
+			} catch(_1){}
+			try {
+				var dt = a.getAttribute('data-qhtl-toggle');
+				if (dt) a.setAttribute('data-toggle', dt);
+				else a.removeAttribute('data-toggle');
+				a.removeAttribute('data-qhtl-toggle');
+			} catch(_2){}
+			try { a.removeAttribute('aria-disabled'); } catch(_3){}
+			try { a.removeAttribute('data-qhtl-disabled'); } catch(_4){}
+		}
+	} catch(e){}
+}
 function openQuickView(url, which) {
 	try {
 		// Increase lock and mark document BEFORE any DOM work so stray handlers can't flip tabs
