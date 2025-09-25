@@ -3440,6 +3440,30 @@ QHTL_TAB_FALLBACK
 
 		# Removed legacy inline Quick View shim here; the modal/watch functions are provided by the main CGI now
 
+		# Guard tabs from changing while Quick View is open (capture-phase interceptor)
+		print <<'QHTL_TAB_GUARD';
+<script>
+(function(){
+	try {
+		window.qhtlTabLock = window.qhtlTabLock || 0;
+		// Capture-phase listener to block any tab link clicks when locked
+		document.addEventListener('click', function(ev){
+			if (!window.qhtlTabLock) return;
+			var t = ev.target;
+			if (t && t.closest) {
+				var a = t.closest('a[data-toggle="tab"]');
+				if (a) {
+					if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+					if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+					if (ev && typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+				}
+			}
+		}, true);
+	} catch(e) {}
+})();
+</script>
+QHTL_TAB_GUARD
+
 		print "<div class='tab-content'>\n";
 		print "<div id='upgrade' class='tab-pane active'>\n";
 		print "<form action='$script' method='post'>\n";
@@ -3806,6 +3830,7 @@ QHTL_PROMO_JS
 		print <<'JS';
 var currentQuickWhich = null;
 function openQuickView(url, which) {
+    try { window.qhtlTabLock = (window.qhtlTabLock||0) + 1; } catch(_){}
 	var titleMap = {allow:'qhtlfirewall.allow', deny:'qhtlfirewall.deny', ignore:'qhtlfirewall.ignore'};
 	$('#quickViewTitle').text('Quick View: ' + (titleMap[which]||which));
 	$('#quickViewBody').html('Loading...');
@@ -3875,6 +3900,7 @@ $(document).on('click', 'a.quickview-link', function(e){
 			if (currentTab && typeof window.qhtlActivateTab === 'function') {
 				setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, 0);
 				setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, 100);
+                setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, 250);
 			}
 		} catch(__e){}
 		return false;
@@ -3924,7 +3950,10 @@ $(document).on('click', '#quickViewSaveBtn', function(){
 			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to save changes</div>');
 		});
 });
-$('#quickViewModal').on('hidden.bs.modal', function(){ $('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view'); });
+$('#quickViewModal').on('hidden.bs.modal', function(){
+	try { window.qhtlTabLock = Math.max(0, (window.qhtlTabLock||0) - 1); } catch(_){ }
+	$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view');
+});
 JS
 		print "</script>\n";
 	print "</div>\n";
