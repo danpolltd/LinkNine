@@ -3673,8 +3673,8 @@ QHTL_TAB_GUARD
 		# New Firewall1 tab (placeholder) placed between Options and Waterfall
 		print "<div id='firewall1' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>Firewall1</th></tr></thead>";
-		print "<tr><td colspan='2'>Firewall1 placeholder content.</td></tr>\n";
+	print "<thead><tr><th colspan='2'>Firewall</th></tr></thead>";
+	print "<tr><td colspan='2'>The Firewall content has been moved to the 'Firewall1' tab.</td></tr>\n";
 		print "</table>\n";
 		print "</div>\n";
 
