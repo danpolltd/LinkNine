@@ -3786,6 +3786,13 @@ QHTL_TAB_GUARD
 		print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='qhtlfirewalltest' type='submit' class='btn btn-default'>Test iptables</button></form><div class='text-muted small' style='margin-top:6px'>Check that iptables has the required modules to run qhtlfirewall</div></td></tr>\n";
 		print "</table>\n";
 
+		# About/Forum link (restored) – placed under More tab as a true move
+		$moreplus_has_content = 1;
+		print "<table class='table table-bordered table-striped'>\n";
+		print "<thead><tr><th>About</th></tr></thead>";
+		print "<tr><td>Visit <a href='https://www.forum.danpol.co.uk' target='_blank' rel='noopener'>forum.danpol.co.uk</a> for updates and support.</td></tr>\n";
+		print "</table>\n";
+
 		unless ($moreplus_has_content) {
 				print "<div class='text-muted small' style='padding:8px'>No additional modules are enabled for this section.</div>\n";
 				print "<table class='table table-bordered table-striped'>\n";
@@ -3904,7 +3911,11 @@ QHTL_TAB_GUARD
 			"</div>\n"+
 		"</div>\n"+
 		"<div class='modal-footer' style='display:flex;justify-content:space-between;align-items:center;'>\n"+
-			"<div><button type='button' class='btn btn-golden' id='qhtlPromoBuyBtn'>Promotion</button></div>\n"+
+			"<div><button type='button' class='btn btn-success' id='qhtlPromoBuyBtn' style='font-weight:800'>\n"+
+			"<span class='glyphicon glyphicon-usd' aria-hidden='true'></span> "+
+			"<span>Buy Promotions</span> "+
+			"<span class='glyphicon glyphicon-usd' aria-hidden='true'></span>\n"+
+			"</button></div>\n"+
 			"<div><button type='button' class='btn btn-bright-red' id='qhtlPromoCloseBtn' data-dismiss='modal'>Close</button></div>\n"+
 		"</div>\n"+
 	"</div>\n"+
