@@ -3370,6 +3370,15 @@ EOF
 		for (var i=0;i<links.length;i++){
 			links[i].addEventListener('click', function(e){ e.preventDefault(); activate(this.getAttribute('href')); });
 		}
+			// On load, if URL has a hash pointing to a tab pane, activate it
+			try {
+				if (window.location && window.location.hash) {
+					var h = window.location.hash;
+					for (var z=0; z<links.length; z++) {
+						if (links[z].getAttribute('href') === h) { activate(h); break; }
+					}
+				}
+			} catch(_e){}
 	} catch(e) {}
 })();
 </script>
@@ -3794,7 +3803,10 @@ function showQuickView(which) {
 }
 $(document).on('click', 'a.quickview-link', function(e){
 	try {
-		e.preventDefault();
+		// Ensure no navigation or other handlers run when opening Quick View
+		if (e && typeof e.preventDefault === 'function') e.preventDefault();
+		if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+		if (e && typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
 		var url = $(this).attr('href');
 		var which = $(this).data('which');
 		openQuickView(url, which);
@@ -3920,7 +3932,9 @@ JS
 		}
 
 	print "<div id='other' class='tab-pane'>\n";
+		my $other_has_content = 0;
 		if ($config{CF_ENABLE}) {
+            $other_has_content = 1;
 			print "<table class='table table-bordered table-striped'>\n";
 			print "<thead><tr><th colspan='2'>CloudFlare Firewall</th></tr></thead>";
 			print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='cloudflare' type='submit' class='btn btn-default'>CloudFlare</button></form><div class='text-muted small' style='margin-top:6px'>Access CloudFlare firewall functionality</div></td></tr>\n";
@@ -3928,6 +3942,7 @@ JS
 			print "</table>\n";
 		}
 		if ($config{SMTPAUTH_RESTRICT}) {
+            $other_has_content = 1;
 			print "<table class='table table-bordered table-striped'>\n";
 			print "<thead><tr><th colspan='2'>cPanel SMTP AUTH Restrictions</th></tr></thead>";
 			print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='smtpauth' type='submit' class='btn btn-default'>Edit SMTP AUTH</button></form><div class='text-muted small' style='margin-top:6px'>Edit the file that allows SMTP AUTH to be advertised to listed IP addresses (qhtlfirewall.smtpauth)</div></td></tr>\n";
@@ -3935,6 +3950,7 @@ JS
 		}
 
 		if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN} or $config{INTERWORX}) {
+            $other_has_content = 1;
 			my $resellers = "cPanel Resellers";
 			if ($config{DIRECTADMIN}) {$resellers = "DirectAdmin Resellers"}
 			elsif ($config{INTERWORX}) {$resellers = "InterWorx Resellers"}
@@ -3942,6 +3958,10 @@ JS
 			print "<thead><tr><th colspan='2'>$resellers</th></tr></thead>";
 			print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='reseller' type='submit' class='btn btn-default'>Edit Reseller Privs</button></form><div class='text-muted small' style='margin-top:6px'>Privileges can be assigned to $resellers accounts by editing this file (qhtlfirewall.resellers)</div></td></tr>\n";
 			print "</table>\n";
+		}
+
+		unless ($other_has_content) {
+			print "<div class='text-muted small' style='padding:8px'>No additional modules are enabled for this section.</div>\n";
 		}
 
 	# Move About section into the 'More' tab so it is only visible there
