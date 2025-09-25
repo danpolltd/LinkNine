@@ -3869,32 +3869,11 @@ function openQuickView(url, which) {
 			if (!window.qhtlSavedTabHash) { window.qhtlSavedTabHash = '#home'; }
 			try { window.qhtlSavedURLHash = window.location.hash; } catch(___){}
 		} catch(__){}
-		// Install lightweight observers on individual panes to revert any background tab changes while locked
-		try {
-			if (window.MutationObserver && !window.__qhtlTabObserverList) {
-				window.__qhtlTabObserverList = [];
-				var panes = document.querySelectorAll('.tab-content > .tab-pane');
-				for (var i=0; i<panes.length; i++){
-					try{
-						var pane = panes[i];
-						var obs = new MutationObserver(function(){
-							try {
-								if (!window.qhtlTabLock) return;
-								var want = window.qhtlSavedTabHash || '#home';
-								if (typeof window.qhtlActivateTab === 'function') { window.qhtlActivateTab(want); }
-								try {
-									var keep = (typeof window.qhtlSavedURLHash !== 'undefined') ? window.qhtlSavedURLHash : '';
-									var base = window.location.pathname + window.location.search + (keep || '');
-									history.replaceState(null, '', base);
-								} catch(____){}
-							} catch(_____){ }
-						});
-						obs.observe(pane, { attributes:true, attributeFilter:['class'] });
-						window.__qhtlTabObserverList.push(obs);
-					} catch(_o){}
-				}
-			}
-		} catch(__){}
+		// Note: Removed MutationObserver-based tab reversion to avoid mutation feedback loops
+		// that could cause heavy CPU usage and UI freezes. We still rely on:
+		// - capture-phase click guard for tabs
+		// - Bootstrap show.bs.tab suppression while locked
+		// - hashchange guard + explicit re-activation timers
 	} catch(_){ }
 	var titleMap = {allow:'qhtlfirewall.allow', deny:'qhtlfirewall.deny', ignore:'qhtlfirewall.ignore'};
 	$('#quickViewTitle').text('Quick View: ' + (titleMap[which]||which));
@@ -4093,15 +4072,7 @@ $('#quickViewModal').on('hidden.bs.modal', function(){
 	try { if (window.__qhtlEditXHR && window.__qhtlEditXHR.abort) { window.__qhtlEditXHR.abort(); } } catch(_ax){}
 	try { if (window.__qhtlSaveXHR && window.__qhtlSaveXHR.abort) { window.__qhtlSaveXHR.abort(); } } catch(_ax){}
 	try { window.clearTimeout(window.__qhtlLoadHintTimer); } catch(_t){}
-	// Disconnect any installed observers
-	try {
-		if (window.__qhtlTabObserverList && window.__qhtlTabObserverList.length) {
-			for (var i=0;i<window.__qhtlTabObserverList.length;i++) {
-				try { var ob = window.__qhtlTabObserverList[i]; if (ob && ob.disconnect) ob.disconnect(); } catch(__){}
-			}
-		}
-		window.__qhtlTabObserverList = null;
-	} catch(_){ }
+	// No observers to disconnect (MutationObserver approach removed to avoid freezes)
 	$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view');
 });
 JS
