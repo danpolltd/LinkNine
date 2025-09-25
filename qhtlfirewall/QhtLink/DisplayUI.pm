@@ -3396,10 +3396,10 @@ EOF
 		print "<li><a data-toggle='tab' href='#upgrade'>Upgrade</a></li>\n";
 		print "<li><a data-toggle='tab' href='#quickactions'>Quick Actions</a></li>\n";
         print "<li class='active'><a data-toggle='tab' href='#home'>Options</a></li>\n";
-    	print "<li><a data-toggle='tab' href='#firewall1'>Firewall1</a></li>\n";
+    	print "<li><a data-toggle='tab' href='#firewall1'>Firewall</a></li>\n";
     	print "<li><a data-toggle='tab' href='#waterfall'>Waterfall</a></li>\n";
-    	print "<li><a data-toggle='tab' href='#moreplus'>More...</a></li>\n";
-    	print "<li><a data-toggle='tab' href='#promotion'>Promotion</a></li>\n";
+    	print "<li><a data-toggle='tab' href='#moreplus'>More</a></li>\n";
+    	print "<li><a data-toggle='tab' href='#promotion'><span class='glyphicon glyphicon-star' style='color:#ffbf00'></span> Promotion <span class='glyphicon glyphicon-star' style='color:#ffbf00'></span></a></li>\n";
 	# Removed the old 'Firewall' nav link; pane retained for global scripts
 	# Old QhtLink Waterfall tab removed; replaced by new 'Waterfall'
 		if ($config{CLUSTER_SENDTO}) {
