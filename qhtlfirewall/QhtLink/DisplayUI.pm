@@ -3395,7 +3395,7 @@ EOF
 		print "<ul class='nav nav-tabs' id='myTabs' style='font-weight:bold'>\n";
 		print "<li><a data-toggle='tab' href='#upgrade'>Upgrade</a></li>\n";
 		print "<li><a data-toggle='tab' href='#quickactions'>Quick Actions</a></li>\n";
-		print "<li class='active'><a data-toggle='tab' href='#home'>General Options</a></li>\n";
+		print "<li class='active'><a data-toggle='tab' href='#home'>Options</a></li>\n";
     	print "<li><a data-toggle='tab' href='#waterfall'>Waterfall</a></li>\n";
     	print "<li><a data-toggle='tab' href='#moreplus'>More...</a></li>\n";
     	print "<li><a data-toggle='tab' href='#promotion'>Promotion</a></li>\n";
