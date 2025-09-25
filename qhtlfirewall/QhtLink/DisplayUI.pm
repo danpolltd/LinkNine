@@ -3395,11 +3395,11 @@ EOF
 		print "<ul class='nav nav-tabs' id='myTabs' style='font-weight:bold'>\n";
 		print "<li><a data-toggle='tab' href='#upgrade'>Upgrade</a></li>\n";
 		print "<li><a data-toggle='tab' href='#quickactions'>Quick Actions</a></li>\n";
-        print "<li class='active'><a data-toggle='tab' href='#home'>Options</a></li>\n";
+	print "<li><a data-toggle='tab' href='#home'>Options</a></li>\n";
     	print "<li><a data-toggle='tab' href='#firewall1'>Firewall</a></li>\n";
     	print "<li><a data-toggle='tab' href='#waterfall'>Waterfall</a></li>\n";
     	print "<li><a data-toggle='tab' href='#moreplus'>More</a></li>\n";
-		print "<li><a data-toggle='tab' href='#promotion'>".
+		print "<li><a data-toggle='tab' href='#promotion' class='qhtl-promo-tab'>".
 		      "<span class='glyphicon glyphicon-star' style='color:#ffbf00'></span>" x 5 .
 		      " Promotion " .
 		      "<span class='glyphicon glyphicon-star' style='color:#ffbf00'></span>" x 5 .
@@ -3447,6 +3447,32 @@ EOF
 QHTL_TAB_FALLBACK
 
 		# Removed legacy inline Quick View shim here; the modal/watch functions are provided by the main CGI now
+
+		# Intercept Promotion tab clicks to open promo modal without switching tabs
+		print <<'QHTL_PROMO_TAB_INTERCEPT';
+<script>
+(function(){
+	try {
+		document.addEventListener('click', function(e){
+			var t = e.target;
+			var a = (t && t.closest) ? t.closest('a.qhtl-promo-tab') : null;
+			if (!a) return;
+			if (e && e.preventDefault) e.preventDefault();
+			if (e && e.stopPropagation) e.stopPropagation();
+			if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+			try { if (window.openPromoModal) { openPromoModal(); } } catch(_){ }
+			// Re-assert currently active tab to be safe
+			try {
+				var act = document.querySelector('#myTabs li.active > a[href^="#"]');
+				var hash = act ? act.getAttribute('href') : '#upgrade';
+				if (typeof window.qhtlActivateTab === 'function') { window.qhtlActivateTab(hash); }
+			} catch(__){}
+			return false;
+		}, true);
+	} catch(_){ }
+})();
+</script>
+QHTL_PROMO_TAB_INTERCEPT
 
 		# Guard tabs from changing while Quick View is open (capture-phase interceptor)
 		print <<'QHTL_TAB_GUARD';
@@ -3499,7 +3525,7 @@ QHTL_TAB_FALLBACK
 QHTL_TAB_GUARD
 
 		print "<div class='tab-content'>\n";
-		print "<div id='upgrade' class='tab-pane'>\n";
+		print "<div id='upgrade' class='tab-pane active'>\n";
 		print "<form action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped' id='upgradetable'>\n";
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
@@ -3652,7 +3678,7 @@ QHTL_TAB_GUARD
 		print "</table>\n";
 		print "</div>\n";
 
-		print "<div id='home' class='tab-pane active'>\n";
+		print "<div id='home' class='tab-pane'>\n";
 		print "<form action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 	print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
