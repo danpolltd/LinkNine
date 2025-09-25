@@ -54,17 +54,65 @@ sub ver_cmp {
 sub manualversion {
 	my ($curv) = @_;
 	my ($upgrade, $actv, $src, $err) = (0, '', '', '');
-	eval {
-		if (defined $urlget) {
-			my ($rc, $data) = $urlget->urlget('https://update.qhtl.link/version.txt');
-			if (!$rc && defined $data && $data =~ /^(\d+\.\d+(?:\.\d+)?)/) {
-				$actv = $1; $src = 'remote';
-				$upgrade = 1 if ver_cmp($actv, $curv) == 1;
-			} elsif ($rc) {
-				my $why = defined $data ? $data : '';
-				$why =~ s/[\r\n]+/ /g; $why =~ s/\s{2,}/ /g; $why = substr($why,0,180);
-				$err = 'Version check failed' . ($why ne '' ? ": $why" : '');
+
+	# Local helper: load mirror list from /etc/qhtlfirewall/downloadservers
+	my $load_mirrors = sub {
+		my %seen; my @servers;
+		my $list = '/etc/qhtlfirewall/downloadservers';
+		if (-r $list) {
+			foreach my $line (slurp($list)) {
+				$line =~ s/$cleanreg//g if defined $cleanreg;
+				$line =~ s/#.*$//; $line =~ s/^\s+|\s+$//g;
+				next unless length $line;
+				# accept bare hostnames or scheme+host
+				$line =~ s{^https?://}{}i;   # strip any scheme
+				$line =~ s{/+\z}{};         # trim trailing slash
+				next if $seen{lc $line}++;
+				push @servers, $line;
 			}
+		}
+		# Prefer the chosen server (if available in config) at the front
+		if (defined $config{DOWNLOADSERVER} && $config{DOWNLOADSERVER} ne '') {
+			my $c = $config{DOWNLOADSERVER};
+			$c =~ s{^https?://}{}i; $c =~ s{/+\z}{};
+			if (!$seen{lc $c}++) { unshift @servers, $c; }
+		}
+		# Shuffle for resilience
+		for (my $x = @servers; --$x;) {
+			my $y = int(rand($x+1));
+			next if $x == $y;
+			@servers[$x,$y] = @servers[$y,$x];
+		}
+		return @servers;
+	};
+
+	eval {
+		return unless defined $urlget; # cannot proceed without HTTP client
+
+		my @mirrors = $load_mirrors->();
+		# Fallback legacy host only if no mirrors defined
+		push @mirrors, 'update.qhtl.link' if !@mirrors;
+
+		my $last_err = '';
+		MIRROR: for my $host (@mirrors) {
+			for my $scheme ('https','http') {
+				my $url = "$scheme://$host/qhtlfirewall/version.txt";
+				my ($rc, $data) = $urlget->urlget($url);
+				if (!$rc && defined $data && $data =~ /^(\d+\.\d+(?:\.\d+)?)/) {
+					$actv = $1; $src = $host;
+					$upgrade = 1 if ver_cmp($actv, $curv) == 1;
+					$err = '';
+					last MIRROR;
+				} else {
+					my $why = defined $data ? $data : '';
+					$why =~ s/[\r\n]+/ /g; $why =~ s/\s{2,}/ /g; $why = substr($why,0,180);
+					$last_err = ($why ne '' ? $why : 'Unknown error');
+				}
+			}
+		}
+		if (!$actv) {
+			my $count = scalar @mirrors;
+			$err = 'Version check failed' . ($count ? ": tried $count mirror(s); last error: $last_err" : '');
 		}
 	};
 	if ($@) { $err = 'Version check failed'; }
