@@ -320,6 +320,47 @@ sub main {
 			QHTLFIREWALLtimer();
 		</script>
 EOF
+		// Helpers to disable/enable tab links while Quick View is open
+		function qhtlLockTabs(){
+			try {
+				var links = document.querySelectorAll('#myTabs a');
+				for (var i=0;i<links.length;i++){
+					var a = links[i];
+					if (!a.getAttribute('data-qhtl-disabled')){
+						var href = a.getAttribute('href');
+						if (href) a.setAttribute('data-qhtl-href', href);
+						var dt = a.getAttribute('data-toggle');
+						if (dt) a.setAttribute('data-qhtl-toggle', dt);
+						a.setAttribute('data-qhtl-disabled', '1');
+						try { a.setAttribute('aria-disabled','true'); } catch(_e){}
+						try { a.removeAttribute('data-toggle'); } catch(_e){}
+						try { a.setAttribute('href','javascript:void(0)'); } catch(_e){}
+					}
+				}
+			} catch(e){}
+		}
+		function qhtlUnlockTabs(){
+			try {
+				var links = document.querySelectorAll('#myTabs a[data-qhtl-disabled="1"]');
+				for (var i=0;i<links.length;i++){
+					var a = links[i];
+					try {
+						var href = a.getAttribute('data-qhtl-href');
+						if (href) a.setAttribute('href', href);
+						else a.removeAttribute('href');
+						a.removeAttribute('data-qhtl-href');
+					} catch(_1){}
+					try {
+						var dt = a.getAttribute('data-qhtl-toggle');
+						if (dt) a.setAttribute('data-toggle', dt);
+						else a.removeAttribute('data-toggle');
+						a.removeAttribute('data-qhtl-toggle');
+					} catch(_2){}
+					try { a.removeAttribute('aria-disabled'); } catch(_3){}
+					try { a.removeAttribute('data-qhtl-disabled'); } catch(_4){}
+				}
+			} catch(e){}
+		}
 		print <<'QHTL_JQ_TAIL';
 <script>
 // Clean jQuery handlers for font size controls
@@ -3944,6 +3985,26 @@ function showQuickView(which) {
 }
 // Capture-phase guard to intercept Quick View gear clicks before any other handlers
 try {
+	// Early pointerdown/mousedown guards to set lock and disable tabs before any switch happens
+	function __qhtlPreLock(e){
+		var t = e.target; var a = (t && t.closest) ? t.closest('a.quickview-link') : null; if (!a) return;
+		try { window.qhtlTabLock = 1; } catch(__){}
+		try { document.documentElement.classList.add('qhtl-tabs-locked'); } catch(__){}
+		try { qhtlLockTabs(); } catch(__){}
+		// Snapshot and re-assert current tab immediately
+		try {
+			var actA = document.querySelector('#myTabs li.active > a[href^="#"]');
+			var currentTab = actA ? actA.getAttribute('href') : '#home';
+			window.qhtlSavedTabHash = currentTab;
+			try { window.qhtlSavedURLHash = window.location.hash; } catch(__){}
+			if (typeof window.qhtlActivateTab === 'function') { window.qhtlActivateTab(currentTab); }
+		} catch(__){}
+		if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+		if (e && typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+		// do not preventDefault here; the actual click handler will open the modal
+	}
+	document.addEventListener('pointerdown', __qhtlPreLock, true);
+	document.addEventListener('mousedown', __qhtlPreLock, true);
 	document.addEventListener('click', function(e){
 		var t = e.target;
 		var a = (t && t.closest) ? t.closest('a.quickview-link') : null;
@@ -3951,6 +4012,7 @@ try {
 		// Immediately lock and snapshot current active tab/hash to restore later
 		try { window.qhtlTabLock = 1; } catch(__){}
 		try { document.documentElement.classList.add('qhtl-tabs-locked'); } catch(__){}
+		try { qhtlLockTabs(); } catch(__){}
 		// Snapshot current active tab and current hash
 		var currentTab = null;
 		try {
@@ -4038,6 +4100,7 @@ $('#quickViewModal').on('hidden.bs.modal', function(){
 	// Force-unlock to ensure tabs are usable even if lock was incremented multiple times
 	try { window.qhtlTabLock = 0; } catch(_){ }
 	try { document.documentElement.classList.remove('qhtl-tabs-locked'); } catch(_){ }
+	try { qhtlUnlockTabs(); } catch(_){ }
 	// Abort any in-flight XHRs and clear timers
 	try { if (window.__qhtlCurrentXHR && window.__qhtlCurrentXHR.abort) { window.__qhtlCurrentXHR.abort(); } } catch(_ax){}
 	try { if (window.__qhtlEditXHR && window.__qhtlEditXHR.abort) { window.__qhtlEditXHR.abort(); } } catch(_ax){}
