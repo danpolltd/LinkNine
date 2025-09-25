@@ -3949,7 +3949,7 @@ try {
 		var a = (t && t.closest) ? t.closest('a.quickview-link') : null;
 		if (!a) return;
 		// Immediately lock and snapshot current active tab/hash to restore later
-		try { window.qhtlTabLock = (window.qhtlTabLock||0) + 1; } catch(__){}
+		try { window.qhtlTabLock = 1; } catch(__){}
 		try { document.documentElement.classList.add('qhtl-tabs-locked'); } catch(__){}
 		// Snapshot current active tab and current hash
 		var currentTab = null;
@@ -3960,6 +3960,8 @@ try {
 			window.qhtlSavedTabHash = currentTab;
 			try { window.qhtlSavedURLHash = window.location.hash; } catch(__){}
 		} catch(_e){}
+		// Hard re-assert the current tab immediately to prevent any background switch
+		try { if (typeof window.qhtlActivateTab === 'function') { window.qhtlActivateTab(currentTab); } } catch(__){}
 		// Halt default navigation and any bubbling that might toggle tabs
 		if (e && typeof e.preventDefault === 'function') e.preventDefault();
 		if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
@@ -3971,45 +3973,13 @@ try {
 		// Re-activate the current tab after the modal opens (multiple ticks)
 		try {
 			if (currentTab && typeof window.qhtlActivateTab === 'function') {
-				setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, 0);
-				setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, 100);
-				setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, 250);
-			}
-		} catch(__e){}
-		return false;
-	}, true);
-} catch(_){ }
-$(document).on('click', 'a.quickview-link', function(e){
-	try {
-		// Ensure no navigation or other handlers run when opening Quick View
-		if (e && typeof e.preventDefault === 'function') e.preventDefault();
-		if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-		if (e && typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
-		// Early lock and remember current active tab and hash
-		try { window.qhtlTabLock = (window.qhtlTabLock||0) + 1; } catch(__){}
-		try { document.documentElement.classList.add('qhtl-tabs-locked'); } catch(__){}
-		// Remember current active tab and re-activate it after opening the modal to avoid any background switch
-		var currentTab = null;
-		try {
-			var actA = document.querySelector('#myTabs li.active > a[href^="#"]');
-			if (actA) { currentTab = actA.getAttribute('href'); }
-			if (!currentTab) { currentTab = '#home'; }
-			window.qhtlSavedTabHash = currentTab;
-			try { window.qhtlSavedURLHash = window.location.hash; } catch(__){}
-		} catch(_e){}
-		var url = $(this).data('url') || $(this).attr('href');
-		var which = $(this).data('which');
-		openQuickView(url, which);
-		// Re-stick to the current tab to avoid any external handlers flipping it behind the modal
-		try {
-			if (currentTab && typeof window.qhtlActivateTab === 'function') {
 				var times=[0,50,150,300,600];
 				for (var i=0;i<times.length;i++){ (function(ms){ setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, ms); })(times[i]); }
 			}
 		} catch(__e){}
 		return false;
-	} catch(err) { /* fallback to navigation */ }
-});
+	}, true);
+} catch(_){ }
 $(document).on('click', '#quickViewEditBtn', function(){
 	if (!currentQuickWhich) { return; }
     var url = QHTL_SCRIPT + '?action=editlist&which=' + encodeURIComponent(currentQuickWhich);
@@ -4065,7 +4035,8 @@ $(document).on('click', '#quickViewSaveBtn', function(){
 		});
 });
 $('#quickViewModal').on('hidden.bs.modal', function(){
-	try { window.qhtlTabLock = Math.max(0, (window.qhtlTabLock||0) - 1); } catch(_){ }
+	// Force-unlock to ensure tabs are usable even if lock was incremented multiple times
+	try { window.qhtlTabLock = 0; } catch(_){ }
 	try { document.documentElement.classList.remove('qhtl-tabs-locked'); } catch(_){ }
 	// Abort any in-flight XHRs and clear timers
 	try { if (window.__qhtlCurrentXHR && window.__qhtlCurrentXHR.abort) { window.__qhtlCurrentXHR.abort(); } } catch(_ax){}
