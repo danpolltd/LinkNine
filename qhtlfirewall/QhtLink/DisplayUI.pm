@@ -1,80 +1,159 @@
-###############################################################################
-# Copyright (C) 2025 Daniel Nowakowski
-#
-# https://qhtlf.danpol.co.uk
-###############################################################################
-## no critic (RequireUseWarnings, ProhibitExplicitReturnUndef, ProhibitMixedBooleanOperators, RequireBriefOpen)
 package QhtLink::DisplayUI;
 
-use strict;
+# Lightweight module wiring and shared state used across handlers in this package
+# Avoid enabling strict here due to legacy globals; keep changes minimal and targeted
 use lib '/usr/local/qhtlfirewall/lib';
 use Fcntl qw(:DEFAULT :flock);
-use File::Basename;
-use File::Copy;
-use Net::CIDR::Lite;
+use Carp;
 use IPC::Open3;
-
+use File::Basename qw(fileparse);
 use QhtLink::Config;
-use QhtLink::CheckIP qw(checkip);
-use QhtLink::Ports;
-use QhtLink::URLGet;
-use QhtLink::Sanity qw(sanity);;
-use QhtLink::ServerCheck;
-use QhtLink::ServerStats;
-use QhtLink::Service;
-use QhtLink::RBLCheck;
-use QhtLink::GetEthDev;
 use QhtLink::Slurp qw(slurp);
+use QhtLink::Sanity qw(sanity);
+use QhtLink::URLGet;
+use QhtLink::ServerStats;
+use QhtLink::GetEthDev;
+use QhtLink::Ports;
+use QhtLink::ServerCheck;
+use QhtLink::RBLCheck;
+use QhtLink::Service;
+use QhtLink::CloudFlare;
 
-use Exporter qw(import);
-our $VERSION     = 1.01;
-our @ISA         = qw(Exporter);
-our @EXPORT_OK   = qw();
-
-umask(0177);
-
+# Shared state used across handlers in this package
 our ($chart, $ipscidr6, $ipv6reg, $ipv4reg, %config, %ips, $mobile,
-	 $urlget, %FORM, $script, $script_da, $images, $myv);
+	 %FORM, $script, $script_da, $images, $myv, $hostname,
+	 $hostshort, $panel, $urlget, $cleanreg);
 
-my $slurpreg = QhtLink::Slurp->slurpreg;
-my $cleanreg = QhtLink::Slurp->cleanreg;
+# ---------------------------------------------------------------------------
+# Utility helpers (must appear before main() so calls work during early actions)
+# ---------------------------------------------------------------------------
 
-#
+# Safe no-op resize stub retained for legacy template compatibility
+sub resize {
+	# Expected legacy signatures: resize("top"); resize("bot", optionalFlag)
+	# We intentionally do nothing to avoid layout side-effects in modern UI.
+	return;
+}
+
+# Version compare: returns 1 if a > b, -1 if a < b, 0 if equal
+sub ver_cmp {
+	my ($a,$b) = @_;
+	return 0 if !defined $a || !defined $b;
+	my @a = split /\./, $a;
+	my @b = split /\./, $b;
+	for (my $i=0; $i < @a || $i < @b; $i++) {
+		my $ai = $a[$i] // 0; $ai =~ s/\D//g; # strip non-numeric safety
+		my $bi = $b[$i] // 0; $bi =~ s/\D//g;
+		return 1 if $ai > $bi;
+		return -1 if $ai < $bi;
+	}
+	return 0;
+}
+
+# Lightweight version retrieval helpers (placed before main for early use)
+sub manualversion {
+	my ($curv) = @_;
+	my ($upgrade, $actv, $src, $err) = (0, '', '', '');
+
+	# Local helper: load mirror list from /etc/qhtlfirewall/downloadservers
+	my $load_mirrors = sub {
+		my %seen; my @servers;
+		my $list = '/etc/qhtlfirewall/downloadservers';
+		if (-r $list) {
+			foreach my $line (slurp($list)) {
+				$line =~ s/$cleanreg//g if defined $cleanreg;
+				$line =~ s/#.*$//; $line =~ s/^\s+|\s+$//g;
+				next unless length $line;
+				# accept bare hostnames or scheme+host
+				$line =~ s{^https?://}{}i;   # strip any scheme
+				$line =~ s{/+\z}{};         # trim trailing slash
+				next if $seen{lc $line}++;
+				push @servers, $line;
+			}
+		}
+		# Prefer the chosen server (if available in config) at the front
+		if (defined $config{DOWNLOADSERVER} && $config{DOWNLOADSERVER} ne '') {
+			my $c = $config{DOWNLOADSERVER};
+			$c =~ s{^https?://}{}i; $c =~ s{/+\z}{};
+			if (!$seen{lc $c}++) { unshift @servers, $c; }
+		}
+		# Shuffle for resilience
+		for (my $x = @servers; --$x;) {
+			my $y = int(rand($x+1));
+			next if $x == $y;
+			@servers[$x,$y] = @servers[$y,$x];
+		}
+		return @servers;
+	};
+
+	eval {
+		return unless defined $urlget; # cannot proceed without HTTP client
+
+		my @mirrors = $load_mirrors->();
+		# Fallback legacy host only if no mirrors defined
+		push @mirrors, 'update.qhtl.link' if !@mirrors;
+
+		my $last_err = '';
+		MIRROR: for my $host (@mirrors) {
+			for my $scheme ('https','http') {
+				my $url = "$scheme://$host/qhtlfirewall/version.txt";
+				my ($rc, $data) = $urlget->urlget($url);
+				if (!$rc && defined $data && $data =~ /^(\d+\.\d+(?:\.\d+)?)/) {
+					$actv = $1; $src = $host;
+					$upgrade = 1 if ver_cmp($actv, $curv) == 1;
+					$err = '';
+					last MIRROR;
+				} else {
+					my $why = defined $data ? $data : '';
+					$why =~ s/[\r\n]+/ /g; $why =~ s/\s{2,}/ /g; $why = substr($why,0,180);
+					$last_err = ($why ne '' ? $why : 'Unknown error');
+				}
+			}
+		}
+		if (!$actv) {
+			my $count = scalar @mirrors;
+			$err = 'Version check failed' . ($count ? ": tried $count mirror(s); last error: $last_err" : '');
+		}
+	};
+	if ($@) { $err = 'Version check failed'; }
+	return ($upgrade, $actv, $src, $err);
+}
+
+sub qhtlfirewallgetversion {
+	my ($product, $curv) = @_;
+	my ($upgrade, $actv) = (0,'');
+	my ($u,$a) = (0,'');
+	my ($flag, $act, $src, $err) = manualversion($curv);
+	$upgrade = $flag; $actv = $act;
+	return ($upgrade, $actv);
+}
 ###############################################################################
 # start main
 sub main {
-	my $form_ref = shift;
-	%FORM = %{$form_ref};
-	$script = shift;
-	$script_da = shift;
-	$images = shift;
-	$myv = shift;
-	$config{THIS_UI} = shift;
-	$| = 1;
+	my $form_ref = shift; %FORM = %{$form_ref} if $form_ref;
+	$script      = shift; # cgi script path/name
+	$script_da   = shift; # directadmin script path (or 0)
+	$images      = shift; # images base path
+	$myv         = shift; # version string
+	$panel       = shift; # optional panel name
 
-	$ipscidr6 = Net::CIDR::Lite->new;
+	# Load config for this module's scope
+	my $cfg = QhtLink::Config->loadconfig();
+	%config = $cfg->config();
 
-	my $thisui = $config{THIS_UI};
-	my $config = QhtLink::Config->loadconfig();
-	%config = $config->config;
-	$config{THIS_UI} = $thisui;
-
-	$ipv4reg = $config->ipv4reg;
-	$ipv6reg = $config->ipv6reg;
-
-	if ($config{CF_ENABLE}) {
-		require QhtLink::CloudFlare;
-		import QhtLink::CloudFlare;
+	# Honor explicit panel context (e.g., 'cpanel') passed from caller
+	if (defined $panel && $panel ne '') {
+		$config{THIS_UI} = $panel;
 	}
 
-	$mobile = 0;
-	if ($FORM{mobi}) {$mobile = 1}
+	$cleanreg   = QhtLink::Slurp->cleanreg;
 
-	$chart = 1;
+	# Optional charts: initialize stats backend when enabled
 	if ($config{ST_ENABLE}) {
-		if (!defined QhtLink::ServerStats::init()) {$chart = 0}
+		if (!defined QhtLink::ServerStats::init()) { $chart = 0 }
 	}
 
+	# HTTP client used for version/changelog fetches
 	$urlget = QhtLink::URLGet->new($config{URLGET}, "qhtlfirewall/$myv", $config{URLPROXY});
 	unless (defined $urlget) {
 		$config{URLGET} = 1;
@@ -86,12 +165,10 @@ sub main {
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<tr><td><font color='red'>qhtlfirewall UI Disabled via the RESTRICT_UI option in /etc/qhtlfirewall/qhtlfirewall.conf</font></td></tr>\n";
 		print "</tr></table>\n";
-
 		return;
 	}
 
-
-	if ($FORM{ip} ne "") {$FORM{ip} =~ s/(^\s+)|(\s+$)//g}
+	if ($FORM{ip} ne "") { $FORM{ip} =~ s/(^\s+)|(\s+$)//g }
 
 	if (($FORM{ip} ne "") and ($FORM{ip} ne "all") and (!checkip(\$FORM{ip}))) {
 		print "[$FORM{ip}] is not a valid IP/CIDR";
@@ -106,94 +183,17 @@ sub main {
 		print "<div><p>Checking version...</p>\n\n";
 		my ($upgrade, $actv, $src, $err) = &manualversion($myv);
 		if ($upgrade) {
-			my $changelog = ($src ne '' ? "$src/qhtlfirewall/changelog.txt" : "https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt");
-			print "<form action='$script' method='post'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button> A new version of qhtlfirewall (v$actv) is available";
-			if ($src ne '') { print " from <code>$src</code>"; }
-			print ". Upgrading will retain your settings. <a href='${changelog}' target='_blank'>View ChangeLog</a></form>\n";
+			print "<form action='$script' method='post' style='display:inline-block;margin-right:8px'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button></form>";
+			print "<form action='$script' method='post' style='display:inline-block'><button name='action' value='changelog' type='submit' class='btn btn-default'>View ChangeLog</button></form>";
+			print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div>\n";
 		} else {
 			if (defined $err and $err ne "") {
 				print "<div class='bs-callout bs-callout-danger'>$err</div>\n";
-			}
-			else {
-				# No upgrade available, but if we fetched a version, show it for transparency
-				if (defined $actv and $actv ne "") {
-					my $src_text = ($src ne '' ? " (from $src)" : "");
-					print "<div class='bs-callout bs-callout-info'>Up to date: qhtlfirewall v$myv (latest available is also v$actv$src_text)</div>\n";
-				} else {
-					print "<div class='bs-callout bs-callout-info'>You are running the latest version of qhtlfirewall (v$myv). An Upgrade button will appear here if a new version becomes available</div>\n";
-				}
+			} else {
+				my $src_text = ($src ne '' ? " (from $src)" : "");
+				print "<div class='text-muted small' style='margin-top:6px'>You're up to date$src_text.</div>\n";
 			}
 		}
-		print "</div>\n";
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "qhtlwaterfallstatus") {
-		print "<div><p>Show qhtlwaterfall status...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		QhtLink::Service::statusqhtlwaterfall();
-		print "</pre>\n<p>...<b>Done</b>.</div>\n";
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "ms_list") {
-		&modsec;
-	}
-	elsif ($FORM{action} eq "chart") {
-		&chart;
-	}
-	elsif ($FORM{action} eq "systemstats") {
-		&systemstats($FORM{graph});
-	}
-	elsif ($FORM{action} eq "qhtlwaterfallstart") {
-		print "<div><p>Starting qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		QhtLink::Service::startqhtlwaterfall();
-		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "qhtlwaterfallrestart") {
-		if ($config{THIS_UI}) {
-			print "<div><p>Signal qhtlwaterfall to <i>restart</i>...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-			open (my $OUT, ">", "/var/lib/qhtlfirewall/qhtlwaterfall.restart") or die "Unable to open file: $!";
-			close ($OUT);
-		} else {
-			print "<div><p>Restarting qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-			QhtLink::Service::restartqhtlwaterfall();
-		}
-		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "qhtlwaterfallstop") {
-		print "<div><p>Stopping qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		QhtLink::Service::stopqhtlwaterfall();
-		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "status") {
-		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-		&printcmd("/usr/sbin/qhtlfirewall","-l");
-		if ($config{IPV6}) {
-			print "\n\nip6tables:\n\n";
-			&printcmd("/usr/sbin/qhtlfirewall","-l6");
-		}
-		print "</pre>\n";
-		&resize("bot",1);
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "start") {
-		print "<div><p>Starting qhtlfirewall...</p>\n";
-		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-		&printcmd("/usr/sbin/qhtlfirewall","-sf");
-		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		&resize("bot",1);
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "restart") {
-		print "<div><p>Restarting qhtlfirewall...</p>\n";
-		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
-		&printcmd("/usr/sbin/qhtlfirewall","-sf");
-		print "</pre>\n<p>...<b>Done</b>.</div>\n";
-		&resize("bot",1);
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "restartq") {
@@ -504,7 +504,7 @@ QHTL_JQ_TAIL
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear: both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -542,7 +542,52 @@ QHTL_JQ_GREP
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "loggrepcmd") {
-	my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
 		foreach my $line (@data) {
 			if ($line =~ /^Include\s*(.*)$/) {
 				my @incfile = slurp($1);
@@ -574,82 +619,1236 @@ QHTL_JQ_GREP
 			}
 			if ($hit) {last}
 		}
-		my @cmd;
-		my $grepbin = $config{GREP};
-		if ($FORM{grepZ}) {$grepbin = $config{ZGREP}}
-		if ($FORM{grepi}) {push @cmd, "-i"}
-		if ($FORM{grepE}) {push @cmd, "-E"}
-		push @cmd, $FORM{grep};
-
 		if (-z $logfile) {
 			print "<---- $logfile is currently empty ---->";
 		} else {
-			if (-x $grepbin) {
+			if (-x $config{TAIL}) {
 				my $timeout = 30;
 				eval {
 					local $SIG{__DIE__} = undef;
 					local $SIG{'ALRM'} = sub {die};
 					alarm($timeout);
-					my $total;
-					if ($FORM{grepZ}) {
-						foreach my $file (glob $logfile."\*") {
-							print "\nSearching $file:\n";
-							alarm($timeout);
-							my ($childin, $childout);
-							my $pid = open3($childin, $childout, $childout,$grepbin,@cmd,$file);
-							while (<$childout>) {
-								my $line = $_;
-								$line =~ s/&/&amp;/g;
-								$line =~ s/</&lt;/g;
-								$line =~ s/>/&gt;/g;
-								if ($FORM{grep} ne "") {
-									eval {
-										local $SIG{__DIE__} = undef;
-										if ($FORM{grepi}) {
-											$line =~ s/$FORM{grep}/<mark>$&<\/mark>/ig;
-										} else {
-											$line =~ s/$FORM{grep}/<mark>$&<\/mark>/g;
-										}
-									};
-								}
-								print $line;
-								$total += length $line;
-							}
-							waitpid ($pid, 0);
-							unless ($total) {print "<---- No matches found for \"$FORM{grep}\" in $file ---->\n"}
-							alarm(0);
-						}
-					} else {
-						alarm($timeout);
-						my ($childin, $childout);
-						my $pid = open3($childin, $childout, $childout,$grepbin,@cmd,$logfile);
-						while (<$childout>) {
-							my $line = $_;
-							$line =~ s/&/&amp;/g;
-							$line =~ s/</&lt;/g;
-							$line =~ s/>/&gt;/g;
-							if ($FORM{grep} ne "") {
-								eval {
-									local $SIG{__DIE__} = undef;
-									if ($FORM{grepi}) {
-										$line =~ s/$FORM{grep}/<mark>$&<\/mark>/ig;
-									} else {
-										$line =~ s/$FORM{grep}/<mark>$&<\/mark>/g;
-									}
-								};
-							}
-							print $line;
-							$total += length $line;
-						}
-						waitpid ($pid, 0);
-						unless ($total) {print "<---- No matches found for \"$FORM{grep}\" in $logfile ---->\n"}
-						alarm(0);
+					my ($childin, $childout);
+					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					while (<$childout>) {
+						my $line = $_;
+						$line =~ s/&/&amp;/g;
+						$line =~ s/</&lt;/g;
+						$line =~ s/>/&gt;/g;
+						print $line;
 					}
+					waitpid ($pid, 0);
+					alarm(0);
 				};
 				alarm(0);
-				if ($@) {print "TIMEOUT: grep command took too long. Timed out after $timeout seconds\n"}
 			} else {
-				print "Executable [$grepbin] invalid";
+				print "Executable [$config{TAIL}] invalid";
+			}
+		}
+	}
+	elsif ($FORM{action} eq "loggrep") {
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+		my $script_safe = $script;
+		my $QHTLFIREWALLfrombot = 120;
+		my $QHTLFIREWALLfromright = 10;
+		if ($config{DIRECTADMIN}) {
+			$script = $script_da;
+			$QHTLFIREWALLfrombot = 400;
+			$QHTLFIREWALLfromright = 150;
+		}
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $options = "<select id='QHTLFIREWALLlognum'>\n";
+		my $cnt = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					my $size = int((stat($globfile))[7]/1024);
+					$options .= "<option value='$cnt'";
+					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
+					$options .= ">$globfile ($size kb)</option>\n";
+					$cnt++;
+				}
+			}
+		}
+		$options .= "</select>\n";
+		
+		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/qhtlfirewallajaxtail.js");
+		flock ($AJAX, LOCK_SH);
+		my @jsdata = <$AJAX>;
+		close ($AJAX);
+		print "<script>\n";
+		print @jsdata;
+		print "</script>\n";
+		print <<EOF;
+<div>Log: $options</div>
+<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="QHTLFIREWALLgrep" onClick="this.select()">&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
+<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
+<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
+<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+Please Note:
+
+ 1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
+ 2. Use the "-i" option to ignore case
+ 3. Use the "-E" option to perform an extended regular expression search
+ 4. Searching large log files can take a long time. This feature has a 30 second timeout
+ 5. The searched for text will usually be <mark>highlighted</mark> but may not always be successful
+ 6. Only log files listed in /etc/qhtlfirewall/qhtlfirewall.syslogs can be searched. You can add to this file
+ 7. The wildcard option will use $config{ZGREP} and search logs with a wildcard suffix, e.g. /var/log/qhtlwaterfall.log*
+</pre>
+
+<script>
+	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+</script>
+EOF
+		print <<'QHTL_JQ_GREP';
+<script>
+// Clean jQuery handlers for grep view
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+	myFont++;
+	if (myFont > 20) { myFont = 20 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+</script>
+QHTL_JQ_GREP
+		if ($config{DIRECTADMIN}) {$script = $script_safe}
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "loggrepcmd") {
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $cnt = 0;
+		my $logfile = "/var/log/qhtlwaterfall.log";
+		my $hit = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					if ($FORM{lognum} == $cnt) {
+						$logfile = $globfile;
+						$hit = 1;
+						last;
+					}
+					$cnt++;
+				}
+			}
+			if ($hit) {last}
+		}
+		if (-z $logfile) {
+			print "<---- $logfile is currently empty ---->";
+		} else {
+			if (-x $config{TAIL}) {
+				my $timeout = 30;
+				eval {
+					local $SIG{__DIE__} = undef;
+					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
+					my ($childin, $childout);
+					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					while (<$childout>) {
+						my $line = $_;
+						$line =~ s/&/&amp;/g;
+						$line =~ s/</&lt;/g;
+						$line =~ s/>/&gt;/g;
+						print $line;
+					}
+					waitpid ($pid, 0);
+					alarm(0);
+				};
+				alarm(0);
+			} else {
+				print "Executable [$config{TAIL}] invalid";
+			}
+		}
+	}
+	elsif ($FORM{action} eq "loggrep") {
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+		my $script_safe = $script;
+		my $QHTLFIREWALLfrombot = 120;
+		my $QHTLFIREWALLfromright = 10;
+		if ($config{DIRECTADMIN}) {
+			$script = $script_da;
+			$QHTLFIREWALLfrombot = 400;
+			$QHTLFIREWALLfromright = 150;
+		}
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $options = "<select id='QHTLFIREWALLlognum'>\n";
+		my $cnt = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					my $size = int((stat($globfile))[7]/1024);
+					$options .= "<option value='$cnt'";
+					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
+					$options .= ">$globfile ($size kb)</option>\n";
+					$cnt++;
+				}
+			}
+		}
+		$options .= "</select>\n";
+		
+		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/qhtlfirewallajaxtail.js");
+		flock ($AJAX, LOCK_SH);
+		my @jsdata = <$AJAX>;
+		close ($AJAX);
+		print "<script>\n";
+		print @jsdata;
+		print "</script>\n";
+		print <<EOF;
+<div>Log: $options</div>
+<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="QHTLFIREWALLgrep" onClick="this.select()">&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
+<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
+<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
+<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+Please Note:
+
+ 1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
+ 2. Use the "-i" option to ignore case
+ 3. Use the "-E" option to perform an extended regular expression search
+ 4. Searching large log files can take a long time. This feature has a 30 second timeout
+ 5. The searched for text will usually be <mark>highlighted</mark> but may not always be successful
+ 6. Only log files listed in /etc/qhtlfirewall/qhtlfirewall.syslogs can be searched. You can add to this file
+ 7. The wildcard option will use $config{ZGREP} and search logs with a wildcard suffix, e.g. /var/log/qhtlwaterfall.log*
+</pre>
+
+<script>
+	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+</script>
+EOF
+		print <<'QHTL_JQ_GREP';
+<script>
+// Clean jQuery handlers for grep view
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+	myFont++;
+	if (myFont > 20) { myFont = 20 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+</script>
+QHTL_JQ_GREP
+		if ($config{DIRECTADMIN}) {$script = $script_safe}
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "loggrepcmd") {
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $cnt = 0;
+		my $logfile = "/var/log/qhtlwaterfall.log";
+		my $hit = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					if ($FORM{lognum} == $cnt) {
+						$logfile = $globfile;
+						$hit = 1;
+						last;
+					}
+					$cnt++;
+				}
+			}
+			if ($hit) {last}
+		}
+		if (-z $logfile) {
+			print "<---- $logfile is currently empty ---->";
+		} else {
+			if (-x $config{TAIL}) {
+				my $timeout = 30;
+				eval {
+					local $SIG{__DIE__} = undef;
+					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
+					my ($childin, $childout);
+					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					while (<$childout>) {
+						my $line = $_;
+						$line =~ s/&/&amp;/g;
+						$line =~ s/</&lt;/g;
+						$line =~ s/>/&gt;/g;
+						print $line;
+					}
+					waitpid ($pid, 0);
+					alarm(0);
+				};
+				alarm(0);
+			} else {
+				print "Executable [$config{TAIL}] invalid";
+			}
+		}
+	}
+	elsif ($FORM{action} eq "loggrep") {
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+		my $script_safe = $script;
+		my $QHTLFIREWALLfrombot = 120;
+		my $QHTLFIREWALLfromright = 10;
+		if ($config{DIRECTADMIN}) {
+			$script = $script_da;
+			$QHTLFIREWALLfrombot = 400;
+			$QHTLFIREWALLfromright = 150;
+		}
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $options = "<select id='QHTLFIREWALLlognum'>\n";
+		my $cnt = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					my $size = int((stat($globfile))[7]/1024);
+					$options .= "<option value='$cnt'";
+					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
+					$options .= ">$globfile ($size kb)</option>\n";
+					$cnt++;
+				}
+			}
+		}
+		$options .= "</select>\n";
+		
+		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/qhtlfirewallajaxtail.js");
+		flock ($AJAX, LOCK_SH);
+		my @jsdata = <$AJAX>;
+		close ($AJAX);
+		print "<script>\n";
+		print @jsdata;
+		print "</script>\n";
+		print <<EOF;
+<div>Log: $options</div>
+<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="QHTLFIREWALLgrep" onClick="this.select()">&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
+<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
+<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
+<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+Please Note:
+
+ 1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
+ 2. Use the "-i" option to ignore case
+ 3. Use the "-E" option to perform an extended regular expression search
+ 4. Searching large log files can take a long time. This feature has a 30 second timeout
+ 5. The searched for text will usually be <mark>highlighted</mark> but may not always be successful
+ 6. Only log files listed in /etc/qhtlfirewall/qhtlfirewall.syslogs can be searched. You can add to this file
+ 7. The wildcard option will use $config{ZGREP} and search logs with a wildcard suffix, e.g. /var/log/qhtlwaterfall.log*
+</pre>
+
+<script>
+	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+</script>
+EOF
+		print <<'QHTL_JQ_GREP';
+<script>
+// Clean jQuery handlers for grep view
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+	myFont++;
+	if (myFont > 20) { myFont = 20 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+</script>
+QHTL_JQ_GREP
+		if ($config{DIRECTADMIN}) {$script = $script_safe}
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "loggrepcmd") {
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $cnt = 0;
+		my $logfile = "/var/log/qhtlwaterfall.log";
+		my $hit = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					if ($FORM{lognum} == $cnt) {
+						$logfile = $globfile;
+						$hit = 1;
+						last;
+					}
+					$cnt++;
+				}
+			}
+			if ($hit) {last}
+		}
+		if (-z $logfile) {
+			print "<---- $logfile is currently empty ---->";
+		} else {
+			if (-x $config{TAIL}) {
+				my $timeout = 30;
+				eval {
+					local $SIG{__DIE__} = undef;
+					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
+					my ($childin, $childout);
+					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					while (<$childout>) {
+						my $line = $_;
+						$line =~ s/&/&amp;/g;
+						$line =~ s/</&lt;/g;
+						$line =~ s/>/&gt;/g;
+						print $line;
+					}
+					waitpid ($pid, 0);
+					alarm(0);
+				};
+				alarm(0);
+			} else {
+				print "Executable [$config{TAIL}] invalid";
+			}
+		}
+	}
+	elsif ($FORM{action} eq "loggrep") {
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+		my $script_safe = $script;
+		my $QHTLFIREWALLfrombot = 120;
+		my $QHTLFIREWALLfromright = 10;
+		if ($config{DIRECTADMIN}) {
+			$script = $script_da;
+			$QHTLFIREWALLfrombot = 400;
+			$QHTLFIREWALLfromright = 150;
+		}
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $options = "<select id='QHTLFIREWALLlognum'>\n";
+		my $cnt = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					my $size = int((stat($globfile))[7]/1024);
+					$options .= "<option value='$cnt'";
+					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
+					$options .= ">$globfile ($size kb)</option>\n";
+					$cnt++;
+				}
+			}
+		}
+		$options .= "</select>\n";
+		
+		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/qhtlfirewallajaxtail.js");
+		flock ($AJAX, LOCK_SH);
+		my @jsdata = <$AJAX>;
+		close ($AJAX);
+		print "<script>\n";
+		print @jsdata;
+		print "</script>\n";
+		print <<EOF;
+<div>Log: $options</div>
+<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="QHTLFIREWALLgrep" onClick="this.select()">&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
+<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
+<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
+<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+Please Note:
+
+ 1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
+ 2. Use the "-i" option to ignore case
+ 3. Use the "-E" option to perform an extended regular expression search
+ 4. Searching large log files can take a long time. This feature has a 30 second timeout
+ 5. The searched for text will usually be <mark>highlighted</mark> but may not always be successful
+ 6. Only log files listed in /etc/qhtlfirewall/qhtlfirewall.syslogs can be searched. You can add to this file
+ 7. The wildcard option will use $config{ZGREP} and search logs with a wildcard suffix, e.g. /var/log/qhtlwaterfall.log*
+</pre>
+
+<script>
+	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+</script>
+EOF
+		print <<'QHTL_JQ_GREP';
+<script>
+// Clean jQuery handlers for grep view
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+	myFont++;
+	if (myFont > 20) { myFont = 20 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+</script>
+QHTL_JQ_GREP
+		if ($config{DIRECTADMIN}) {$script = $script_safe}
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "loggrepcmd") {
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $cnt = 0;
+		my $logfile = "/var/log/qhtlwaterfall.log";
+		my $hit = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					if ($FORM{lognum} == $cnt) {
+						$logfile = $globfile;
+						$hit = 1;
+						last;
+					}
+					$cnt++;
+				}
+			}
+			if ($hit) {last}
+		}
+		if (-z $logfile) {
+			print "<---- $logfile is currently empty ---->";
+		} else {
+			if (-x $config{TAIL}) {
+				my $timeout = 30;
+				eval {
+					local $SIG{__DIE__} = undef;
+					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
+					my ($childin, $childout);
+					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					while (<$childout>) {
+						my $line = $_;
+						$line =~ s/&/&amp;/g;
+						$line =~ s/</&lt;/g;
+						$line =~ s/>/&gt;/g;
+						print $line;
+					}
+					waitpid ($pid, 0);
+					alarm(0);
+				};
+				alarm(0);
+			} else {
+				print "Executable [$config{TAIL}] invalid";
+			}
+		}
+	}
+	elsif ($FORM{action} eq "loggrep") {
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+		my $script_safe = $script;
+		my $QHTLFIREWALLfrombot = 120;
+		my $QHTLFIREWALLfromright = 10;
+		if ($config{DIRECTADMIN}) {
+			$script = $script_da;
+			$QHTLFIREWALLfrombot = 400;
+			$QHTLFIREWALLfromright = 150;
+		}
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $options = "<select id='QHTLFIREWALLlognum'>\n";
+		my $cnt = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					my $size = int((stat($globfile))[7]/1024);
+					$options .= "<option value='$cnt'";
+					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
+					$options .= ">$globfile ($size kb)</option>\n";
+					$cnt++;
+				}
+			}
+		}
+		$options .= "</select>\n";
+		
+		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/qhtlfirewallajaxtail.js");
+		flock ($AJAX, LOCK_SH);
+		my @jsdata = <$AJAX>;
+		close ($AJAX);
+		print "<script>\n";
+		print @jsdata;
+		print "</script>\n";
+		print <<EOF;
+<div>Log: $options</div>
+<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="QHTLFIREWALLgrep" onClick="this.select()">&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
+<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
+<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
+<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+Please Note:
+
+ 1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
+ 2. Use the "-i" option to ignore case
+ 3. Use the "-E" option to perform an extended regular expression search
+ 4. Searching large log files can take a long time. This feature has a 30 second timeout
+ 5. The searched for text will usually be <mark>highlighted</mark> but may not always be successful
+ 6. Only log files listed in /etc/qhtlfirewall/qhtlfirewall.syslogs can be searched. You can add to this file
+ 7. The wildcard option will use $config{ZGREP} and search logs with a wildcard suffix, e.g. /var/log/qhtlwaterfall.log*
+</pre>
+
+<script>
+	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+</script>
+EOF
+		print <<'QHTL_JQ_GREP';
+<script>
+// Clean jQuery handlers for grep view
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+	myFont++;
+	if (myFont > 20) { myFont = 20 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+</script>
+QHTL_JQ_GREP
+		if ($config{DIRECTADMIN}) {$script = $script_safe}
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "loggrepcmd") {
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $cnt = 0;
+		my $logfile = "/var/log/qhtlwaterfall.log";
+		my $hit = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					if ($FORM{lognum} == $cnt) {
+						$logfile = $globfile;
+						$hit = 1;
+						last;
+					}
+					$cnt++;
+				}
+			}
+			if ($hit) {last}
+		}
+		if (-z $logfile) {
+			print "<---- $logfile is currently empty ---->";
+		} else {
+			if (-x $config{TAIL}) {
+				my $timeout = 30;
+				eval {
+					local $SIG{__DIE__} = undef;
+					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
+					my ($childin, $childout);
+					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					while (<$childout>) {
+						my $line = $_;
+						$line =~ s/&/&amp;/g;
+						$line =~ s/</&lt;/g;
+						$line =~ s/>/&gt;/g;
+						print $line;
+					}
+					waitpid ($pid, 0);
+					alarm(0);
+				};
+				alarm(0);
+			} else {
+				print "Executable [$config{TAIL}] invalid";
+			}
+		}
+	}
+	elsif ($FORM{action} eq "loggrep") {
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+		my $script_safe = $script;
+		my $QHTLFIREWALLfrombot = 120;
+		my $QHTLFIREWALLfromright = 10;
+		if ($config{DIRECTADMIN}) {
+			$script = $script_da;
+			$QHTLFIREWALLfrombot = 400;
+			$QHTLFIREWALLfromright = 150;
+		}
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $options = "<select id='QHTLFIREWALLlognum'>\n";
+		my $cnt = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					my $size = int((stat($globfile))[7]/1024);
+					$options .= "<option value='$cnt'";
+					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
+					$options .= ">$globfile ($size kb)</option>\n";
+					$cnt++;
+				}
+			}
+		}
+		$options .= "</select>\n";
+		
+		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/qhtlfirewallajaxtail.js");
+		flock ($AJAX, LOCK_SH);
+		my @jsdata = <$AJAX>;
+		close ($AJAX);
+		print "<script>\n";
+		print @jsdata;
+		print "</script>\n";
+		print <<EOF;
+<div>Log: $options</div>
+<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="QHTLFIREWALLgrep" onClick="this.select()">&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
+<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
+<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
+<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+Please Note:
+
+ 1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
+ 2. Use the "-i" option to ignore case
+ 3. Use the "-E" option to perform an extended regular expression search
+ 4. Searching large log files can take a long time. This feature has a 30 second timeout
+ 5. The searched for text will usually be <mark>highlighted</mark> but may not always be successful
+ 6. Only log files listed in /etc/qhtlfirewall/qhtlfirewall.syslogs can be searched. You can add to this file
+ 7. The wildcard option will use $config{ZGREP} and search logs with a wildcard suffix, e.g. /var/log/qhtlwaterfall.log*
+</pre>
+
+<script>
+	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+</script>
+EOF
+		print <<'QHTL_JQ_GREP';
+<script>
+// Clean jQuery handlers for grep view
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+	myFont++;
+	if (myFont > 20) { myFont = 20 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+</script>
+QHTL_JQ_GREP
+		if ($config{DIRECTADMIN}) {$script = $script_safe}
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "loggrepcmd") {
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $cnt = 0;
+		my $logfile = "/var/log/qhtlwaterfall.log";
+		my $hit = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					if ($FORM{lognum} == $cnt) {
+						$logfile = $globfile;
+						$hit = 1;
+						last;
+					}
+					$cnt++;
+				}
+			}
+			if ($hit) {last}
+		}
+		if (-z $logfile) {
+			print "<---- $logfile is currently empty ---->";
+		} else {
+			if (-x $config{TAIL}) {
+				my $timeout = 30;
+				eval {
+					local $SIG{__DIE__} = undef;
+					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
+					my ($childin, $childout);
+					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					while (<$childout>) {
+						my $line = $_;
+						$line =~ s/&/&amp;/g;
+						$line =~ s/</&lt;/g;
+						$line =~ s/>/&gt;/g;
+						print $line;
+					}
+					waitpid ($pid, 0);
+					alarm(0);
+				};
+				alarm(0);
+			} else {
+				print "Executable [$config{TAIL}] invalid";
 			}
 		}
 	}
@@ -666,6 +1865,36 @@ QHTL_JQ_GREP
 			$line =~ s/\</\&lt\;/g;
 			$line =~ s/\>/\&gt\;/g;
 			print $line."\n";
+		}
+		print "</pre>\n";
+		&resize("bot",0);
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "changelog") {
+		# Render the installed changelog file the same way as readme
+		&resize("top");
+		print "<pre id='output' class='comment' style='white-space: pre-wrap;height: 500px; overflow: auto; resize:both; clear:both'>\n";
+		my $cl = "/etc/qhtlfirewall/changelog.txt";
+		if (-e $cl) {
+			open (my $CL, "<", $cl) or die $!;
+			flock ($CL, LOCK_SH);
+			while (my $line = <$CL>) {
+				$line =~ s/\</\&lt\;/g;
+				$line =~ s/\>/\&gt\;/g;
+				print $line;
+			}
+			close ($CL);
+		} else {
+			# Fallback: try to fetch remotely if local file is missing
+			my $url = "https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt";
+			my ($status, $body) = $urlget->urlget($url);
+			# QhtLink::URLGet returns status 0 on success
+			if (!$status && defined $body && length $body) {
+				$body =~ s/</&lt;/g; $body =~ s/>/&gt;/g;
+				print $body;
+			} else {
+				print "Changelog file not found at $cl and unable to fetch from $url\n";
+			}
 		}
 		print "</pre>\n";
 		&resize("bot",0);
@@ -839,6 +2068,22 @@ QHTL_JQ_GREP
 	elsif ($FORM{action} eq "qallow") {
 		print "<div><p>Allowing $FORM{ip}...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 		&printcmd("/usr/sbin/qhtlfirewall","-a",$FORM{ip},$FORM{comment});
+		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "applytemp") {
+		# Apply Temporary Allow/Deny based on UI form (primary path)
+		my $do = ($FORM{do} && $FORM{do} eq 'allow') ? 'allow' : 'block';
+		$FORM{timeout} =~ s/\D//g;
+		if ($FORM{dur} eq "minutes") {$FORM{timeout} = $FORM{timeout} * 60}
+		elsif ($FORM{dur} eq "hours") {$FORM{timeout} = $FORM{timeout} * 60 * 60}
+		elsif ($FORM{dur} eq "days") {$FORM{timeout} = $FORM{timeout} * 60 * 60 * 24}
+		my @cmd = ($do eq 'block') ? ("-td", $FORM{ip}, $FORM{timeout}) : ("-ta", $FORM{ip}, $FORM{timeout});
+		if (defined $FORM{ports} && $FORM{ports} ne '' && $FORM{ports} ne '*') { push @cmd, ("-p", $FORM{ports}); }
+		if (defined $FORM{comment} && $FORM{comment} ne '') { push @cmd, $FORM{comment}; }
+		my $verb = ($do eq 'block') ? 'Blocking' : 'Allowing';
+		print "<div><p>Temporarily $verb $FORM{ip} for $FORM{timeout} seconds...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
+		&printcmd("/usr/sbin/qhtlfirewall", @cmd);
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
@@ -1241,6 +2486,7 @@ function QHTLFIREWALLexpand(obj){
 	if (newsize > 120) {newsize = 120;}
 	obj.size = newsize;
 }
+
 </script>
 EOF
 		print "<style>.hidepiece\{display:none\}</style>\n";
@@ -1260,7 +2506,7 @@ EOF
 				if ($comment) {print "</div>\n"}
 				$comment = 0;
 				my ($start,$end) = split (/=/,$line,2);
-				my $name = $start;
+							my $name = $start;
 				my $cleanname = $start;
 				$cleanname =~ s/\s//g;
 				$name =~ s/\s/\_/g;
@@ -1338,7 +2584,7 @@ EOF
 		}
 		print "</div><br />\n";
 		print "<div id='paginatediv' class='text-center'>\n<a class='btn btn-default' href='javascript:pagecontent.showall()'>Show All</a> <a class='btn btn-default' href='#' rel='previous'>Prev</a> <select style='width: 250px'></select> <a class='btn btn-default' href='#' rel='next' >Next</a>\n</div>\n";
-		print <<EOD;
+		print <<'EOD';
 <script type="text/javascript">
 var pagecontent=new virtualpaginate({
  piececlass: "virtualpage", //class of container for each piece of content
@@ -1761,10 +3007,10 @@ EOD
 	}
 	elsif ($mobile) {
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<tr><td><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input type='hidden' name='action' value='qallow'><input type='submit' class='btn btn-default' value='Quick Allow'></td><td style='width:100%'><input type='text' name='ip' value='' size='18' style='background-color: #BDECB6'></form></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input type='hidden' name='action' value='qdeny'><input type='submit' class='btn btn-default' value='Quick Deny'></td><td style='width:100%'><input type='text' name='ip' value='' size='18' style='background-color: #FFD1DC'></form></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input type='hidden' name='action' value='qignore'><input type='submit' class='btn btn-default' value='Quick Ignore'></td><td style='width:100%'><input type='text' name='ip' value='' size='18' style='background-color: #D9EDF7'></form></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input type='hidden' name='action' value='kill'><input type='submit' class='btn btn-default' value='Quick Unblock'></td><td style='width:100%'><input type='text' name='ip' value='' size='18'></form></td></tr>\n";
+		print "<tr><td colspan='2'><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input type='hidden' name='action' value='qallow'><input type='submit' class='btn btn-default' value='Quick Allow'><div style='margin-top:6px'><input type='text' name='ip' value='' size='18' style='background-color: #BDECB6'></div></form></td></tr>\n";
+		print "<tr><td colspan='2'><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input type='hidden' name='action' value='qdeny'><input type='submit' class='btn btn-default' value='Quick Deny'><div style='margin-top:6px'><input type='text' name='ip' value='' size='18' style='background-color: #FFD1DC'></div></form></td></tr>\n";
+		print "<tr><td colspan='2'><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input type='hidden' name='action' value='qignore'><input type='submit' class='btn btn-default' value='Quick Ignore'><div style='margin-top:6px'><input type='text' name='ip' value='' size='18' style='background-color: #D9EDF7'></div></form></td></tr>\n";
+		print "<tr><td colspan='2'><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input type='hidden' name='action' value='kill'><input type='submit' class='btn btn-default' value='Quick Unblock'><div style='margin-top:6px'><input type='text' name='ip' value='' size='18'></div></form></td></tr>\n";
 		print "</table>\n";
 	}
 	elsif ($FORM{action} eq "fix") {
@@ -2038,6 +3284,8 @@ EOF
 		print "</div>\n";
 		print "<div class='panel-footer panel-footer'>Completed</div>\n";
 		print "</div>\n";
+		print "<div>You MUST now restart both qhtlfirewall and qhtlwaterfall:</div>\n";
+		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall+qhtlwaterfall'></form></div>\n";
 		&printreturn;
 	}
 	else {
@@ -2130,31 +3378,151 @@ EOF
 		}
 		my $permallows = "(Currently: <code>$permcnt</code> permanent IP allows)";
 
-		# If invoked from cPanel UI, the header already shows a compact status. Only print extras here.
+		# If invoked from cPanel/WHM UI, the header already shows status next to the Watcher button.
+		# Suppress the inline ribbon entirely in that context to avoid duplication.
 		if ($config{THIS_UI} && $config{THIS_UI} eq 'cpanel') {
-			print $status_extras;
+			# no-op: don't print $status or extras here; header covers it
 		} else {
 			print $status;
 			print $status_extras;
 		}
 
 		print "<div class='normalcontainer'>\n";
+		# Enforce tab-pane visibility regardless of host theme CSS and disable tab clicks while Quick View is open
+		print "<style>.tab-content>.tab-pane{display:none!important}.tab-content>.tab-pane.active{display:block!important}.qhtl-tabs-locked #myTabs a[data-toggle='tab']{pointer-events:none;cursor:not-allowed;opacity:.6;filter:grayscale(.25)}</style>\n";
 		print "<div class='bs-callout bs-callout-info text-center collapse' id='upgradebs'><h4>A new version of qhtlfirewall is <a href='#upgradetable'>available</a></h4></div>";
 
 		print "<ul class='nav nav-tabs' id='myTabs' style='font-weight:bold'>\n";
-		print "<li class='active'><a data-toggle='tab' href='#upgrade'>Upgrade</a></li>\n";
+		print "<li><a data-toggle='tab' href='#upgrade'>Upgrade</a></li>\n";
 		print "<li><a data-toggle='tab' href='#quickactions'>Quick Actions</a></li>\n";
-		print "<li><a data-toggle='tab' href='#home'>General Options</a></li>\n";
-	print "<li><a data-toggle='tab' href='#qhtlfirewall'>QhtLink Firewall</a></li>\n";
-	print "<li><a data-toggle='tab' href='#qhtlwaterfall'>QhtLink Waterfall</a></li>\n";
+	print "<li><a data-toggle='tab' href='#home'>Options</a></li>\n";
+    	print "<li><a data-toggle='tab' href='#firewall1'>Firewall</a></li>\n";
+    	print "<li><a data-toggle='tab' href='#waterfall'>Waterfall</a></li>\n";
+    	print "<li><a data-toggle='tab' href='#moreplus'>More</a></li>\n";
+		print "<li><a data-toggle='tab' href='#promotion' class='qhtl-promo-tab'>".
+		      "<span class='glyphicon glyphicon-star' style='color:#ffbf00'></span>" x 5 .
+		      " Promotion " .
+		      "<span class='glyphicon glyphicon-star' style='color:#ffbf00'></span>" x 5 .
+		      "</a></li>\n";
+	# Removed the old 'Firewall' nav link; pane retained for global scripts
+	# Old QhtLink Waterfall tab removed; replaced by new 'Waterfall'
 		if ($config{CLUSTER_SENDTO}) {
 			print "<li><a data-toggle='tab' href='#cluster'>Cluster</a></li>\n";
 		}
-	print "<li><a data-toggle='tab' href='#other'>More</a></li>\n";
-	print "<li><a data-toggle='tab' href='#extra'>Extra</a></li>\n";
 		print "</ul><br>\n";
 
-		# Removed legacy inline Quick View shim here; the modal/watch functions are provided by the main CGI now.
+		# Ensure tabs switch even if Bootstrap JS isn't active (fallback minimal handler)
+		print <<'QHTL_TAB_FALLBACK';
+<script>
+(function(){
+	try {
+		var nav = document.getElementById('myTabs');
+		if (!nav) return;
+		var links = nav.querySelectorAll('a[data-toggle="tab"]');
+		function activate(hash){
+			if(!hash) return; if(hash.charAt(0)!='#') return;
+			var panes = document.querySelectorAll('.tab-content > .tab-pane');
+			for (var i=0;i<panes.length;i++){ panes[i].classList.remove('active'); }
+			var act = document.querySelector(hash); if (act) act.classList.add('active');
+			for (var j=0;j<links.length;j++){ var li=links[j].parentNode; if(li) li.classList.remove('active'); }
+			for (var k=0;k<links.length;k++){ if(links[k].getAttribute('href')===hash){ var pli=links[k].parentNode; if(pli) pli.classList.add('active'); break; } }
+		}
+        // Expose activation for other scripts (e.g., to keep current tab sticky)
+        window.qhtlActivateTab = activate;
+		for (var i=0;i<links.length;i++){
+			links[i].addEventListener('click', function(e){ e.preventDefault(); activate(this.getAttribute('href')); });
+		}
+			// On load, if URL has a hash pointing to a tab pane, activate it
+			try {
+				if (window.location && window.location.hash) {
+					var h = window.location.hash;
+					for (var z=0; z<links.length; z++) {
+						if (links[z].getAttribute('href') === h) { activate(h); break; }
+					}
+				}
+			} catch(_e){}
+	} catch(e) {}
+})();
+</script>
+QHTL_TAB_FALLBACK
+
+		# Removed legacy inline Quick View shim here; the modal/watch functions are provided by the main CGI now
+
+		# Intercept Promotion tab clicks to open promo modal without switching tabs
+		print <<'QHTL_PROMO_TAB_INTERCEPT';
+<script>
+(function(){
+	try {
+		document.addEventListener('click', function(e){
+			var t = e.target;
+			var a = (t && t.closest) ? t.closest('a.qhtl-promo-tab') : null;
+			if (!a) return;
+			if (e && e.preventDefault) e.preventDefault();
+			if (e && e.stopPropagation) e.stopPropagation();
+			if (e && e.stopImmediatePropagation) e.stopImmediatePropagation();
+			try { if (window.openPromoModal) { openPromoModal(); } } catch(_){ }
+			// Re-assert currently active tab to be safe
+			try {
+				var act = document.querySelector('#myTabs li.active > a[href^="#"]');
+				var hash = act ? act.getAttribute('href') : '#upgrade';
+				if (typeof window.qhtlActivateTab === 'function') { window.qhtlActivateTab(hash); }
+			} catch(__){}
+			return false;
+		}, true);
+	} catch(_){ }
+})();
+</script>
+QHTL_PROMO_TAB_INTERCEPT
+
+		# Guard tabs from changing while Quick View is open (capture-phase interceptor)
+		print <<'QHTL_TAB_GUARD';
+<script>
+(function(){
+	try {
+		window.qhtlTabLock = window.qhtlTabLock || 0;
+		// Capture-phase listener to block any tab link clicks when locked
+		document.addEventListener('click', function(ev){
+			if (!window.qhtlTabLock) return;
+			var t = ev.target;
+			if (t && t.closest) {
+				var a = t.closest('a[data-toggle="tab"]');
+				if (a) {
+					if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+					if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+					if (ev && typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+				}
+			}
+		}, true);
+		// Block Bootstrap tab activations while locked
+		if (window.jQuery) {
+			try {
+				jQuery(document).on('show.bs.tab', 'a[data-toggle="tab"]', function(e){
+					if (window.qhtlTabLock) {
+						if (e && e.preventDefault) e.preventDefault();
+						return false;
+					}
+				});
+			} catch(__){}
+		}
+		// Guard against hash changes toggling tabs while locked
+		try {
+			window.addEventListener('hashchange', function(e){
+				if (!window.qhtlTabLock) return;
+				try { if (e && e.preventDefault) e.preventDefault(); } catch(__){}
+				try {
+					var keep = (typeof window.qhtlSavedURLHash !== 'undefined') ? window.qhtlSavedURLHash : '';
+					var base = window.location.pathname + window.location.search + (keep || '');
+					history.replaceState(null, '', base);
+					if (typeof window.qhtlActivateTab === 'function' && window.qhtlSavedTabHash) {
+						setTimeout(function(){ try { window.qhtlActivateTab(window.qhtlSavedTabHash); } catch(_){} }, 0);
+					}
+				} catch(__){}
+			}, false);
+		} catch(__){}
+	} catch(e) {}
+})();
+</script>
+QHTL_TAB_GUARD
 
 		print "<div class='tab-content'>\n";
 		print "<div id='upgrade' class='tab-pane active'>\n";
@@ -2162,17 +3530,24 @@ EOF
 		print "<table class='table table-bordered table-striped' id='upgradetable'>\n";
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
 	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
-		if ($upgrade) {
-			print "<tr><td><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button></td><td style='width:100%'><b>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings<br><a href='https://$config{DOWNLOADSERVER}/qhtlfirewall/changelog.txt' target='_blank'>View ChangeLog</a></b></td></tr>\n";
+	if ($upgrade) {
+		print "<tr><td colspan='2'><div style='display:flex;gap:8px;flex-wrap:wrap'>";
+		print "<button name='action' value='upgrade' type='submit' class='btn btn-default' data-bubble-color='green'>Upgrade qhtlfirewall</button>";
+		print "<button name='action' value='changelog' type='submit' class='btn btn-default' data-bubble-color='blue'>View ChangeLog</button>";
+		print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div></td></tr>\n";
+	} else {
+		# Show ChangeLog button above the Manual Check button
+			print "<tr><td colspan='2'>";
+		print "<div style='margin-bottom:6px'><form action='$script' method='post'><button name='action' value='changelog' type='submit' class='btn btn-default'>View ChangeLog</button></form></div>";
+			print "<button name='action' value='manualcheck' type='submit' class='btn btn-default'>Manual Check</button>";
+			if ($actv ne "" && ver_cmp($actv, $myv) == 1) {
+					print "<div class='text-muted small' style='margin-top:6px'>Latest available version is v$actv. Your version is v$myv. Please upgrade.</div></td></tr>\n";
+		} elsif ($actv ne "") {
+				print "<div class='text-muted small' style='margin-top:6px'>(qhtlfirewallget cron check) $actv</div></td></tr>\n";
 		} else {
-			print "<tr><td><button name='action' value='manualcheck' type='submit' class='btn btn-default'>Manual Check</button></td><td>";
-			if ($actv ne "") {
-				print "(qhtlfirewallget cron check) $actv</td></tr>\n";
-			}
-			else {
-				print "You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (qhtlfirewallget)</td></tr>\n";
-			}
+				print "<div class='text-muted small' style='margin-top:6px'>You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (qhtlfirewallget)</div></td></tr>\n";
 		}
+	}
 		print "</table>\n";
 		print "</form>\n";
 		if ($upgrade) {print "<script>\$('\#upgradebs').show();</script>\n"}
@@ -2180,138 +3555,267 @@ EOF
 		# Moved informational callouts from General Options to Upgrade tab
 		unless (-e "/etc/qhtlwatcher/qhtlwatcher.pl") {
 			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN} or $config{INTERWORX} or $config{VESTA} or $config{CWP} or $config{CYBERPANEL}) {
-				print "<div class='bs-callout bs-callout-info h4'>Add server and user data protection against exploits using <a href='https://danpol.co.uk' target='_blank'>QHTL eXploit Scanner (qhtlscanner)</a></div>\n";
+				print "<div class='bs-callout bs-callout-info h4'>Add server and user data protection against exploits using <a href='#' onclick=\"if(window.openPromoModal){openPromoModal(); return false;} return false;\">QHTL eXploit Scanner (qhtlscanner)</a></div>\n";
 			}
 		}
 		unless (-e "/etc/qhtlmoderator/qhtlmoderator.pl") {
 			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
-				print "<div class='bs-callout bs-callout-info h4'>Add outgoing spam monitoring and prevention using <a href='https://danpol.co.uk' target='_blank'>QHTL Outgoing Mail Moderator (qhtlmoderator)</a></div>\n";
+				print "<div class='bs-callout bs-callout-info h4'>Add outgoing spam monitoring and prevention using <a href='#' onclick=\"if(window.openPromoModal){openPromoModal(); return false;} return false;\">QHTL Outgoing Mail Moderator (qhtlmoderator)</a></div>\n";
 			}
 		}
 		unless (-e "/usr/msfe/mschange.pl") {
 			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
-				print "<div class='bs-callout bs-callout-info h4'>Add effective incoming virus and spam detection and user level processing using <a href='https://danpol.co.uk' target='_blank'>QHTL MailScanner Front-End (qhtlscanner)</a></div>\n";
+				print "<div class='bs-callout bs-callout-info h4'>Add effective incoming virus and spam detection and user level processing using <a href='#' onclick=\"if(window.openPromoModal){openPromoModal(); return false;} return false;\">QHTL MailScanner Front-End (qhtlscanner)</a></div>\n";
 			}
 		}
 
-		# Move Mobile View panel so it appears only on the Upgrade tab
-		if ($config{STYLE_MOBILE}) {
-			if (-e "/usr/local/cpanel/version" and !$config{THIS_UI}) {
-				require Cpanel::Version::Tiny;
-				if ($Cpanel::Version::Tiny::major_version < 65) {
-					print "<a id='cpframetr2' href='$ENV{cp_security_token}' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> cPanel Main Page</a>\n";
-				}
-			}
-			if  (defined $ENV{WEBMIN_VAR} and defined $ENV{WEBMIN_CONFIG} and !$config{THIS_UI}) {
-				print "<a id='webmintr2' href='/' class='btn btn-success' data-spy='affix' data-offset-bottom='0' style='bottom: 0; left:45%'><span class='glyphicon glyphicon-home'></span> Webmin Main Page</a>\n";
-			}
-			print "<div id='mobileview-upgrade-panel' class='panel panel-default'><div class='panel-heading panel-heading-qhtlwatcher'>Shows a subset of functions suitable for viewing on mobile devices</div>\n";
-			print "<div class='panel-body text-center'><a class='btn btn-primary btn-block' style='margin:10px;padding: 18px 28px;font-size: 22px; line-height: normal;border-radius: 8px;' id='MobileView'>Mobile View</a></div></div>\n";
-		}
+		# Removed legacy Mobile View panel/button; tabs are now mobile-friendly by default
 		print "</div>\n";
 
 		# New Quick Actions tab content (moved from QhtLink Firewall tab)
 		print "<div id='quickactions' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Quick Actions</th></tr></thead>";
-	print "<tr><td><button onClick='$(\"#qallow\").submit();' class='btn btn-default'>Quick Allow</button></td><td style='width:100%'>";
-	print "<form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>";
-	print "<div style='width:100%'>";
-	print "  <div style='display:flex; align-items:center; gap:12px; width:100%'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' href='$script?action=viewlist&which=allow' onclick=\"if(typeof showQuickView==='function'){showQuickView('allow'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
-	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' id='allowip' value='' size='36' style='background-color: #BDECB6; width:100%;'></div>";
-	print "  </div>";
-	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Allow:</div>";
-	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
-	print "  </div>";
-	print "</div></form></td></tr>\n";
-	print "<tr><td><button onClick='$(\"#qdeny\").submit();' class='btn btn-default'>Quick Deny</button></td><td style='width:100%'>";
-	print "<form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>";
-	print "<div style='width:100%'>";
-	print "  <div style='display:flex; align-items:center; gap:12px; width:100%'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' href='$script?action=viewlist&which=deny' onclick=\"if(typeof showQuickView==='function'){showQuickView('deny'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
-	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' id='denyip' value='' size='36' style='background-color: #FFD1DC; width:100%;'></div>";
-	print "  </div>";
-	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Block:</div>";
-	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
-	print "  </div>";
-	print "</div></form></td></tr>\n";
-	print "<tr><td><button onClick='$(\"#qignore\").submit();' class='btn btn-default'>Quick Ignore</button></td><td style='width:100%'>";
-	print "<form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>";
-	print "<div style='width:100%'>";
-	print "  <div style='display:flex; align-items:center; gap:12px; width:100%'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Ignore IP address <a class='quickview-link' data-which='ignore' href='$script?action=viewlist&which=ignore' onclick=\"if(typeof showQuickView==='function'){showQuickView('ignore'); return false;} return true;\"><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
-	print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' id='ignoreip' value='' size='36' style='background-color: #D9EDF7; width:100%;'></div>";
-	print "  </div>";
-	print "</div></form></td></tr>\n";
-			# Moved from QHTL "Firewall": Search for IP, aligned with quick input layout
-			print "<tr><td><button onClick='$(\"#grep\").submit();' class='btn btn-default'>Search for IP</button></td><td style='width:100%'>";
-			print "<form action='$script' method='post' id='grep'><input type='submit' class='hide'><input type='hidden' name='action' value='grep'>";
-			print "<div style='width:100%'>";
-			print "  <div style='display:flex; align-items:center; gap:12px; width:100%'>";
-			print "    <div style='flex:0 0 30%; max-width:30%'>Search IP address</div>";
-			print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
-			print "  </div>";
-			print "</div></form></td></tr>\n";
-		print "<tr><td><button onClick='$(\"#qkill\").submit();' class='btn btn-default'>Quick Unblock</button></td><td style='width:100%'>";
+
+		# Quick Allow (inputs above/below the button)
+		print "<tr><td colspan='2'>";
+		print "<form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>";
+		print "<div style='width:100%'>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+	print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' data-url='$script?action=viewlist&which=allow' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
+		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='allowip' value='' size='36' style='background-color: #BDECB6; width:100%;'></div>";
+		print "  </div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qallow\\\").submit();\\\" class='btn btn-default' data-bubble-color='green'>Quick Allow</button></div>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
+		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Allow:</div>";
+		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
+		print "  </div>";
+		print "</div></form>";
+		print "</td></tr>\n";
+
+		# Quick Deny
+		print "<tr><td colspan='2'>";
+		print "<form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>";
+		print "<div style='width:100%'>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+	print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' data-url='$script?action=viewlist&which=deny' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
+		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='denyip' value='' size='36' style='background-color: #FFD1DC; width:100%;'></div>";
+		print "  </div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qdeny\\\").submit();\\\" class='btn btn-default' data-bubble-color='red'>Quick Deny</button></div>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
+		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Block:</div>";
+		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
+		print "  </div>";
+		print "</div></form>";
+		print "</td></tr>\n";
+
+		# Quick Ignore
+		print "<tr><td colspan='2'>";
+		print "<form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>";
+		print "<div style='width:100%'>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+	print "    <div style='flex:0 0 30%; max-width:30%'>Ignore IP address <a class='quickview-link' data-which='ignore' data-url='$script?action=viewlist&which=ignore' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
+		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='ignoreip' value='' size='36' style='background-color: #D9EDF7; width:100%;'></div>";
+		print "  </div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qignore\\\").submit();\\\" class='btn btn-default' data-bubble-color='orange'>Quick Ignore</button></div>";
+		print "</div></form>";
+		print "</td></tr>\n";
+
+		# Search for IP
+		print "<tr><td colspan='2'>";
+		print "<form action='$script' method='post' id='grep'><input type='submit' class='hide'><input type='hidden' name='action' value='grep'>";
+		print "<div style='width:100%'>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+		print "    <div style='flex:0 0 30%; max-width:30%'>Search IP address</div>";
+		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
+		print "  </div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#grep\\\").submit();\\\" class='btn btn-default' data-bubble-color='blue'>Search for IP</button></div>";
+		print "</div></form>";
+		print "</td></tr>\n";
+
+		# Quick Unblock
+		print "<tr><td colspan='2'>";
 		print "<form action='$script' method='post' id='qkill'><input type='submit' class='hide'><input type='hidden' name='action' value='kill'>";
 		print "<div style='width:100%'>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%'>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
 		print "    <div style='flex:0 0 30%; max-width:30%'>Remove IP address</div>";
-		print "    <div style='flex:0 0 70%; max-width:70%'><input type='text' name='ip' id='killip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
+		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='killip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
 		print "  </div>";
-		print "</div></form></td></tr>\n";
-			# Moved from QHTL "Firewall": place Temporary Allow/Deny as the last quick action
-			print "<tr><td><button onClick='$(\"#tempdeny\").submit();' class='btn btn-default'>Temporary Allow/Deny</button></td><td style='width:100%'><form action='$script' method='post' id='tempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='tempdeny'>Temporarily <select name='do'><option>block</option><option>allow</option></select> IP address <input type='text' name='ip' value='' size='18'> to port(s) <input type='text' name='ports' value='*' size='5'> for <input type='text' name='timeout' value='' size='4'> <select name='dur'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select>.<br>Comment: <input type='text' name='comment' value='' size='30'><br>\n(ports can be either * for all ports, a single port, or a comma separated list of ports)</form></td></tr>\n";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qkill\\\").submit();\\\" class='btn btn-default' data-bubble-color='gray'>Quick Unblock</button></div>";
+		print "</div></form>";
+		print "</td></tr>\n";
+
+		# Temporary Allow/Deny (merged into a single full-width row)
+		print "<tr><td colspan='2'>";
+		print "<form action='$script' method='post' id='tempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='applytemp'>";
+		print "<div style='width:100%'>";
+		print "  <div class='h4' style='margin:0 0 8px 0;'>Temporary Allow/Deny</div>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+		print "    <div style='flex:0 0 20%; max-width:20%'>Action</div>";
+		print "    <div style='flex:1 1 auto'><select name='do' class='form-control' style='width:auto; display:inline-block; min-width:140px'><option>block</option><option>allow</option></select></div>";
+		print "  </div>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+		print "    <div style='flex:0 0 20%; max-width:20%'>IP address</div>";
+		print "    <div style='flex:1 1 auto'><input type='text' name='ip' value='' size='18' class='form-control' style='max-width:340px'></div>";
+		print "  </div>";
+	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+	print "    <div style='flex:0 0 20%; max-width:20%'>Ports</div>";
+	print "    <div style='flex:1 1 auto'><input type='text' name='ports' value='*' size='5' class='form-control' style='max-width:200px'></div>";
+	print "  </div>";
+	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+	print "    <div style='flex:0 0 20%; max-width:20%'>Duration for</div>";
+	print "    <div style='flex:1 1 auto'><input type='text' name='timeout' value='' size='4' class='form-control' style='display:inline-block; width:90px; margin-right:8px;'> <select name='dur' class='form-control' style='display:inline-block; width:auto; min-width:120px'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select></div>";
+	print "  </div>";
+		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
+		print "    <div style='flex:0 0 20%; max-width:20%'>Comment</div>";
+		print "    <div style='flex:1 1 auto'><input type='text' name='comment' value='' size='30' class='form-control' style='max-width:520px'></div>";
+		print "  </div>";
+		print "  <div class='text-muted' style='font-size:12px; margin-bottom:8px'>(ports can be either * for all ports, a single port, or a comma separated list of ports)</div>";
+		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#tempdeny\\\").submit();\\\" class='btn btn-default' data-bubble-color='purple'>Apply Temporary Rule</button></div>";
+		print "</div></form>";
+		print "</td></tr>\n";
+
 		print "</table>\n";
 		print "</div>\n";
 
 		print "<div id='home' class='tab-pane'>\n";
 		print "<form action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
-		print "<tr><td><button name='action' value='servercheck' type='submit' class='btn btn-default'>Check Server Security</button></td><td style='width:100%'>Perform a basic security, stability and settings check on the server</td></tr>\n";
-		print "<tr><td><button name='action' value='readme' type='submit' class='btn btn-default'>Firewall Information</button></td><td style='width:100%'>View the qhtlfirewall+qhtlwaterfall readme.txt file</td></tr>\n";
-		print "<tr><td><button name='action' value='loggrep' type='submit' class='btn btn-default'>Search System Logs</button></td><td style='width:100%'>Search (grep) various system log files (listed in qhtlfirewall.syslogs)</td></tr>\n";
-		print "<tr><td><button name='action' value='viewports' type='submit' class='btn btn-default'>View Listening Ports</button></td><td style='width:100%'>View ports on the server that have a running process behind them listening for external connections</td></tr>\n";
-		print "<tr><td><button name='action' value='rblcheck' type='submit' class='btn btn-default'>Check for IPs in RBLs</button></td><td style='width:100%'>Check whether any of the servers IP addresses are listed in RBLs</td></tr>\n";
-		print "<tr><td><button name='action' value='viewlogs' type='submit' class='btn btn-default'>View iptables Log</button></td><td style='width:100%'>View the last $config{ST_IPTABLES} iptables log lines</td></tr>\n";
-		print "<tr><td><button name='action' value='chart' type='submit' class='btn btn-default'>View qhtlwaterfall Statistics</button></td><td style='width:100%'>View qhtlwaterfall blocking statistics</td></tr>\n";
-		print "<tr><td><button name='action' value='systemstats' type='submit' class='btn btn-default'>View System Statistics</button></td><td style='width:100%'>View basic system statistics</td></tr>\n";
+	print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
+	print "<tr><td colspan='2'><button name='action' value='servercheck' type='submit' class='btn btn-default' data-bubble-color='blue'>Test Security</button><div class='text-muted small' style='margin-top:6px'>Perform a basic security, stability and settings check on the server</div></td></tr>\n";
+	print "<tr><td colspan='2'><button name='action' value='readme' type='submit' class='btn btn-default' data-bubble-color='gray'>Qht Link Info</button><div class='text-muted small' style='margin-top:6px'>View the qhtlfirewall+qhtlwaterfall readme.txt file</div></td></tr>\n";
+	print "<tr><td colspan='2'><button name='action' value='loggrep' type='submit' class='btn btn-default' data-bubble-color='purple'>Search Logs</button><div class='text-muted small' style='margin-top:6px'>Search (grep) various system log files (listed in qhtlfirewall.syslogs)</div></td></tr>\n";
+	print "<tr><td colspan='2'><button name='action' value='viewports' type='submit' class='btn btn-default' data-bubble-color='green'>Active Ports</button><div class='text-muted small' style='margin-top:6px'>View ports on the server that have a running process behind them listening for external connections</div></td></tr>\n";
+	print "<tr><td colspan='2'><button name='action' value='rblcheck' type='submit' class='btn btn-default' data-bubble-color='orange'>Check in RBLs</button><div class='text-muted small' style='margin-top:6px'>Check whether any of the servers IP addresses are listed in RBLs</div></td></tr>\n";
+	print "<tr><td colspan='2'><button name='action' value='viewlogs' type='submit' class='btn btn-default' data-bubble-color='red'>View ipt Log</button><div class='text-muted small' style='margin-top:6px'>View the last $config{ST_IPTABLES} iptables log lines</div></td></tr>\n";
+	print "<tr><td colspan='2'><button name='action' value='chart' type='submit' class='btn btn-default' data-bubble-color='blue'>QhtL Stats</button><div class='text-muted small' style='margin-top:6px'>View qhtlwaterfall blocking statistics</div></td></tr>\n";
+	print "<tr><td colspan='2'><button name='action' value='systemstats' type='submit' class='btn btn-default' data-bubble-color='gray'>View Sys Stats</button><div class='text-muted small' style='margin-top:6px'>View basic system statistics</div></td></tr>\n";
 		print "</table>\n";
 		print "</form>\n";
 		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
-			print "<tr><td><button name='action' value='remapf' type='submit' class='btn btn-default'>Remove APF/BFD</button></td><td style='width:100%'>Remove APF/BFD from the server. You must not run both APF or BFD with qhtlfirewall on the same server</td></tr>\n";
+			print "<table class='table table-bordered table-striped'>\n";
+			print "<thead><tr><th>Legacy Firewalls</th></tr></thead>";
+			print "<tr><td><form action='$script' method='post'><button name='action' value='remapf' type='submit' class='btn btn-default'>Remove APF/BFD</button></form><div class='text-muted small' style='margin-top:6px'>Remove APF/BFD from the server. You must not run both APF or BFD with qhtlfirewall on the same server</div></td></tr>\n";
+			print "</table>\n";
 		}
 		print "</div>\n";
 
-	print "<div id='qhtlfirewall' class='tab-pane'>\n";
+		# New Firewall1 tab (placeholder) placed between Options and Waterfall
+		print "<div id='firewall1' class='tab-pane'>\n";
+		print "<table class='table table-bordered table-striped'>\n";
+	print "<thead><tr><th colspan='2'>QHTL \"Firewall\"</th></tr></thead>";
+	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='conf' type='submit' class='btn btn-default'>Config</button></form><div class='text-muted small' style='margin-top:6px'>Edit the configuration file for the qhtlfirewall firewall and qhtlwaterfall</div></td></tr>\n";
+	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='profiles' type='submit' class='btn btn-default'>Profiles</button></form><div class='text-muted small' style='margin-top:6px'>Apply pre-configured qhtlfirewall.conf profiles and backup/restore qhtlfirewall.conf</div></td></tr>\n";
+	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='status' type='submit' class='btn btn-default'>View Rules</button></form><div class='text-muted small' style='margin-top:6px'>Display the active iptables rules</div></td></tr>\n";
+	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='allow' type='submit' class='btn btn-default'>Allow IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.allow, the IP address allow file $permallows</div></td></tr>\n";
+	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.deny, the IP address deny file $permbans</div></td></tr>\n";
+	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='enable' type='submit' class='btn btn-default'>Enable</button></form><div class='text-muted small' style='margin-top:6px'>Enables qhtlfirewall and qhtlwaterfall if previously Disabled</div></td></tr>\n";
+	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='disable' type='submit' class='btn btn-default'>Disable</button></form><div class='text-muted small' style='margin-top:6px'>Completely disables qhtlfirewall and qhtlwaterfall</div></td></tr>\n";
+	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='restart' type='submit' class='btn btn-default'>Restart</button></form><div class='text-muted small' style='margin-top:6px'>Restart the qhtlfirewall iptables firewall</div></td></tr>\n";
+	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='restartq' type='submit' class='btn btn-default'>Reboot</button></form><div class='text-muted small' style='margin-top:6px'>Have qhtlwaterfall restart the qhtlfirewall iptables firewall</div></td></tr>\n";
+	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='temp' type='submit' class='btn btn-default'>Temp IPs</button></form><div class='text-muted small' style='margin-top:6px'>View/Remove the <i>temporary</i> IP entries $tempbans</div></td></tr>\n";
+	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='sips' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Deny access to and from specific IP addresses configured on the server (qhtlfirewall.sips)</div></td></tr>\n";
+	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='denyf' type='submit' class='btn btn-default'>Flush All</button></form><div class='text-muted small' style='margin-top:6px'>Removes and unblocks all entries in qhtlfirewall.deny (excluding those marked \"do not delete\") and all temporary IP entries (blocks <i>and</i> allows)</div></td></tr>\n";
+	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='redirect' type='submit' class='btn btn-default'>Redirect</button></form><div class='text-muted small' style='margin-top:6px'>Redirect connections to this server to other ports/IP addresses</div></td></tr>\n";
+	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='fix' type='submit' class='btn btn-default'>Fix Tool</button></form><div class='text-muted small' style='margin-top:6px'>Offers solutions to some common problems when using an SPI firewall</div></td></tr>\n";
+		print "</table>\n";
+		print "</div>\n";
+
+		# New Waterfall tab (duplicate of QhtLink Waterfall content) placed before QhtLink Firewall
+		print "<div id='waterfall' class='tab-pane'>\n";
+		print "<table class='table table-bordered table-striped'>\n";
+		print "<thead><tr><th>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
+		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallstatus'><input type='submit' class='btn btn-default' value='Status'></form><div class='text-muted small' style='margin-top:6px'>Display qhtlwaterfall status</div></td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallrestart'><input type='submit' class='btn btn-default' value='Restart'></form><div class='text-muted small' style='margin-top:6px'>Restart qhtlwaterfall</div></td></tr>\n";
+		print "<tr><td style='white-space: nowrap;'><form action='$script' method='post'><input type='hidden' name='action' value='ignorefiles'><select name='ignorefile'>\n";
+		print "<option value='qhtlfirewall.ignore'>qhtlfirewall.ignore - IP Blocking</option>\n";
+		print "<option value='qhtlfirewall.pignore'>qhtlfirewall.pignore, Process Tracking</option>\n";
+		print "<option value='qhtlfirewall.fignore'>qhtlfirewall.fignore, Directory Watching</option>\n";
+		print "<option value='qhtlfirewall.signore'>qhtlfirewall.signore, Script Alert</option>\n";
+		print "<option value='qhtlfirewall.rignore'>qhtlfirewall.rignore, Reverse DNS lookup</option>\n";
+		print "<option value='qhtlfirewall.suignore'>qhtlfirewall.suignore, Superuser check</option>\n";
+		print "<option value='qhtlfirewall.mignore'>qhtlfirewall.mignore, RT_LOCALRELAY</option>\n";
+		print "<option value='qhtlfirewall.logignore'>qhtlfirewall.logignore, Log Scanner</option>\n";
+		print "<option value='qhtlfirewall.uidignore'>qhtlfirewall.uidignore, User ID Tracking</option>\n";
+		print "</select> <input type='submit' class='btn btn-default' value='Edit'></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlwaterfall ignore file</div></td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='dirwatch' type='submit' class='btn btn-default'>qhtlwaterfall Directory File Watching</button></form><div class='text-muted small' style='margin-top:6px'>Edit the Directory File Watching file (qhtlfirewall.dirwatch) - all listed files and directories will be watched for changes by qhtlwaterfall</div></td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='dyndns' type='submit' class='btn btn-default'>qhtlwaterfall Dynamic DNS</button></form><div class='text-muted small' style='margin-top:6px'>Edit the Dynamic DNS file (qhtlfirewall.dyndns) - all listed domains will be resolved and allowed through the firewall</div></td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><select name='template'>\n";
+		foreach my $tmp ("alert.txt","tracking.txt","connectiontracking.txt","processtracking.txt","accounttracking.txt","usertracking.txt","sshalert.txt","webminalert.txt","sualert.txt","sudoalert.txt","uialert.txt","cpanelalert.txt","scriptalert.txt","filealert.txt","watchalert.txt","loadalert.txt","resalert.txt","integrityalert.txt","exploitalert.txt","relayalert.txt","portscan.txt","uidscan.txt","permblock.txt","netblock.txt","queuealert.txt","logfloodalert.txt","logalert.txt","modsecipdbcheck.txt") {print "<option>$tmp</option>\n"}
+		print "</select> <button name='action' value='templates' type='submit' class='btn btn-default'>Edit</button></form><div class='text-muted small' style='margin-top:6px'>Edit email alert templates. See Firewall Information for details of each file</div></td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='logfiles' type='submit' class='btn btn-default'>Log Scanner Files</button></form><div class='text-muted small' style='margin-top:6px'>Edit the Log Scanner file (qhtlfirewall.logfiles) - Scan listed log files for log lines and periodically send a report</div></td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='blocklists' type='submit' class='btn btn-default'>Blocklists</button></form><div class='text-muted small' style='margin-top:6px'>Edit the Blocklists configuration file (qhtlfirewall.blocklists)</div></td></tr>\n";
+		print "<tr><td><form action='$script' method='post'><button name='action' value='syslogusers' type='submit' class='btn btn-default'>Syslog Users</button></form><div class='text-muted small' style='margin-top:6px'>Edit the syslog/rsyslog allowed users file (qhtlfirewall.syslogusers)</div></td></tr>\n";
+		print "</table>\n";
+		print "</div>\n";
+
+		# New More... tab (duplicate of 'More' content) placed between Waterfall and QhtLink Firewall
+		print "<div id='moreplus' class='tab-pane'>\n";
+		my $moreplus_has_content = 0;
+		if ($config{CF_ENABLE}) {
+			$moreplus_has_content = 1;
+			print "<table class='table table-bordered table-striped'>\n";
+			print "<thead><tr><th colspan='2'>CloudFlare Firewall</th></tr></thead>";
+			print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='cloudflare' type='submit' class='btn btn-default'>CloudFlare</button></form><div class='text-muted small' style='margin-top:6px'>Access CloudFlare firewall functionality</div></td></tr>\n";
+			print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='cloudflareedit' type='submit' class='btn btn-default'>CloudFlare Config</button></form><div class='text-muted small' style='margin-top:6px'>Edit the CloudFlare Configuration file (qhtlfirewall.cloudflare)</div></td></tr>\n";
+			print "</table>\n";
+		}
+		if ($config{SMTPAUTH_RESTRICT}) {
+			$moreplus_has_content = 1;
+			print "<table class='table table-bordered table-striped'>\n";
+			print "<thead><tr><th colspan='2'>cPanel SMTP AUTH Restrictions</th></tr></thead>";
+			print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='smtpauth' type='submit' class='btn btn-default'>Edit SMTP AUTH</button></form><div class='text-muted small' style='margin-top:6px'>Edit the file that allows SMTP AUTH to be advertised to listed IP addresses (qhtlfirewall.smtpauth)</div></td></tr>\n";
+			print "</table>\n";
+		}
+
+		if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN} or $config{INTERWORX}) {
+			$moreplus_has_content = 1;
+			my $resellers = "cPanel Resellers";
+			if ($config{DIRECTADMIN}) {$resellers = "DirectAdmin Resellers"}
+			elsif ($config{INTERWORX}) {$resellers = "InterWorx Resellers"}
+			print "<table class='table table-bordered table-striped'>\n";
+			print "<thead><tr><th colspan='2'>$resellers</th></tr></thead>";
+			print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='reseller' type='submit' class='btn btn-default'>Edit Reseller Privs</button></form><div class='text-muted small' style='margin-top:6px'>Privileges can be assigned to $resellers accounts by editing this file (qhtlfirewall.resellers)</div></td></tr>\n";
+			print "</table>\n";
+		}
+
+		# True move: include the former 'Extra' tab content inside 'More...'
+		$moreplus_has_content = 1;
+		print "<table class='table table-bordered table-striped'>\n";
+		print "<thead><tr><th colspan='2'>Extra</th></tr></thead>";
+		print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='qhtlfirewalltest' type='submit' class='btn btn-default'>Test iptables</button></form><div class='text-muted small' style='margin-top:6px'>Check that iptables has the required modules to run qhtlfirewall</div></td></tr>\n";
+		print "</table>\n";
+
+		# About/Forum link (restored) – placed under More tab as a true move
+		$moreplus_has_content = 1;
+		print "<table class='table table-bordered table-striped'>\n";
+		print "<thead><tr><th>About</th></tr></thead>";
+		print "<tr><td>Visit <a href='https://www.forum.danpol.co.uk' target='_blank' rel='noopener'>forum.danpol.co.uk</a> for updates and support.</td></tr>\n";
+		print "</table>\n";
+
+		unless ($moreplus_has_content) {
+				print "<div class='text-muted small' style='padding:8px'>No additional modules are enabled for this section.</div>\n";
+				print "<table class='table table-bordered table-striped'>\n";
+				print "<thead><tr><th>About qhtlfirewall</th></tr></thead>";
+				print "<tr><td>This interface provides quick access to qhtlfirewall and qhtlwaterfall management. Use the tabs above to navigate. The Upgrade tab will show when updates are available and provide a link to the ChangeLog.</td></tr>\n";
+				print "</table>\n";
+		}
+
+		print "</div>\n";
+
+		print "<div id='firewall' class='tab-pane'>\n";
 
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>QHTL \"Firewall\"</th></tr></thead>";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='conf' type='submit' class='btn btn-default'>Firewall Configuration</button></form></td><td style='width:100%'>Edit the configuration file for the qhtlfirewall firewall and qhtlwaterfall</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='profiles' type='submit' class='btn btn-default'>Firewall Profiles</button></form></td><td style='width:100%'>Apply pre-configured qhtlfirewall.conf profiles and backup/restore qhtlfirewall.conf</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='status' type='submit' class='btn btn-default'>View iptables Rules</button></form></td><td style='width:100%'>Display the active iptables rules</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='allow' type='submit' class='btn btn-default'>Firewall Allow IPs</button></form></td><td style='width:100%'>Edit qhtlfirewall.allow, the IP address allow file $permallows</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Firewall Deny IPs</button></form></td><td style='width:100%'>Edit qhtlfirewall.deny, the IP address deny file $permbans</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='enable' type='submit' class='btn btn-default'>Firewall Enable</button></form></td><td style='width:100%'>Enables qhtlfirewall and qhtlwaterfall if previously Disabled</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='disable' type='submit' class='btn btn-default'>Firewall Disable</button></form></td><td style='width:100%'>Completely disables qhtlfirewall and qhtlwaterfall</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='restart' type='submit' class='btn btn-default'>Firewall Restart</button></form></td><td style='width:100%'>Restart the qhtlfirewall iptables firewall</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='restartq' type='submit' class='btn btn-default'>Firewall Quick Restart</button></form></td><td style='width:100%'>Have qhtlwaterfall restart the qhtlfirewall iptables firewall</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='temp' type='submit' class='btn btn-default'>Temporary IP Entries</button></form></td><td style='width:100%'>View/Remove the <i>temporary</i> IP entries $tempbans</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='sips' type='submit' class='btn btn-default'>Deny Server IPs</button></form></td><td style='width:100%'>Deny access to and from specific IP addresses configured on the server (qhtlfirewall.sips)</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='denyf' type='submit' class='btn btn-default'>Flush all Blocks</button></form></td><td style='width:100%'>Removes and unblocks all entries in qhtlfirewall.deny (excluding those marked \"do not delete\") and all temporary IP entries (blocks <i>and</i> allows)</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='redirect' type='submit' class='btn btn-default'>Firewall Redirect</button></form></td><td style='width:100%'>Redirect connections to this server to other ports/IP addresses</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='fix' type='submit' class='btn btn-default'>Fix Common Problems</button></form></td><td style='width:100%'>Offers solutions to some common problems when using an SPI firewall</td></tr>\n";
-		print "</table>\n";
+		print "<thead><tr><th colspan='2'>Firewall</th></tr></thead>";
+		print "<tr><td colspan='2'>The Firewall content has been moved to the 'Firewall1' tab.</td></tr>\n";
+			print "</table>\n";
 	# Enforce Quick View modal sizing (500x400) with scrollable body
 	print "<style>\n";
-	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 95vw !important; position: fixed !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; margin: 0 !important; }\n";
-	print "#quickViewModal .modal-content { height: 450px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
-	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow: hidden !important; min-height:0 !important; padding:10px !important; }\n";
-	print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; }\n";
+	print "#quickViewModal { position: absolute !important; inset: 0 !important; z-index: 1000 !important; }\n";
+	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 95% !important; position: absolute !important; top: 12px !important; left: 50% !important; transform: translateX(-50%) !important; margin: 0 !important; }\n";
+	print "#quickViewModal .modal-content { height: auto !important; max-height:480px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
+	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow:auto !important; min-height:0 !important; padding:10px !important; }\n";
+		print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; display:flex !important; justify-content: space-between !important; align-items: center !important; gap:8px !important; }\n";
 	print "#quickViewModal #quickViewTitle { margin:0 0 8px 0 !important; }\n";
 	print "#quickViewBody { flex:1 1 auto !important; min-height:0 !important; overflow:hidden !important; }\n";
 	print "#quickViewModal #quickViewBody { display:block; width:100%; height:100%; max-height:100%; overflow:auto; }\n";
@@ -2320,6 +3824,18 @@ EOF
 	print "#quickViewModal #quickEditArea { resize: none !important; }\n";
 	print ".btn-close-red { background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%); color: #721c24 !important; border-color: #f1b0b7 !important; }\n";
 	print ".btn-close-red:hover { background: #dc3545 !important; color: #fff !important; border-color: #dc3545 !important; }\n";
+	# Ensure confirm modal is anchored within the UI container and not the whole window
+	print "#confirmmodal { position: absolute !important; inset: 0 !important; z-index: 1000 !important; }\n";
+	print "#confirmmodal .modal-dialog { width: 320px !important; max-width: 95% !important; position: absolute !important; top: 12px !important; left: 50% !important; transform: translateX(-50%) !important; margin: 0 !important; }\n";
+	print "#confirmmodal .modal-content { display: flex !important; flex-direction: column !important; overflow: hidden !important; max-height:480px !important; }\n";
+	print "#confirmmodal .modal-body { flex: 1 1 auto !important; min-height: 0 !important; overflow:auto !important; }\n";
+	print "#confirmmodal .modal-footer { flex: 0 0 auto !important; display:flex !important; justify-content: space-between !important; align-items: center !important; gap:8px !important; }\n";
+		# Tabs wrap improvements: ensure full-width usage on wrap with even spacing
+		print "#myTabs { display:flex; flex-wrap: wrap; gap: 6px; }\n";
+		print "#myTabs > li { float:none !important; }\n";
+		print "#myTabs > li > a { display:block; }\n";
+		print "#myTabs > li { flex: 1 1 auto; }\n";
+		print "#myTabs > li > a { width: 100%; text-align: center; }\n";
 	# Fire border effect radiating OUTSIDE the edges for Edit mode
 	print ".fire-border { position: relative; }\n";
 	print ".fire-allow { box-shadow: 0 0 20px 10px rgba(40,167,69,0.75), 0 0 40px 18px rgba(40,167,69,0.45); animation: flicker-allow 1.4s infinite ease-in-out; }\n";
@@ -2341,6 +3857,7 @@ EOF
 	print "<h4 id='quickViewTitle'>Quick View</h4>\n";
 	print "<div id='quickViewBody'>Loading...</div>\n";
 	print "</div>\n";
+
 	print "<div class='modal-footer' style='display:flex; justify-content:space-between; align-items:center;'>\n";
 	print "  <div>\n";
 	print "    <button type='button' class='btn btn-primary' id='quickViewEditBtn'>Edit</button>\n";
@@ -2353,22 +3870,206 @@ EOF
 	print "    <button type='button' class='btn btn-default btn-close-red' data-dismiss='modal'>Close</button>\n";
 	print "  </div>\n";
 	print "</div>\n";
-	print "</div>\n";
-	print "</div>\n";
+
+	# Promo modal opener as a standalone compact Bootstrap modal (no Quick View reuse)
+	print "<script>\n";
+	print <<'QHTL_PROMO_JS';
+(function(){
+  function ensureOrangeCSS(){
+    if (document.getElementById('qhtl-orange-style')) return;
+    var s=document.createElement('style'); s.id='qhtl-orange-style';
+	s.textContent = String.fromCharCode(64)+"keyframes qhtl-orange {0%,100%{box-shadow: 0 0 12px 5px rgba(255,140,0,0.55), 0 0 20px 9px rgba(255,140,0,0.28);}50%{box-shadow: 0 0 22px 12px rgba(255,140,0,0.95), 0 0 36px 16px rgba(255,140,0,0.5);}}\n"+
+                   ".fire-orange{ animation: qhtl-orange 2s infinite ease-in-out; }\n"+
+                   ".btn-golden{ background: linear-gradient(180deg, #ffd766 0%, #ffbf00 100%); color: #c0c0c0 !important; font-weight: 800; border: 1px solid #e6c200; }\n"+
+                   ".btn-golden:hover{ background: linear-gradient(180deg, #ffe387 0%, #ffc41a 100%); color: #f0f0f0 !important; }\n"+
+                   ".btn-bright-red{ background: #ff2d2d !important; color:#fff !important; border:1px solid #d61e1e; }\n"+
+                   ".btn-bright-red:hover{ background:#e61e1e !important; color:#fff !important; }\n"+
+			   ".qhtl-promo-modal{ position:absolute !important; inset:0 !important; background: rgba(0,0,0,0.5); z-index:1000; }\n"+
+			   ".qhtl-promo-modal .modal-dialog{ width:320px; max-width:95vw; margin:0 !important; position:absolute; top:12px; left:50%; transform:translateX(-50%);}\n"+
+				   ".qhtl-promo-modal .modal-content{ display:flex; flex-direction:column; overflow:hidden; max-height:480px;}\n"+
+				   ".qhtl-promo-modal .modal-body{ padding:6px !important; overflow:auto !important;}\n"+
+                   "#qhtlPromoTitle{ margin:0 0 4px 0; }\n";
+    document.head.appendChild(s);
+  }
+  function buildPromoModal(){
+    var modal = document.createElement('div');
+    modal.id = 'qhtlPromoModal';
+    modal.className = 'modal fade qhtl-promo-modal';
+    modal.setAttribute('tabindex','-1');
+    modal.setAttribute('role','dialog');
+    modal.setAttribute('aria-hidden','true');
+	modal.innerHTML = "\n<div class='modal-dialog'>\n  <div class='modal-content'>\n    <div class='modal-body'>\n      <h4 id='qhtlPromoTitle'>Information</h4>\n      <div id='qhtlPromoBody' style='display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px;line-height:1.35;padding:4px;'>\n        <div style='padding:2px 4px;'>"+
+					"<b>You need promotion active to access !</b><br>"+
+					"Yeah, well i wish this is the case<br>"+
+					"but not yet, for now you can donate ;)<br>"+
+					"Coding soft and hardware cost a loot.<br>"+
+					"If you want me keep going pls donate.<br>"+
+					"Use button below or contact me via email<br>"+
+					"You can change donated amount here:<br>"+
+					"<input type='text' id='qhtlPromoAmount' inputmode='numeric' pattern='[0-9]*' maxlength='10' style='width:140px;text-align:center;' placeholder='10'>"+
+				"</div>\n"+
+			"</div>\n"+
+		"</div>\n"+
+		"<div class='modal-footer' style='display:flex;justify-content:space-between;align-items:center;'>\n"+
+			"<div><button type='button' class='btn btn-success' id='qhtlPromoBuyBtn' style='font-weight:800'>\n"+
+			"<span class='glyphicon glyphicon-usd' aria-hidden='true'></span> "+
+			"<span>Buy Promotions</span> "+
+			"<span class='glyphicon glyphicon-usd' aria-hidden='true'></span>\n"+
+			"</button></div>\n"+
+			"<div><button type='button' class='btn btn-bright-red' id='qhtlPromoCloseBtn' data-dismiss='modal'>Close</button></div>\n"+
+		"</div>\n"+
+	"</div>\n"+
+"</div>\n";
+    return modal;
+  }
+  window.openPromoModal = function(){
+    try{
+      ensureOrangeCSS();
+      var existing = document.getElementById('qhtlPromoModal');
+      if (existing) { try { $(existing).modal('hide'); } catch(_) {} existing.remove(); }
+      var modal = buildPromoModal();
+			var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
+			parent.appendChild(modal);
+			var $modal = $('#qhtlPromoModal');
+			try {
+				var inScoped = (parent.classList && parent.classList.contains('qhtl-bubble-bg'));
+				var w = inScoped ? (parent.clientWidth || window.innerWidth) : window.innerWidth;
+				var h = inScoped ? (parent.clientHeight || window.innerHeight) : window.innerHeight;
+				var $dlg = $modal.find('.modal-dialog');
+				var $mc = $modal.find('.modal-content');
+				if (inScoped) {
+					$modal.css({ position:'absolute', left: 0, top: 0, right: 0, bottom: 0, width:'auto', height:'auto', margin:0 });
+				} else {
+					$modal.css({ position:'fixed', left: 0, top: 0, right: 0, bottom: 0, width:'auto', height:'auto', margin:0 });
+				}
+				$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, width: Math.min(320, Math.floor(w*0.95)) + 'px', maxWidth: Math.min(320, Math.floor(w*0.95)) + 'px' });
+				var maxH = 480; // enforce global cap
+				$mc.css({ display:'flex', flexDirection:'column', overflow:'hidden', maxHeight: maxH+'px' });
+				$modal.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });
+			} catch(_) {}
+      // add orange glow
+      $modal.find('.modal-content').addClass('fire-orange');
+			// wire buttons
+			// sanitize numeric input (max 10 digits) on the fly
+			$modal.on('input', '#qhtlPromoAmount', function(){
+				try { this.value = (this.value||'').replace(/\D+/g,'').slice(0,10); } catch(e) {}
+			});
+			// open PayPal with amount appended; default to 10 if empty
+			$modal.on('click', '#qhtlPromoBuyBtn', function(){
+				try{
+					var amt = (document.getElementById('qhtlPromoAmount')||{}).value || '';
+					amt = (amt+'').replace(/\D+/g,'').slice(0,10);
+					if (!amt) { amt = '10'; }
+					var url = 'https://www.paypal.com/paypalme/danpollimited/' + amt;
+					window.open(url, '_blank');
+				}catch(e){}
+			});
+      $modal.on('click', '#qhtlPromoCloseBtn', function(){ try{ $modal.modal('hide'); } catch(e){} });
+      // cleanup on hide
+      $modal.on('hidden.bs.modal', function(){
+        try { $modal.off(); } catch(_) {}
+        try { $modal.remove(); } catch(_) {}
+      });
+	// show modal
+	$modal.modal({ show:true, backdrop:false, keyboard:true });
+    }catch(e){ /* optional: fallback */ alert('Unable to open promo'); }
+    return false;
+  };
+})();
+QHTL_PROMO_JS
+	print "</script>\n";
 
 		# Inline script to wire up Quick View modal behavior
 		print "<script>\n";
 		print "var QHTL_SCRIPT = '$script';\n";
 		print <<'JS';
 var currentQuickWhich = null;
+// Helpers to disable/enable tab links while Quick View is open
+function qhtlLockTabs(){
+	try {
+		var links = document.querySelectorAll('#myTabs a');
+		for (var i=0;i<links.length;i++){
+			var a = links[i];
+			if (!a.getAttribute('data-qhtl-disabled')){
+				var href = a.getAttribute('href');
+				if (href) a.setAttribute('data-qhtl-href', href);
+				var dt = a.getAttribute('data-toggle');
+				if (dt) a.setAttribute('data-qhtl-toggle', dt);
+				a.setAttribute('data-qhtl-disabled', '1');
+				try { a.setAttribute('aria-disabled','true'); } catch(_e){}
+				try { a.removeAttribute('data-toggle'); } catch(_e){}
+				try { a.setAttribute('href','javascript:void(0)'); } catch(_e){}
+			}
+		}
+	} catch(e){}
+}
+function qhtlUnlockTabs(){
+	try {
+		var links = document.querySelectorAll('#myTabs a[data-qhtl-disabled="1"]');
+		for (var i=0;i<links.length;i++){
+			var a = links[i];
+			try {
+				var href = a.getAttribute('data-qhtl-href');
+				if (href) a.setAttribute('href', href);
+				else a.removeAttribute('href');
+				a.removeAttribute('data-qhtl-href');
+			} catch(_1){}
+			try {
+				var dt = a.getAttribute('data-qhtl-toggle');
+				if (dt) a.setAttribute('data-toggle', dt);
+				else a.removeAttribute('data-toggle');
+				a.removeAttribute('data-qhtl-toggle');
+			} catch(_2){}
+			try { a.removeAttribute('aria-disabled'); } catch(_3){}
+			try { a.removeAttribute('data-qhtl-disabled'); } catch(_4){}
+		}
+	} catch(e){}
+}
 function openQuickView(url, which) {
+	try {
+		// Increase lock and mark document BEFORE any DOM work so stray handlers can't flip tabs
+		window.qhtlTabLock = (window.qhtlTabLock||0) + 1;
+		try { document.documentElement.classList.add('qhtl-tabs-locked'); } catch(__){}
+		// Snapshot current tab/hash as the canonical target while modal is open
+		try {
+			var actA0 = document.querySelector('#myTabs li.active > a[href^="#"]');
+			window.qhtlSavedTabHash = actA0 ? actA0.getAttribute('href') : (window.qhtlSavedTabHash||'#home');
+			if (!window.qhtlSavedTabHash) { window.qhtlSavedTabHash = '#home'; }
+			try { window.qhtlSavedURLHash = window.location.hash; } catch(___){}
+		} catch(__){}
+		// Note: Removed MutationObserver-based tab reversion to avoid mutation feedback loops
+		// that could cause heavy CPU usage and UI freezes. We still rely on:
+		// - capture-phase click guard for tabs
+		// - Bootstrap show.bs.tab suppression while locked
+		// - hashchange guard + explicit re-activation timers
+	} catch(_){ }
 	var titleMap = {allow:'qhtlfirewall.allow', deny:'qhtlfirewall.deny', ignore:'qhtlfirewall.ignore'};
 	$('#quickViewTitle').text('Quick View: ' + (titleMap[which]||which));
 	$('#quickViewBody').html('Loading...');
 	currentQuickWhich = which;
 	var $modal = $('#quickViewModal');
-	if (!$modal.parent().is('body')) { $modal.appendTo('body'); }
-	$modal.modal({ show: true, backdrop: true, keyboard: true });
+	var $wrapper = $('.qhtl-bubble-bg').first();
+	// Append into the wrapper if present so it scrolls with the page area; fallback to body
+	if ($wrapper.length) { $modal.appendTo($wrapper); } else { $modal.appendTo('body'); }
+	// Position overlay relative to the wrapper so it stays aligned and scrolls with content
+	try {
+		var scoped = $wrapper.length > 0;
+	var w = scoped ? ($wrapper[0].clientWidth || window.innerWidth) : window.innerWidth;
+	var h = scoped ? ($wrapper[0].clientHeight || window.innerHeight) : window.innerHeight;
+		var $dlg = $modal.find('.modal-dialog');
+		var $mc = $modal.find('.modal-content');
+		if (scoped) {
+			$modal.css({ position:'absolute', left: 0, top: 0, right: 0, bottom: 0, width:'auto', height:'auto', margin:0, background:'rgba(0,0,0,0.5)' });
+		} else {
+			$modal.css({ position:'fixed', left: 0, top: 0, right: 0, bottom: 0, width:'auto', height:'auto', margin:0, background:'rgba(0,0,0,0.5)' });
+		}
+	$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, width: Math.min(660, Math.floor(w*0.95)) + 'px', maxWidth: Math.min(660, Math.floor(w*0.95)) + 'px' });
+	var maxH = 480; // enforce global cap
+	$mc.css({ height:'auto', maxHeight: maxH+'px', display:'flex', flexDirection:'column', overflow:'hidden' });
+		$modal.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });
+	} catch(_) {}
+	// Show without Bootstrap backdrop so it doesn't cover the full window
+	$modal.modal({ show: true, backdrop: false, keyboard: true });
 	$('#quickViewEditBtn').show();
 	$('#quickViewSaveBtn').hide();
 	$('#quickViewCancelBtn').hide();
@@ -2377,34 +4078,160 @@ function openQuickView(url, which) {
 	$mc.removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view');
 	$mc.addClass('fire-border');
 	if (currentQuickWhich==='allow') { $mc.addClass('fire-allow-view'); } else if (currentQuickWhich==='ignore') { $mc.addClass('fire-ignore-view'); } else if (currentQuickWhich==='deny') { $mc.addClass('fire-deny-view'); }
-	$.ajax({ url: url, method: 'GET' })
+	// Gentle hint if the load takes longer (large lists)
+	try { window.clearTimeout(window.__qhtlLoadHintTimer); } catch(__h){}
+	window.__qhtlLoadHintTimer = setTimeout(function(){
+		try {
+			var bodyEl = document.getElementById('quickViewBody');
+			if (bodyEl && /Loading\.\.\./.test(bodyEl.textContent||'')) {
+				bodyEl.innerHTML = "<div>Still loading… If the list is large, this can take a moment.</div>";
+			}
+		} catch(__){ }
+
+		// Pre-lock on mousedown specifically for Quick View gear anchors to prevent any
+		// background tab activation (e.g., Waterfall) before our click handler runs.
+		// Includes a short safety auto-unlock if the modal doesn't open.
+		try {
+			document.addEventListener('mousedown', function(e){
+				var t = e.target;
+				var a = (t && t.closest) ? t.closest('a.quickview-link') : null;
+				if (!a) return;
+				if (e && typeof e.preventDefault === 'function') e.preventDefault();
+				if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+				if (e && typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+				try {
+					var currentTab = (function(gear){
+						try {
+							if (gear && gear.closest) {
+								var pane = gear.closest('.tab-pane');
+								if (pane && pane.id) return '#'+pane.id;
+							}
+							var paneActive = document.querySelector('.tab-content .tab-pane.active');
+							if (paneActive && paneActive.id) return '#'+paneActive.id;
+							var actA = document.querySelector('#myTabs li.active > a[href^="#"]') ||
+												 document.querySelector('#myTabs .active > a[href^="#"]') ||
+												 document.querySelector('#myTabs a[aria-selected="true"][href^="#"]');
+							if (actA) return actA.getAttribute('href');
+						} catch(__){}
+						return '#home';
+					})(a);
+					window.qhtlSavedTabHash = currentTab;
+					try { window.qhtlSavedURLHash = window.location.hash; } catch(__){}
+					window.qhtlTabLock = 1;
+					document.documentElement.classList.add('qhtl-tabs-locked');
+					try { qhtlLockTabs(); } catch(__){}
+					if (typeof window.qhtlActivateTab === 'function' && currentTab) { window.qhtlActivateTab(currentTab); }
+					try { window.clearTimeout(window.__qhtlGearPreLockTimer); } catch(__){}
+					window.__qhtlGearPreLockTimer = setTimeout(function(){
+						try {
+							if (!$('#quickViewModal').is(':visible')) {
+								window.qhtlTabLock = 0;
+								document.documentElement.classList.remove('qhtl-tabs-locked');
+								qhtlUnlockTabs();
+							}
+						} catch(__s){}
+					}, 600);
+				} catch(__e){}
+			}, true);
+		} catch(__){ }
+
+	}, 1200);
+
+    try { if (window.__qhtlCurrentXHR && window.__qhtlCurrentXHR.abort) { window.__qhtlCurrentXHR.abort(); } } catch(__ax){}
+    if (window.console && console.info) { try { console.info('[QHTL] QuickView GET', url); } catch(__c){} }
+    window.__qhtlCurrentXHR = $.ajax({ url: url, method: 'GET', dataType: 'html', timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
 		.done(function(data){
+			try { window.clearTimeout(window.__qhtlLoadHintTimer); } catch(__h){}
 			var body = data;
 			try { var m = data.match(/<pre[\s\S]*?<\/pre>/i); if (m) { body = m[0]; } } catch(e) {}
 			$('#quickViewBody').html(body);
 		})
-		.fail(function(){
-			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to load content</div>');
+		.fail(function(xhr, textStatus, errorThrown){
+			if (window.console && console.warn) { try { console.warn('[QHTL] QuickView GET failed', url, textStatus, errorThrown, xhr && xhr.status); } catch(__c){} }
+			try { window.clearTimeout(window.__qhtlLoadHintTimer); } catch(__h){}
+			var code = (xhr && typeof xhr.status !== 'undefined') ? xhr.status : 'n/a';
+			var msg = (textStatus || 'error') + (errorThrown ? (': '+errorThrown) : '');
+			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to load content ('+code+'): '+msg+'<br><span class="small text-muted">Try again or use the full editor button if available.</span></div>');
 		});
 }
 function showQuickView(which) {
 	var url = QHTL_SCRIPT + '?action=viewlist&which=' + encodeURIComponent(which);
 	openQuickView(url, which);
 }
-$(document).on('click', 'a.quickview-link', function(e){
-	try {
-		e.preventDefault();
-		var url = $(this).attr('href');
-		var which = $(this).data('which');
-		openQuickView(url, which);
+// Capture-phase guard to intercept Quick View gear clicks before any other handlers
+try {
+	// Determine the best current tab hash. Prefer the origin pane of the clicked gear.
+	function __qhtlGetPreferredTabHash(gearAnchor){
+		try {
+			if (gearAnchor && gearAnchor.closest) {
+				var pane = gearAnchor.closest('.tab-pane');
+				if (pane && pane.id) { return '#'+pane.id; }
+			}
+			var paneActive = document.querySelector('.tab-content .tab-pane.active');
+			if (paneActive && paneActive.id) { return '#'+paneActive.id; }
+			var actA = document.querySelector('#myTabs li.active > a[href^="#"]') ||
+					   document.querySelector('#myTabs .active > a[href^="#"]') ||
+					   document.querySelector('#myTabs a[aria-selected="true"][href^="#"]');
+			if (actA) { return actA.getAttribute('href'); }
+			if (window.location && window.location.hash && document.querySelector(window.location.hash)) {
+				return window.location.hash;
+			}
+		} catch(__){}
+		return '#home';
+	}
+	document.addEventListener('click', function(e){
+		var t = e.target;
+		var a = (t && t.closest) ? t.closest('a.quickview-link') : null;
+		if (!a) return;
+		// Halt default navigation and any bubbling that might toggle tabs FIRST
+		if (e && typeof e.preventDefault === 'function') e.preventDefault();
+		if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+		if (e && typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+		// Compute origin tab and lock tabs during modal
+		var currentTab = __qhtlGetPreferredTabHash(a);
+		try { window.qhtlSavedTabHash = currentTab; } catch(__){}
+		try { window.qhtlSavedURLHash = window.location.hash; } catch(__){}
+		try { window.qhtlTabLock = 1; } catch(__){}
+		try { document.documentElement.classList.add('qhtl-tabs-locked'); } catch(__){}
+		try { qhtlLockTabs(); } catch(__){}
+		// Hard re-assert the current tab immediately to prevent any background switch
+		try { if (typeof window.qhtlActivateTab === 'function') { window.qhtlActivateTab(currentTab); } } catch(__){}
+		// Open the modal directly
+		var url = a.getAttribute('data-url') || a.getAttribute('href');
+		var which = a.getAttribute('data-which');
+		try {
+			// cancel the pre-lock safety timer since we are opening now
+			try { window.clearTimeout(window.__qhtlGearPreLockTimer); } catch(__){}
+			openQuickView(url, which);
+		} catch(_){ }
+		// Re-activate the current tab after the modal opens (multiple ticks)
+		try {
+			if (currentTab && typeof window.qhtlActivateTab === 'function') {
+				var times=[0,50,150,300,600];
+				for (var i=0;i<times.length;i++){ (function(ms){ setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, ms); })(times[i]); }
+			}
+		} catch(__e){}
+		// Safety: auto-unlock if modal didn't become visible
+		setTimeout(function(){
+			try {
+				var visible = $('#quickViewModal').is(':visible');
+				if (!visible) {
+					window.qhtlTabLock = 0;
+					document.documentElement.classList.remove('qhtl-tabs-locked');
+					qhtlUnlockTabs();
+				}
+			} catch(__s){}
+		}, 400);
 		return false;
-	} catch(err) { /* fallback to navigation */ }
-});
+	}, true);
+} catch(_){ }
 $(document).on('click', '#quickViewEditBtn', function(){
 	if (!currentQuickWhich) { return; }
-	var url = QHTL_SCRIPT + '?action=editlist&which=' + encodeURIComponent(currentQuickWhich);
+    var url = QHTL_SCRIPT + '?action=editlist&which=' + encodeURIComponent(currentQuickWhich);
 	$('#quickViewBody').html('Loading...');
-	$.ajax({ url: url, method: 'GET' })
+    try { if (window.__qhtlEditXHR && window.__qhtlEditXHR.abort) { window.__qhtlEditXHR.abort(); } } catch(__ax){}
+    if (window.console && console.info) { try { console.info('[QHTL] QuickView EDIT GET', url); } catch(__c){} }
+    window.__qhtlEditXHR = $.ajax({ url: url, method: 'GET', dataType: 'html', timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
 		.done(function(data){
 			$('#quickViewBody').html(data);
 			$('#quickViewEditBtn').hide();
@@ -2412,10 +4239,13 @@ $(document).on('click', '#quickViewEditBtn', function(){
 			$('#quickViewCancelBtn').show();
 			// add fire effect according to which list is being edited
 			var cls = (currentQuickWhich==='allow') ? 'fire-allow' : (currentQuickWhich==='ignore' ? 'fire-ignore' : 'fire-deny');
-			var $mc = $('#quickViewModal .modal-content'); $mc.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); $mc.addClass('fire-border').removeClass('fire-allow fire-ignore fire-deny').addClass(cls);
+			var $mc = $('#quickViewModal .modal-content'); $mc.removeClass('fire-allow fire-ignore fire-deny').addClass('fire-border').addClass(cls);
 		})
-		.fail(function(){
-			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to load editor</div>');
+		.fail(function(xhr, textStatus, errorThrown){
+			if (window.console && console.warn) { try { console.warn('[QHTL] QuickView EDIT failed', url, textStatus, errorThrown, xhr && xhr.status); } catch(__c){} }
+			var code = (xhr && typeof xhr.status !== 'undefined') ? xhr.status : 'n/a';
+			var msg = (textStatus || 'error') + (errorThrown ? (': '+errorThrown) : '');
+			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to load editor ('+code+'): '+msg+'</div>');
 		});
 });
 $(document).on('click', '#quickViewCancelBtn', function(){
@@ -2432,7 +4262,9 @@ $(document).on('click', '#quickViewSaveBtn', function(){
 	var ta = document.getElementById('quickEditArea');
 	if (ta) { content = ta.value; }
 	$('#quickViewBody').html('Saving...');
-	$.ajax({ url: QHTL_SCRIPT + '?action=savelist&which=' + encodeURIComponent(currentQuickWhich), method: 'POST', data: { formdata: content } })
+    try { if (window.__qhtlSaveXHR && window.__qhtlSaveXHR.abort) { window.__qhtlSaveXHR.abort(); } } catch(__ax){}
+    if (window.console && console.info) { try { console.info('[QHTL] QuickView SAVE POST', currentQuickWhich); } catch(__c){} }
+    window.__qhtlSaveXHR = $.ajax({ url: QHTL_SCRIPT + '?action=savelist&which=' + encodeURIComponent(currentQuickWhich), method: 'POST', data: { formdata: content }, timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
 		.done(function(){
 			showQuickView(currentQuickWhich);
 			$('#quickViewEditBtn').show();
@@ -2440,57 +4272,47 @@ $(document).on('click', '#quickViewSaveBtn', function(){
 			$('#quickViewCancelBtn').hide();
 			var $mc3 = $('#quickViewModal .modal-content'); $mc3.removeClass('fire-allow fire-ignore fire-deny'); $mc3.addClass('fire-border'); $mc3.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); $mc3.addClass((currentQuickWhich==='allow')?'fire-allow-view':(currentQuickWhich==='ignore')?'fire-ignore-view':'fire-deny-view');
 		})
-		.fail(function(){
-			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to save changes</div>');
+		.fail(function(xhr, textStatus, errorThrown){
+			if (window.console && console.warn) { try { console.warn('[QHTL] QuickView SAVE failed', textStatus, errorThrown, xhr && xhr.status); } catch(__c){} }
+			var code = (xhr && typeof xhr.status !== 'undefined') ? xhr.status : 'n/a';
+			var msg = (textStatus || 'error') + (errorThrown ? (': '+errorThrown) : '');
+			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to save changes ('+code+'): '+msg+'</div>');
 		});
 });
-$('#quickViewModal').on('hidden.bs.modal', function(){ $('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view'); });
+$('#quickViewModal').on('hidden.bs.modal', function(){
+	// Force-unlock to ensure tabs are usable even if lock was incremented multiple times
+	try { window.qhtlTabLock = 0; } catch(_){ }
+	try { document.documentElement.classList.remove('qhtl-tabs-locked'); } catch(_){ }
+	try { qhtlUnlockTabs(); } catch(_){ }
+	// Abort any in-flight XHRs and clear timers
+	try { if (window.__qhtlCurrentXHR && window.__qhtlCurrentXHR.abort) { window.__qhtlCurrentXHR.abort(); } } catch(_ax){}
+	try { if (window.__qhtlEditXHR && window.__qhtlEditXHR.abort) { window.__qhtlEditXHR.abort(); } } catch(_ax){}
+	try { if (window.__qhtlSaveXHR && window.__qhtlSaveXHR.abort) { window.__qhtlSaveXHR.abort(); } } catch(_ax){}
+	try { window.clearTimeout(window.__qhtlLoadHintTimer); } catch(_t){}
+	// No observers to disconnect (MutationObserver approach removed to avoid freezes)
+	$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view');
+});
 JS
 		print "</script>\n";
 	print "</div>\n";
 		print "</div>\n";
 
-	print "<div id='qhtlwaterfall' class='tab-pane'>\n";
-		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
-		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallstatus'><input type='submit' class='btn btn-default' value='qhtlwaterfall Status'></form></td><td style='width:100%'>Display qhtlwaterfall status</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallrestart'><input type='submit' class='btn btn-default' value='qhtlwaterfall Restart'></form></td><td style='width:100%'>Restart qhtlwaterfall</td></tr>\n";
-		print "<tr><td style='white-space: nowrap;'><form action='$script' method='post'><input type='hidden' name='action' value='ignorefiles'><select name='ignorefile'>\n";
-		print "<option value='qhtlfirewall.ignore'>qhtlfirewall.ignore - IP Blocking</option>\n";
-		print "<option value='qhtlfirewall.pignore'>qhtlfirewall.pignore, Process Tracking</option>\n";
-		print "<option value='qhtlfirewall.fignore'>qhtlfirewall.fignore, Directory Watching</option>\n";
-		print "<option value='qhtlfirewall.signore'>qhtlfirewall.signore, Script Alert</option>\n";
-		print "<option value='qhtlfirewall.rignore'>qhtlfirewall.rignore, Reverse DNS lookup</option>\n";
-		print "<option value='qhtlfirewall.suignore'>qhtlfirewall.suignore, Superuser check</option>\n";
-		print "<option value='qhtlfirewall.mignore'>qhtlfirewall.mignore, RT_LOCALRELAY</option>\n";
-		print "<option value='qhtlfirewall.logignore'>qhtlfirewall.logignore, Log Scanner</option>\n";
-		print "<option value='qhtlfirewall.uidignore'>qhtlfirewall.uidignore, User ID Tracking</option>\n";
-		print "</select> <input type='submit' class='btn btn-default' value='Edit'></form></td><td style='width:100%'>Edit qhtlwaterfall ignore file</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='dirwatch' type='submit' class='btn btn-default'>qhtlwaterfall Directory File Watching</button></form></td><td style='width:100%'>Edit the Directory File Watching file (qhtlfirewall.dirwatch) - all listed files and directories will be watched for changes by qhtlwaterfall</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='dyndns' type='submit' class='btn btn-default'>qhtlwaterfall Dynamic DNS</button></form></td><td style='width:100%'>Edit the Dynamic DNS file (qhtlfirewall.dyndns) - all listed domains will be resolved and allowed through the firewall</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><select name='template'>\n";
-		foreach my $tmp ("alert.txt","tracking.txt","connectiontracking.txt","processtracking.txt","accounttracking.txt","usertracking.txt","sshalert.txt","webminalert.txt","sualert.txt","sudoalert.txt","uialert.txt","cpanelalert.txt","scriptalert.txt","filealert.txt","watchalert.txt","loadalert.txt","resalert.txt","integrityalert.txt","exploitalert.txt","relayalert.txt","portscan.txt","uidscan.txt","permblock.txt","netblock.txt","queuealert.txt","logfloodalert.txt","logalert.txt","modsecipdbcheck.txt") {print "<option>$tmp</option>\n"}
-		print "</select> <button name='action' value='templates' type='submit' class='btn btn-default'>Edit</button></form></td><td style='width:100%'>Edit email alert templates. See Firewall Information for details of each file</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='logfiles' type='submit' class='btn btn-default'>qhtlwaterfall Log Scanner Files</button></form></td><td style='width:100%'>Edit the Log Scanner file (qhtlfirewall.logfiles) - Scan listed log files for log lines and periodically send a report</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='blocklists' type='submit' class='btn btn-default'>qhtlwaterfall Blocklists</button></form></td><td style='width:100%'>Edit the Blocklists configuration file (qhtlfirewall.blocklists)</td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='syslogusers' type='submit' class='btn btn-default'>qhtlwaterfall Syslog Users</button></form></td><td style='width:100%'>Edit the syslog/rsyslog allowed users file (qhtlfirewall.syslogusers)</td></tr>\n";
-		print "</table>\n";
-		print "</div>\n";
+	# Old QhtLink Waterfall pane removed; content lives in '#waterfall'
 
 		if ($config{CLUSTER_SENDTO}) {
 			print "<div id='cluster' class='tab-pane'>\n";
 			print "<table class='table table-bordered table-striped'>\n";
 			print "<thead><tr><th colspan='2'>qhtlfirewall - qhtlwaterfall Cluster</th></tr></thead>";
 
-			print "<tr><td><form action='$script' method='post'><button name='action' value='cping' type='submit' class='btn btn-default'>Cluster PING</button></form></td><td style='width:100%'>Ping each member of the cluster (logged in qhtlwaterfall.log)</td></tr>\n";
-			print "<tr><td><button onClick='\$(\"#callow\").submit();' class='btn btn-default'>Cluster Allow</button></td><td style='width:100%'><form action='$script' method='post' id='callow'><input type='submit' class='hide'><input type='hidden' name='action' value='callow'>Allow IP address <input type='text' name='ip' value='' size='18' style='background-color: lightgreen'> through the Cluster and add to the allow file (qhtlfirewall.allow)<br>Comment: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
-			print "<tr><td><button onClick='\$(\"#cdeny\").submit();' class='btn btn-default'>Cluster Deny</button></td><td style='width:100%'><form action='$script' method='post' id='cdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='cdeny'>Block IP address <input type='text' name='ip' value='' size='18' style='background-color: pink'> in the Cluster and add to the deny file (qhtlfirewall.deny)<br>Comment: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
-			print "<tr><td><button onClick='\$(\"#cignore\").submit();' class='btn btn-default'>Cluster Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='cignore'><input type='submit' class='hide'><input type='hidden' name='action' value='cignore'>Ignore IP address <input type='text' name='ip' value='' size='18'> in the Cluster and add to the ignore file (qhtlfirewall.ignore)<br>Comment: <input type='text' name='comment' value='' size='30'> Note: This will result in qhtlwaterfall being restarted</form></td></tr>\n";
-			print "<tr><td><button onClick='\$(\"#cgrep\").submit();' class='btn btn-default'>Search the Cluster for IP</button></td><td style='width:100%'><form action='$script' method='post' id='cgrep'><input type='submit' class='hide'><input type='hidden' name='action' value='cgrep'>Search iptables for IP address <input type='text' name='ip' value='' size='18'></form></td></tr>\n";
-			print "<tr><td><button onClick='\$(\"#ctempdeny\").submit();' class='btn btn-default'>Cluster Temp Allow/Deny</button></td><td style='width:100%'><form action='$script' method='post' id='ctempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='ctempdeny'>Temporarily <select name='do' id='do'><option>allow</option><option>deny</option></select> IP address <input type='text' name='target' value='' size='18' id='target'> for $config{CF_TEMP} secs in CloudFlare AND qhtlfirewall for the chosen accounts and those with to \"any\"<br>Comment: <input type='text' name='comment' value='' size='30'></form></td></tr>\n";
-			print "<tr><td><button onClick='\$(\"#crm\").submit();' class='btn btn-default'>Cluster Remove Deny</button></td><td style='width:100%'><form action='$script' method='post' id='crm'><input type='submit' class='hide'><input type='hidden' name='action' value='crm'>Remove Deny IP address <input type='text' name='ip' value='' size='18' style=''> in the Cluster (temporary or permanent)</form></td></tr>\n";
-			print "<tr><td><button onClick='\$(\"#carm\").submit();' class='btn btn-default'>Cluster Remove Allow</button></td><td style='width:100%'><form action='$script' method='post' id='carm'><input type='submit' class='hide'><input type='hidden' name='action' value='carm'>Remove Allow IP address <input type='text' name='ip' value='' size='18' style=''> in the Cluster (temporary or permanent)</form></td></tr>\n";
-			print "<tr><td><button onClick='\$(\"#cirm\").submit();' class='btn btn-default'>Cluster Remove Ignore</button></td><td style='width:100%'><form action='$script' method='post' id='cirm'><input type='submit' class='hide'><input type='hidden' name='action' value='cirm'>Remove Ignore IP address <input type='text' name='ip' value='' size='18'> in the Cluster<br>Note: This will result in qhtlwaterfall being restarted</form></td></tr>\n";
+			print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='cping' type='submit' class='btn btn-default'>Cluster PING</button></form><div class='text-muted small' style='margin-top:6px'>Ping each member of the cluster (logged in qhtlwaterfall.log)</div></td></tr>\n";
+			print "<tr><td colspan='2'><button onClick='\$(\"#callow\").submit();' class='btn btn-default'>Cluster Allow</button><div style='margin-top:6px'><form action='$script' method='post' id='callow'><input type='submit' class='hide'><input type='hidden' name='action' value='callow'>Allow IP address <input type='text' name='ip' value='' size='18' style='background-color: lightgreen'> through the Cluster and add to the allow file (qhtlfirewall.allow)<br>Comment: <input type='text' name='comment' value='' size='30'></form></div></td></tr>\n";
+			print "<tr><td colspan='2'><button onClick='\$(\"#cdeny\").submit();' class='btn btn-default'>Cluster Deny</button><div style='margin-top:6px'><form action='$script' method='post' id='cdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='cdeny'>Block IP address <input type='text' name='ip' value='' size='18' style='background-color: pink'> in the Cluster and add to the deny file (qhtlfirewall.deny)<br>Comment: <input type='text' name='comment' value='' size='30'></form></div></td></tr>\n";
+			print "<tr><td colspan='2'><button onClick='\$(\"#cignore\").submit();' class='btn btn-default'>Cluster Ignore</button><div style='margin-top:6px'><form action='$script' method='post' id='cignore'><input type='submit' class='hide'><input type='hidden' name='action' value='cignore'>Ignore IP address <input type='text' name='ip' value='' size='18'> in the Cluster and add to the ignore file (qhtlfirewall.ignore)<br>Comment: <input type='text' name='comment' value='' size='30'> Note: This will result in qhtlwaterfall being restarted</form></div></td></tr>\n";
+			print "<tr><td colspan='2'><button onClick='\$(\"#cgrep\").submit();' class='btn btn-default'>Search the Cluster for IP</button><div style='margin-top:6px'><form action='$script' method='post' id='cgrep'><input type='submit' class='hide'><input type='hidden' name='action' value='cgrep'>Search iptables for IP address <input type='text' name='ip' value='' size='18'></form></div></td></tr>\n";
+			print "<tr><td colspan='2'><button onClick='\$(\"#ctempdeny\").submit();' class='btn btn-default'>Cluster Temp Allow/Deny</button><div style='margin-top:6px'><form action='$script' method='post' id='ctempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='ctempdeny'>Temporarily <select name='do' id='do'><option>allow</option><option>deny</option></select> IP address <input type='text' name='target' value='' size='18' id='target'> for $config{CF_TEMP} secs in CloudFlare AND qhtlfirewall for the chosen accounts and those with to \"any\"</form></div></td></tr>\n";
+			print "<tr><td colspan='2'><button onClick='\$(\"#crm\").submit();' class='btn btn-default'>Cluster Remove Deny</button><div style='margin-top:6px'><form action='$script' method='post' id='crm'><input type='submit' class='hide'><input type='hidden' name='action' value='crm'>Remove Deny IP address <input type='text' name='ip' value='' size='18' style=''> in the Cluster (temporary or permanent)</form></div></td></tr>\n";
+			print "<tr><td colspan='2'><button onClick='\$(\"#carm\").submit();' class='btn btn-default'>Cluster Remove Allow</button><div style='margin-top:6px'><form action='$script' method='post' id='carm'><input type='submit' class='hide'><input type='hidden' name='action' value='carm'>Remove Allow IP address <input type='text' name='ip' value='' size='18' style=''> in the Cluster (temporary or permanent)</form></div></td></tr>\n";
+			print "<tr><td colspan='2'><button onClick='\$(\"#cirm\").submit();' class='btn btn-default'>Cluster Remove Ignore</button><div style='margin-top:6px'><form action='$script' method='post' id='cirm'><input type='submit' class='hide'><input type='hidden' name='action' value='cirm'>Remove Ignore IP address <input type='text' name='ip' value='' size='18'> in the Cluster<br>Note: This will result in qhtlwaterfall being restarted</form></div></td></tr>\n";
 
 			if ($config{CLUSTER_CONFIG}) {
 				if ($ips{$config{CLUSTER_MASTER}} or $ipscidr6->find($config{CLUSTER_MASTER}) or ($config{CLUSTER_MASTER} eq $config{CLUSTER_NAT})) {
@@ -2508,51 +4330,26 @@ JS
 					foreach my $key (sort keys %config) {
 						unless ($restricted{$key}) {$options .= "<option>$key</option>"}
 					}
-					print "<tr><td><button onClick='\$(\"#cconfig\").submit();' class='btn btn-default'>Cluster Config</button></td><td style='width:100%'><form action='$script' method='post' id='cconfig'><input type='submit' class='hide'><input type='hidden' name='action' value='cconfig'>Change configuration option <select name='option'>$options</select> to <input type='text' name='value' value='' size='18'> in the Cluster";
+					print "<tr><td colspan='2'><button onClick='\$(\"#cconfig\").submit();' class='btn btn-default'>Cluster Config</button><div style='margin-top:6px'><form action='$script' method='post' id='cconfig'><input type='submit' class='hide'><input type='hidden' name='action' value='cconfig'>Change configuration option <select name='option'>$options</select> to <input type='text' name='value' value='' size='18'> in the Cluster";
 					if ($config{RESTRICT_UI}) {print "<br />\nSome items have been removed with RESTRICT_UI enabled"}
-					print "</form></td></tr>\n";
-					print "<tr><td><form action='$script' method='post'><button name='action' value='crestart' type='submit' class='btn btn-default'>Cluster Restart</button></form></td><td style='width:100%'>Restart qhtlfirewall and qhtlwaterfall on Cluster members</td></tr>\n";
+					print "</form></div></td></tr>\n";
+					print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='crestart' type='submit' class='btn btn-default'>Cluster Restart</button></form><div class='text-muted small' style='margin-top:6px'>Restart qhtlfirewall and qhtlwaterfall on Cluster members</div></td></tr>\n";
 				}
 			}
 			print "</table>\n";
 			print "</div>\n";
 		}
 
-	print "<div id='other' class='tab-pane'>\n";
-		if ($config{CF_ENABLE}) {
-			print "<table class='table table-bordered table-striped'>\n";
-			print "<thead><tr><th colspan='2'>CloudFlare Firewall</th></tr></thead>";
-			print "<tr><td><form action='$script' method='post'><button name='action' value='cloudflare' type='submit' class='btn btn-default'>CloudFlare</button></form></td><td style='width:100%'>Access CloudFlare firewall functionality</td></tr>\n";
-			print "<tr><td><form action='$script' method='post'><button name='action' value='cloudflareedit' type='submit' class='btn btn-default'>CloudFlare Config</button></form></td><td style='width:100%'>Edit the CloudFlare Configuration file (qhtlfirewall.cloudflare)</td></tr>\n";
-			print "</table>\n";
-		}
-		if ($config{SMTPAUTH_RESTRICT}) {
-			print "<table class='table table-bordered table-striped'>\n";
-			print "<thead><tr><th colspan='2'>cPanel SMTP AUTH Restrictions</th></tr></thead>";
-			print "<tr><td><form action='$script' method='post'><button name='action' value='smtpauth' type='submit' class='btn btn-default'>Edit SMTP AUTH</button></form></td><td style='width:100%'>Edit the file that allows SMTP AUTH to be advertised to listed IP addresses (qhtlfirewall.smtpauth)</td></tr>\n";
-			print "</table>\n";
-		}
 
-		if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN} or $config{INTERWORX}) {
-			my $resellers = "cPanel Resellers";
-			if ($config{DIRECTADMIN}) {$resellers = "DirectAdmin Resellers"}
-			elsif ($config{INTERWORX}) {$resellers = "InterWorx Resellers"}
-			print "<table class='table table-bordered table-striped'>\n";
-			print "<thead><tr><th colspan='2'>$resellers</th></tr></thead>";
-			print "<tr><td><form action='$script' method='post'><button name='action' value='reseller' type='submit' class='btn btn-default'>Edit Reseller Privs</button></form></td><td style='width:100%'>Privileges can be assigned to $resellers accounts by editing this file (qhtlfirewall.resellers)</td></tr>\n";
-			print "</table>\n";
-		}
-
-		# Close the 'More' tab-pane before starting Extra
-		print "</div>\n";
-
-		# New Extra tab-pane at the end
-		print "<div id='extra' class='tab-pane'>\n";
+		# New Promotion tab-pane between More... and QhtLink Firewall (placeholder)
+		print "<div id='promotion' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>Extra</th></tr></thead>";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='qhtlfirewalltest' type='submit' class='btn btn-default'>Test iptables</button></form></td><td style='width:100%'>Check that iptables has the required modules to run qhtlfirewall</td></tr>\n";
+		print "<thead><tr><th colspan='2'>Promotion</th></tr></thead>";
+		print "<tr><td colspan='2'>No promotions are currently available.</td></tr>\n";
 		print "</table>\n";
 		print "</div>\n";
+
+	# New Extra tab-pane at the end
 		# Close tab-content container
 		print "</div>\n";
 
@@ -2562,19 +4359,45 @@ JS
 #		}
 		# Note: Mobile View panel moved to Upgrade tab above
 
-		print "<div class='panel panel-info'>\n";
-		print "<div class='panel-heading'>About</div>";
-		print "<div class='panel-body'>This software is maintained by Danpol Community. Visit <a href='https://www.forum.danpol.co.uk' target='_blank'>www.forum.danpol.co.uk</a> for updates and support.</div>\n";
-		print "</div>\n";
+	# About already moved under 'More' tab above
 
 	}
 
-	unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
-		print "<br>\n";
-		print "<div class='well well-sm'>qhtlfirewall: v$myv</div>";
-		print "<p>&copy;2025, <a href='https://www.qhtlfirewall.danpol.co.uk' target='_blank'>Danpol Limited</a> (Daniel Nowakowski</p>\n";
-		print "</div>\n";
-	}
+		unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
+				# Auto-hide single section headers within a tab (show only when a tab has 2+ sections)
+				print <<'JS_HIDE_HEADERS';
+<script>
+function qhtlUpdateSectionHeaders(scope){
+	try {
+		var nodes = scope ? $(scope) : $('.tab-pane');
+		nodes.each(function(){
+			var $tp = $(this);
+			var $tables = $tp.find('table.table');
+			if ($tables.length === 1) {
+				$tables.first().find('thead').hide();
+			} else if ($tables.length > 1) {
+				$tables.find('thead').show();
+			}
+		});
+	} catch(e){}
+}
+$(function(){
+	qhtlUpdateSectionHeaders();
+	$(document).on('shown.bs.tab','a[data-toggle="tab"]',function(e){
+		var target = $(e.target).attr('href');
+		if (target) { qhtlUpdateSectionHeaders(target); }
+	});
+});
+</script>
+JS_HIDE_HEADERS
+				# Close the normal container opened earlier
+				print "</div>\n";
+		}
+
+		# Lightweight runtime helper: change a bubble button's color variant dynamically.
+		# Usage example (browser console or future features):
+		#   qhtlSetBubbleColor('#someButton','red');
+		print "<script>window.qhtlSetBubbleColor=function(sel,color){try{var el=(typeof sel==='string')?document.querySelector(sel):sel;if(el){el.setAttribute('data-bubble-color',color);}}catch(e){}};</script>\n";
 
 	return;
 }
@@ -2592,6 +4415,79 @@ sub printcmd {
 	return;
 }
 # end printcmd
+###############################################################################
+# start confirmmodal
+sub confirmmodal {
+		# Render a compact, scoped confirm modal and wire .confirmButton triggers
+		print <<'CONFIRM_MODAL_HTML';
+<div class='modal fade' id='confirmmodal' tabindex='-1' role='dialog' aria-labelledby='confirmtitle' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0,0,0,0.5)'>
+	<div class='modal-dialog'>
+		<div class='modal-content'>
+			<div class='modal-body'>
+				<h4 id='confirmtitle' style='margin:0 0 8px 0;'>Please Confirm</h4>
+				<div id='confirmtext'>Are you sure?</div>
+			</div>
+			<div class='modal-footer' style='display:flex;justify-content:space-between;align-items:center;'>
+				<div></div>
+				<div>
+					<button type='button' class='btn btn-default' id='confirmcancel' data-dismiss='modal'>Cancel</button>
+					<button type='button' class='btn btn-primary' id='confirmok'>OK</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<script>
+(function(){
+	var pendingHref = null;
+	function ensureScoped(){
+		try {
+			var $modal = $('#confirmmodal');
+			var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
+			if (parent && $modal.length) {
+				$modal.appendTo(parent);
+				var inScoped = (parent !== document.body);
+				var w = inScoped ? (parent.clientWidth || window.innerWidth) : window.innerWidth;
+				var $dlg = $modal.find('.modal-dialog');
+				var $mc  = $modal.find('.modal-content');
+				$modal.css({ position: inScoped ? 'absolute' : 'fixed', left:0, top:0, right:0, bottom:0, width:'auto', height:'auto', margin:0 });
+				$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, width: Math.min(320, Math.floor(w*0.95)) + 'px', maxWidth: Math.min(320, Math.floor(w*0.95)) + 'px' });
+				$mc.css({ display:'flex', flexDirection:'column', overflow:'hidden', maxHeight:'480px' });
+				$modal.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });
+			}
+		} catch(_){ }
+	}
+	function lockTabs(){ try { window.qhtlTabLock = 1; document.documentElement.classList.add('qhtl-tabs-locked'); if(window.qhtlLockTabs) qhtlLockTabs(); } catch(_){ } }
+	function unlockTabs(){ try { window.qhtlTabLock = 0; document.documentElement.classList.remove('qhtl-tabs-locked'); if(window.qhtlUnlockTabs) qhtlUnlockTabs(); } catch(_){ } }
+	$(document).on('click', '.confirmButton', function(e){
+		try {
+			e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+			var $btn = $(this);
+			var txt = $btn.data('query') || 'Are you sure?';
+			pendingHref = $btn.data('href') || null;
+			$('#confirmtext').text(txt);
+			ensureScoped();
+			lockTabs();
+			$('#confirmmodal').modal({ show:true, backdrop:false, keyboard:true });
+		} catch(__){}
+		return false;
+	});
+	$(document).on('click', '#confirmok', function(){
+		try {
+			var href = pendingHref; pendingHref = null;
+			$('#confirmmodal').modal('hide');
+			unlockTabs();
+			if (href) { window.location = href; }
+		} catch(__){}
+	});
+	$('#confirmmodal').on('hidden.bs.modal', function(){ try { pendingHref = null; unlockTabs(); } catch(_){ } });
+})();
+</script>
+CONFIRM_MODAL_HTML
+
+		return;
+}
+# end confirmmodal
 ###############################################################################
 # start getethdev
 sub getethdev {
@@ -2954,7 +4850,7 @@ sub savefile {
 
 	return;
 }
-# end cloudflare
+	# end savefile
 ###############################################################################
 # start cloudflare
 sub cloudflare {
@@ -3009,165 +4905,18 @@ $(document).ready(function(){
       $('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', true);
     } else {
       $('#cflistbtn,#cftempdenybtn,#cfaddbtn,#cfremovebtn').prop('disabled', false);
-    }
-  });
+		}
+	});
 });
 JS
 	print "</script>\n";
-	}
+
+}
+# end cloudflare
+1;
 sub printreturn {
 	print "<hr><div><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input id='qhtlfirewallreturn' type='submit' class='btn btn-default' value='Return'></form></div>\n";
 
 	return;
 }
 # end printreturn
-###############################################################################
-# start confirmmodal
-sub confirmmodal {
-	print "<div class='modal fade' id='confirmmodal' tabindex='-1' role='dialog' aria-labelledby='myModalLabel' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0, 0, 0, 0.5)'>\n";
-	print "<div class='modal-dialog modal-sm'>\n";
-	print "<div class='modal-content'>\n";
-	print "<div class='modal-body'>\n";
-	print "<h4 id='modal-text'>text</h4>\n";
-	print "</div>\n";
-	print "<div class='modal-footer'>\n";
-	print "<a id='modal-submit' href='#' class='btn btn-success'>Yes - Continue</a>\n";
-	print "<button type='button' class='btn btn-danger' data-dismiss='modal'>No - Cancel</button>\n";
-	print "</div>\n";
-	print "</div>\n";
-	print "</div>\n";
-	print "</div>\n";
-	print "<script>\n";
-	print "	\$('button.confirmButton').on('click', function(e) {\n";
-	print "	var dataquery = \$(this).attr('data-query');\n";
-	print "	var datahref = \$(this).attr('data-href');\n";
-	print "	\$('#modal-text').html(dataquery);\n";
-	print "	\$('#modal-submit').attr({'href':datahref});\n";
-	print "});\n";
-	print "\$('.modal').click(function(event){\n";
-	print "  \$(event.target).modal('hide')\n";
-	print "});\n";
-	print "</script>\n";
-	return;
-}
-# end confirmmodal
-###############################################################################
-# start qhtlfirewallgetversion
-sub qhtlfirewallgetversion {
-	my $product = shift;
-	my $current = shift;
-	my $upgrade = 0;
-	my $newversion;
-	if (-e "/var/lib/qhtlfirewall/".$product.".txt.error") {
-		open (my $VERSION, "<", "/var/lib/qhtlfirewall/".$product.".txt.error");
-		flock ($VERSION, LOCK_SH);
-		$newversion = <$VERSION>;
-		close ($VERSION);
-		chomp $newversion;
-		if ($newversion eq "") {
-			$newversion = "Failed to retrieve latest version from Danpol update server";
-		} else {
-			$newversion = "Failed to retrieve latest version from Danpol update server: $newversion";
-		}
-	}
-	elsif (-e "/var/lib/qhtlfirewall/".$product.".txt") {
-		open (my $VERSION, "<", "/var/lib/qhtlfirewall/".$product.".txt");
-		flock ($VERSION, LOCK_SH);
-		$newversion = <$VERSION>;
-		close ($VERSION);
-		chomp $newversion;
-		if ($newversion eq "") {
-			$newversion = "Failed to retrieve latest version from Danpol update server";
-		} else {
-			if ($newversion =~ /^[\d\.]*$/) {
-				if ($newversion > $current) {$upgrade = 1} else {$newversion = ""}
-			} else {$newversion = ""}
-		}
-	}
-	elsif (-e "/var/lib/qhtlfirewall/error") {
-		open (my $VERSION, "<", "/var/lib/qhtlfirewall/error");
-		flock ($VERSION, LOCK_SH);
-		$newversion = <$VERSION>;
-		close ($VERSION);
-		chomp $newversion;
-		if ($newversion eq "") {
-			$newversion = "Failed to retrieve latest version from Danpol update server";
-		} else {
-			$newversion = "Failed to retrieve latest version from Danpol update server: $newversion";
-		}
-	} else {
-		$newversion = "Failed to retrieve latest version from Danpol update server";
-	}
-	return ($upgrade, $newversion);
-}
-# end qhtlfirewallgetversion
-###############################################################################
-# start manualversion
-sub manualversion {
-	my $current = shift;
-	my $upgrade = 0;
-	my @servers;
-	my $errtext = '';
-
-	# Prefer /etc/qhtlfirewall/downloadservers if present, else fall back to configured DOWNLOADSERVER
-	my $list = '/etc/qhtlfirewall/downloadservers';
-	if (-r $list) {
-		if (open my $fh, '<', $list) {
-			while (my $line = <$fh>) {
-				chomp $line;
-				$line =~ s/\r?\n$//;
-				$line =~ s/#.*$//;
-				$line =~ s/^\s+|\s+$//g;
-				next unless length $line;
-				if ($line !~ m{^https?://}i) { $line = 'https://' . $line; }
-				$line =~ s{/+\z}{};
-				push @servers, $line;
-			}
-			close $fh;
-		}
-	}
-	if (!@servers) {
-		my $scheme = ($config{URLGET} == 1) ? 'http' : 'https';
-		push @servers, "$scheme://$config{DOWNLOADSERVER}";
-	}
-
-	my $best_version = '';
-	my $best_server  = '';
-
-	foreach my $srv (@servers) {
-		my $url = "$srv/qhtlfirewall/version.txt";
-		my ($status, $body) = $urlget->urlget($url);
-		if (!$status && defined $body && $body ne '') {
-			my $v = $body; chomp $v; $v =~ s/^\s+|\s+$//g;
-			if ($v =~ /^[\d\.]+$/) {
-				# Keep the highest semver-ish numeric version
-				if ($best_version eq '' || $v > $best_version) {
-					$best_version = $v;
-					$best_server  = $srv;
-				}
-			} else {
-				$errtext ||= "Invalid version format from $srv";
-			}
-		} else {
-			my $why = (defined $body && $body ne '') ? $body : 'request failed';
-			$errtext ||= "$url - $why";
-		}
-	}
-
-	if ($best_version ne '' && $best_version > $current) { $upgrade = 1; }
-
-	# If no upgrade but we have a valid fetched version, return it for display
-	if ($best_version ne '' && !$upgrade) {
-		return (0, $best_version, $best_server, '');
-	}
-	# If upgrade available
-	if ($upgrade) {
-		return (1, $best_version, $best_server, '');
-	}
-	# If nothing valid fetched, surface an error
-	return (0, '', '', ($errtext ne '' ? "Failed to retrieve latest version from Danpol update server: $errtext" : 'Failed to retrieve latest version from Danpol update server'));
-}
-# end manualversion
-###############################################################################
-
-1;

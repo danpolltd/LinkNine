@@ -1,0 +1,25 @@
+QhtLink Firewall (qhtlfirewall) Changelog
+
+Date: 2025-09-20
+Version: 2.0 (maintenance update)
+
+Installer and Service Sequencing
+- Added an install guard flag at /var/lib/qhtlfirewall/.installing to prevent qhtlwaterfall from starting during installation.
+- Updated systemd unit qhtlwaterfall.service to include ConditionPathExists=!/var/lib/qhtlfirewall/.installing so the daemon won’t launch while the guard exists.
+- The installer now stops qhtlwaterfall at the beginning of install and restarts services at the end in the correct order.
+
+DirWatch (LF_DIRWATCH) Stability During Install
+- During install, if an existing configuration is detected, LF_DIRWATCH and LF_DIRWATCH_FILE are temporarily set to 0 to avoid false-positive alerts from temporary files and directories.
+- Original LF_DIRWATCH settings are restored automatically after installation completes.
+
+cPanel/WHM UI
+- Hardened WHM CGI (cpanel/qhtlfirewall.cgi) template rendering: capture template output and safely print it (handles SCALAR/ARRAY refs), preventing undefined symbol and SCALAR(...) output issues.
+- Confirmed compatibility with Cpanel::Template and ensured template discovery works as expected.
+
+General
+- Improved restart ordering and installer messaging for clarity.
+
+Notes
+- No version bump; functional changes are installer/packaging/UI safety improvements.
+- Consider adding environment-specific patterns to qhtlfirewall.fignore to keep DirWatch quiet for benign /tmp activity.
+

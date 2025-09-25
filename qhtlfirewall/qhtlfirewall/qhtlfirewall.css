@@ -211,3 +211,213 @@ td .btn, th .btn {
 }
 /* Ensure nested elements inside buttons don\'t force wrapping */
 .btn * { white-space: inherit !important; }
+
+/* ------------------------------------------------------------------ */
+/* Generic "bubble" buttons for all tab action buttons (orange theme) */
+/* Future-proof: per-button color via data-bubble-color attribute      */
+/* Colors can be overridden by setting CSS custom properties inline   */
+/* Example: <button data-bubble-color="green"> or data-bubble-color   */
+/* Values supported below: orange (default), blue, green, red, purple, */
+/* gray. To customize: add new [data-bubble-color=...] block or set    */
+/* style="--bubble-light:#...; --bubble-mid:#...; --bubble-dark:#..."  */
+/* ------------------------------------------------------------------ */
+
+/* Base style applied only within tab content so header/status/watcher remain distinct */
+.tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content a.btn:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status) {
+	--bubble-light: #ffe7c2;
+	--bubble-mid:   #ffb74d;
+	--bubble-dark:  #f57c00;
+	--bubble-border:#ff9800;
+	--bubble-glow:  rgba(255,152,0,0.45);
+	position: relative;
+	border-radius: 999px;
+	border: 1px solid var(--bubble-border);
+	background: radial-gradient(circle at 30% 30%, var(--bubble-light) 0%, var(--bubble-mid) 45%, var(--bubble-dark) 85%);
+	color: #fff !important;
+	font-weight: 600;
+	padding: 6px 16px;
+	line-height: 1.2;
+	text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+	box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 4px 14px var(--bubble-glow);
+	transition: background .25s ease, box-shadow .25s ease, transform .15s ease;
+	overflow: hidden; /* keep pseudo highlight clipped */
+}
+.tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status):before,
+.tab-content a.btn:not(.btn-watcher-bubble):not(.btn-status):before,
+.tab-content input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status):before {
+	content: '';
+	position: absolute;
+	top: 3px; left: 10px; right: 10px; height: 42%;
+	border-radius: 999px;
+	background: linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0));
+	pointer-events: none;
+}
+.tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status):hover,
+.tab-content a.btn:not(.btn-watcher-bubble):not(.btn-status):hover,
+.tab-content input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status):hover {
+	filter: brightness(1.05) saturate(1.05);
+	box-shadow: inset 0 2px 6px rgba(255,255,255,0.45), 0 6px 18px var(--bubble-glow);
+	transform: translateY(-1px);
+}
+.tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status):active,
+.tab-content a.btn:not(.btn-watcher-bubble):not(.btn-status):active,
+.tab-content input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status):active {
+	transform: translateY(0);
+	box-shadow: inset 0 2px 8px rgba(0,0,0,0.25), 0 2px 8px var(--bubble-glow);
+}
+.tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status):disabled,
+.tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status)[disabled],
+.tab-content a.btn:not(.btn-watcher-bubble):not(.btn-status).disabled,
+.tab-content input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status)[disabled] {
+	opacity: .55;
+	cursor: not-allowed;
+	filter: grayscale(.2) brightness(.95);
+}
+
+/* Color variants using data attribute (override CSS vars only) */
+.tab-content button.btn[data-bubble-color=blue]:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content a.btn[data-bubble-color=blue]:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content input[type=submit].btn[data-bubble-color=blue]:not(.btn-watcher-bubble):not(.btn-status){
+	--bubble-light:#cfe7ff; --bubble-mid:#64b5f6; --bubble-dark:#1e88e5; --bubble-border:#2196f3; --bubble-glow:rgba(33,150,243,0.45);
+}
+.tab-content button.btn[data-bubble-color=green]:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content a.btn[data-bubble-color=green]:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content input[type=submit].btn[data-bubble-color=green]:not(.btn-watcher-bubble):not(.btn-status){
+	--bubble-light:#d8f5d2; --bubble-mid:#81c784; --bubble-dark:#388e3c; --bubble-border:#4caf50; --bubble-glow:rgba(76,175,80,0.45);
+}
+.tab-content button.btn[data-bubble-color=red]:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content a.btn[data-bubble-color=red]:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content input[type=submit].btn[data-bubble-color=red]:not(.btn-watcher-bubble):not(.btn-status){
+	--bubble-light:#ffd1d1; --bubble-mid:#ef9a9a; --bubble-dark:#d32f2f; --bubble-border:#e53935; --bubble-glow:rgba(229,57,53,0.45);
+}
+.tab-content button.btn[data-bubble-color=purple]:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content a.btn[data-bubble-color=purple]:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content input[type=submit].btn[data-bubble-color=purple]:not(.btn-watcher-bubble):not(.btn-status){
+	--bubble-light:#f1d9ff; --bubble-mid:#ba83ff; --bubble-dark:#7b1fa2; --bubble-border:#8e24aa; --bubble-glow:rgba(142,36,170,0.45);
+}
+.tab-content button.btn[data-bubble-color=gray]:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content a.btn[data-bubble-color=gray]:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content input[type=submit].btn[data-bubble-color=gray]:not(.btn-watcher-bubble):not(.btn-status){
+	--bubble-light:#ececec; --bubble-mid:#bdbdbd; --bubble-dark:#616161; --bubble-border:#757575; --bubble-glow:rgba(97,97,97,0.35);
+}
+
+/* Slight size harmonization for icon-only bubble buttons */
+.tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status) span.glyphicon,
+.tab-content a.btn:not(.btn-watcher-bubble):not(.btn-status) span.glyphicon { margin-left:4px; }
+
+/* When inside table cells set padding slightly smaller so rows stay compact */
+td .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content td button.btn:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content td a.btn:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content td input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status){
+	padding:4px 12px;
+}
+
+/* Safety: ensure tab panes are visible even if wrapper scoping changes */
+.tab-content > .tab-pane { display:none; }
+.tab-content > .tab-pane.active { display:block; }
+
+/* Watcher "water bubble" button */
+.btn-watcher-bubble {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	/* Slightly reduced height (~15%) */
+	padding: 5px 12px;
+	min-width: 110px;
+	border-radius: 999px;
+	border: 1px solid #2b79ff;
+	color: #ffffff !important;
+	background: radial-gradient(circle at 30% 30%, #9fd3ff 0%, #4aa3ff 45%, #1976d2 80%);
+	box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 16px rgba(25, 118, 210, 0.35);
+	text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
+.btn-watcher-bubble:before {
+	content: '';
+	position: absolute;
+	/* Nudge highlight to keep proportions with reduced height */
+	top: 2px; left: 10px; right: 10px; height: 40%;
+	border-radius: 999px;
+	pointer-events: none;
+}
+.btn-watcher-bubble:hover {
+	background: radial-gradient(circle at 30% 30%, #b7e0ff 0%, #5bb0ff 45%, #237ad6 80%);
+	box-shadow: inset 0 2px 6px rgba(255,255,255,0.4), 0 8px 18px rgba(25, 118, 210, 0.45);
+	color: #ffffff !important;
+}
+
+/* Header status button styles */
+.btn-status {
+	display: inline-flex;
+	align-items: center;
+	/* Nudge highlight to keep proportions with reduced height */
+	top: 3px; left: 10px; right: 10px; height: 40%;
+	padding: 6px 10px;
+	min-width: 180px;
+	max-width: 100%;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	border-radius: 6px;
+	font-weight: 600;
+}
+.btn-status.success { background: #4CAF50; color:#fff; border:1px solid #3b9140; }
+.btn-status.warning { background: #f0ad4e; color:#fff; border:1px solid #d69339; }
+.btn-status.danger  { background: #d9534f; color:#fff; border:1px solid #b94441; }
+
+/* Bubble-shaped page wrapper with vertical gradient header->footer */
+.qhtl-bubble-bg {
+	background: linear-gradient(180deg, #a8e6a1 0%, #7ec8ff 50%, #c39bff 100%);
+	border-radius: 14px;
+	padding: 10px 10px 14px 10px;
+	margin: 10px 0 14px 0;
+	box-shadow: 0 10px 28px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.3);
+	overflow: hidden;
+	/* Make this a positioning context for in-page modals/popups */
+	position: relative;
+}
+
+/* Preserve readable white panels inside the bubble */
+.qhtl-bubble-bg .panel { background: #fff; }
+.qhtl-bubble-bg .panel > .panel-heading,
+.qhtl-bubble-bg .panel > .panel-body,
+.qhtl-bubble-bg .panel > .panel-footer { background: #fff; }
+
+/* Scoped Bootstrap-lite for this UI inside the gradient wrapper */
+.qhtl-bubble-bg .btn { display:inline-block; padding:6px 12px; margin-bottom:0; font-size:14px; font-weight:400; line-height:1.42857143; text-align:center; white-space:nowrap; vertical-align:middle; cursor:pointer; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none; background-image:none; border:1px solid transparent; border-radius:4px; }
+.qhtl-bubble-bg .btn:focus, .qhtl-bubble-bg .btn:active:focus, .qhtl-bubble-bg .btn.active:focus { outline:thin dotted; outline:5px auto -webkit-focus-ring-color; outline-offset:-2px; }
+.qhtl-bubble-bg .btn:active, .qhtl-bubble-bg .btn.active { background-image:none; box-shadow: inset 0 3px 5px rgba(0,0,0,.125); }
+.qhtl-bubble-bg .btn-default { color:#333; background-color:#fff; border-color:#ccc; }
+.qhtl-bubble-bg .btn-default:hover { color:#333; background-color:#e6e6e6; border-color:#adadad; }
+.qhtl-bubble-bg .btn-primary { background-color:#337ab7; border-color:#2e6da4; color:#fff !important; }
+.qhtl-bubble-bg .btn-primary:hover { background-color:#286090; border-color:#204d74; color:#fff !important; }
+.qhtl-bubble-bg .btn-success { background-color:#5cb85c; border-color:#4cae4c; color:#fff !important; }
+.qhtl-bubble-bg .btn-success:hover { background-color:#449d44; border-color:#398439; color:#fff !important; }
+.qhtl-bubble-bg .btn-warning { background-color:#f0ad4e; border-color:#eea236; color:#fff !important; }
+.qhtl-bubble-bg .btn-warning:hover { background-color:#ec971f; border-color:#d58512; color:#fff !important; }
+.qhtl-bubble-bg .btn-danger { background-color:#d9534f; border-color:#d43f3a; color:#fff !important; }
+.qhtl-bubble-bg .btn-danger:hover { background-color:#c9302c; border-color:#ac2925; color:#fff !important; }
+.qhtl-bubble-bg .btn-info { background-color:#5bc0de; border-color:#46b8da; color:#fff !important; }
+.qhtl-bubble-bg .btn-info:hover { background-color:#31b0d5; border-color:#269abc; color:#fff !important; }
+
+/* Tabs (Bootstrap-like) scoped */
+.qhtl-bubble-bg .nav { padding-left:0; margin-bottom:0; list-style:none; }
+.qhtl-bubble-bg .nav>li { position:relative; display:block; }
+.qhtl-bubble-bg .nav>li>a { position:relative; display:block; padding:10px 15px; }
+.qhtl-bubble-bg .nav-tabs { border-bottom:1px solid #ddd; background: transparent; }
+.qhtl-bubble-bg .nav-tabs>li { float:left; margin-bottom:-1px; }
+.qhtl-bubble-bg .nav-tabs>li>a { margin-right:2px; line-height:1.42857143; border:1px solid transparent; border-radius:4px 4px 0 0; background:#ffffff66; }
+.qhtl-bubble-bg .nav-tabs>li>a:hover { border-color:#eee #eee #ddd; text-decoration:none; }
+.qhtl-bubble-bg .nav-tabs>li.active>a,
+.qhtl-bubble-bg .nav-tabs>li.active>a:focus,
+.qhtl-bubble-bg .nav-tabs>li.active>a:hover { color:#555; cursor:default; background-color:#fff; border:1px solid #ddd; border-bottom-color:transparent; }
+.qhtl-bubble-bg .tab-content>.tab-pane { display:none; }
+.qhtl-bubble-bg .tab-content>.active { display:block; }
+
+/* Slight glow so status stands out on gradient */
+.qhtl-bubble-bg .btn-status.success { box-shadow: 0 0 0 3px rgba(76,175,80,0.15); }
+.qhtl-bubble-bg .btn-status.warning { box-shadow: 0 0 0 3px rgba(240,173,78,0.15); }
+.qhtl-bubble-bg .btn-status.danger  { box-shadow: 0 0 0 3px rgba(217,83,79,0.15); }

@@ -43,10 +43,12 @@ my $sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
 my $sec_user = lc($ENV{HTTP_SEC_FETCH_USER} // ''); # '?1' for user navigations
 my $accept   = lc($ENV{HTTP_ACCEPT} // '');
 if (!defined $FORM{action} || $FORM{action} eq '') {
-	my $is_script_dest= ($sec_dest eq 'script');
-	my $accept_js     = ($accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
-	# Treat script-like only when clearly a script destination or Accept looks like JS
-	my $scriptish     = $is_script_dest || $accept_js;
+	my $is_script_dest = ($sec_dest eq 'script');
+	my $accept_js      = ($accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
+	# Consider it a normal navigation if Sec-Fetch indicates navigation/document/frame or a user gesture is present
+	my $is_nav = ($sec_mode eq 'navigate' || $sec_dest eq 'document' || $sec_dest eq 'frame' || $sec_dest eq 'iframe' || $sec_user eq '?1');
+	# Treat script-like only when clearly a script destination, or when Accept looks like JS AND it's not a navigation
+	my $scriptish = $is_script_dest || (!$is_nav && $accept_js);
 	if ($scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
@@ -118,13 +120,17 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 
 	my ($enabled, $running, $class, $text, $status_key);
 	if ($is_disabled) {
-		($enabled, $running, $class, $text, $status_key) = (0, 0, 'danger', 'Disabled and Stopped', 'disabled_stopped');
+		# Disabled state
+		($enabled, $running, $class, $text, $status_key) = (0, 0, 'danger', 'Disabled', 'disabled_stopped');
 	} elsif (!$ipt_ok) {
-		($enabled, $running, $class, $text, $status_key) = (1, 0, 'danger', 'Enabled but Stopped', 'enabled_stopped');
+		# Not running
+		($enabled, $running, $class, $text, $status_key) = (1, 0, 'danger', 'Stopped', 'enabled_stopped');
 	} elsif ($is_test) {
-		($enabled, $running, $class, $text, $status_key) = (1, 1, 'warning', 'Enabled (Test Mode)', 'enabled_test');
+		# Testing mode
+		($enabled, $running, $class, $text, $status_key) = (1, 1, 'warning', 'Testing', 'enabled_test');
 	} else {
-		($enabled, $running, $class, $text, $status_key) = (1, 1, 'success', 'Enabled and Running', 'enabled_running');
+		# Fully operational
+		($enabled, $running, $class, $text, $status_key) = (1, 1, 'success', 'Enabled', 'enabled_running');
 	}
 
 	# Simple JSON response, no external modules required here
@@ -224,8 +230,15 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 				function computeStyle(data){
 					var cls = (data && data['class']) || 'default';
 					var txt = (data && data['text']) || 'Firewall';
-					var bg = (cls==='success') ? '#5cb85c' : (cls==='warning' ? '#f0ad4e' : (cls==='danger' ? '#d9534f' : '#777'));
-					return {bg:bg, txt:txt};
+					// Bubble-style radial gradient palettes by state
+					var palette = {
+						 success: { grad: 'radial-gradient(circle at 30% 30%, #b9f6ca 0%, #66e08a 45%, #34a853 80%)', border: '#2f8f49', glow: 'rgba(76,175,80,0.20)' },
+						 warning: { grad: 'radial-gradient(circle at 30% 30%, #ffe6a1 0%, #ffc766 45%, #f0ad4e 80%)', border: '#d69339', glow: 'rgba(240,173,78,0.20)' },
+						 danger:  { grad: 'radial-gradient(circle at 30% 30%, #ffb3ad 0%, #ff6f69 45%, #d9534f 80%)', border: '#b94441', glow: 'rgba(217,83,79,0.20)' },
+						 default: { grad: 'radial-gradient(circle at 30% 30%, #e0e0e0 0%, #bdbdbd 45%, #757575 80%)', border: '#616161', glow: 'rgba(117,117,117,0.20)' }
+					};
+					var p = palette[cls] || palette.default;
+					return {bg:p.grad, border:p.border, glow:p.glow, txt:txt};
 				}
 
 				function tryInject(){
@@ -235,18 +248,43 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					if (!stats || !stats.shadowRoot) return false;
 					var host = stats.shadowRoot.querySelector('.header-stats, header, div');
 					if (!host) return false;
+					// Ensure a scoped style inside the shadow root for bubble highlight and layout
+					(function(){
+					  try {
+					    var styleEl = stats.shadowRoot.getElementById('qhtlfw-bubble-style');
+					    if (!styleEl) {
+					      styleEl = document.createElement('style');
+					      styleEl.id = 'qhtlfw-bubble-style';
+					      styleEl.textContent = [
+					        '#qhtlfw-header-badge{ position:relative; display:inline-flex; align-items:center; justify-content:center; text-shadow:0 1px 2px rgba(0,0,0,0.25); }',
+					        '#qhtlfw-header-badge:before{ content:\'\'; position:absolute; top:4px; left:10px; right:10px; height:40%; border-radius:999px; background:linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0)); pointer-events:none; }'
+					      ].join('\n');
+					      stats.shadowRoot.appendChild(styleEl);
+					    }
+					  } catch(_) {}
+					})();
 					var sty = computeStyle(lastData);
 					var existing = stats.shadowRoot.getElementById('qhtlfw-header-badge');
 					if (existing) {
-						// existing is the inner span; update its style/text
+						// existing is the inner span; update its style/text and bubble visuals
 						existing.style.background = sty.bg;
-						existing.style.boxShadow = '0 0 0 5px '+sty.bg+'33';
-						existing.textContent = 'Firewall: ' + sty.txt;
+						existing.style.border = '1px solid '+(sty.border||'#616161');
+						existing.style.boxShadow = 'inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 14px '+(sty.glow||'rgba(0,0,0,0.15)');
+						existing.textContent = sty.txt;
+						existing.style.borderRadius = '999px';
+						// Scale down ~30% for WHM header badge
+						existing.style.padding = '4px 8px';
+						existing.style.minWidth = '67px';
+						existing.style.fontSize = '12px';
+						existing.style.display = 'inline-flex';
+						existing.style.alignItems = 'center';
+						existing.style.justifyContent = 'center';
 						// ensure wrapper provides space for glow on all sides
 						var wrap = existing.parentElement;
 						if (wrap && wrap.tagName && wrap.tagName.toUpperCase()==='A') {
 							wrap.style.marginTop = '7px';
 							wrap.style.marginBottom = '7px';
+							wrap.style.marginRight = '7px';
 						}
 						return true;
 					}
@@ -256,21 +294,29 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					a.target = '_self';
 					a.setAttribute('aria-label','Open QhtLink Firewall');
 					a.style.textDecoration = 'none';
-					a.style.marginLeft = '8px';
-					// add vertical spacing so top/bottom glow is visible
+					// 7px from top and right edge per request
 					a.style.marginTop = '7px';
 					a.style.marginBottom = '7px';
+					a.style.marginRight = '7px';
 					// Inner badge span for color/status
 					var span = document.createElement('span');
 					span.id = 'qhtlfw-header-badge';
+					// Scale down ~30% for WHM header badge
 					span.style.padding = '4px 8px';
-					span.style.borderRadius = '3px';
+					span.style.borderRadius = '999px';
 					span.style.color = '#fff';
 					span.style.background = sty.bg;
+					span.style.border = '1px solid '+(sty.border||'#616161');
 					span.style.cursor = 'pointer';
-					// 5px glow in same color (with slight transparency)
-					span.style.boxShadow = '0 0 0 5px '+sty.bg+'33';
-					span.textContent = 'Firewall: ' + sty.txt;
+					// inset highlight + outer glow for bubble feel
+					span.style.boxShadow = 'inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 14px '+(sty.glow||'rgba(0,0,0,0.15)');
+					span.style.minWidth = '67px';
+					span.style.fontSize = '12px';
+					span.style.display = 'inline-flex';
+					span.style.alignItems = 'center';
+					span.style.justifyContent = 'center';
+					span.style.textShadow = '0 1px 2px rgba(0,0,0,0.25)';
+					span.textContent = sty.txt;
 					a.appendChild(span);
 					host.appendChild(a);
 					return true;
@@ -330,13 +376,13 @@ JS
 		};
 		my ($cls, $txt);
 		if ($is_disabled) {
-			($cls, $txt) = ('danger', 'Disabled and Stopped');
+			($cls, $txt) = ('danger', 'Disabled');
 		} elsif (!$ipt_ok) {
-			($cls, $txt) = ('danger', 'Enabled but Stopped');
+			($cls, $txt) = ('danger', 'Stopped');
 		} elsif ($is_test) {
-			($cls, $txt) = ('warning', 'Enabled (Test Mode)');
+			($cls, $txt) = ('warning', 'Testing');
 		} else {
-			($cls, $txt) = ('success', 'Enabled and Running');
+			($cls, $txt) = ('success', 'Enabled');
 		}
 		print "Content-type: text/html\r\n";
 		print "X-Content-Type-Options: nosniff\r\n";
@@ -344,8 +390,10 @@ JS
 		print "Content-Security-Policy: frame-ancestors 'self';\r\n\r\n";
 		print "<!doctype html><html><head><meta charset=\"utf-8\">\n";
 		print "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'none'\">\n";
-		print "<style>html,body{margin:0;padding:0;background:transparent} .label{display:inline-block;font:12px/1.2 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#fff;border-radius:3px;padding:4px 8px} .label-success{background:#5cb85c} .label-warning{background:#f0ad4e} .label-danger{background:#d9534f}</style>\n";
-		print "</head><body style=\"margin:0\"><span class=\"label label-$cls\" style=\"display:inline-block;white-space:nowrap\">Firewall: $txt</span></body></html>";
+		# Bubble-style badge using radial gradient and pill shape in the iframe fallback
+		print "<style>html,body{margin:0;padding:0;background:transparent} .bubble{display:inline-block;font:12px/1.2 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#fff;border-radius:999px;padding:6px 12px;border:1px solid transparent;min-width:96px;box-shadow:inset 0 2px 6px rgba(255,255,255,0.35),0 6px 14px rgba(0,0,0,0.15);white-space:nowrap} .bubble-success{background:radial-gradient(circle at 30% 30%, #b9f6ca 0%, #66e08a 45%, #34a853 80%);border-color:#2f8f49} .bubble-warning{background:radial-gradient(circle at 30% 30%, #ffe6a1 0%, #ffc766 45%, #f0ad4e 80%);border-color:#d69339} .bubble-danger{background:radial-gradient(circle at 30% 30%, #ffb3ad 0%, #ff6f69 45%, #d9534f 80%);border-color:#b94441}</style>\n";
+	my $bcls = ($cls eq 'success') ? 'bubble-success' : ($cls eq 'warning' ? 'bubble-warning' : 'bubble-danger');
+	print "</head><body style=\"margin:0\"><span class=\"bubble $bcls\">$txt</span></body></html>";
 		exit 0;
 	}
 
@@ -416,6 +464,33 @@ for my $frag (\@header, \@footer) {
     }
 }
 
+# If footer contains legacy Danpol branding or bare version text, replace it with a compact version link
+if (@footer) {
+	my $ft = join('', @footer);
+	# Remove just 'Danpol Limited' from any footer lines, keep everything else (e.g., year and name)
+	$ft =~ s/Danpol\s+Limited\s*\(?\)?//ig;
+	# Remove stray commas left behind like ", ," or preceding/trailing commas next to parentheses
+	$ft =~ s/\(\s*,\s*\)/()/g;          # remove lone comma inside parentheses
+	$ft =~ s/\s*,\s*\)/)/g;              # comma before )
+	$ft =~ s/\(\s*,\s*/(/g;              # comma after (
+	$ft =~ s/\s+,\s+,\s+/, /g;           # double commas
+	$ft =~ s/\s+,\s+/, /g;                # normalize commas
+	$ft =~ s/\s{2,}/ /g;                   # collapse multiple spaces
+	$ft =~ s/^\s+|\s+$//g;                # trim
+	# If legacy right-side 'qhtlfirewall: vX' exists, strip it; we will add our own link consistently
+	$ft =~ s/qhtlfirewall:\s*v\S+//ig;
+	# If after sanitization left side is empty or missing the author, force the exact text requested
+	my $left_text = $ft;
+	if (!defined $left_text || $left_text !~ /\S/) {
+		$left_text = "©2025 (Daniel Nowakowski)";
+	}
+	# Recompose sanitized footer and append our right-aligned version link
+	my $right = "<div style='font-size:12px;'><a href='$script?action=readme' target='_self' style='text-decoration:none;'>Qht Link Firewall v$myv</a></div>";
+	my $container_start = "<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;'>";
+	my $container_end = "</div>\n";
+	@footer = ($container_start, "<div style='font-size:12px;'>$left_text</div>", $right, $container_end);
+}
+
 my $thisapp = "qhtlfirewall";
 my $reregister;
 my $modalstyle;
@@ -451,9 +526,10 @@ if (defined $FORM{action} && $FORM{action} ne '' && $FORM{action} !~ /^(?:status
 	my $g_sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
 	my $g_sec_user = lc($ENV{HTTP_SEC_FETCH_USER} // '');
 	my $g_accept   = lc($ENV{HTTP_ACCEPT} // '');
-	my $g_is_script_dest= ($g_sec_dest eq 'script');
-	my $g_accept_js     = ($g_accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
-	my $g_scriptish     = $g_is_script_dest || $g_accept_js;
+	my $g_is_script_dest = ($g_sec_dest eq 'script');
+	my $g_accept_js      = ($g_accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
+	my $g_is_nav = ($g_sec_mode eq 'navigate' || $g_sec_dest eq 'document' || $g_sec_dest eq 'frame' || $g_sec_dest eq 'iframe' || $g_sec_user eq '?1');
+	my $g_scriptish = $g_is_script_dest || (!$g_is_nav && $g_accept_js);
 	if ($g_scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
@@ -501,18 +577,28 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			modal = document.createElement('div');
 			modal.id = 'quickViewModalShim';
 			modal.setAttribute('role','dialog');
-			modal.style.position='fixed'; modal.style.inset='0'; modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='none'; modal.style.zIndex='9999';
+			var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
+			var inScoped = (parent.classList && parent.classList.contains('qhtl-bubble-bg'));
+			if (inScoped) {
+				// Anchor to container so it scrolls with the page content
+				modal.style.position='absolute'; modal.style.left='0'; modal.style.top='0'; modal.style.right='0'; modal.style.bottom='0';
+			} else {
+				modal.style.position='fixed'; modal.style.inset='0';
+			}
+			modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='none'; modal.style.zIndex='9999';
 			var dialog = document.createElement('div');
-			dialog.style.width='660px'; dialog.style.maxWidth='95vw'; dialog.style.height='500px'; dialog.style.background='#fff'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='fixed'; dialog.style.top='50%'; dialog.style.left='50%'; dialog.style.transform='translate(-50%, -50%)'; dialog.style.margin='0';
+			dialog.style.width='660px'; dialog.style.maxWidth='95%'; dialog.style.height='500px'; dialog.style.background='#fff'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='absolute'; dialog.style.top='50%'; dialog.style.left='50%'; dialog.style.transform='translate(-50%, -50%)'; dialog.style.margin='0';
 			var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflowX='hidden'; body.style.overflowY='auto'; body.style.padding='10px'; body.style.minHeight='0';
 			var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';
 			// Header-right container for countdown next to title
-			var headerRight = document.createElement('div'); headerRight.id='quickViewHeaderRight'; headerRight.style.display='inline-flex'; headerRight.style.alignItems='center'; headerRight.style.gap='6px'; headerRight.style.whiteSpace='nowrap'; headerRight.style.marginRight='10px';
-			var footer = document.createElement('div'); footer.style.display='flex'; footer.style.justifyContent='space-between'; footer.style.alignItems='center'; footer.style.padding='10px'; footer.style.marginTop='auto';
+			var headerRight = document.createElement('div'); headerRight.id='quickViewHeaderRight'; headerRight.style.display='inline-flex'; headerRight.style.alignItems='center'; headerRight.style.gap='6px'; headerRight.style.whiteSpace='nowrap'; headerRight.style.marginRight='10px'; headerRight.style.flex='0 0 auto';
+			var footer = document.createElement('div'); footer.style.display='flex'; footer.style.flexWrap='wrap'; footer.style.justifyContent='flex-start'; footer.style.alignItems='center'; footer.style.gap='8px'; footer.style.padding='10px'; footer.style.marginTop='auto';
 			var left = document.createElement('div'); left.id='quickViewFooterLeft'; var mid = document.createElement('div'); mid.id='quickViewFooterMid'; var right = document.createElement('div'); right.id='quickViewFooterRight';
-			left.style.display='flex'; left.style.alignItems='center'; left.style.flexWrap='wrap'; left.style.gap='8px';
+			left.style.display='flex'; left.style.alignItems='center'; left.style.flexWrap='wrap'; left.style.gap='8px'; left.style.minWidth='240px';
+			right.style.display='flex'; right.style.alignItems='center'; right.style.flexWrap='wrap'; right.style.gap='8px'; right.style.justifyContent='flex-end'; right.style.marginLeft='auto';
+			left.style.flex='1 1 auto';
 			// Watcher controls
-			var logSelect = document.createElement('select'); logSelect.id='watcherLogSelect'; logSelect.className='form-control'; logSelect.style.display='inline-block'; logSelect.style.width='auto'; logSelect.style.marginRight='8px';
+			var logSelect = document.createElement('select'); logSelect.id='watcherLogSelect'; logSelect.className='form-control'; logSelect.style.display='inline-block'; logSelect.style.width='auto'; logSelect.style.maxWidth='48vw'; logSelect.style.marginRight='8px';
 			var linesInput = document.createElement('input'); linesInput.id='watcherLines'; linesInput.type='text'; linesInput.value='100'; linesInput.size='4'; linesInput.className='form-control'; linesInput.style.display='inline-block'; linesInput.style.width='70px'; linesInput.style.marginRight='8px';
 			var refreshBtn = document.createElement('button'); refreshBtn.id='watcherRefresh'; refreshBtn.className='btn btn-default'; refreshBtn.textContent='Autocheck'; refreshBtn.style.marginRight='0';
 			var refreshLabel = document.createElement('span'); refreshLabel.id='watcherRefreshLabel'; refreshLabel.textContent=' Refresh in ';
@@ -521,7 +607,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			headerRight.appendChild(refreshLabel); headerRight.appendChild(timerSpan);
 			var pauseBtn = document.createElement('button'); pauseBtn.id='watcherPause'; pauseBtn.className='btn btn-default'; pauseBtn.textContent='Pause';
 			// Arrange: inputs row + button column (refresh/pause stacked)
-			var inputsRow = document.createElement('div'); inputsRow.style.display='inline-block'; inputsRow.style.marginRight='8px';
+			var inputsRow = document.createElement('div'); inputsRow.style.display='inline-flex'; inputsRow.style.flexWrap='wrap'; inputsRow.style.alignItems='center'; inputsRow.style.gap='6px'; inputsRow.style.marginRight='8px';
 			inputsRow.appendChild(logSelect); inputsRow.appendChild(document.createTextNode(' Lines: ')); inputsRow.appendChild(linesInput);
 			// (Timer moved to header)
 			var btnCol = document.createElement('div'); btnCol.style.display='inline-flex'; btnCol.style.flexDirection='column'; btnCol.style.gap='6px'; btnCol.style.alignItems='flex-end';
@@ -541,7 +627,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			refreshBtn.style.whiteSpace='nowrap'; refreshBtn.style.overflow='hidden'; refreshBtn.style.textOverflow='ellipsis';
 			pauseBtn.style.whiteSpace='nowrap'; pauseBtn.style.overflow='hidden'; pauseBtn.style.textOverflow='ellipsis';
 			// Place Autocheck to the left of Pause in a horizontal row
-			btnCol.style.flexDirection='row'; btnCol.style.alignItems='center'; btnCol.style.gap='3.6px';
+			btnCol.style.flexDirection='row'; btnCol.style.alignItems='center'; btnCol.style.gap='6px'; btnCol.style.flexWrap='wrap'; btnCol.style.justifyContent='flex-end';
 			btnCol.appendChild(refreshBtn); btnCol.appendChild(pauseBtn);
 			left.appendChild(inputsRow);
 			// No edit/save/cancel in watcher mode
@@ -594,12 +680,12 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			populateLogs();
 			// Initialize emphasis based on defaults (auto mode, not paused)
 			updateIntensity();
-			var inner = document.createElement('div'); inner.style.padding='10px'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.flex='1 1 auto'; inner.style.minHeight='0';
-			var headerBar = document.createElement('div'); headerBar.style.display='flex'; headerBar.style.justifyContent='space-between'; headerBar.style.alignItems='center';
+			var inner = document.createElement('div'); inner.style.padding='10px'; inner.style.display='flex'; inner.style.flexDirection='column'; inner.style.flex='1 1 auto'; inner.style.minHeight='0'; inner.style.minWidth='0';
+			var headerBar = document.createElement('div'); headerBar.style.display='flex'; headerBar.style.justifyContent='space-between'; headerBar.style.alignItems='center'; headerBar.style.gap='8px'; headerBar.style.flexWrap='wrap';
 			headerBar.appendChild(title); headerBar.appendChild(headerRight);
 			inner.appendChild(headerBar); inner.appendChild(body);
 			footer.appendChild(left); footer.appendChild(mid); footer.appendChild(right);
-			dialog.appendChild(inner); dialog.appendChild(footer); modal.appendChild(dialog); document.body.appendChild(modal);
+			dialog.appendChild(inner); dialog.appendChild(footer); modal.appendChild(dialog); parent.appendChild(modal);
 			modal.addEventListener('click', function(e){ if(e.target===modal){ if(typeof dialog!=='undefined' && dialog){ dialog.classList.remove('fire-blue'); } modal.style.display='none'; } });
 			return modal;
 		}
@@ -684,9 +770,19 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 				} else { b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>"; } } finally { window.__qhtlWatcherLoading=false; } } }; x.send(); m.style.display='block'; }
 
 		// Global watcher opener that sets size and starts auto-refresh
-		window.__qhtlRealOpenWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){ d.style.width='800px'; d.style.height='450px'; d.style.maxWidth='95vw'; d.style.position='fixed'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0'; }
+		window.__qhtlRealOpenWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){
+			var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
+			var w = (parent && parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? (parent.clientWidth || window.innerWidth) : window.innerWidth;
+			var h = (parent && parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? (parent.clientHeight || window.innerHeight) : window.innerHeight;
+			w = Math.min(800, Math.floor(w * 0.95));
+			// Enforce global modal max height 480px
+			h = Math.min(480, Math.floor(h * 0.9));
+			d.style.width = w + 'px'; d.style.height = h + 'px';
+			d.style.maxWidth='95%'; d.style.maxHeight='480px';
+			d.style.position='absolute'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0';
+		}
 				// Ensure blue pulsating glow CSS exists and apply class
-				(function(){ var css=document.getElementById('qhtl-blue-style'); if(!css){ css=document.createElement('style'); css.id='qhtl-blue-style'; css.textContent=String.fromCharCode(64)+'keyframes qhtl-blue {0%,100%{box-shadow: 0 0 14px 6px rgba(0,123,255,0.55), 0 0 24px 10px rgba(0,123,255,0.3);}50%{box-shadow: 0 0 28px 14px rgba(0,123,255,0.95), 0 0 46px 20px rgba(0,123,255,0.6);}} .fire-blue{ animation: qhtl-blue 2.2s infinite ease-in-out; }'; document.head.appendChild(css);} if(d){ d.classList.add('fire-blue'); } var bodyEl=document.getElementById('quickViewBodyShim'); if(bodyEl){ /* 50% brighter than glow base (#007bff) by mixing with white */ bodyEl.style.background='linear-gradient(180deg, rgb(127,189,255) 0%, rgb(159,205,255) 100%)'; bodyEl.style.borderRadius='4px'; bodyEl.style.padding='10px'; } })();
+				(function(){ var css=document.getElementById('qhtl-blue-style'); if(!css){ css=document.createElement('style'); css.id='qhtl-blue-style'; css.textContent=String.fromCharCode(64)+'keyframes qhtl-blue {0%,100%{box-shadow: 0 0 12px 5px rgba(0,123,255,0.55), 0 0 20px 9px rgba(0,123,255,0.3);}50%{box-shadow: 0 0 22px 12px rgba(0,123,255,0.95), 0 0 36px 16px rgba(0,123,255,0.55);}} .fire-blue{ animation: qhtl-blue 2.2s infinite ease-in-out; }'; document.head.appendChild(css);} if(d){ d.classList.add('fire-blue'); } var bodyEl=document.getElementById('quickViewBodyShim'); if(bodyEl){ /* 50% brighter than glow base (#007bff) by mixing with white */ bodyEl.style.background='linear-gradient(180deg, rgb(127,189,255) 0%, rgb(159,205,255) 100%)'; bodyEl.style.borderRadius='4px'; bodyEl.style.padding='10px'; } })();
 			// initial load and start timer (no synthetic change event to avoid loops)
 			(function(){ var ls=document.getElementById('watcherLines'), sel=document.getElementById('watcherLogSelect'); var url='$script?action=logtailcmd&lines='+(ls?encodeURIComponent(ls.value||'100'):'100')+'&lognum='+(sel?encodeURIComponent(sel.value||'0'):'0'); quickViewLoad(url, function(){ var timer=document.getElementById('watcherTimer'); if(timer){ timer.textContent='5'; } if(typeof setWatcherMode==='function'){ setWatcherMode('auto'); } else if(window.__qhtlScheduleTick){ window.__qhtlScheduleTick(); } }); })();
 				m.style.display='block'; return false; };
@@ -714,19 +810,31 @@ display:block;
 }
 EOF
 	if ($config{STYLE_MOBILE} or $reseller) {
+		# On small screens, allow the optional mobilecontainer to display,
+		# but do NOT hide the normalcontainer (tabs live there). This keeps
+		# the tabbed UI visible on mobile while still allowing any simplified
+		# mobile elements to show if present.
 		print <<EOF;
 \@media (max-width: 600px) {
 .mobilecontainer {
 	display:block;
 }
 .normalcontainer {
-	display:none;
+	display:block;
 }
 }
 EOF
 	}
 	print "</style>\n";
 	print @header;
+
+	print <<'EXTRA_BUBBLE_STYLE';
+	<style id="qhtl-plugin-bubble-style">
+	  /* Water bubble highlight for the plugin header status */
+	  #qhtl-status-btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; text-shadow:0 1px 2px rgba(0,0,0,0.25); }
+	  #qhtl-status-btn::before{ content:''; position:absolute; top:4px; left:10px; right:10px; height:40%; border-radius:999px; background:linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0)); pointer-events:none; }
+	</style>
+EXTRA_BUBBLE_STYLE
 }
 
 
@@ -742,7 +850,7 @@ eval {
 # After UI module is loaded and modal JS is injected, render header and Watcher button
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
 		# Build a compact status badge for the header's right column
-		my $status_badge = "<span class='label label-success'>Enabled and Running</span>";
+	my $status_badge = "<span class='label label-success'>Enabled</span>";
 		my $status_buttons = '';
 		my $is_test = $config{TESTING} ? 1 : 0;
 		my $is_disabled = -e "/etc/qhtlfirewall/qhtlfirewall.disable" ? 1 : 0;
@@ -757,37 +865,102 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 				$ipt_ok = ($iptstatus[0] && $iptstatus[0] =~ /^Chain LOCALINPUT/) ? 1 : 0;
 		};
 		if ($is_disabled) {
-				$status_badge = "<span class='label label-danger'>Disabled and Stopped</span>";
+				$status_badge = "<span class='label label-danger'>Disabled</span>";
 				$status_buttons = "<form action='$script' method='post' style='display:inline;margin-left:8px'>".
 													"<input type='hidden' name='action' value='enable'>".
 													"<input type='submit' class='btn btn-xs btn-default' value='Enable'></form>";
 		} elsif ($is_test) {
-				$status_badge = "<span class='label label-warning'>Enabled (Test Mode)</span>";
+				$status_badge = "<span class='label label-warning'>Testing</span>";
 		} elsif (!$ipt_ok) {
-				$status_badge = "<span class='label label-danger'>Enabled but Stopped</span>";
+				$status_badge = "<span class='label label-danger'>Disabled</span>";
 				$status_buttons = "<form action='$script' method='post' style='display:inline;margin-left:8px'>".
 													"<input type='hidden' name='action' value='start'>".
 													"<input type='submit' class='btn btn-xs btn-default' value='Start'></form>";
 		}
 
-		print <<EOF;
-<div class='panel panel-default' style='padding: 10px'>
+	print <<EOF;
+<div class='panel panel-default' style='padding: 10px; margin:0;'>
 	<div class='row' style='display:flex;align-items:center;'>
-		<div class='col-sm-8 col-xs-12'>
-			<h4 style='margin:5px 0;'>QhtLink Firewall (qhtlfirewall) v$myv</h4>
+		<div class='col-sm-8 col-xs-12' style='display:flex;align-items:center;gap:10px;'>
+			<img src='$images/qhtlfirewall_small.gif' onerror="this.onerror=null;this.src='$images/qhtlfirewall_small.png';" style='width:48px;height:48px;vertical-align:middle' alt='Logo'>
+			<h4 style='margin:5px 0;'>QhtLink Firewall v$myv</h4>
 		</div>
-		<div class='col-sm-4 col-xs-12 text-right'>
-			<button type='button' class='btn btn-xs btn-default' style='margin-right:8px'
-				onclick="return (window.__qhtlOpenWatcherSmart ? window.__qhtlOpenWatcherSmart() : (typeof window.openWatcher==='function' ? (openWatcher(), false) : (window.location='$script?action=logtail', false)));">
-				Watcher
-			</button>
-			<img src='$images/qhtlfirewall_small.gif' onerror="this.onerror=null;this.src='$images/qhtlfirewall_small.png';" style='width:48px;height:48px;vertical-align:middle;margin-right:8px' alt='Logo'>
-			$status_badge $status_buttons
+		<div class='col-sm-4 col-xs-12'>
+			<div style='display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:10px;padding-right:10px;'>
+				<button type='button' class='btn btn-watcher-bubble'
+					onclick="return (window.__qhtlOpenWatcherSmart ? window.__qhtlOpenWatcherSmart() : (typeof window.openWatcher==='function' ? (openWatcher(), false) : (window.location='$script?action=logtail', false)));">
+					Watcher
+				</button>
+				<span class='btn-status success' id='qhtl-status-btn' style='text-transform:none;'>Enabled</span>
+			</div>
 		</div>
 	</div>
-</div>
+<script>
+// Keep the status text within the green button centered and sync with computed status_badge
+(function(){
+  try {
+    var el = document.getElementById('qhtl-status-btn');
+    if (!el) return;
+	var txt = (function(){ var d = document.createElement('div'); d.innerHTML = "${status_badge}"; var s=d.querySelector('.label'); return s ? s.textContent.trim() : 'Enabled'; })();
+	el.textContent = txt;
+		el.classList.remove('success','warning','danger');
+	if (/Disabled|Stopped/i.test(txt)) { el.classList.add('danger'); }
+	else if (/Testing/i.test(txt)) { el.classList.add('warning'); }
+	else { el.classList.add('success'); }
+
+		// Squeeze font size to fit inside the button without wrapping
+		var min = 10, max = 16; // px
+		var size = parseFloat(window.getComputedStyle(el).fontSize) || 14;
+		size = Math.min(max, Math.max(min, size));
+		el.style.fontSize = size + 'px';
+		var guard = 0;
+		while (el.scrollWidth > el.clientWidth && size > min && guard < 12) {
+			size -= 1; el.style.fontSize = size + 'px'; guard++;
+		}
+		// Match width to the Watcher button for visual balance and reduce both by ~20%
+		try {
+			var watcher = document.querySelector('.btn-watcher-bubble');
+			if (watcher) {
+				// Use computed width to include padding/border
+				var cs = window.getComputedStyle(watcher);
+				var cw = parseFloat(cs.width);
+				if (!isNaN(cw) && cw > 0) {
+					var target = Math.max(60, Math.round(cw * 0.8)); // reduce ~20%
+					// shrink watcher width similarly by applying a min-width
+					watcher.style.minWidth = target + 'px';
+					el.style.display = 'inline-block';
+					el.style.minWidth = target + 'px';
+					el.style.textAlign = 'center';
+				}
+			}
+		} catch(_) {}
+
+		// Apply bubble-style radial gradient styling to status to mirror Watcher feel
+		try {
+			var palette = {
+				 success: { grad: 'radial-gradient(circle at 30% 30%, #b9f6ca 0%, #66e08a 45%, #34a853 80%)', border: '#2f8f49', glow: 'rgba(76,175,80,0.20)' },
+				 warning: { grad: 'radial-gradient(circle at 30% 30%, #ffe6a1 0%, #ffc766 45%, #f0ad4e 80%)', border: '#d69339', glow: 'rgba(240,173,78,0.20)' },
+				 danger:  { grad: 'radial-gradient(circle at 30% 30%, #ffb3ad 0%, #ff6f69 45%, #d9534f 80%)', border: '#b94441', glow: 'rgba(217,83,79,0.20)' }
+			};
+			var mode = el.classList.contains('warning') ? 'warning' : (el.classList.contains('danger') ? 'danger' : 'success');
+			var p = palette[mode];
+			el.style.background = p.grad;
+			el.style.color = '#fff';
+			el.style.border = '1px solid ' + p.border;
+			el.style.borderRadius = '999px';
+			el.style.padding = '6px 10px';
+			el.style.boxShadow = 'inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 14px ' + p.glow;
+		} catch(_) {}
+	} catch(e){}
+})();
+</script>
 EOF
 		if ($reregister ne "") {print $reregister}
+}
+
+# Open gradient wrapper just before main content (exclude header)
+unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
+	print "<div class='qhtl-bubble-bg'>\n";
 }
 
 if (!$ui_error) {
@@ -801,15 +974,25 @@ if (!$ui_error) {
 	} or do { $ui_error = $@ || 'Unknown error in UI renderer'; };
 }
 
+# Close gradient wrapper right after main content
+unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
+	print "</div>\n";
+}
+
 if ($ui_error) {
 	print qq{<div class="alert alert-danger" role="alert" style="margin:10px">QhtLink Firewall UI error: <code>} . ( $ui_error =~ s/</&lt;/gr ) . qq{</code></div>};
 }
 
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
-	# No local fallback loader here; global WHM includes handle banner injection with a valid cpsess token.
-	print @footer;
+unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
+	# Print sanitized footer if provided; otherwise print a minimal version link with the exact left text
+	if (@footer) {
+		# Print array content, not a symbol reference
+		print join('', @footer);
+	} else {
+		print "<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;'><div style='font-size:12px;'>©2025 (Daniel Nowakowski)</div><div style='font-size:12px;'><a href='$script?action=readme' target='_self' style='text-decoration:none;'>Qht Link Firewall v$myv</a></div></div>\n";
+	}
 }
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd") {
+unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
 	close ($SCRIPTOUT);
 	select STDOUT;
 	# Defensive cleanup: rewrite any legacy includes in the captured template HTML
