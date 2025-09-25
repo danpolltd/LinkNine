@@ -3400,7 +3400,7 @@ EOF
     	print "<li><a data-toggle='tab' href='#waterfall'>Waterfall</a></li>\n";
     	print "<li><a data-toggle='tab' href='#moreplus'>More...</a></li>\n";
     	print "<li><a data-toggle='tab' href='#promotion'>Promotion</a></li>\n";
-	print "<li><a data-toggle='tab' href='#firewall'>Firewall</a></li>\n";
+	# Removed the old 'Firewall' nav link; pane retained for global scripts
 	# Old QhtLink Waterfall tab removed; replaced by new 'Waterfall'
 		if ($config{CLUSTER_SENDTO}) {
 			print "<li><a data-toggle='tab' href='#cluster'>Cluster</a></li>\n";
