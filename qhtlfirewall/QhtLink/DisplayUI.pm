@@ -3395,7 +3395,8 @@ EOF
 		print "<ul class='nav nav-tabs' id='myTabs' style='font-weight:bold'>\n";
 		print "<li><a data-toggle='tab' href='#upgrade'>Upgrade</a></li>\n";
 		print "<li><a data-toggle='tab' href='#quickactions'>Quick Actions</a></li>\n";
-		print "<li class='active'><a data-toggle='tab' href='#home'>Options</a></li>\n";
+        print "<li class='active'><a data-toggle='tab' href='#home'>Options</a></li>\n";
+    	print "<li><a data-toggle='tab' href='#firewall1'>Firewall1</a></li>\n";
     	print "<li><a data-toggle='tab' href='#waterfall'>Waterfall</a></li>\n";
     	print "<li><a data-toggle='tab' href='#moreplus'>More...</a></li>\n";
     	print "<li><a data-toggle='tab' href='#promotion'>Promotion</a></li>\n";
@@ -3667,6 +3668,14 @@ QHTL_TAB_GUARD
 			print "<tr><td><form action='$script' method='post'><button name='action' value='remapf' type='submit' class='btn btn-default'>Remove APF/BFD</button></form><div class='text-muted small' style='margin-top:6px'>Remove APF/BFD from the server. You must not run both APF or BFD with qhtlfirewall on the same server</div></td></tr>\n";
 			print "</table>\n";
 		}
+		print "</div>\n";
+
+		# New Firewall1 tab (placeholder) placed between Options and Waterfall
+		print "<div id='firewall1' class='tab-pane'>\n";
+		print "<table class='table table-bordered table-striped'>\n";
+		print "<thead><tr><th colspan='2'>Firewall1</th></tr></thead>";
+		print "<tr><td colspan='2'>Firewall1 placeholder content.</td></tr>\n";
+		print "</table>\n";
 		print "</div>\n";
 
 		# New Waterfall tab (duplicate of QhtLink Waterfall content) placed before QhtLink Firewall
