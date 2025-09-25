@@ -3396,6 +3396,7 @@ EOF
 		print "<li><a data-toggle='tab' href='#upgrade'>Upgrade</a></li>\n";
 		print "<li><a data-toggle='tab' href='#quickactions'>Quick Actions</a></li>\n";
 		print "<li class='active'><a data-toggle='tab' href='#home'>General Options</a></li>\n";
+    	print "<li><a data-toggle='tab' href='#waterfall'>Waterfall</a></li>\n";
 	print "<li><a data-toggle='tab' href='#qhtlfirewall'>QhtLink Firewall</a></li>\n";
 	print "<li><a data-toggle='tab' href='#qhtlwaterfall'>QhtLink Waterfall</a></li>\n";
 		if ($config{CLUSTER_SENDTO}) {
@@ -3646,7 +3647,7 @@ QHTL_TAB_GUARD
 		print "</table>\n";
 		print "</div>\n";
 
-	print "<div id='home' class='tab-pane active'>\n";
+		print "<div id='home' class='tab-pane active'>\n";
 		print "<form action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 	print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
@@ -3734,6 +3735,34 @@ QHTL_TAB_GUARD
 	print "<div class='modal-body'>\n";
 	print "<h4 id='quickViewTitle'>Quick View</h4>\n";
 	print "<div id='quickViewBody'>Loading...</div>\n";
+	print "</div>\n";
+
+	# New Waterfall tab (duplicate of QhtLink Waterfall content) placed before QhtLink Firewall
+	print "<div id='waterfall' class='tab-pane'>\n";
+	print "<table class='table table-bordered table-striped'>\n";
+	print "<thead><tr><th>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
+	print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallstatus'><input type='submit' class='btn btn-default' value='Status'></form><div class='text-muted small' style='margin-top:6px'>Display qhtlwaterfall status</div></td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallrestart'><input type='submit' class='btn btn-default' value='Restart'></form><div class='text-muted small' style='margin-top:6px'>Restart qhtlwaterfall</div></td></tr>\n";
+	print "<tr><td style='white-space: nowrap;'><form action='$script' method='post'><input type='hidden' name='action' value='ignorefiles'><select name='ignorefile'>\n";
+	print "<option value='qhtlfirewall.ignore'>qhtlfirewall.ignore - IP Blocking</option>\n";
+	print "<option value='qhtlfirewall.pignore'>qhtlfirewall.pignore, Process Tracking</option>\n";
+	print "<option value='qhtlfirewall.fignore'>qhtlfirewall.fignore, Directory Watching</option>\n";
+	print "<option value='qhtlfirewall.signore'>qhtlfirewall.signore, Script Alert</option>\n";
+	print "<option value='qhtlfirewall.rignore'>qhtlfirewall.rignore, Reverse DNS lookup</option>\n";
+	print "<option value='qhtlfirewall.suignore'>qhtlfirewall.suignore, Superuser check</option>\n";
+	print "<option value='qhtlfirewall.mignore'>qhtlfirewall.mignore, RT_LOCALRELAY</option>\n";
+	print "<option value='qhtlfirewall.logignore'>qhtlfirewall.logignore, Log Scanner</option>\n";
+	print "<option value='qhtlfirewall.uidignore'>qhtlfirewall.uidignore, User ID Tracking</option>\n";
+	print "</select> <input type='submit' class='btn btn-default' value='Edit'></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlwaterfall ignore file</div></td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='dirwatch' type='submit' class='btn btn-default'>qhtlwaterfall Directory File Watching</button></form><div class='text-muted small' style='margin-top:6px'>Edit the Directory File Watching file (qhtlfirewall.dirwatch) - all listed files and directories will be watched for changes by qhtlwaterfall</div></td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='dyndns' type='submit' class='btn btn-default'>qhtlwaterfall Dynamic DNS</button></form><div class='text-muted small' style='margin-top:6px'>Edit the Dynamic DNS file (qhtlfirewall.dyndns) - all listed domains will be resolved and allowed through the firewall</div></td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><select name='template'>\n";
+	foreach my $tmp ("alert.txt","tracking.txt","connectiontracking.txt","processtracking.txt","accounttracking.txt","usertracking.txt","sshalert.txt","webminalert.txt","sualert.txt","sudoalert.txt","uialert.txt","cpanelalert.txt","scriptalert.txt","filealert.txt","watchalert.txt","loadalert.txt","resalert.txt","integrityalert.txt","exploitalert.txt","relayalert.txt","portscan.txt","uidscan.txt","permblock.txt","netblock.txt","queuealert.txt","logfloodalert.txt","logalert.txt","modsecipdbcheck.txt") {print "<option>$tmp</option>\n"}
+	print "</select> <button name='action' value='templates' type='submit' class='btn btn-default'>Edit</button></form><div class='text-muted small' style='margin-top:6px'>Edit email alert templates. See Firewall Information for details of each file</div></td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='logfiles' type='submit' class='btn btn-default'>Log Scanner Files</button></form><div class='text-muted small' style='margin-top:6px'>Edit the Log Scanner file (qhtlfirewall.logfiles) - Scan listed log files for log lines and periodically send a report</div></td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='blocklists' type='submit' class='btn btn-default'>Blocklists</button></form><div class='text-muted small' style='margin-top:6px'>Edit the Blocklists configuration file (qhtlfirewall.blocklists)</div></td></tr>\n";
+	print "<tr><td><form action='$script' method='post'><button name='action' value='syslogusers' type='submit' class='btn btn-default'>Syslog Users</button></form><div class='text-muted small' style='margin-top:6px'>Edit the syslog/rsyslog allowed users file (qhtlfirewall.syslogusers)</div></td></tr>\n";
+	print "</table>\n";
 	print "</div>\n";
 	print "<div class='modal-footer' style='display:flex; justify-content:space-between; align-items:center;'>\n";
 	print "  <div>\n";
