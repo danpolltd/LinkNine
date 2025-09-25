@@ -3550,7 +3550,7 @@ QHTL_TAB_GUARD
 		print "<form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>";
 		print "<div style='width:100%'>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' data-url='$script?action=viewlist&which=allow' href='#'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
+	print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' data-url='$script?action=viewlist&which=allow' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='allowip' value='' size='36' style='background-color: #BDECB6; width:100%;'></div>";
 		print "  </div>";
 		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qallow\\\").submit();\\\" class='btn btn-default' data-bubble-color='green'>Quick Allow</button></div>";
@@ -3566,7 +3566,7 @@ QHTL_TAB_GUARD
 		print "<form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>";
 		print "<div style='width:100%'>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' data-url='$script?action=viewlist&which=deny' href='#'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
+	print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' data-url='$script?action=viewlist&which=deny' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='denyip' value='' size='36' style='background-color: #FFD1DC; width:100%;'></div>";
 		print "  </div>";
 		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qdeny\\\").submit();\\\" class='btn btn-default' data-bubble-color='red'>Quick Deny</button></div>";
@@ -3582,7 +3582,7 @@ QHTL_TAB_GUARD
 		print "<form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>";
 		print "<div style='width:100%'>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Ignore IP address <a class='quickview-link' data-which='ignore' data-url='$script?action=viewlist&which=ignore' href='#'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
+	print "    <div style='flex:0 0 30%; max-width:30%'>Ignore IP address <a class='quickview-link' data-which='ignore' data-url='$script?action=viewlist&which=ignore' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='ignoreip' value='' size='36' style='background-color: #D9EDF7; width:100%;'></div>";
 		print "  </div>";
 		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qignore\\\").submit();\\\" class='btn btn-default' data-bubble-color='orange'>Quick Ignore</button></div>";
@@ -3859,9 +3859,40 @@ QHTL_PROMO_JS
 var currentQuickWhich = null;
 function openQuickView(url, which) {
 	try {
+		// Increase lock and mark document BEFORE any DOM work so stray handlers can't flip tabs
 		window.qhtlTabLock = (window.qhtlTabLock||0) + 1;
-		// Mark document as locked to disable tab interactions visually/functionally
 		try { document.documentElement.classList.add('qhtl-tabs-locked'); } catch(__){}
+		// Snapshot current tab/hash as the canonical target while modal is open
+		try {
+			var actA0 = document.querySelector('#myTabs li.active > a[href^="#"]');
+			window.qhtlSavedTabHash = actA0 ? actA0.getAttribute('href') : (window.qhtlSavedTabHash||'#home');
+			if (!window.qhtlSavedTabHash) { window.qhtlSavedTabHash = '#home'; }
+			try { window.qhtlSavedURLHash = window.location.hash; } catch(___){}
+		} catch(__){}
+		// Install a micro guard to revert any background tab changes while locked
+		try {
+			if (!window.__qhtlTabObserver) {
+				var target = document.querySelector('.tab-content');
+				if (target && window.MutationObserver) {
+					window.__qhtlTabObserver = new MutationObserver(function(){
+						try {
+							if (!window.qhtlTabLock) return;
+							var want = window.qhtlSavedTabHash || '#home';
+							if (typeof window.qhtlActivateTab === 'function') {
+								window.qhtlActivateTab(want);
+							}
+							// also restore URL hash silently
+							try {
+								var keep = (typeof window.qhtlSavedURLHash !== 'undefined') ? window.qhtlSavedURLHash : '';
+								var base = window.location.pathname + window.location.search + (keep || '');
+								history.replaceState(null, '', base);
+							} catch(____){}
+						} catch(_____){}
+					});
+					window.__qhtlTabObserver.observe(target, { attributes:true, childList:true, subtree:true });
+				}
+			}
+		} catch(__){}
 	} catch(_){ }
 	var titleMap = {allow:'qhtlfirewall.allow', deny:'qhtlfirewall.deny', ignore:'qhtlfirewall.ignore'};
 	$('#quickViewTitle').text('Quick View: ' + (titleMap[which]||which));
@@ -3918,7 +3949,10 @@ try {
 		var t = e.target;
 		var a = (t && t.closest) ? t.closest('a.quickview-link') : null;
 		if (!a) return;
-		// Snapshot current active tab and current hash to restore later
+		// Immediately lock and snapshot current active tab/hash to restore later
+		try { window.qhtlTabLock = (window.qhtlTabLock||0) + 1; } catch(__){}
+		try { document.documentElement.classList.add('qhtl-tabs-locked'); } catch(__){}
+		// Snapshot current active tab and current hash
 		var currentTab = null;
 		try {
 			var actA = document.querySelector('#myTabs li.active > a[href^="#"]');
@@ -3952,11 +3986,17 @@ $(document).on('click', 'a.quickview-link', function(e){
 		if (e && typeof e.preventDefault === 'function') e.preventDefault();
 		if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
 		if (e && typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+		// Early lock and remember current active tab and hash
+		try { window.qhtlTabLock = (window.qhtlTabLock||0) + 1; } catch(__){}
+		try { document.documentElement.classList.add('qhtl-tabs-locked'); } catch(__){}
 		// Remember current active tab and re-activate it after opening the modal to avoid any background switch
 		var currentTab = null;
 		try {
 			var actA = document.querySelector('#myTabs li.active > a[href^="#"]');
 			if (actA) { currentTab = actA.getAttribute('href'); }
+			if (!currentTab) { currentTab = '#home'; }
+			window.qhtlSavedTabHash = currentTab;
+			try { window.qhtlSavedURLHash = window.location.hash; } catch(__){}
 		} catch(_e){}
 		var url = $(this).data('url') || $(this).attr('href');
 		var which = $(this).data('which');
@@ -3964,9 +4004,8 @@ $(document).on('click', 'a.quickview-link', function(e){
 		// Re-stick to the current tab to avoid any external handlers flipping it behind the modal
 		try {
 			if (currentTab && typeof window.qhtlActivateTab === 'function') {
-				setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, 0);
-				setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, 100);
-                setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, 250);
+				var times=[0,50,150,300,600];
+				for (var i=0;i<times.length;i++){ (function(ms){ setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, ms); })(times[i]); }
 			}
 		} catch(__e){}
 		return false;
@@ -4019,6 +4058,7 @@ $(document).on('click', '#quickViewSaveBtn', function(){
 $('#quickViewModal').on('hidden.bs.modal', function(){
 	try { window.qhtlTabLock = Math.max(0, (window.qhtlTabLock||0) - 1); } catch(_){ }
 	try { document.documentElement.classList.remove('qhtl-tabs-locked'); } catch(_){ }
+	try { if (window.__qhtlTabObserver && window.__qhtlTabObserver.disconnect) { window.__qhtlTabObserver.disconnect(); window.__qhtlTabObserver = null; } } catch(_){ }
 	$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view');
 });
 JS
