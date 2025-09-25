@@ -3404,7 +3404,6 @@ EOF
 		if ($config{CLUSTER_SENDTO}) {
 			print "<li><a data-toggle='tab' href='#cluster'>Cluster</a></li>\n";
 		}
-	print "<li><a data-toggle='tab' href='#extra'>Extra</a></li>\n";
 		print "</ul><br>\n";
 
 		# Ensure tabs switch even if Bootstrap JS isn't active (fallback minimal handler)
@@ -3727,6 +3726,13 @@ QHTL_TAB_GUARD
 			print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='reseller' type='submit' class='btn btn-default'>Edit Reseller Privs</button></form><div class='text-muted small' style='margin-top:6px'>Privileges can be assigned to $resellers accounts by editing this file (qhtlfirewall.resellers)</div></td></tr>\n";
 			print "</table>\n";
 		}
+
+		# True move: include the former 'Extra' tab content inside 'More...'
+		$moreplus_has_content = 1;
+		print "<table class='table table-bordered table-striped'>\n";
+		print "<thead><tr><th colspan='2'>Extra</th></tr></thead>";
+		print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='qhtlfirewalltest' type='submit' class='btn btn-default'>Test iptables</button></form><div class='text-muted small' style='margin-top:6px'>Check that iptables has the required modules to run qhtlfirewall</div></td></tr>\n";
+		print "</table>\n";
 
 		unless ($moreplus_has_content) {
 				print "<div class='text-muted small' style='padding:8px'>No additional modules are enabled for this section.</div>\n";
@@ -4285,11 +4291,11 @@ JS
 		}
 
 
-		# New Promotion tab-pane between More... and QhtLink Firewall, copy content from Extra
+		# New Promotion tab-pane between More... and QhtLink Firewall (placeholder)
 		print "<div id='promotion' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>Extra</th></tr></thead>";
-		print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='qhtlfirewalltest' type='submit' class='btn btn-default'>Test iptables</button></form><div class='text-muted small' style='margin-top:6px'>Check that iptables has the required modules to run qhtlfirewall</div></td></tr>\n";
+		print "<thead><tr><th colspan='2'>Promotion</th></tr></thead>";
+		print "<tr><td colspan='2'>No promotions are currently available.</td></tr>\n";
 		print "</table>\n";
 		print "</div>\n";
 
