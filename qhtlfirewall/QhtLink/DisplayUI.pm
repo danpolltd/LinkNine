@@ -3393,9 +3393,9 @@ EOF
 		print "<div class='bs-callout bs-callout-info text-center collapse' id='upgradebs'><h4>A new version of qhtlfirewall is <a href='#upgradetable'>available</a></h4></div>";
 
 		print "<ul class='nav nav-tabs' id='myTabs' style='font-weight:bold'>\n";
-		print "<li class='active'><a data-toggle='tab' href='#upgrade'>Upgrade</a></li>\n";
+		print "<li><a data-toggle='tab' href='#upgrade'>Upgrade</a></li>\n";
 		print "<li><a data-toggle='tab' href='#quickactions'>Quick Actions</a></li>\n";
-		print "<li><a data-toggle='tab' href='#home'>General Options</a></li>\n";
+		print "<li class='active'><a data-toggle='tab' href='#home'>General Options</a></li>\n";
 	print "<li><a data-toggle='tab' href='#qhtlfirewall'>QhtLink Firewall</a></li>\n";
 	print "<li><a data-toggle='tab' href='#qhtlwaterfall'>QhtLink Waterfall</a></li>\n";
 		if ($config{CLUSTER_SENDTO}) {
@@ -3493,7 +3493,7 @@ QHTL_TAB_FALLBACK
 QHTL_TAB_GUARD
 
 		print "<div class='tab-content'>\n";
-		print "<div id='upgrade' class='tab-pane active'>\n";
+		print "<div id='upgrade' class='tab-pane'>\n";
 		print "<form action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped' id='upgradetable'>\n";
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
@@ -3646,7 +3646,7 @@ QHTL_TAB_GUARD
 		print "</table>\n";
 		print "</div>\n";
 
-	print "<div id='home' class='tab-pane'>\n";
+	print "<div id='home' class='tab-pane active'>\n";
 		print "<form action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 	print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
@@ -3923,6 +3923,7 @@ try {
 		try {
 			var actA = document.querySelector('#myTabs li.active > a[href^="#"]');
 			if (actA) { currentTab = actA.getAttribute('href'); }
+			if (!currentTab) { currentTab = '#home'; }
 			window.qhtlSavedTabHash = currentTab;
 			try { window.qhtlSavedURLHash = window.location.hash; } catch(__){}
 		} catch(_e){}
@@ -4123,7 +4124,11 @@ JS
 		}
 
 		unless ($other_has_content) {
-			print "<div class='text-muted small' style='padding:8px'>No additional modules are enabled for this section.</div>\n";
+				print "<div class='text-muted small' style='padding:8px'>No additional modules are enabled for this section.</div>\n";
+				print "<table class='table table-bordered table-striped'>\n";
+				print "<thead><tr><th>About qhtlfirewall</th></tr></thead>";
+				print "<tr><td>This interface provides quick access to qhtlfirewall and qhtlwaterfall management. Use the tabs above to navigate. The Upgrade tab will show when updates are available and provide a link to the ChangeLog.</td></tr>\n";
+				print "</table>\n";
 		}
 
 	# Move About section into the 'More' tab so it is only visible there
