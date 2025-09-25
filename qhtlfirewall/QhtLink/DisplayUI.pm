@@ -3869,27 +3869,29 @@ function openQuickView(url, which) {
 			if (!window.qhtlSavedTabHash) { window.qhtlSavedTabHash = '#home'; }
 			try { window.qhtlSavedURLHash = window.location.hash; } catch(___){}
 		} catch(__){}
-		// Install a micro guard to revert any background tab changes while locked
+		// Install lightweight observers on individual panes to revert any background tab changes while locked
 		try {
-			if (!window.__qhtlTabObserver) {
-				var target = document.querySelector('.tab-content');
-				if (target && window.MutationObserver) {
-					window.__qhtlTabObserver = new MutationObserver(function(){
-						try {
-							if (!window.qhtlTabLock) return;
-							var want = window.qhtlSavedTabHash || '#home';
-							if (typeof window.qhtlActivateTab === 'function') {
-								window.qhtlActivateTab(want);
-							}
-							// also restore URL hash silently
+			if (window.MutationObserver && !window.__qhtlTabObserverList) {
+				window.__qhtlTabObserverList = [];
+				var panes = document.querySelectorAll('.tab-content > .tab-pane');
+				for (var i=0; i<panes.length; i++){
+					try{
+						var pane = panes[i];
+						var obs = new MutationObserver(function(){
 							try {
-								var keep = (typeof window.qhtlSavedURLHash !== 'undefined') ? window.qhtlSavedURLHash : '';
-								var base = window.location.pathname + window.location.search + (keep || '');
-								history.replaceState(null, '', base);
-							} catch(____){}
-						} catch(_____){}
-					});
-					window.__qhtlTabObserver.observe(target, { attributes:true, childList:true, subtree:true });
+								if (!window.qhtlTabLock) return;
+								var want = window.qhtlSavedTabHash || '#home';
+								if (typeof window.qhtlActivateTab === 'function') { window.qhtlActivateTab(want); }
+								try {
+									var keep = (typeof window.qhtlSavedURLHash !== 'undefined') ? window.qhtlSavedURLHash : '';
+									var base = window.location.pathname + window.location.search + (keep || '');
+									history.replaceState(null, '', base);
+								} catch(____){}
+							} catch(_____){ }
+						});
+						obs.observe(pane, { attributes:true, attributeFilter:['class'] });
+						window.__qhtlTabObserverList.push(obs);
+					} catch(_o){}
 				}
 			}
 		} catch(__){}
@@ -3929,14 +3931,32 @@ function openQuickView(url, which) {
 	$mc.removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view');
 	$mc.addClass('fire-border');
 	if (currentQuickWhich==='allow') { $mc.addClass('fire-allow-view'); } else if (currentQuickWhich==='ignore') { $mc.addClass('fire-ignore-view'); } else if (currentQuickWhich==='deny') { $mc.addClass('fire-deny-view'); }
-	$.ajax({ url: url, method: 'GET' })
+	// Gentle hint if the load takes longer (large lists)
+	try { window.clearTimeout(window.__qhtlLoadHintTimer); } catch(__h){}
+	window.__qhtlLoadHintTimer = setTimeout(function(){
+		try {
+			var bodyEl = document.getElementById('quickViewBody');
+			if (bodyEl && /Loading\.\.\./.test(bodyEl.textContent||'')) {
+				bodyEl.innerHTML = "<div>Still loading… If the list is large, this can take a moment.</div>";
+			}
+		} catch(__){ }
+	}, 1200);
+
+    try { if (window.__qhtlCurrentXHR && window.__qhtlCurrentXHR.abort) { window.__qhtlCurrentXHR.abort(); } } catch(__ax){}
+    if (window.console && console.info) { try { console.info('[QHTL] QuickView GET', url); } catch(__c){} }
+    window.__qhtlCurrentXHR = $.ajax({ url: url, method: 'GET', dataType: 'html', timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
 		.done(function(data){
+			try { window.clearTimeout(window.__qhtlLoadHintTimer); } catch(__h){}
 			var body = data;
 			try { var m = data.match(/<pre[\s\S]*?<\/pre>/i); if (m) { body = m[0]; } } catch(e) {}
 			$('#quickViewBody').html(body);
 		})
-		.fail(function(){
-			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to load content</div>');
+		.fail(function(xhr, textStatus, errorThrown){
+			if (window.console && console.warn) { try { console.warn('[QHTL] QuickView GET failed', url, textStatus, errorThrown, xhr && xhr.status); } catch(__c){} }
+			try { window.clearTimeout(window.__qhtlLoadHintTimer); } catch(__h){}
+			var code = (xhr && typeof xhr.status !== 'undefined') ? xhr.status : 'n/a';
+			var msg = (textStatus || 'error') + (errorThrown ? (': '+errorThrown) : '');
+			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to load content ('+code+'): '+msg+'<br><span class="small text-muted">Try again or use the full editor button if available.</span></div>');
 		});
 }
 function showQuickView(which) {
@@ -4013,9 +4033,11 @@ $(document).on('click', 'a.quickview-link', function(e){
 });
 $(document).on('click', '#quickViewEditBtn', function(){
 	if (!currentQuickWhich) { return; }
-	var url = QHTL_SCRIPT + '?action=editlist&which=' + encodeURIComponent(currentQuickWhich);
+    var url = QHTL_SCRIPT + '?action=editlist&which=' + encodeURIComponent(currentQuickWhich);
 	$('#quickViewBody').html('Loading...');
-	$.ajax({ url: url, method: 'GET' })
+    try { if (window.__qhtlEditXHR && window.__qhtlEditXHR.abort) { window.__qhtlEditXHR.abort(); } } catch(__ax){}
+    if (window.console && console.info) { try { console.info('[QHTL] QuickView EDIT GET', url); } catch(__c){} }
+    window.__qhtlEditXHR = $.ajax({ url: url, method: 'GET', dataType: 'html', timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
 		.done(function(data){
 			$('#quickViewBody').html(data);
 			$('#quickViewEditBtn').hide();
@@ -4025,8 +4047,11 @@ $(document).on('click', '#quickViewEditBtn', function(){
 			var cls = (currentQuickWhich==='allow') ? 'fire-allow' : (currentQuickWhich==='ignore' ? 'fire-ignore' : 'fire-deny');
 			var $mc = $('#quickViewModal .modal-content'); $mc.removeClass('fire-allow fire-ignore fire-deny').addClass('fire-border').addClass(cls);
 		})
-		.fail(function(){
-			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to load editor</div>');
+		.fail(function(xhr, textStatus, errorThrown){
+			if (window.console && console.warn) { try { console.warn('[QHTL] QuickView EDIT failed', url, textStatus, errorThrown, xhr && xhr.status); } catch(__c){} }
+			var code = (xhr && typeof xhr.status !== 'undefined') ? xhr.status : 'n/a';
+			var msg = (textStatus || 'error') + (errorThrown ? (': '+errorThrown) : '');
+			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to load editor ('+code+'): '+msg+'</div>');
 		});
 });
 $(document).on('click', '#quickViewCancelBtn', function(){
@@ -4043,7 +4068,9 @@ $(document).on('click', '#quickViewSaveBtn', function(){
 	var ta = document.getElementById('quickEditArea');
 	if (ta) { content = ta.value; }
 	$('#quickViewBody').html('Saving...');
-	$.ajax({ url: QHTL_SCRIPT + '?action=savelist&which=' + encodeURIComponent(currentQuickWhich), method: 'POST', data: { formdata: content } })
+    try { if (window.__qhtlSaveXHR && window.__qhtlSaveXHR.abort) { window.__qhtlSaveXHR.abort(); } } catch(__ax){}
+    if (window.console && console.info) { try { console.info('[QHTL] QuickView SAVE POST', currentQuickWhich); } catch(__c){} }
+    window.__qhtlSaveXHR = $.ajax({ url: QHTL_SCRIPT + '?action=savelist&which=' + encodeURIComponent(currentQuickWhich), method: 'POST', data: { formdata: content }, timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
 		.done(function(){
 			showQuickView(currentQuickWhich);
 			$('#quickViewEditBtn').show();
@@ -4051,14 +4078,30 @@ $(document).on('click', '#quickViewSaveBtn', function(){
 			$('#quickViewCancelBtn').hide();
 			var $mc3 = $('#quickViewModal .modal-content'); $mc3.removeClass('fire-allow fire-ignore fire-deny'); $mc3.addClass('fire-border'); $mc3.removeClass('fire-allow-view fire-ignore-view fire-deny-view'); $mc3.addClass((currentQuickWhich==='allow')?'fire-allow-view':(currentQuickWhich==='ignore')?'fire-ignore-view':'fire-deny-view');
 		})
-		.fail(function(){
-			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to save changes</div>');
+		.fail(function(xhr, textStatus, errorThrown){
+			if (window.console && console.warn) { try { console.warn('[QHTL] QuickView SAVE failed', textStatus, errorThrown, xhr && xhr.status); } catch(__c){} }
+			var code = (xhr && typeof xhr.status !== 'undefined') ? xhr.status : 'n/a';
+			var msg = (textStatus || 'error') + (errorThrown ? (': '+errorThrown) : '');
+			$('#quickViewBody').html('<div class=\'alert alert-danger\'>Failed to save changes ('+code+'): '+msg+'</div>');
 		});
 });
 $('#quickViewModal').on('hidden.bs.modal', function(){
 	try { window.qhtlTabLock = Math.max(0, (window.qhtlTabLock||0) - 1); } catch(_){ }
 	try { document.documentElement.classList.remove('qhtl-tabs-locked'); } catch(_){ }
-	try { if (window.__qhtlTabObserver && window.__qhtlTabObserver.disconnect) { window.__qhtlTabObserver.disconnect(); window.__qhtlTabObserver = null; } } catch(_){ }
+	// Abort any in-flight XHRs and clear timers
+	try { if (window.__qhtlCurrentXHR && window.__qhtlCurrentXHR.abort) { window.__qhtlCurrentXHR.abort(); } } catch(_ax){}
+	try { if (window.__qhtlEditXHR && window.__qhtlEditXHR.abort) { window.__qhtlEditXHR.abort(); } } catch(_ax){}
+	try { if (window.__qhtlSaveXHR && window.__qhtlSaveXHR.abort) { window.__qhtlSaveXHR.abort(); } } catch(_ax){}
+	try { window.clearTimeout(window.__qhtlLoadHintTimer); } catch(_t){}
+	// Disconnect any installed observers
+	try {
+		if (window.__qhtlTabObserverList && window.__qhtlTabObserverList.length) {
+			for (var i=0;i<window.__qhtlTabObserverList.length;i++) {
+				try { var ob = window.__qhtlTabObserverList[i]; if (ob && ob.disconnect) ob.disconnect(); } catch(__){}
+			}
+		}
+		window.__qhtlTabObserverList = null;
+	} catch(_){ }
 	$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view');
 });
 JS
