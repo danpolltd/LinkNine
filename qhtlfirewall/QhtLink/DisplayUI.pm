@@ -3399,7 +3399,7 @@ EOF
     	print "<li><a data-toggle='tab' href='#waterfall'>Waterfall</a></li>\n";
     	print "<li><a data-toggle='tab' href='#moreplus'>More...</a></li>\n";
     	print "<li><a data-toggle='tab' href='#promotion'>Promotion</a></li>\n";
-	print "<li><a data-toggle='tab' href='#qhtlfirewall'>QhtLink Firewall</a></li>\n";
+	print "<li><a data-toggle='tab' href='#firewall'>Firewall</a></li>\n";
 	# Old QhtLink Waterfall tab removed; replaced by new 'Waterfall'
 		if ($config{CLUSTER_SENDTO}) {
 			print "<li><a data-toggle='tab' href='#cluster'>Cluster</a></li>\n";
@@ -3744,7 +3744,7 @@ QHTL_TAB_GUARD
 
 		print "</div>\n";
 
-		print "<div id='qhtlfirewall' class='tab-pane'>\n";
+		print "<div id='firewall' class='tab-pane'>\n";
 
 		print "<table class='table table-bordered table-striped'>\n";
 	print "<thead><tr><th colspan='2'>QHTL \"Firewall\"</th></tr></thead>";
