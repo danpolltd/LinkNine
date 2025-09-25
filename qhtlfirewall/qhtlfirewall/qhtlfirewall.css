@@ -212,6 +212,86 @@ td .btn, th .btn {
 /* Ensure nested elements inside buttons don\'t force wrapping */
 .btn * { white-space: inherit !important; }
 
+/* ------------------------------------------------------------------ */
+/* Generic "bubble" buttons for all tab action buttons (orange theme) */
+/* Future-proof: per-button color via data-bubble-color attribute      */
+/* Colors can be overridden by setting CSS custom properties inline   */
+/* Example: <button data-bubble-color="green"> or data-bubble-color   */
+/* Values supported below: orange (default), blue, green, red, purple, */
+/* gray. To customize: add new [data-bubble-color=...] block or set    */
+/* style="--bubble-light:#...; --bubble-mid:#...; --bubble-dark:#..."  */
+/* ------------------------------------------------------------------ */
+
+/* Base style applied only within tab content so header/status/watcher remain distinct */
+.tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status) {
+	--bubble-light: #ffe7c2;
+	--bubble-mid:   #ffb74d;
+	--bubble-dark:  #f57c00;
+	--bubble-border:#ff9800;
+	--bubble-glow:  rgba(255,152,0,0.45);
+	position: relative;
+	border-radius: 999px;
+	border: 1px solid var(--bubble-border);
+	background: radial-gradient(circle at 30% 30%, var(--bubble-light) 0%, var(--bubble-mid) 45%, var(--bubble-dark) 85%);
+	color: #fff !important;
+	font-weight: 600;
+	padding: 6px 16px;
+	line-height: 1.2;
+	text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+	box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 4px 14px var(--bubble-glow);
+	transition: background .25s ease, box-shadow .25s ease, transform .15s ease;
+	overflow: hidden; /* keep pseudo highlight clipped */
+}
+.tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status):before {
+	content: '';
+	position: absolute;
+	top: 3px; left: 10px; right: 10px; height: 42%;
+	border-radius: 999px;
+	background: linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0));
+	pointer-events: none;
+}
+.tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status):hover {
+	filter: brightness(1.05) saturate(1.05);
+	box-shadow: inset 0 2px 6px rgba(255,255,255,0.45), 0 6px 18px var(--bubble-glow);
+	transform: translateY(-1px);
+}
+.tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status):active {
+	transform: translateY(0);
+	box-shadow: inset 0 2px 8px rgba(0,0,0,0.25), 0 2px 8px var(--bubble-glow);
+}
+.tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status):disabled,
+.tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status)[disabled] {
+	opacity: .55;
+	cursor: not-allowed;
+	filter: grayscale(.2) brightness(.95);
+}
+
+/* Color variants using data attribute (override CSS vars only) */
+.tab-content button.btn[data-bubble-color=blue]:not(.btn-watcher-bubble):not(.btn-status){
+	--bubble-light:#cfe7ff; --bubble-mid:#64b5f6; --bubble-dark:#1e88e5; --bubble-border:#2196f3; --bubble-glow:rgba(33,150,243,0.45);
+}
+.tab-content button.btn[data-bubble-color=green]:not(.btn-watcher-bubble):not(.btn-status){
+	--bubble-light:#d8f5d2; --bubble-mid:#81c784; --bubble-dark:#388e3c; --bubble-border:#4caf50; --bubble-glow:rgba(76,175,80,0.45);
+}
+.tab-content button.btn[data-bubble-color=red]:not(.btn-watcher-bubble):not(.btn-status){
+	--bubble-light:#ffd1d1; --bubble-mid:#ef9a9a; --bubble-dark:#d32f2f; --bubble-border:#e53935; --bubble-glow:rgba(229,57,53,0.45);
+}
+.tab-content button.btn[data-bubble-color=purple]:not(.btn-watcher-bubble):not(.btn-status){
+	--bubble-light:#f1d9ff; --bubble-mid:#ba83ff; --bubble-dark:#7b1fa2; --bubble-border:#8e24aa; --bubble-glow:rgba(142,36,170,0.45);
+}
+.tab-content button.btn[data-bubble-color=gray]:not(.btn-watcher-bubble):not(.btn-status){
+	--bubble-light:#ececec; --bubble-mid:#bdbdbd; --bubble-dark:#616161; --bubble-border:#757575; --bubble-glow:rgba(97,97,97,0.35);
+}
+
+/* Slight size harmonization for icon-only bubble buttons */
+.tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status) span.glyphicon { margin-left:4px; }
+
+/* When inside table cells set padding slightly smaller so rows stay compact */
+td .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status),
+.tab-content td button.btn:not(.btn-watcher-bubble):not(.btn-status){
+	padding:4px 12px;
+}
+
 /* Watcher "water bubble" button */
 .btn-watcher-bubble {
 	position: relative;

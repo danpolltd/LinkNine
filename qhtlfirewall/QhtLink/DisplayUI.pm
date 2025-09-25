@@ -56,10 +56,12 @@ sub manualversion {
 	my ($upgrade, $actv, $src, $err) = (0, '', '', '');
 	eval {
 		if (defined $urlget) {
-			my $data = $urlget->get('https://update.qhtl.link/version.txt');
-			if (defined $data && $data =~ /^(\d+\.\d+(?:\.\d+)?)/) {
+			my ($rc, $data) = $urlget->urlget('https://update.qhtl.link/version.txt');
+			if (!$rc && defined $data && $data =~ /^(\d+\.\d+(?:\.\d+)?)/) {
 				$actv = $1; $src = 'remote';
 				$upgrade = 1 if ver_cmp($actv, $curv) == 1;
+			} elsif ($rc) {
+				$err = 'Version check failed';
 			}
 		}
 	};
@@ -3367,6 +3369,8 @@ EOF
 			for (var j=0;j<links.length;j++){ var li=links[j].parentNode; if(li) li.classList.remove('active'); }
 			for (var k=0;k<links.length;k++){ if(links[k].getAttribute('href')===hash){ var pli=links[k].parentNode; if(pli) pli.classList.add('active'); break; } }
 		}
+        // Expose activation for other scripts (e.g., to keep current tab sticky)
+        window.qhtlActivateTab = activate;
 		for (var i=0;i<links.length;i++){
 			links[i].addEventListener('click', function(e){ e.preventDefault(); activate(this.getAttribute('href')); });
 		}
@@ -3807,9 +3811,21 @@ $(document).on('click', 'a.quickview-link', function(e){
 		if (e && typeof e.preventDefault === 'function') e.preventDefault();
 		if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
 		if (e && typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+		// Remember current active tab and re-activate it after opening the modal to avoid any background switch
+		var currentTab = null;
+		try {
+			var actA = document.querySelector('#myTabs li.active > a[href^="#"]');
+			if (actA) { currentTab = actA.getAttribute('href'); }
+		} catch(_e){}
 		var url = $(this).attr('href');
 		var which = $(this).data('which');
 		openQuickView(url, which);
+		// Re-stick to the current tab to avoid any external handlers flipping it behind the modal
+		try {
+			if (currentTab && typeof window.qhtlActivateTab === 'function') {
+				setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, 0);
+			}
+		} catch(__e){}
 		return false;
 	} catch(err) { /* fallback to navigation */ }
 });
