@@ -3985,49 +3985,42 @@ function showQuickView(which) {
 }
 // Capture-phase guard to intercept Quick View gear clicks before any other handlers
 try {
-	// Early pointerdown/mousedown guards to set lock and disable tabs before any switch happens
-	function __qhtlPreLock(e){
-		var t = e.target; var a = (t && t.closest) ? t.closest('a.quickview-link') : null; if (!a) return;
-		try { window.qhtlTabLock = 1; } catch(__){}
-		try { document.documentElement.classList.add('qhtl-tabs-locked'); } catch(__){}
-		try { qhtlLockTabs(); } catch(__){}
-		// Snapshot and re-assert current tab immediately
+	// Determine the best current tab hash. Prefer the origin pane of the clicked gear.
+	function __qhtlGetPreferredTabHash(gearAnchor){
 		try {
-			var actA = document.querySelector('#myTabs li.active > a[href^="#"]');
-			var currentTab = actA ? actA.getAttribute('href') : '#home';
-			window.qhtlSavedTabHash = currentTab;
-			try { window.qhtlSavedURLHash = window.location.hash; } catch(__){}
-			if (typeof window.qhtlActivateTab === 'function') { window.qhtlActivateTab(currentTab); }
+			if (gearAnchor && gearAnchor.closest) {
+				var pane = gearAnchor.closest('.tab-pane');
+				if (pane && pane.id) { return '#'+pane.id; }
+			}
+			var paneActive = document.querySelector('.tab-content .tab-pane.active');
+			if (paneActive && paneActive.id) { return '#'+paneActive.id; }
+			var actA = document.querySelector('#myTabs li.active > a[href^="#"]') ||
+					   document.querySelector('#myTabs .active > a[href^="#"]') ||
+					   document.querySelector('#myTabs a[aria-selected="true"][href^="#"]');
+			if (actA) { return actA.getAttribute('href'); }
+			if (window.location && window.location.hash && document.querySelector(window.location.hash)) {
+				return window.location.hash;
+			}
 		} catch(__){}
-		if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-		if (e && typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
-		// do not preventDefault here; the actual click handler will open the modal
+		return '#home';
 	}
-	document.addEventListener('pointerdown', __qhtlPreLock, true);
-	document.addEventListener('mousedown', __qhtlPreLock, true);
 	document.addEventListener('click', function(e){
 		var t = e.target;
 		var a = (t && t.closest) ? t.closest('a.quickview-link') : null;
 		if (!a) return;
-		// Immediately lock and snapshot current active tab/hash to restore later
-		try { window.qhtlTabLock = 1; } catch(__){}
-		try { document.documentElement.classList.add('qhtl-tabs-locked'); } catch(__){}
-		try { qhtlLockTabs(); } catch(__){}
-		// Snapshot current active tab and current hash
-		var currentTab = null;
-		try {
-			var actA = document.querySelector('#myTabs li.active > a[href^="#"]');
-			if (actA) { currentTab = actA.getAttribute('href'); }
-			if (!currentTab) { currentTab = '#home'; }
-			window.qhtlSavedTabHash = currentTab;
-			try { window.qhtlSavedURLHash = window.location.hash; } catch(__){}
-		} catch(_e){}
-		// Hard re-assert the current tab immediately to prevent any background switch
-		try { if (typeof window.qhtlActivateTab === 'function') { window.qhtlActivateTab(currentTab); } } catch(__){}
-		// Halt default navigation and any bubbling that might toggle tabs
+		// Halt default navigation and any bubbling that might toggle tabs FIRST
 		if (e && typeof e.preventDefault === 'function') e.preventDefault();
 		if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
 		if (e && typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+		// Compute origin tab and lock tabs during modal
+		var currentTab = __qhtlGetPreferredTabHash(a);
+		try { window.qhtlSavedTabHash = currentTab; } catch(__){}
+		try { window.qhtlSavedURLHash = window.location.hash; } catch(__){}
+		try { window.qhtlTabLock = 1; } catch(__){}
+		try { document.documentElement.classList.add('qhtl-tabs-locked'); } catch(__){}
+		try { qhtlLockTabs(); } catch(__){}
+		// Hard re-assert the current tab immediately to prevent any background switch
+		try { if (typeof window.qhtlActivateTab === 'function') { window.qhtlActivateTab(currentTab); } } catch(__){}
 		// Open the modal directly
 		var url = a.getAttribute('data-url') || a.getAttribute('href');
 		var which = a.getAttribute('data-which');
@@ -4039,6 +4032,17 @@ try {
 				for (var i=0;i<times.length;i++){ (function(ms){ setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, ms); })(times[i]); }
 			}
 		} catch(__e){}
+		// Safety: auto-unlock if modal didn't become visible
+		setTimeout(function(){
+			try {
+				var visible = $('#quickViewModal').is(':visible');
+				if (!visible) {
+					window.qhtlTabLock = 0;
+					document.documentElement.classList.remove('qhtl-tabs-locked');
+					qhtlUnlockTabs();
+				}
+			} catch(__s){}
+		}, 400);
 		return false;
 	}, true);
 } catch(_){ }
