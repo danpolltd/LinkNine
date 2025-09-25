@@ -3388,6 +3388,8 @@ EOF
 		}
 
 		print "<div class='normalcontainer'>\n";
+		# Enforce tab-pane visibility regardless of host theme CSS and disable tab clicks while Quick View is open
+		print "<style>.tab-content>.tab-pane{display:none!important}.tab-content>.tab-pane.active{display:block!important}.qhtl-tabs-locked #myTabs a[data-toggle='tab']{pointer-events:none;cursor:not-allowed;opacity:.6;filter:grayscale(.25)}</style>\n";
 		print "<div class='bs-callout bs-callout-info text-center collapse' id='upgradebs'><h4>A new version of qhtlfirewall is <a href='#upgradetable'>available</a></h4></div>";
 
 		print "<ul class='nav nav-tabs' id='myTabs' style='font-weight:bold'>\n";
@@ -3459,6 +3461,32 @@ QHTL_TAB_FALLBACK
 				}
 			}
 		}, true);
+		// Block Bootstrap tab activations while locked
+		if (window.jQuery) {
+			try {
+				jQuery(document).on('show.bs.tab', 'a[data-toggle="tab"]', function(e){
+					if (window.qhtlTabLock) {
+						if (e && e.preventDefault) e.preventDefault();
+						return false;
+					}
+				});
+			} catch(__){}
+		}
+		// Guard against hash changes toggling tabs while locked
+		try {
+			window.addEventListener('hashchange', function(e){
+				if (!window.qhtlTabLock) return;
+				try { if (e && e.preventDefault) e.preventDefault(); } catch(__){}
+				try {
+					var keep = (typeof window.qhtlSavedURLHash !== 'undefined') ? window.qhtlSavedURLHash : '';
+					var base = window.location.pathname + window.location.search + (keep || '');
+					history.replaceState(null, '', base);
+					if (typeof window.qhtlActivateTab === 'function' && window.qhtlSavedTabHash) {
+						setTimeout(function(){ try { window.qhtlActivateTab(window.qhtlSavedTabHash); } catch(_){} }, 0);
+					}
+				} catch(__){}
+			}, false);
+		} catch(__){}
 	} catch(e) {}
 })();
 </script>
@@ -3830,7 +3858,11 @@ QHTL_PROMO_JS
 		print <<'JS';
 var currentQuickWhich = null;
 function openQuickView(url, which) {
-    try { window.qhtlTabLock = (window.qhtlTabLock||0) + 1; } catch(_){}
+	try {
+		window.qhtlTabLock = (window.qhtlTabLock||0) + 1;
+		// Mark document as locked to disable tab interactions visually/functionally
+		try { document.documentElement.classList.add('qhtl-tabs-locked'); } catch(__){}
+	} catch(_){ }
 	var titleMap = {allow:'qhtlfirewall.allow', deny:'qhtlfirewall.deny', ignore:'qhtlfirewall.ignore'};
 	$('#quickViewTitle').text('Quick View: ' + (titleMap[which]||which));
 	$('#quickViewBody').html('Loading...');
@@ -3880,6 +3912,39 @@ function showQuickView(which) {
 	var url = QHTL_SCRIPT + '?action=viewlist&which=' + encodeURIComponent(which);
 	openQuickView(url, which);
 }
+// Capture-phase guard to intercept Quick View gear clicks before any other handlers
+try {
+	document.addEventListener('click', function(e){
+		var t = e.target;
+		var a = (t && t.closest) ? t.closest('a.quickview-link') : null;
+		if (!a) return;
+		// Snapshot current active tab and current hash to restore later
+		var currentTab = null;
+		try {
+			var actA = document.querySelector('#myTabs li.active > a[href^="#"]');
+			if (actA) { currentTab = actA.getAttribute('href'); }
+			window.qhtlSavedTabHash = currentTab;
+			try { window.qhtlSavedURLHash = window.location.hash; } catch(__){}
+		} catch(_e){}
+		// Halt default navigation and any bubbling that might toggle tabs
+		if (e && typeof e.preventDefault === 'function') e.preventDefault();
+		if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+		if (e && typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+		// Open the modal directly
+		var url = a.getAttribute('data-url') || a.getAttribute('href');
+		var which = a.getAttribute('data-which');
+		try { openQuickView(url, which); } catch(_){ }
+		// Re-activate the current tab after the modal opens (multiple ticks)
+		try {
+			if (currentTab && typeof window.qhtlActivateTab === 'function') {
+				setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, 0);
+				setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, 100);
+				setTimeout(function(){ try { window.qhtlActivateTab(currentTab); } catch(__e){} }, 250);
+			}
+		} catch(__e){}
+		return false;
+	}, true);
+} catch(_){ }
 $(document).on('click', 'a.quickview-link', function(e){
 	try {
 		// Ensure no navigation or other handlers run when opening Quick View
@@ -3952,6 +4017,7 @@ $(document).on('click', '#quickViewSaveBtn', function(){
 });
 $('#quickViewModal').on('hidden.bs.modal', function(){
 	try { window.qhtlTabLock = Math.max(0, (window.qhtlTabLock||0) - 1); } catch(_){ }
+	try { document.documentElement.classList.remove('qhtl-tabs-locked'); } catch(_){ }
 	$('#quickViewModal .modal-content').removeClass('fire-border fire-allow fire-ignore fire-deny fire-allow-view fire-ignore-view fire-deny-view');
 });
 JS
