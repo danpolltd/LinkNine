@@ -3960,6 +3960,54 @@ function openQuickView(url, which) {
 				bodyEl.innerHTML = "<div>Still loading… If the list is large, this can take a moment.</div>";
 			}
 		} catch(__){ }
+
+		// Pre-lock on mousedown specifically for Quick View gear anchors to prevent any
+		// background tab activation (e.g., Waterfall) before our click handler runs.
+		// Includes a short safety auto-unlock if the modal doesn't open.
+		try {
+			document.addEventListener('mousedown', function(e){
+				var t = e.target;
+				var a = (t && t.closest) ? t.closest('a.quickview-link') : null;
+				if (!a) return;
+				if (e && typeof e.preventDefault === 'function') e.preventDefault();
+				if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+				if (e && typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+				try {
+					var currentTab = (function(gear){
+						try {
+							if (gear && gear.closest) {
+								var pane = gear.closest('.tab-pane');
+								if (pane && pane.id) return '#'+pane.id;
+							}
+							var paneActive = document.querySelector('.tab-content .tab-pane.active');
+							if (paneActive && paneActive.id) return '#'+paneActive.id;
+							var actA = document.querySelector('#myTabs li.active > a[href^="#"]') ||
+												 document.querySelector('#myTabs .active > a[href^="#"]') ||
+												 document.querySelector('#myTabs a[aria-selected="true"][href^="#"]');
+							if (actA) return actA.getAttribute('href');
+						} catch(__){}
+						return '#home';
+					})(a);
+					window.qhtlSavedTabHash = currentTab;
+					try { window.qhtlSavedURLHash = window.location.hash; } catch(__){}
+					window.qhtlTabLock = 1;
+					document.documentElement.classList.add('qhtl-tabs-locked');
+					try { qhtlLockTabs(); } catch(__){}
+					if (typeof window.qhtlActivateTab === 'function' && currentTab) { window.qhtlActivateTab(currentTab); }
+					try { window.clearTimeout(window.__qhtlGearPreLockTimer); } catch(__){}
+					window.__qhtlGearPreLockTimer = setTimeout(function(){
+						try {
+							if (!$('#quickViewModal').is(':visible')) {
+								window.qhtlTabLock = 0;
+								document.documentElement.classList.remove('qhtl-tabs-locked');
+								qhtlUnlockTabs();
+							}
+						} catch(__s){}
+					}, 600);
+				} catch(__e){}
+			}, true);
+		} catch(__){ }
+
 	}, 1200);
 
     try { if (window.__qhtlCurrentXHR && window.__qhtlCurrentXHR.abort) { window.__qhtlCurrentXHR.abort(); } } catch(__ax){}
@@ -4024,7 +4072,11 @@ try {
 		// Open the modal directly
 		var url = a.getAttribute('data-url') || a.getAttribute('href');
 		var which = a.getAttribute('data-which');
-		try { openQuickView(url, which); } catch(_){ }
+		try {
+			// cancel the pre-lock safety timer since we are opening now
+			try { window.clearTimeout(window.__qhtlGearPreLockTimer); } catch(__){}
+			openQuickView(url, which);
+		} catch(_){ }
 		// Re-activate the current tab after the modal opens (multiple ticks)
 		try {
 			if (currentTab && typeof window.qhtlActivateTab === 'function') {
@@ -4298,6 +4350,79 @@ sub printcmd {
 	return;
 }
 # end printcmd
+###############################################################################
+# start confirmmodal
+sub confirmmodal {
+		# Render a compact, scoped confirm modal and wire .confirmButton triggers
+		print <<'CONFIRM_MODAL_HTML';
+<div class='modal fade' id='confirmmodal' tabindex='-1' role='dialog' aria-labelledby='confirmtitle' aria-hidden='true' data-backdrop='false' style='background-color: rgba(0,0,0,0.5)'>
+	<div class='modal-dialog'>
+		<div class='modal-content'>
+			<div class='modal-body'>
+				<h4 id='confirmtitle' style='margin:0 0 8px 0;'>Please Confirm</h4>
+				<div id='confirmtext'>Are you sure?</div>
+			</div>
+			<div class='modal-footer' style='display:flex;justify-content:space-between;align-items:center;'>
+				<div></div>
+				<div>
+					<button type='button' class='btn btn-default' id='confirmcancel' data-dismiss='modal'>Cancel</button>
+					<button type='button' class='btn btn-primary' id='confirmok'>OK</button>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<script>
+(function(){
+	var pendingHref = null;
+	function ensureScoped(){
+		try {
+			var $modal = $('#confirmmodal');
+			var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
+			if (parent && $modal.length) {
+				$modal.appendTo(parent);
+				var inScoped = (parent !== document.body);
+				var w = inScoped ? (parent.clientWidth || window.innerWidth) : window.innerWidth;
+				var $dlg = $modal.find('.modal-dialog');
+				var $mc  = $modal.find('.modal-content');
+				$modal.css({ position: inScoped ? 'absolute' : 'fixed', left:0, top:0, right:0, bottom:0, width:'auto', height:'auto', margin:0 });
+				$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, width: Math.min(320, Math.floor(w*0.95)) + 'px', maxWidth: Math.min(320, Math.floor(w*0.95)) + 'px' });
+				$mc.css({ display:'flex', flexDirection:'column', overflow:'hidden', maxHeight:'480px' });
+				$modal.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });
+			}
+		} catch(_){ }
+	}
+	function lockTabs(){ try { window.qhtlTabLock = 1; document.documentElement.classList.add('qhtl-tabs-locked'); if(window.qhtlLockTabs) qhtlLockTabs(); } catch(_){ } }
+	function unlockTabs(){ try { window.qhtlTabLock = 0; document.documentElement.classList.remove('qhtl-tabs-locked'); if(window.qhtlUnlockTabs) qhtlUnlockTabs(); } catch(_){ } }
+	$(document).on('click', '.confirmButton', function(e){
+		try {
+			e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+			var $btn = $(this);
+			var txt = $btn.data('query') || 'Are you sure?';
+			pendingHref = $btn.data('href') || null;
+			$('#confirmtext').text(txt);
+			ensureScoped();
+			lockTabs();
+			$('#confirmmodal').modal({ show:true, backdrop:false, keyboard:true });
+		} catch(__){}
+		return false;
+	});
+	$(document).on('click', '#confirmok', function(){
+		try {
+			var href = pendingHref; pendingHref = null;
+			$('#confirmmodal').modal('hide');
+			unlockTabs();
+			if (href) { window.location = href; }
+		} catch(__){}
+	});
+	$('#confirmmodal').on('hidden.bs.modal', function(){ try { pendingHref = null; unlockTabs(); } catch(_){ } });
+})();
+</script>
+CONFIRM_MODAL_HTML
+
+		return;
+}
+# end confirmmodal
 ###############################################################################
 # start getethdev
 sub getethdev {
