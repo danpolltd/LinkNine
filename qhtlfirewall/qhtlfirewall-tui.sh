@@ -392,18 +392,12 @@ action_logs() {
       items+=("$f" "view")
     fi
   done
-  # Always provide browse/back
-  items+=("browse" "Browse... (/var/log)" "back" "Back")
+  # Provide Back option only (no browsing from here)
+  items+=("back" "Back")
   local pick
   pick=$(dialog --clear --stdout --title "Logs" --menu "Choose a log to view (live)" 22 100 16 "${items[@]}") || return
   case "$pick" in
     back|"") return ;;
-    browse)
-      local path
-      path=$(dialog --clear --stdout --title "Select Log File" --fselect "/var/log/" 20 80) || return
-      [[ -z "$path" ]] && return
-      pick="$path"
-      ;;
   esac
   # small transition hint
   command dialog --backtitle "$BACKTITLE" --infobox "Opening $(basename "$pick")…" 5 60; sleep 0.15
@@ -416,6 +410,35 @@ action_logs() {
   else
     dialog --title "Logs" --msgbox "Log file not readable: $pick" 8 60
   fi
+}
+
+# Ensure Midnight Commander is available, optionally offer to install
+ensure_mc() {
+  if command -v mc >/dev/null 2>&1; then return 0; fi
+  if dialog --title "File Explorer" --yesno "Midnight Commander (mc) is not installed. Install it now?" 8 70; then
+    # Try common package managers
+    run_cmd "Install Midnight Commander" /bin/sh -c '
+      if command -v dnf >/dev/null 2>&1; then dnf -y install mc;
+      elif command -v yum >/dev/null 2>&1; then yum -y install mc;
+      elif command -v apt-get >/dev/null 2>&1; then apt-get update && apt-get -y install mc;
+      elif command -v zypper >/dev/null 2>&1; then zypper -n install mc;
+      else echo "No supported package manager found."; exit 1; fi'
+  fi
+  command -v mc >/dev/null 2>&1
+}
+
+# Launch file explorer (mc)
+action_explorer() {
+  if ! ensure_mc; then
+    dialog --title "File Explorer" --msgbox "Midnight Commander (mc) is not available." 7 60
+    return
+  fi
+  # Clear dialog screen and launch mc; resume TUI when it exits
+  command dialog --clear
+  clear
+  mc || true
+  # Small notice on return
+  command dialog --backtitle "$BACKTITLE" --infobox "Returned from File Explorer" 5 50; sleep 0.2
 }
 
 # Main menu
@@ -434,6 +457,7 @@ main_menu() {
       ports "Open Ports" \
       update "Update" \
       logs "Logs" \
+      explorer "File Explorer (mc)" \
       about "About / Version" \
       quit "Quit") || break
     case "${choice:-}" in
@@ -446,6 +470,7 @@ main_menu() {
       ports) action_ports ;;
       update) action_update ;;
       logs) action_logs ;;
+  explorer) action_explorer ;;
       about) run_cmd "Version" "$QHTL_BIN" -v ;;
       ""|cancel) : ;; # if user presses ESC or cancels, redisplay menu
       quit) break ;;
