@@ -1,15 +1,6 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-09-29
-Version: 0.1.10
-
-Docs & Packaging
-- README: Switched install/upgrade to TGZ-first workflow from download.qhtlf.danpol.co.uk.
-- README: Added post-install guidance (TUI, backgrounded UI upgrade, CLI `qhtlfirewall -u`).
-- Changelog: Backfilled and expanded detailed notes for 0.1.8, 0.1.7, 0.1.6 and earlier; corrected maintenance release to 0.0.2.
-- Artifacts: Rebuilt TGZ to include updated changelog and docs.
-
-Date: 2025-09-29
 Version: 0.1.9 “Snow Castle”
 
 TUI (Terminal UI)
