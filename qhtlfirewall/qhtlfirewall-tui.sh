@@ -305,20 +305,25 @@ action_temp() {
 
 action_logs() {
   # Build list of candidate logs
-  local candidates=(
-    "$LOG_FILE"
-    /var/log/messages
-    /var/log/kern.log
+  local -a candidates items
+  candidates=(
+    "$LOG_FILE" \
+    /var/log/messages \
+    /var/log/kern.log \
     /var/log/syslog
   )
-  local items=()
-  local seen=()
+  items=()
+  local f
   for f in "${candidates[@]}"; do
     [[ -r "$f" ]] || continue
-    # de-dup
-    if [[ -z "${seen[$f]:-}" ]]; then
+    # simple de-dup: check existing tags in items (even indices)
+    local exists=0
+    local i
+    for ((i=0; i<${#items[@]}; i+=2)); do
+      if [[ "${items[i]}" == "$f" ]]; then exists=1; break; fi
+    done
+    if [[ $exists -eq 0 ]]; then
       items+=("$f" "view")
-      seen[$f]=1
     fi
   done
   if [[ ${#items[@]} -eq 0 ]]; then
