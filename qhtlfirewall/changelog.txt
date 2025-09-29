@@ -1,5 +1,25 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
+Date: 2025-09-29
+Version: 0.1.9 “Snow Castle”
+
+TUI (Terminal UI)
+- New dialog-based TUI available post-install (qhtlfirewall-tui).
+- Config editor by section with safe backups and inline key editing.
+- Lists editor for allow/deny/ignore/pignore/rignore/fignore/etc.
+- Quick Allow/Deny, Temporary rules, Open Ports, Update helpers.
+- Logs viewer now sources log paths from /etc/qhtlfirewall/qhtlfirewall.logfiles with live tail view and friendly empty/unreadable handling.
+- Visual polish: global backtitle, animated splash, spinner while executing commands, and subtle transitions.
+- Dedicated File Explorer menu launching Midnight Commander (mc) if available.
+
+Installers
+- Deploy the TUI and attempt to install dialog when available.
+- Post-install message informs how to launch the TUI.
+
+Misc
+- Safer awk-based config updates replacing fragile sed expressions.
+- Various bug fixes and portability improvements.
+
 Date: 2025-09-20
 Version: 2.0 (maintenance update)
 
