@@ -381,6 +381,11 @@ ln -sf /usr/local/qhtlfirewall/bin/uninstall.sh /etc/qhtlfirewall/
 ln -sf /usr/local/qhtlfirewall/bin/regex.custom.pm /etc/qhtlfirewall/
 ln -sf /usr/local/qhtlfirewall/lib/webmin /etc/qhtlfirewall/
 
+# Install TUI helper
+cp -avf qhtlfirewall-tui.sh /usr/sbin/qhtlfirewall-tui
+chmod 755 /usr/sbin/qhtlfirewall-tui
+cp -avf qhtlfirewall-tui.sh /usr/local/qhtlfirewall/bin/
+
 # ...existing code...
 # Ensure UI asset dirs exist (quiet)
 mkdir -p webmin/qhtlfirewall/images
@@ -464,6 +469,18 @@ chmod -v 644 /etc/cron.d/qhtlfirewall-cron 2>/dev/null || true
 
 chmod -v 700 auto.pl
 ./auto.pl $OLDVERSION
+
+# Best-effort: install dialog for TUI if available via package manager
+if ! command -v dialog >/dev/null 2>&1; then
+    if command -v dnf >/dev/null 2>&1; then
+        dnf -y install dialog >/dev/null 2>&1 || true
+    elif command -v yum >/dev/null 2>&1; then
+        yum -y install dialog >/dev/null 2>&1 || true
+    elif command -v apt-get >/dev/null 2>&1; then
+        apt-get update >/dev/null 2>&1 || true
+        DEBIAN_FRONTEND=noninteractive apt-get -y install dialog >/dev/null 2>&1 || true
+    fi
+fi
 
 mkdir -p /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink
 chmod 700 /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink
@@ -686,3 +703,4 @@ ln -sf /usr/local/qhtlfirewall/qhtlfirewallwebmin.tgz /etc/qhtlfirewall/
 echo
 echo "Installation Completed"
 echo
+echo "Tip: try 'qhtlfirewall-tui' for an interactive terminal UI (requires: dialog)"
