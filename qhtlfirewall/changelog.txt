@@ -20,8 +20,106 @@ Misc
 - Safer awk-based config updates replacing fragile sed expressions.
 - Various bug fixes and portability improvements.
 
+Date: 2025-09-25
+Version: 0.1.8 “Frozen Meteor”
+
+Install/Upgrade
+- TGZ-first workflow hardened: robust archive layout detection, automatic installer selection (generic, cPanel, etc.), and idempotent reruns.
+- Reinstall/upgrade one-liners added (with a debug variant that logs steps and output for support).
+
+Web UI
+- Internal wiring refactors to support future backgrounded operations triggered from the UI.
+
+Packaging
+- Normalized tarball layout; ensured top-level qhtlfirewall/ directory with installers.
+- Included version.txt and updated changelog in artifacts; corrected file modes and permissions.
+
+General
+- Assorted stability fixes and minor performance improvements.
+
+Date: 2025-09-23
+Version: 0.1.7 “Ruby Lane”
+
+cPanel/WHM UI — Watcher Modal
+- Readability: Render each log line as a separate, single-line row with ellipsis truncation and a tooltip for the full content.
+- Scrolling: Automatically scroll to the newest lines; in real-time mode, stick to bottom only if the user is already near it (respects manual scroll-up).
+- Real-time tail: Added “Real Time” mode (1s) that appends only new lines (no flicker) while keeping “Autocheck” mode (5s). Suppressed temporary “Loading…” text during live updates.
+- Safety: Strip any embedded <script> in responses and treat payload as plain text. Avoid fragile heredoc patterns by using safe newline handling (String.fromCharCode(10)).
+- Controls & layout: Reworked footer layout into inputs + right-side button group, with a dedicated header bar. Moved the “Refresh in” counter to the header, right of “Watcher”. Reduced inter-button gap by an additional 10%.
+- Buttons: Keep Autocheck (green) and Pause (orange) at normal intensity; highlight Real Time ~20% stronger while in live mode, and highlight Start ~20% stronger when paused.
+
+Notes
+- UI/UX improvements only; no backend API changes were required.
+
+Date: 2025-09-22
+Version: 0.1.6 “Flaming Rock”
+
+WHM/Badge UI
+- WHM banner: clickable badge linking to Firewall UI (cpsess-aware)
+- Remove initial gray flash on login; defer render until status JSON loads
+- Add 5px status-colored glow around badge and balanced spacing
+- Minor WHM UI hardening and installer improvements
+
+Status JSON/API
+- Hardened the lightweight status endpoint used by WHM badge (resilient to transient service states and timeouts).
+- Added conservative caching headers and clearer error signaling.
+
 Date: 2025-09-20
-Version: 2.0 (maintenance update)
+Version: 0.1.5 “Snow White”
+
+Installer and Service Sequencing
+- Added an install guard flag at /var/lib/qhtlfirewall/.installing to prevent qhtlwaterfall from starting during installation.
+- Updated systemd unit qhtlwaterfall.service to include ConditionPathExists=!/var/lib/qhtlfirewall/.installing so the daemon won’t launch while the guard exists.
+- The installer now stops qhtlwaterfall at the beginning of install and restarts services at the end in the correct order.
+
+DirWatch (LF_DIRWATCH) Stability During Install
+- During install, if an existing configuration is detected, LF_DIRWATCH and LF_DIRWATCH_FILE are temporarily set to 0 to avoid false-positive alerts from temporary files and directories.
+- Original LF_DIRWATCH settings are restored automatically after installation completes.
+
+cPanel/WHM UI
+- Hardened WHM CGI (cpanel/qhtlfirewall.cgi) template rendering: capture template output and safely print it (handles SCALAR/ARRAY refs), preventing undefined symbol and SCALAR(...) output issues.
+- Confirmed compatibility with Cpanel::Template and ensured template discovery works as expected.
+
+General
+- Improved restart ordering and installer messaging for clarity.
+
+Date: 2025-09-20
+Version: 0.1.4
+
+Packaging & Scripts
+- Introduced helper script to build distributable TGZ from repo sources.
+- Cleaned packaging excludes and normalized staging paths.
+
+General
+- Integration merges; minor fixes and code cleanup.
+
+Date: 2025-09-19
+Version: 0.1.2
+
+Installers
+- Finalized qhtlfirewallget migration and updated references.
+- Reduced noise with quieter flags and conditional checks; no-op when system services are unavailable.
+
+General
+- Updated UI references and docs for the new package naming.
+
+Date: 2025-09-19
+Version: 0.1.1
+
+Installers
+- Reduce noisy output.
+- Guard systemctl for unit enable/firewalld across installers.
+ - Minor fixes to uninstaller scripts and detection logic.
+
+Date: 2025-09-19
+Version: 0.1.0
+
+Packaging
+- Initial packaging baseline; excluded upstream helper scripts from release archives.
+- Established initial release notes and rebrand metadata.
+
+Date: 2025-09-20
+Version: 0.0.2 (maintenance update)
 
 Installer and Service Sequencing
 - Added an install guard flag at /var/lib/qhtlfirewall/.installing to prevent qhtlwaterfall from starting during installation.
@@ -40,6 +138,6 @@ General
 - Improved restart ordering and installer messaging for clarity.
 
 Notes
-- No version bump; functional changes are installer/packaging/UI safety improvements.
+- Note: A tag “v2.0” was published in error around this timeframe; these changes correspond to version 0.0.2.
 - Consider adding environment-specific patterns to qhtlfirewall.fignore to keep DirWatch quiet for benign /tmp activity.
 
