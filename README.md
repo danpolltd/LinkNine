@@ -14,11 +14,12 @@ For qhtlfirewall uninstallation scripts, see the [uninstallers/qhtlfirewall](uni
 Run as root to install or upgrade to the latest published release (v.0.1.6 – Flaming Rock):
 
 ```bash
-curl -fsSL https://github.com/danpolltd/LinkNine/releases/download/v.0.1.6/qhtlfirewall-main.tar.gz -o /tmp/qhtlfirewall.tar.gz && \
-	mkdir -p /root/qhtlfirewall-install && \
-	tar -xzf /tmp/qhtlfirewall.tar.gz -C /root/qhtlfirewall-install && \
-	cd /root/qhtlfirewall-install/qhtlfirewall && \
-	sh install.sh
+cd /usr/src
+rm -fv qhtlfirewall.tgz
+wget https://download.qhtlf.danpol.co.uk/qhtlfirewall.tgz
+tar -xzf qhtlfirewall.tgz
+cd qhtlfirewall
+sh install.sh
 ```
 
 What the installer does:
@@ -43,14 +44,14 @@ Dynamic version in WHM header/footer:
 	- Remove initial gray flash on login; defer render until status JSON loads
 	- Add 5px status-colored glow around badge and balanced spacing
 	- Minor WHM UI hardening and installer improvements
-	- Release: https://github.com/danpolltd/LinkNine/releases/tag/v.0.1.6
+	- Release: v.0.1.6
 
 - v.0.1.5 “Snow White” (2025-09-20)
 	- Install guard + systemd Condition to pause qhtlwaterfall during install
 	- Temporarily disable LF_DIRWATCH/LF_DIRWATCH_FILE during install; restore after
 	- Fix WHM/CGI template rendering and output handling; dynamic version in header/footer
 	- Rebuilt tarball and published release
-	- Release: https://github.com/danpolltd/LinkNine/releases/tag/v.0.1.5
+	- Release: v.0.1.5
 
 
 ## WHM header status (optional)
