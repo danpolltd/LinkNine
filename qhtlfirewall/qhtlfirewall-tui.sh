@@ -38,9 +38,11 @@ run_cmd() {
   local title=$1; shift
   local out
   if ! out=$("$@" 2>&1); then
+    if [[ -z "$out" ]]; then out="(command failed with no output)"; fi
     dialog --title "$title (failed)" --msgbox "$out" 20 80
     return 1
   fi
+  if [[ -z "$out" ]]; then out="(command completed successfully with no output)"; fi
   dialog --title "$title" --msgbox "$out" 20 80
 }
 
@@ -328,7 +330,11 @@ action_logs() {
   pick=$(dialog --clear --stdout --title "Logs" --menu "Choose a log to view (live)" 20 90 12 "${items[@]}") || return
   [[ "$pick" = "back" ]] && return
   if [[ -r "$pick" ]]; then
-    dialog --title "$(basename "$pick") (live)" --tailbox "$pick" 25 100
+    if [[ ! -s "$pick" ]]; then
+      dialog --title "Logs" --msgbox "The file $(basename "$pick") is currently empty." 8 70
+    else
+      dialog --title "$(basename "$pick") (live)" --tailbox "$pick" 25 100
+    fi
   else
     dialog --title "Logs" --msgbox "Log file not readable: $pick" 8 60
   fi
@@ -349,7 +355,7 @@ main_menu() {
       logs "Logs" \
       about "About / Version" \
       quit "Quit") || break
-    case "$choice" in
+    case "${choice:-}" in
       status) action_status ;;
       control) action_control ;;
       config) action_config ;;
@@ -360,6 +366,7 @@ main_menu() {
       update) action_update ;;
       logs) action_logs ;;
       about) run_cmd "Version" "$QHTL_BIN" -v ;;
+      ""|cancel) : ;; # if user presses ESC or cancels, redisplay menu
       quit) break ;;
     esac
   done
