@@ -7,6 +7,7 @@ set -euo pipefail
 QHTL_BIN=${QHTL_BIN:-/usr/sbin/qhtlfirewall}
 LOG_FILE=${LOG_FILE:-/var/log/qhtlwaterfall.log}
 CONFIG_FILE=${CONFIG_FILE:-/etc/qhtlfirewall/qhtlfirewall.conf}
+THEME_FILE=${THEME_FILE:-/etc/qhtlfirewall/ui/dialogrc}
 
 red() { printf "\033[31m%s\033[0m\n" "$*"; }
 
@@ -85,6 +86,12 @@ edit_key() {
     }
     print
   }' "$CONFIG_FILE" > "${CONFIG_FILE}.tmp" && mv -f "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+  # Offer restart prompt after change
+  if dialog --title "Apply change" --yesno "Restart qhtlfirewall now to apply changes?" 7 60; then
+    "$QHTL_BIN" -r >/tmp/qhtl-tui-apply.$$ 2>&1 || true
+    dialog --title "Restart" --msgbox "$(tail -n 200 /tmp/qhtl-tui-apply.$$)" 20 80
+    rm -f /tmp/qhtl-tui-apply.$$ 2>/dev/null || true
+  fi
 }
 
 action_config() {
@@ -295,10 +302,35 @@ action_temp() {
 }
 
 action_logs() {
-  if [[ -r "$LOG_FILE" ]]; then
-    dialog --title "qhtlwaterfall.log (last 300 lines)" --textbox <(tail -n 300 "$LOG_FILE") 25 100
+  # Build list of candidate logs
+  local candidates=(
+    "$LOG_FILE"
+    /var/log/messages
+    /var/log/kern.log
+    /var/log/syslog
+  )
+  local items=()
+  local seen=()
+  for f in "${candidates[@]}"; do
+    [[ -r "$f" ]] || continue
+    # de-dup
+    if [[ -z "${seen[$f]:-}" ]]; then
+      items+=("$f" "view")
+      seen[$f]=1
+    fi
+  done
+  if [[ ${#items[@]} -eq 0 ]]; then
+    dialog --title "Logs" --msgbox "No readable log files found" 7 50
+    return
+  fi
+  items+=("back" "Back")
+  local pick
+  pick=$(dialog --clear --stdout --title "Logs" --menu "Choose a log to view (live)" 20 90 12 "${items[@]}") || return
+  [[ "$pick" = "back" ]] && return
+  if [[ -r "$pick" ]]; then
+    dialog --title "$(basename "$pick") (live)" --tailbox "$pick" 25 100
   else
-    dialog --title "Logs" --msgbox "Log file not readable: $LOG_FILE" 8 60
+    dialog --title "Logs" --msgbox "Log file not readable: $pick" 8 60
   fi
 }
 
@@ -335,4 +367,6 @@ main_menu() {
 
 need_root
 check_prereqs
+# Optional theme
+if [[ -r "$THEME_FILE" ]]; then export DIALOGRC="$THEME_FILE"; fi
 main_menu

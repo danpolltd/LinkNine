@@ -1,0 +1,38 @@
+# qhtlfirewall TUI dialog theme (subtle dark)
+# Copy to /etc/qhtlfirewall/ui/dialogrc and it will be used automatically
+# Colors: 0=black 1=red 2=green 3=brown 4=blue 5=magenta 6=cyan 7=white
+# Use "use_shadow = OFF" if terminal has rendering issues
+use_shadow = ON
+use_colors = ON
+screen_color = (BLACK,WHITE,ON)
+shadow_color = (BLACK,BLACK,ON)
+
+title_color = (WHITE,BLUE,ON)
+border_color = (WHITE,BLUE,ON)
+button_active_color = (WHITE,BLUE,ON)
+button_inactive_color = (WHITE,BLACK,ON)
+button_key_active_color = (YELLOW,BLUE,ON)
+button_key_inactive_color = (YELLOW,BLACK,ON)
+button_label_active_color = (WHITE,BLUE,ON)
+button_label_inactive_color = (WHITE,BLACK,ON)
+
+inputbox_color = (WHITE,BLACK,ON)
+inputbox_border_color = (WHITE,BLUE,ON)
+searchbox_color = (WHITE,BLACK,ON)
+searchbox_title_color = (WHITE,BLUE,ON)
+searchbox_border_color = (WHITE,BLUE,ON)
+position_indicator_color = (YELLOW,BLACK,ON)
+
+menubox_color = (WHITE,BLACK,ON)
+menubox_border_color = (WHITE,BLUE,ON)
+item_color = (WHITE,BLACK,ON)
+item_selected_color = (BLACK,CYAN,ON)
+menu_fully_onscreen = ON
+menu_thickness = 24
+
+textbox_color = (WHITE,BLACK,ON)
+textbox_border_color = (WHITE,BLUE,ON)
+
+
+tab_active_color = (BLACK,CYAN,ON)
+tab_inactive_color = (WHITE,BLACK,ON)

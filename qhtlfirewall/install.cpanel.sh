@@ -704,3 +704,5 @@ echo
 echo "Installation Completed"
 echo
 echo "Tip: try 'qhtlfirewall-tui' for an interactive terminal UI (requires: dialog)"
+echo "      optional theme: /etc/qhtlfirewall/ui/dialogrc (exported automatically)"
+echo "Tip: try 'qhtlfirewall-tui' for an interactive terminal UI (requires: dialog)"
