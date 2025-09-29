@@ -8,6 +8,7 @@ QHTL_BIN=${QHTL_BIN:-/usr/sbin/qhtlfirewall}
 LOG_FILE=${LOG_FILE:-/var/log/qhtlwaterfall.log}
 CONFIG_FILE=${CONFIG_FILE:-/etc/qhtlfirewall/qhtlfirewall.conf}
 THEME_FILE=${THEME_FILE:-/etc/qhtlfirewall/ui/dialogrc}
+LOG_LIST_FILE=${LOG_LIST_FILE:-/etc/qhtlfirewall/qhtlfirewall.logfiles}
 
 red() { printf "\033[31m%s\033[0m\n" "$*"; }
 
@@ -34,41 +35,46 @@ EOF
   fi
 }
 
+# Wrapper to run a command and show its output
 run_cmd() {
   local title=$1; shift
-  local out
-  if ! out=$("$@" 2>&1); then
-    if [[ -z "$out" ]]; then out="(command failed with no output)"; fi
-    dialog --title "$title (failed)" --msgbox "$out" 20 80
-    return 1
+  local tmp
+  tmp=$(mktemp)
+  if "$@" >"$tmp" 2>&1; then
+    local out
+    out=$(sed -n '1,400p' "$tmp")
+    if [[ -z "$out" ]]; then out="(no output)"; fi
+    dialog --title "$title" --msgbox "$out" 22 100
+  else
+    local out
+    out=$(sed -n '1,400p' "$tmp")
+    dialog --title "$title (error)" --msgbox "$out" 22 100
   fi
-  if [[ -z "$out" ]]; then out="(command completed successfully with no output)"; fi
-  dialog --title "$title" --msgbox "$out" 20 80
+  rm -f "$tmp"
 }
 
-action_status() { run_cmd "Firewall Status" "$QHTL_BIN" -l; }
-action_ports() { run_cmd "Open Ports" "$QHTL_BIN" -p; }
-action_update() { run_cmd "Update" "$QHTL_BIN" -u; }
-
-escape_sed() {
-  sed 's/[&\\/]/\\&/g'
+# Status view
+action_status() {
+  run_cmd "Status" "$QHTL_BIN" -l
 }
 
+# Parse section headers from config
 get_sections() {
   # Output: lineNumber|Section Name
-  awk 'BEGIN{FS=":"}
-       /^# SECTION:/ { name=$0; sub(/^# SECTION:[ ]*/,"",name); print NR"|"name }' "$CONFIG_FILE"
+  awk 'BEGIN{FS=":"} /^# SECTION:/ {name=$0; sub(/^# SECTION:[[:space:]]*/,"",name); printf("%d|%s\n", NR, name)}' "$CONFIG_FILE"
 }
 
+# List editable keys between two line numbers (start inclusive, end exclusive)
 list_keys_in_range() {
   local start=$1 end=$2
-  awk -v s="$start" -v e="$end" 'NR>=s && NR<e && /^[A-Z0-9_]+[[:space:]]*=/ {
+  awk -v s="$start" -v e="$end" 'NR>=s && NR<e && /^[A-Z0-9_]+[[:space:]]*=/{
     key=$1; sub(/[[:space:]]*=.*/,"",key);
-    match($0,/"(.*)"/,m); val=m[1];
+    match($0,/\"([^\"]*)\"/,m); val=m[1];
     print key"|"val
   }' "$CONFIG_FILE"
 }
 
+# Edit single key in config safely
 edit_key() {
   local key=$1 cur=$2
   local new
@@ -96,6 +102,21 @@ edit_key() {
   fi
 }
 
+# Edit list-like or arbitrary file via dialog editbox
+edit_file_dialog() {
+  local path=$1 title=$2
+  if [[ ! -e "$path" ]]; then
+    : > "$path" || { dialog --msgbox "Cannot create $path" 7 60; return 1; }
+  fi
+  local tmp
+  tmp=$(mktemp)
+  cp -a "$path" "$tmp" 2>/dev/null || true
+  dialog --title "$title" --editbox "$tmp" 25 100 || { rm -f "$tmp"; return 1; }
+  cp -f "$tmp" "$path" && dialog --msgbox "Saved $path" 6 60
+  rm -f "$tmp"
+}
+
+# Configuration editor by section
 action_config() {
   if [[ ! -r "$CONFIG_FILE" ]]; then
     dialog --title "Configuration" --msgbox "Cannot read $CONFIG_FILE" 8 70
@@ -110,6 +131,7 @@ action_config() {
     fi
     # Prepare menu items
     local items=()
+    local s
     for s in "${SEC_LINES[@]}"; do
       local ln name
       ln=${s%%|*}; name=${s#*|}
@@ -143,6 +165,7 @@ action_config() {
           mapfile -t KV < <(list_keys_in_range "$start" "$end")
           if [[ ${#KV[@]} -eq 0 ]]; then dialog --msgbox "No editable keys in this section" 7 60; break; fi
           local kitems=()
+          local kv
           for kv in "${KV[@]}"; do
             local k v
             k=${kv%%|*}; v=${kv#*|}
@@ -164,19 +187,7 @@ action_config() {
   done
 }
 
-edit_file_dialog() {
-  local path=$1 title=$2
-  if [[ ! -e "$path" ]]; then
-    : > "$path" || { dialog --msgbox "Cannot create $path" 7 60; return 1; }
-  fi
-  local tmp
-  tmp=$(mktemp)
-  cp -a "$path" "$tmp" 2>/dev/null || true
-  dialog --title "$title" --editbox "$tmp" 25 100 || { rm -f "$tmp"; return 1; }
-  cp -f "$tmp" "$path" && dialog --msgbox "Saved $path" 6 60
-  rm -f "$tmp"
-}
-
+# Manage Lists
 action_lists() {
   local base=/etc/qhtlfirewall
   while true; do
@@ -216,6 +227,7 @@ action_lists() {
   done
 }
 
+# Control submenu
 action_control() {
   local choice
   while true; do
@@ -241,6 +253,7 @@ action_control() {
   done
 }
 
+# Prompt for IP helper
 prompt_ip() {
   local title=$1; local ip
   ip=$(dialog --clear --stdout --title "$title" --inputbox "Enter IP or CIDR" 8 60) || return 1
@@ -248,6 +261,7 @@ prompt_ip() {
   printf '%s' "$ip"
 }
 
+# Quick allow/deny
 action_allow_deny() {
   local choice ip
   while true; do
@@ -271,6 +285,7 @@ action_allow_deny() {
   done
 }
 
+# Temporary rules
 action_temp() {
   local choice ip minutes secs
   while true; do
@@ -303,22 +318,41 @@ action_temp() {
   done
 }
 
+# Open ports helper
+action_ports() {
+  local ports
+  ports=$(dialog --clear --stdout --title "Open Ports" --inputbox "Enter ports (comma separated)" 8 60) || return
+  [[ -z "$ports" ]] && return
+  run_cmd "Open Ports" "$QHTL_BIN" -o "$ports"
+}
+
+# Update helper
+action_update() {
+  run_cmd "Update" "$QHTL_BIN" -u
+}
+
+# Logs viewer
 action_logs() {
-  # Build list of candidate logs
+  # Gather candidates from configured list and common defaults
   local -a candidates items
-  candidates=(
-    "$LOG_FILE" \
-    /var/log/messages \
-    /var/log/kern.log \
-    /var/log/syslog
-  )
+  candidates=("$LOG_FILE" /var/log/messages /var/log/kern.log /var/log/syslog)
+  if [[ -r "$LOG_LIST_FILE" ]]; then
+    while IFS= read -r line; do
+      line=${line%%$'\r'}
+      # strip leading/trailing whitespace
+      line=${line##+([[:space:]])}
+      line=${line%%+([[:space:]])}
+      [[ -z "$line" || "$line" =~ ^# ]] && continue
+      [[ "$line" == /* ]] || continue
+      candidates+=("$line")
+    done < <(sed -e 's/\t/ /g' "$LOG_LIST_FILE")
+  fi
+  # Build menu items with readability check and de-dup
   items=()
-  local f
+  local f i exists
   for f in "${candidates[@]}"; do
     [[ -r "$f" ]] || continue
-    # simple de-dup: check existing tags in items (even indices)
-    local exists=0
-    local i
+    exists=0
     for ((i=0; i<${#items[@]}; i+=2)); do
       if [[ "${items[i]}" == "$f" ]]; then exists=1; break; fi
     done
@@ -326,14 +360,19 @@ action_logs() {
       items+=("$f" "view")
     fi
   done
-  if [[ ${#items[@]} -eq 0 ]]; then
-    dialog --title "Logs" --msgbox "No readable log files found" 7 50
-    return
-  fi
-  items+=("back" "Back")
+  # Always provide browse/back
+  items+=("browse" "Browse... (/var/log)" "back" "Back")
   local pick
-  pick=$(dialog --clear --stdout --title "Logs" --menu "Choose a log to view (live)" 20 90 12 "${items[@]}") || return
-  [[ "$pick" = "back" ]] && return
+  pick=$(dialog --clear --stdout --title "Logs" --menu "Choose a log to view (live)" 22 100 16 "${items[@]}") || return
+  case "$pick" in
+    back|"") return ;;
+    browse)
+      local path
+      path=$(dialog --clear --stdout --title "Select Log File" --fselect "/var/log/" 20 80) || return
+      [[ -z "$path" ]] && return
+      pick="$path"
+      ;;
+  esac
   if [[ -r "$pick" ]]; then
     if [[ ! -s "$pick" ]]; then
       dialog --title "Logs" --msgbox "The file $(basename "$pick") is currently empty." 8 70
@@ -345,6 +384,7 @@ action_logs() {
   fi
 }
 
+# Main menu
 main_menu() {
   local choice
   while true; do
