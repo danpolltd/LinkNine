@@ -26,6 +26,10 @@ What the installer does:
 - Temporarily softens DirWatch (LF_DIRWATCH/LF_DIRWATCH_FILE) during install, then restores your settings
 - Restarts the firewall and qhtlwaterfall safely after install
 
+New: Terminal UI (optional)
+- After install, you can run `qhtlfirewall-tui` for a simple interactive TUI built on dialog.
+- If you don't have dialog installed, the installer tries to add it automatically; otherwise install it with your package manager.
+
 Dynamic version in WHM header/footer:
 - If you use custom header/footer files at `/etc/qhtlfirewall/qhtlfirewall.header` and `/etc/qhtlfirewall/qhtlfirewall.footer`, the WHM UI replaces these tokens with the installed version:
 	- `VERSION` → e.g. `0.1.6`

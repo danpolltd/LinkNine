@@ -343,6 +343,9 @@ cp -avf qhtlwaterfall.pl /usr/sbin/qhtlwaterfall
 chmod 700 /usr/sbin/qhtlfirewall /usr/sbin/qhtlwaterfall
 ln -svf /usr/sbin/qhtlfirewall /etc/qhtlfirewall/qhtlfirewall.pl
 ln -svf /usr/sbin/qhtlwaterfall /etc/qhtlfirewall/qhtlwaterfall.pl
+# Install TUI helper
+cp -avf qhtlfirewall-tui.sh /usr/sbin/qhtlfirewall-tui
+chmod 755 /usr/sbin/qhtlfirewall-tui
 ln -svf /usr/local/qhtlfirewall/bin/qhtlfirewalltest.pl /etc/qhtlfirewall/
 ln -svf /usr/local/qhtlfirewall/bin/pt_deleted_action.pl /etc/qhtlfirewall/
 ln -svf /usr/local/qhtlfirewall/bin/remove_apf_bfd.sh /etc/qhtlfirewall/
@@ -369,6 +372,7 @@ cp -avf messenger/*.php /etc/qhtlfirewall/messenger/
 cp -avf uninstall.generic.sh /usr/local/qhtlfirewall/bin/uninstall.sh
 cp -avf qhtlfirewalltest.pl /usr/local/qhtlfirewall/bin/
 cp -avf remove_apf_bfd.sh /usr/local/qhtlfirewall/bin/
+cp -avf qhtlfirewall-tui.sh /usr/local/qhtlfirewall/bin/
 cp -avf readme.txt /etc/qhtlfirewall/
 cp -avf sanity.txt /usr/local/qhtlfirewall/lib/
 cp -avf qhtlfirewall.rbls /usr/local/qhtlfirewall/lib/
@@ -427,6 +431,20 @@ chmod 700 /etc/cron.daily/qhtlfirewallget
 
 chmod -v 700 auto.generic.pl
 ./auto.generic.pl $OLDVERSION
+
+# Best-effort: install dialog for TUI if available via package manager
+if ! command -v dialog >/dev/null 2>&1; then
+	if command -v dnf >/dev/null 2>&1; then
+		dnf -y install dialog >/dev/null 2>&1 || true
+	elif command -v yum >/dev/null 2>&1; then
+		yum -y install dialog >/dev/null 2>&1 || true
+	elif command -v apt-get >/dev/null 2>&1; then
+		apt-get update >/dev/null 2>&1 || true
+		DEBIAN_FRONTEND=noninteractive apt-get -y install dialog >/dev/null 2>&1 || true
+	elif command -v zypper >/dev/null 2>&1; then
+		zypper -n install dialog >/dev/null 2>&1 || true
+	fi
+fi
 
 if test `cat /proc/1/comm` = "systemd"
 then
@@ -513,4 +531,7 @@ ln -sf /usr/local/qhtlfirewall/qhtlfirewallwebmin.tgz /etc/qhtlfirewall/
 
 echo
 echo "Installation Completed"
+echo
+echo "Tip: try 'qhtlfirewall-tui' for an interactive terminal UI (requires: dialog)"
+echo "      optional theme: /etc/qhtlfirewall/ui/dialogrc (exported automatically)"
 echo
