@@ -2792,7 +2792,22 @@ EOD
 	}
 	elsif ($FORM{action} eq "upgrade") {
 		if ($config{THIS_UI}) {
-			print "<div>You cannot upgrade through the UI as restarting qhtlwaterfall will interrupt this session. You must login to the root shell to upgrade qhtlfirewall using:\n<p><b>qhtlfirewall -u</b></p>\n";
+			# Run upgrade in the background to avoid blocking/tearing down the current HTTP session immediately.
+			# The UI daemon will restart during the upgrade; inform the user and provide a log snapshot if available.
+			my $ulog = "/var/log/qhtlfirewall-ui-upgrade.log";
+			my $cmd  = "(/bin/sleep 2; /usr/sbin/qhtlfirewall -u) > $ulog 2>&1 &";
+			system($cmd);
+			print "<div><p>Upgrade started in the background. This UI may restart during the process and disconnect your session.</p>";
+			print "<p>Please reconnect or refresh this page in about 30–60 seconds.</p>";
+			if (open(my $UIN, '<', $ulog)) {
+				print "<p>Current upgrade log snapshot:</p>\n";
+				print "<pre class='comment' style='white-space: pre-wrap; height: 400px; overflow: auto; resize:both; clear:both'>\n";
+				while (my $L = <$UIN>) { $L =~ s/</&lt;/g; $L =~ s/>/&gt;/g; print $L; }
+				close($UIN);
+				print "</pre>\n";
+			}
+			print "</div>\n";
+			&printreturn;
 		} else {
 			print "<div><p>Upgrading qhtlfirewall...</p>\n";
 			&resize("top");
