@@ -35,17 +35,49 @@ EOF
   fi
 }
 
+# Add a wrapper so all dialogs share a consistent backtitle
+BACKTITLE="QhtLink Firewall — TUI"
+dialog() {
+  command dialog --backtitle "$BACKTITLE" "$@"
+}
+
+# Simple animated gauge used as a spinner while commands run
+spinner_start() {
+  local title=${1:-Working} msg=${2:-Please wait...}
+  { while :; do for p in 0 10 20 30 40 50 60 70 80 90 100; do echo $p; sleep 0.08; done; done; } \
+    | command dialog --backtitle "$BACKTITLE" --title "$title" --gauge "$msg" 7 60 0 &
+  SPINNER_PID=$!
+}
+
+spinner_stop() {
+  if [[ -n ${SPINNER_PID:-} ]]; then
+    kill "$SPINNER_PID" 2>/dev/null || true
+    wait "$SPINNER_PID" 2>/dev/null || true
+    unset SPINNER_PID
+  fi
+}
+
+# Optional splash screen on startup
+splash_screen() {
+  [[ ${TUI_NO_SPLASH:-0} -eq 1 ]] && return 0
+  { for p in 0 20 40 60 80 100; do echo $p; sleep 0.12; done; } \
+    | command dialog --backtitle "$BACKTITLE" --title "Starting…" --gauge "Loading QhtLink Firewall TUI…" 7 60 0
+}
+
 # Wrapper to run a command and show its output
 run_cmd() {
   local title=$1; shift
   local tmp
   tmp=$(mktemp)
+  spinner_start "$title" "Running: $*"
   if "$@" >"$tmp" 2>&1; then
+    spinner_stop
     local out
     out=$(sed -n '1,400p' "$tmp")
     if [[ -z "$out" ]]; then out="(no output)"; fi
     dialog --title "$title" --msgbox "$out" 22 100
   else
+    spinner_stop
     local out
     out=$(sed -n '1,400p' "$tmp")
     dialog --title "$title (error)" --msgbox "$out" 22 100
@@ -373,6 +405,8 @@ action_logs() {
       pick="$path"
       ;;
   esac
+  # small transition hint
+  command dialog --backtitle "$BACKTITLE" --infobox "Opening $(basename "$pick")…" 5 60; sleep 0.15
   if [[ -r "$pick" ]]; then
     if [[ ! -s "$pick" ]]; then
       dialog --title "Logs" --msgbox "The file $(basename "$pick") is currently empty." 8 70
@@ -388,6 +422,8 @@ action_logs() {
 main_menu() {
   local choice
   while true; do
+    # subtle fade-in effect between menu refreshes
+    command dialog --backtitle "$BACKTITLE" --infobox "" 1 1; sleep 0.05
     choice=$(dialog --clear --stdout --title "QhtLink Firewall (TUI)" --menu "Choose a section" 22 80 14 \
       status "Status" \
       control "Start/Stop/Enable/Disable" \
@@ -421,4 +457,5 @@ need_root
 check_prereqs
 # Optional theme
 if [[ -r "$THEME_FILE" ]]; then export DIALOGRC="$THEME_FILE"; fi
+splash_screen
 main_menu
