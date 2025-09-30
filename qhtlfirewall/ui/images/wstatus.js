@@ -25,7 +25,10 @@
   // Warning blink style
   '#'+innerId+'.blink-warn{ animation: qhtl-blink 0.2s steps(2,end) 6; }',
   '@keyframes qhtl-blink{ 0%{ filter: brightness(1); } 50%{ filter: brightness(2); } 100%{ filter: brightness(1); } }',
-      '#'+innerId+':hover{ filter: brightness(1.06); }',
+  '#'+innerId+':hover{ filter: brightness(1.06); }',
+  // Blue water bubble hover sheen without overriding state colors
+  '#'+innerId+':hover::after, .wcircle-inner:hover::after{ content:""; position:absolute; inset:0; border-radius:50%; background: radial-gradient(circle at 30% 30%, rgba(147,197,253,0.28) 0%, rgba(59,130,246,0.18) 55%, rgba(59,130,246,0.00) 80%); pointer-events:none; }',
+  '#'+outerId+':hover, .wcircle-outer:hover{ box-shadow: 0 8px 22px rgba(59,130,246,0.25), inset 0 2px 6px rgba(255,255,255,0.6); transition: box-shadow .2s ease; }',
       '#'+msgId+'{ position:absolute; bottom:-22px; width:140px; left:50%; transform:translateX(-50%); text-align:center; font-size:12px; color:#333; text-shadow:0 1px 0 rgba(255,255,255,0.25); }',
       /* Generic class-based styles for additional stub widgets */
       '.wcircle{ position:relative; width:100px; height:100px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; vertical-align:top; }',
@@ -298,14 +301,16 @@
         // Cancel warning, gap, countdown timers if present
         if (api._warnTimeout){ try{ clearTimeout(api._warnTimeout); }catch(_){ } api._warnTimeout=null; }
         if (api._gapTimeout){ try{ clearTimeout(api._gapTimeout); }catch(_){ } api._gapTimeout=null; }
-        if (shutdownEngaged && api._timer){ try{ clearInterval(api._timer); }catch(_){ } api._timer=null; shutdownEngaged=false; }
+        if (shutdownEngaged && api._timer){ try{ clearInterval(api._timer); }catch(_){ } api._timer=null; }
+        shutdownEngaged=false; held=false;
         try { inner.classList.remove('blink-warn'); inner.style.filter=''; } catch(_e){}
-        if(inner.getAttribute('aria-busy')==='true') return;
-        if(!held || !shutdownEngaged){ inner.style.transform='scale(1)'; resetVisual(); }
+        // Always reset visual/text regardless of busy state
+        inner.style.transform='scale(1)';
+        resetVisual();
         isDown=false;
       }
       function onDown(e){ e.preventDefault(); e.stopPropagation(); if(inner.getAttribute('aria-busy')==='true') return; isDown=true; if(state.running){ startHold(); } else { doCountdownThenAct(true); } }
-      function onUp(e){ e.preventDefault(); e.stopPropagation(); var wasShutdown = shutdownEngaged; var wasHeld = held; cancelHold(); if (!wasHeld && state.running && inner.getAttribute('aria-busy')!=='true') { openInlineStatus(); } }
+  function onUp(e){ e.preventDefault(); e.stopPropagation(); var wasHeld = held; cancelHold(); /* When running, single tap does nothing now */ }
       inner.addEventListener('pointerdown', onDown);
       inner.addEventListener('pointerup', onUp);
       inner.addEventListener('pointercancel', cancelHold);
