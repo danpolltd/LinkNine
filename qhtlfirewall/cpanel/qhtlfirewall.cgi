@@ -248,6 +248,37 @@ if (defined $FORM{action} && $FORM{action} eq 'api_restartq') {
 	exit 0;
 }
 
+# Lightweight API to start qhtlwaterfall daemon via systemd
+if (defined $FORM{action} && $FORM{action} eq 'api_startwf') {
+	# Prevent browsers from treating this as a script include
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	my $scriptish = ($sec_dest eq 'script');
+	if ($scriptish) {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	my $ok = 0; my $err = '';
+	eval {
+		# Prefer systemd
+		if (-x '/bin/systemctl') {
+			my $rc = system('/bin/systemctl','start','qhtlwaterfall.service');
+			$ok = ($rc == 0) ? 1 : 0;
+			$err = 'systemctl_failed' if !$ok;
+		} else {
+			# Fallback: attempt to exec the daemon directly in background
+			my $pid = fork();
+			if (!defined $pid) { $ok = 0; $err = 'fork_failed'; }
+			elsif ($pid == 0) { exec('/usr/sbin/qhtlwaterfall'); exit 0; }
+			else { $ok = 1; }
+		}
+		1;
+	} or do { $err = 'exception'; };
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	if ($ok) { print '{"ok":1}'; } else { print '{"ok":0,"error":"'.$err.'"}'; }
+	exit 0;
+}
+
 # Lightweight JavaScript endpoint to render a header badge without relying on inline JS in templates.
 # Usage: /cgi/qhtlink/qhtlfirewall.cgi?action=banner_js (builds an absolute cpsess-aware URL internally)
 if (defined $FORM{action} && $FORM{action} eq 'banner_js') {

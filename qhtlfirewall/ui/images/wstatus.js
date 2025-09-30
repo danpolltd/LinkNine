@@ -142,14 +142,14 @@
         window.clearInterval(api._timer); api._timer = null;
         if (isStart) { setBusy('Starting'); colorOrange(); beep(660,0.07,'sine'); }
         else { setBusy('Restarting'); colorRed(); beep(520,0.07,'triangle'); }
-        // Signal restart/start via existing action path; prefer ajax to avoid nav
+        // Signal restart/start; prefer ajax to avoid nav
         try {
           if (window.jQuery) {
-            var u = (window.QHTL_SCRIPT||'') + (isStart ? '?action=api_restartq' : '?action=qhtlwaterfallrestart');
+            var u = (window.QHTL_SCRIPT||'') + (isStart ? '?action=api_startwf' : '?action=qhtlwaterfallrestart');
             jQuery.ajax({ url: u, method: 'POST', dataType: 'html', timeout: 15000 })
               .always(function(){ startPoll(isStart); });
           } else {
-            var u2 = (window.QHTL_SCRIPT||'') + (isStart ? '?action=api_restartq' : '?action=qhtlwaterfallrestart');
+            var u2 = (window.QHTL_SCRIPT||'') + (isStart ? '?action=api_startwf' : '?action=qhtlwaterfallrestart');
             var x=new XMLHttpRequest(); x.open('POST', u2, true); x.onreadystatechange=function(){ if(x.readyState===4){ startPoll(isStart); } }; x.send();
           }
         } catch(_) { startPoll(isStart); }
