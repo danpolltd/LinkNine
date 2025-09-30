@@ -12,16 +12,19 @@
     if (document.getElementById('wstatus-style')) return;
     var s = document.createElement('style');
     s.id = 'wstatus-style';
-    s.textContent = [
+  s.textContent = [
   '#'+popupId+'{ position:absolute; width:100px; height:100px; border-radius:50%; display:flex; align-items:center; justify-content:center; z-index:950;}',
       '#'+popupId+'.inline{ position:relative; }',
       '#'+outerId+'{ position:absolute; inset:0; border-radius:50%; background: radial-gradient(circle at 30% 30%, #e3f9e7 0%, #b4f2c1 50%, #7fdc95 85%); box-shadow: 0 6px 18px rgba(0,0,0,0.25), inset 0 2px 6px rgba(255,255,255,0.6); }',
-  '#'+innerId+'{ position:relative; width:80px; height:80px; border-radius:50%; border:2px solid #2f8f49; color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 8px 16px rgba(52,168,83,0.35); transition: background 3s linear, transform .12s ease; }',
+  '#'+innerId+'{ position:relative; width:80px; height:80px; border-radius:50%; border:2px solid #2f8f49; color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 8px 16px rgba(52,168,83,0.35); transition: background 3s linear, transform .12s ease, filter 0.3s ease; }',
       // State colors
       '#'+innerId+'.state-green{ background: linear-gradient(180deg, #66e08a 0%, #34a853 100%); }',
       '#'+innerId+'.state-orange{ background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%); }',
       '#'+innerId+'.state-red{ background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); }',
-      '#'+innerId+'.fast{ transition: background .25s ease; }',
+  '#'+innerId+'.fast{ transition: background .25s ease; }',
+  // Warning blink style
+  '#'+innerId+'.blink-warn{ animation: qhtl-blink 0.2s steps(2,end) 6; }',
+  '@keyframes qhtl-blink{ 0%{ filter: brightness(1); } 50%{ filter: brightness(2); } 100%{ filter: brightness(1); } }',
       '#'+innerId+':hover{ filter: brightness(1.06); }',
       '#'+msgId+'{ position:absolute; bottom:-22px; width:140px; left:50%; transform:translateX(-50%); text-align:center; font-size:12px; color:#333; text-shadow:0 1px 0 rgba(255,255,255,0.25); }',
       /* Generic class-based styles for additional stub widgets */
@@ -157,7 +160,7 @@
       } catch(e) {}
     }
 
-    function doCountdownThenAct(isStart){
+  function doCountdownThenAct(isStart){
       if (isStart) {
         // Start: no countdown, engage immediately
         colorOrange();
@@ -175,44 +178,57 @@
         } catch(_) { startPoll(true); }
         return;
       }
-      // Disable: 3..1 countdown that can be cancelled by releasing; fade orange -> red
+      // Stop sequence: WARNING blink (fast), 2s gap, then 3s smooth dim countdown with 3..1; release cancels throughout
       colorOrange();
-      var n = 3; setBusy(String(n));
-      var step = 0;
-      // helper to set progressive color from orange to red
-      function fadeColor(progress){
-        if (progress <= 0.34) { colorOrange(); }
-        else if (progress <= 0.67) {
-          // mid orange-red blend
-          inner.classList.remove('state-green','state-red');
-          inner.classList.add('state-orange');
-        } else { colorRed(); }
-      }
-      api._timer = setInterval(function(){
-        step++;
-        var progress = step/3; // 3 steps for 3 seconds
-        fadeColor(progress);
-        n--; if (n>0) { inner.textContent = String(n); return; }
-        window.clearInterval(api._timer); api._timer = null;
-        setBusy('Disabling'); colorRed(); beep(420,0.07,'square');
-        try {
-          if (window.jQuery) {
-            var u = (window.QHTL_SCRIPT||'') + '?action=api_disablewf';
-            jQuery.ajax({ url: u, method: 'POST', dataType: 'json', timeout: 20000 })
-              .always(function(){
-                // After disable, reflect Disabled in header and local state
-                state.running = false; colorRed(); setReady('Start'); msg.textContent='';
-                pulseRing('rgba(220,38,38,0.85)');
-                refreshHeaderStatus();
-              });
-          } else {
-            var u2 = (window.QHTL_SCRIPT||'') + '?action=api_disablewf';
-            var x=new XMLHttpRequest(); x.open('POST', u2, true); x.onreadystatechange=function(){ if(x.readyState===4){ state.running = false; colorRed(); setReady('Start'); msg.textContent=''; pulseRing('rgba(220,38,38,0.85)'); refreshHeaderStatus(); } }; x.send();
+      setBusy('WARNING');
+      inner.classList.add('blink-warn');
+      // Stage 1: quick warning blink (~0.6s total). We'll extend to ~0.6 and then a gap to make ~2s before countdown
+      var warnTimeout = setTimeout(function(){
+        inner.classList.remove('blink-warn');
+        setBusy('');
+        // Stage 2: 2s gap with steady orange (user can still cancel)
+        var gapTimeout = setTimeout(function(){
+          // Stage 3: 3s countdown with smooth color fade orange->red
+          var n = 3; setBusy(String(n));
+          var startTs = Date.now();
+          function tick(){
+            // If canceled externally, stop
+            if (!api._timer) return;
+            var elapsed = Date.now() - startTs;
+            var progress = Math.min(1, Math.max(0, elapsed/3000));
+            // Smooth fade based on progress
+            if (progress < 1) {
+              // approximate smooth fade using class swaps at thirds plus filter boost
+              if (progress < 0.33) { colorOrange(); inner.style.filter='brightness(1.0)'; }
+              else if (progress < 0.66) { inner.classList.remove('state-green','state-red'); inner.classList.add('state-orange'); inner.style.filter='brightness(0.95)'; }
+              else { colorRed(); inner.style.filter='brightness(0.92)'; }
+            } else { colorRed(); inner.style.filter=''; }
+            // Countdown numbers based on full seconds remaining
+            var remaining = Math.ceil((3000 - elapsed)/1000);
+            if (remaining > 0) { inner.textContent = String(remaining); }
+            if (elapsed >= 3000) {
+              clearInterval(api._timer); api._timer = null;
+              setBusy('Stopping'); colorRed(); beep(420,0.07,'square');
+              try {
+                if (window.jQuery) {
+                  var u = (window.QHTL_SCRIPT||'') + '?action=api_stopwf';
+                  jQuery.ajax({ url: u, method: 'POST', dataType: 'json', timeout: 20000 })
+                    .always(function(){ state.running = false; colorRed(); setReady('Start'); msg.textContent=''; pulseRing('rgba(220,38,38,0.85)'); refreshHeaderStatus(); });
+                } else {
+                  var u2 = (window.QHTL_SCRIPT||'') + '?action=api_stopwf';
+                  var x=new XMLHttpRequest(); x.open('POST', u2, true); x.onreadystatechange=function(){ if(x.readyState===4){ state.running = false; colorRed(); setReady('Start'); msg.textContent=''; pulseRing('rgba(220,38,38,0.85)'); refreshHeaderStatus(); } }; x.send();
+                }
+              } catch(_) { state.running = false; colorRed(); setReady('Start'); msg.textContent=''; pulseRing('rgba(220,38,38,0.85)'); refreshHeaderStatus(); }
+            }
           }
-        } catch(_) {
-          state.running = false; colorRed(); setReady('Start'); msg.textContent=''; pulseRing('rgba(220,38,38,0.85)'); refreshHeaderStatus();
-        }
-      }, 1000);
+          api._timer = setInterval(tick, 50);
+          tick();
+        }, 2000);
+        // Stash gap timeout so cancel can clear it
+        api._gapTimeout = gapTimeout;
+      }, 600);
+      // Stash warning timeout for cancel
+      api._warnTimeout = warnTimeout;
     }
 
     function startPoll(isStart){
@@ -265,22 +281,25 @@
 
     // Press-and-hold for 3s, then run countdown and action
     (function(){
-      var holdTimer=null, held=false, isDown=false;
-      var shutdownEngaged=false; // becomes true once countdown starts
+  var holdTimer=null, held=false, isDown=false;
+  var shutdownEngaged=false; // becomes true once countdown starts
       function startHold(){
         if(inner.getAttribute('aria-busy')==='true') return;
         held=false; shutdownEngaged=false; inner.style.transform='scale(0.98)'; colorOrange();
         holdTimer=setTimeout(function(){
           held=true; shutdownEngaged=true; inner.style.transform='scale(1)';
-          // begin cancelable disable countdown
+          // begin cancelable stop countdown sequence
           doCountdownThenAct(false);
         }, 3000);
       }
       function resetVisual(){ if(state.running){ colorGreen(); setReady('On'); } else { colorRed(); setReady('Start'); } }
       function cancelHold(){
         if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
-        // If countdown is in progress (shutdownEngaged) cancel it and revert
+        // Cancel warning, gap, countdown timers if present
+        if (api._warnTimeout){ try{ clearTimeout(api._warnTimeout); }catch(_){ } api._warnTimeout=null; }
+        if (api._gapTimeout){ try{ clearTimeout(api._gapTimeout); }catch(_){ } api._gapTimeout=null; }
         if (shutdownEngaged && api._timer){ try{ clearInterval(api._timer); }catch(_){ } api._timer=null; shutdownEngaged=false; }
+        try { inner.classList.remove('blink-warn'); inner.style.filter=''; } catch(_e){}
         if(inner.getAttribute('aria-busy')==='true') return;
         if(!held || !shutdownEngaged){ inner.style.transform='scale(1)'; resetVisual(); }
         isDown=false;

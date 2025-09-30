@@ -404,6 +404,38 @@ if (defined $FORM{action} && $FORM{action} eq 'api_restartwf') {
 	exit 0;
 }
 
+# Lightweight API to stop qhtlwaterfall daemon via systemd (without disabling firewall)
+if (defined $FORM{action} && $FORM{action} eq 'api_stopwf') {
+	# Prevent browsers from treating this as a script include
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	my $scriptish = ($sec_dest eq 'script');
+	if ($scriptish) {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	my $ok = 0; my $err = '';
+	eval {
+		my $systemctl = (-x '/bin/systemctl') ? '/bin/systemctl' : ((-x '/usr/bin/systemctl') ? '/usr/bin/systemctl' : undef);
+		if ($systemctl) {
+			my $rc = system($systemctl,'stop','qhtlwaterfall.service');
+			$ok = ($rc == 0) ? 1 : 0;
+			$err = 'systemctl_failed' if !$ok;
+		} else {
+			# Best-effort: try to signal the daemon via PID file
+			my $pid='';
+			for my $pf ('/var/run/qhtlwaterfall.pid','/run/qhtlwaterfall.pid') {
+				if (-r $pf) { open(my $P,'<',$pf); $pid=<$P>; close $P; chomp $pid; $pid=~s/\D//g; last; }
+			}
+			if ($pid) { eval { kill 'TERM', $pid; 1; }; $ok = 1; } else { $ok = 0; $err = 'no_systemd_no_pid'; }
+		}
+		1;
+	} or do { $err = 'exception'; };
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	if ($ok) { print '{"ok":1}'; } else { print '{"ok":0,"error":"'.$err.'"}'; }
+	exit 0;
+}
+
 # Lightweight API to completely disable firewall and stop waterfall
 if (defined $FORM{action} && $FORM{action} eq 'api_disablewf') {
 	# Prevent browsers from treating this as a script include
