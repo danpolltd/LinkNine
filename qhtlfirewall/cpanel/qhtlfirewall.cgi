@@ -187,9 +187,10 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 			$ipt_ok = ($iptstatus[0] && $iptstatus[0] =~ /^Chain LOCALINPUT/) ? 1 : 0;
 		}
 		# As a last resort, consult systemd (non-fatal if unavailable)
-		if (!$run_ok && !$ipt_ok && -x '/bin/systemctl') {
+		my $systemctl = (-x '/bin/systemctl') ? '/bin/systemctl' : ((-x '/usr/bin/systemctl') ? '/usr/bin/systemctl' : undef);
+		if (!$run_ok && !$ipt_ok && $systemctl) {
 			my ($cin,$cout);
-			my $sp = open3($cin, $cout, $cout, '/bin/systemctl','is-active','qhtlwaterfall.service');
+			my $sp = open3($cin, $cout, $cout, $systemctl,'is-active','qhtlwaterfall.service');
 			my @out = <$cout>; waitpid($sp, 0);
 			my $ans = lc(join('', @out)); $ans =~ s/\s+//g;
 			if ($ans eq 'active') { $run_ok = 1; }
@@ -261,8 +262,9 @@ if (defined $FORM{action} && $FORM{action} eq 'api_startwf') {
 	my $ok = 0; my $err = '';
 	eval {
 		# Prefer systemd
-		if (-x '/bin/systemctl') {
-			my $rc = system('/bin/systemctl','start','qhtlwaterfall.service');
+		my $systemctl = (-x '/bin/systemctl') ? '/bin/systemctl' : ((-x '/usr/bin/systemctl') ? '/usr/bin/systemctl' : undef);
+		if ($systemctl) {
+			my $rc = system($systemctl,'start','qhtlwaterfall.service');
 			$ok = ($rc == 0) ? 1 : 0;
 			$err = 'systemctl_failed' if !$ok;
 		} else {
