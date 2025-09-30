@@ -3791,7 +3791,18 @@ QHTL_TAB_GUARD
 				."  var iv=setInterval(tryMount,250); if (document.readyState!=='loading') tryMount(); else document.addEventListener('DOMContentLoaded', tryMount);\n"
 				."})();</script>\n";
 		# Inline content area for widget actions (load results below bubbles)
-		print "<tr><td><div id='qhtl-inline-area' style='padding-top:10px'></div></td></tr>\n";
+		print "<tr><td><div id='qhtl-inline-area' style='padding-top:10px;min-height:200px'></div></td></tr>\n";
+		# Delegate clicks and form submits inside the Waterfall tab to load into inline area
+		print "<script>(function(){\n";
+		print "  var areaId = 'qhtl-inline-area';\n";
+		print "  function sameOrigin(u){ try{ var a=document.createElement('a'); a.href=u; return (!a.host || a.host===location.host); }catch(e){ return false; } }\n";
+		print "  function isQhtlAction(u){ try{ return /\\?action=/.test(u); }catch(e){ return false; } }\n";
+		print "  function loadInto(url, method, data){ try{ var area=document.getElementById(areaId); if(!area){ location.href=url; return; } if (window.jQuery){ if(method==='POST'){ jQuery(area).html('<div class=\\"text-muted\\">Loading…</div>').load(url, data); } else { jQuery(area).html('<div class=\\"text-muted\\">Loading…</div>').load(url); } } else { var x=new XMLHttpRequest(); x.open(method||'GET', url, true); x.setRequestHeader('X-Requested-With','XMLHttpRequest'); if(method==='POST'){ x.setRequestHeader('Content-Type','application/x-www-form-urlencoded; charset=UTF-8'); } x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ area.innerHTML = x.responseText; } else { location.href=url; } } }; x.send(data||null); } } catch(e){ try{ location.href=url; }catch(_){} } }\n";
+		print "  function serialize(form){ try{ var p=[]; for(var i=0;i<form.elements.length;i++){ var el=form.elements[i]; if(!el.name || el.disabled) continue; var t=(el.type||'').toLowerCase(); if((t==='checkbox'||t==='radio')&&!el.checked) continue; p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(el.value)); } return p.join('&'); }catch(e){ return ''; } }\n";
+		print "  var root = document.getElementById('waterfall') || document;\n";
+		print "  root.addEventListener('click', function(ev){ var a=ev.target.closest('a'); if(!a) return; var href=a.getAttribute('href')||''; if(!href || href==='javascript:void(0)') return; if(!sameOrigin(href) || !isQhtlAction(href)) return; ev.preventDefault(); loadInto(href, 'GET'); }, true);\n";
+		print "  root.addEventListener('submit', function(ev){ var f=ev.target; if(!f || f.tagName!=='FORM') return; var action=f.getAttribute('action')||location.pathname; if(!sameOrigin(action) || !isQhtlAction(action)) return; if (f.enctype && /multipart\/form-data/i.test(f.enctype)) return; ev.preventDefault(); var data=serialize(f); loadInto(action + (action.indexOf('?')>-1?'&':'?') + 'ajax=1', (f.method||'GET').toUpperCase(), data); }, true);\n";
+		print "})();</script>\n";
 		print "</table>\n";
 		print "</div>\n";
 
