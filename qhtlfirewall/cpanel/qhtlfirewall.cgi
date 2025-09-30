@@ -1102,8 +1102,9 @@ unless ($skip_capture) {
 	var txt = (function(){ var d = document.createElement('div'); d.innerHTML = "${status_badge}"; var s=d.querySelector('.label'); return s ? s.textContent.trim() : 'Enabled'; })();
 	el.textContent = txt;
 		el.classList.remove('success','warning','danger');
-	if (/Disabled|Stopped/i.test(txt)) { el.classList.add('danger'); }
-	else if (/Testing/i.test(txt)) { el.classList.add('warning'); }
+		var lct = String(txt||'').toLowerCase();
+		if (lct.indexOf('disabled')!==-1 || lct.indexOf('stopped')!==-1) { el.classList.add('danger'); }
+		else if (lct.indexOf('testing')!==-1) { el.classList.add('warning'); }
 	else { el.classList.add('success'); }
 
 		// Squeeze font size to fit inside the button without wrapping
