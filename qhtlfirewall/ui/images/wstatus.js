@@ -16,7 +16,7 @@
       '#'+popupId+'{ position:absolute; width:100px; height:100px; border-radius:50%; display:flex; align-items:center; justify-content:center; z-index:1050;}',
       '#'+popupId+'.inline{ position:relative; }',
       '#'+outerId+'{ position:absolute; inset:0; border-radius:50%; background: radial-gradient(circle at 30% 30%, #e3f9e7 0%, #b4f2c1 50%, #7fdc95 85%); box-shadow: 0 6px 18px rgba(0,0,0,0.25), inset 0 2px 6px rgba(255,255,255,0.6); }',
-      '#'+innerId+'{ position:relative; width:80px; height:80px; border-radius:50%; border:2px solid #2f8f49; color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 8px 16px rgba(52,168,83,0.35); transition: background 3s linear; }',
+  '#'+innerId+'{ position:relative; width:80px; height:80px; border-radius:50%; border:2px solid #2f8f49; color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 8px 16px rgba(52,168,83,0.35); transition: background 3s linear, transform .12s ease; }',
       // State colors
       '#'+innerId+'.state-green{ background: linear-gradient(180deg, #66e08a 0%, #34a853 100%); }',
       '#'+innerId+'.state-orange{ background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%); }',
@@ -104,6 +104,35 @@
     // Track daemon state
     var state = { running: true };
 
+    // Soft audio cues (best-effort; ignored if blocked)
+    function beep(freq, duration, type){
+      try {
+        var ctx = beep._ctx || (beep._ctx = new (window.AudioContext||window.webkitAudioContext)());
+        var o = ctx.createOscillator(); var g = ctx.createGain();
+        o.type = type || 'sine'; o.frequency.value = freq || 440;
+        o.connect(g); g.connect(ctx.destination);
+        var now = ctx.currentTime; g.gain.setValueAtTime(0.0001, now);
+        g.gain.exponentialRampToValueAtTime(0.04, now + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + (duration||0.08));
+        o.start(now); o.stop(now + (duration||0.08));
+      } catch(_) {}
+    }
+
+    // Completion ring effect
+    function pulseRing(color){
+      try {
+        var ring = document.createElement('div');
+        ring.style.position='absolute'; ring.style.left='50%'; ring.style.top='50%';
+        ring.style.width='80px'; ring.style.height='80px'; ring.style.borderRadius='50%';
+        ring.style.border='3px solid '+(color||'rgba(52,168,83,0.85)');
+        ring.style.transform='translate(-50%,-50%) scale(1)'; ring.style.opacity='0.8';
+        ring.style.transition='transform .6s ease-out, opacity .6s ease-out';
+        wrap.appendChild(ring);
+        requestAnimationFrame(function(){ ring.style.transform='translate(-50%,-50%) scale(1.8)'; ring.style.opacity='0'; });
+        setTimeout(function(){ try{ wrap.removeChild(ring); }catch(_){} }, 700);
+      } catch(_) {}
+    }
+
     function doCountdownThenAct(isStart){
       // After hold completes, count 3..1 while staying orange
       colorOrange();
@@ -111,15 +140,17 @@
       api._timer = setInterval(function(){
         n--; if (n>0) { inner.textContent = String(n); return; }
         window.clearInterval(api._timer); api._timer = null;
-        if (isStart) { setBusy('Starting'); colorOrange(); }
-        else { setBusy('Restarting'); colorRed(); }
+        if (isStart) { setBusy('Starting'); colorOrange(); beep(660,0.07,'sine'); }
+        else { setBusy('Restarting'); colorRed(); beep(520,0.07,'triangle'); }
         // Signal restart/start via existing action path; prefer ajax to avoid nav
         try {
           if (window.jQuery) {
-            jQuery.ajax({ url: (window.QHTL_SCRIPT||'') + '?action=qhtlwaterfallrestart', method: 'POST', dataType: 'html', timeout: 15000 })
+            var u = (window.QHTL_SCRIPT||'') + (isStart ? '?action=restartq' : '?action=qhtlwaterfallrestart');
+            jQuery.ajax({ url: u, method: 'POST', dataType: 'html', timeout: 15000 })
               .always(function(){ startPoll(isStart); });
           } else {
-            var x=new XMLHttpRequest(); x.open('POST', (window.QHTL_SCRIPT||'') + '?action=qhtlwaterfallrestart', true); x.onreadystatechange=function(){ if(x.readyState===4){ startPoll(isStart); } }; x.send();
+            var u2 = (window.QHTL_SCRIPT||'') + (isStart ? '?action=restartq' : '?action=qhtlwaterfallrestart');
+            var x=new XMLHttpRequest(); x.open('POST', u2, true); x.onreadystatechange=function(){ if(x.readyState===4){ startPoll(isStart); } }; x.send();
           }
         } catch(_) { startPoll(isStart); }
       }, 1000);
@@ -149,8 +180,8 @@
       try { return /qhtlwaterfall\s+status|running|active/i.test(String(html||'')); } catch(_) { return false; }
     }
     function isRunningJSON(j){ try { return !!(j && (j.running===1 || j.running===true)); } catch(e){ return false; } }
-    function onOK(){ try { window.clearInterval(api._pollTimer); } catch(_){} api._pollTimer=null; state.running = true; colorGreen(); setReady('On'); msg.textContent=''; try { refreshHeaderStatus(); } catch(_){} }
-    function onTimeout(isStart){ try { window.clearInterval(api._pollTimer); } catch(_){} api._pollTimer=null; state.running = false; colorRed(); setReady('Start'); msg.textContent = isStart ? 'Start timed out' : 'Restart timed out'; }
+  function onOK(){ try { window.clearInterval(api._pollTimer); } catch(_){} api._pollTimer=null; state.running = true; colorGreen(); setReady('On'); msg.textContent=''; pulseRing('rgba(52,168,83,0.85)'); beep(880,0.09,'sine'); try { refreshHeaderStatus(); } catch(_){} }
+  function onTimeout(isStart){ try { window.clearInterval(api._pollTimer); } catch(_){} api._pollTimer=null; state.running = false; colorRed(); setReady('Start'); msg.textContent = isStart ? 'Start timed out' : 'Restart timed out'; pulseRing('rgba(220,38,38,0.85)'); beep(330,0.09,'sawtooth'); }
 
     // Initial status detection
     function initStatus(){
@@ -169,8 +200,9 @@
     // Press-and-hold for 3s, then run countdown and action
     (function(){
       var holdTimer=null, held=false;
-      function startHold(){ if(inner.getAttribute('aria-busy')==='true') return; held=false; colorOrange(); holdTimer=setTimeout(function(){ held=true; doCountdownThenAct(!state.running); }, 3000); }
+      function startHold(){ if(inner.getAttribute('aria-busy')==='true') return; held=false; colorOrange(); inner.style.transform='scale(0.98)'; holdTimer=setTimeout(function(){ held=true; inner.style.transform='scale(1)'; doCountdownThenAct(!state.running); }, 3000); }
       function cancelHold(){ if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; } if(!held){ // revert to idle color/text
+          inner.style.transform='scale(1)';
           if(state.running){ colorGreen(); setReady('On'); } else { colorRed(); setReady('Start'); }
         }
       }
