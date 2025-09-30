@@ -796,6 +796,7 @@ EOF
 	print <<EOF;
 	<!-- $bootstrapcss -->
 	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
+	<script src='$images/wstatus.js'></script>
 	$jqueryjs
 	$bootstrapjs
 <style>
