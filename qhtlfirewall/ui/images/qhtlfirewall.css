@@ -44,6 +44,22 @@
 .qhtl-bubble-bg .nav-tabs>li.active>a:hover { color:#555; cursor:default; background-color:#fff; border:1px solid #ddd; border-bottom-color:transparent; }
 .qhtl-bubble-bg .tab-content>.tab-pane { display:none; }
 .qhtl-bubble-bg .tab-content>.active { display:block; }
+
+/* Ensure tab action buttons use black text inside the gradient wrapper
+   This overrides semantic .btn-* white text rules from Bootstrap when inside tabs. */
+.qhtl-bubble-bg .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status),
+.qhtl-bubble-bg .tab-content a.btn:not(.btn-watcher-bubble):not(.btn-status),
+.qhtl-bubble-bg .tab-content input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status),
+.qhtl-bubble-bg .tab-content .btn:not(.btn-watcher-bubble):not(.btn-status) {
+	color: #111 !important;
+}
+
+.qhtl-bubble-bg .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status):hover,
+.qhtl-bubble-bg .tab-content a.btn:not(.btn-watcher-bubble):not(.btn-status):hover,
+.qhtl-bubble-bg .tab-content input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status):hover,
+.qhtl-bubble-bg .tab-content .btn:not(.btn-watcher-bubble):not(.btn-status):hover {
+	color: #111 !important;
+}
 .btn-qhtlfirewall-config:focus,
 .btn-qhtlfirewall-config:hover,
 .btn-qhtlfirewall-config:active,

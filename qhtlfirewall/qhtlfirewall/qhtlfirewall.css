@@ -403,3 +403,19 @@ td .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status),
 .qhtl-bubble-bg .btn-status.success { box-shadow: 0 0 0 3px rgba(76,175,80,0.15); }
 .qhtl-bubble-bg .btn-status.warning { box-shadow: 0 0 0 3px rgba(240,173,78,0.15); }
 .qhtl-bubble-bg .btn-status.danger  { box-shadow: 0 0 0 3px rgba(217,83,79,0.15); }
+
+/* Ensure tab action buttons use black text inside the gradient wrapper
+   This overrides semantic .btn-* white text rules defined above. */
+.qhtl-bubble-bg .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status),
+.qhtl-bubble-bg .tab-content a.btn:not(.btn-watcher-bubble):not(.btn-status),
+.qhtl-bubble-bg .tab-content input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status),
+.qhtl-bubble-bg .tab-content .btn:not(.btn-watcher-bubble):not(.btn-status) {
+	color: #111 !important;
+}
+
+.qhtl-bubble-bg .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status):hover,
+.qhtl-bubble-bg .tab-content a.btn:not(.btn-watcher-bubble):not(.btn-status):hover,
+.qhtl-bubble-bg .tab-content input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status):hover,
+.qhtl-bubble-bg .tab-content .btn:not(.btn-watcher-bubble):not(.btn-status):hover {
+	color: #111 !important;
+}
