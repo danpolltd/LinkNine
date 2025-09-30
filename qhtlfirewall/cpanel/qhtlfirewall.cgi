@@ -1116,9 +1116,25 @@ HTML_SMART_WRAPPER
 
 		if (!$is_ajax) {
 print <<HTML_HEADER_ASSETS;
-		$bootstrapcss
-		<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
-		<script src='$script?action=wstatus_js&v=$myv'></script>
+				<!-- Intentionally omit Bootstrap CSS here to avoid WHM header/layout side-effects -->
+				<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
+				<!-- Provide a stable absolute script URL for all inline widgets/APIs (resolves WHM token path) -->
+				<script>
+					(function(){
+						try {
+							var loc = window.location || {};
+							var origin = loc.origin || (loc.protocol + '//' + loc.host);
+							var m = (loc.pathname||'').match(/\/cpsess\d+/);
+							var token = m ? m[0] : '';
+							// Build absolute path to our CGI, e.g., https://host:2087/cpsessXXXX/cgi/qhtlink/qhtlfirewall.cgi
+							window.QHTL_SCRIPT = origin + token + '/cgi/qhtlink/' + ($script||'qhtlfirewall.cgi');
+						} catch(e) {
+							// Fallback: relative script name (works when already inside our CGI context)
+							window.QHTL_SCRIPT = ($script||'qhtlfirewall.cgi');
+						}
+					})();
+				</script>
+				<script src='$script?action=wstatus_js&v=$myv'></script>
 		<script>
 	// Fallback if wstatus.js fails to load or is blocked (e.g., MIME nosniff)
 	(function(){
@@ -1134,8 +1150,9 @@ print <<HTML_HEADER_ASSETS;
 	  }catch(_){ }
 	})();
 		</script>
-		$jqueryjs
-		<!-- Keep Bootstrap disabled here to avoid header/layout side-effects; we only need jQuery for inline scripts. -->
+	$jqueryjs
+	<!-- Enable Bootstrap JS for modals/popovers used by Quick Actions and Promo (CSS intentionally not included) -->
+	$bootstrapjs
 		<style>
 HTML_HEADER_ASSETS
 	}
