@@ -821,8 +821,12 @@ if (defined $FORM{action} && $FORM{action} ne '' && $FORM{action} !~ /^(?:status
 	my $g_accept   = lc($ENV{HTTP_ACCEPT} // '');
 	my $g_is_nav   = ($g_sec_mode eq 'navigate' || $g_sec_dest eq 'document' || $g_sec_dest eq 'frame' || $g_sec_dest eq 'iframe');
 	my $g_accepts_html = ($g_accept =~ /\btext\/html\b/);
+    # Treat explicit XHR/fetch or ajax=1 as safe (not script-like)
+    my $g_is_ajax_hdr = (lc($ENV{HTTP_X_REQUESTED_WITH} // '') eq 'xmlhttprequest');
+    my $g_has_ajax_qs = (defined $FORM{ajax} && $FORM{ajax} =~ /^(?:1|true|yes)$/i) ? 1 : 0;
 	# Block when explicitly a script destination, OR when not a navigation and Accept does not include text/html
-	my $g_scriptish = $g_is_script_dest || (!$g_is_nav && !$g_accepts_html);
+	my $g_scriptish = ($g_is_script_dest || (!$g_is_nav && !$g_accepts_html)) ? 1 : 0;
+    if ($g_is_ajax_hdr || $g_has_ajax_qs) { $g_scriptish = 0; }
 	if ($g_scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
@@ -936,7 +940,40 @@ print <<HTML_SMART_WRAPPER;
 			right.style.display='inline-flex'; right.style.alignItems='center'; right.style.gap='8px';
 			right.appendChild(btnCol); right.appendChild(closeBtn);
 			// Populate log options
-			function populateLogs(){ try{ var xhr=new XMLHttpRequest(); xhr.open('GET', '$script?action=logtailcmd&meta=1', true); xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){ var opts = JSON.parse(xhr.responseText||'[]'); logSelect.innerHTML=''; for(var i=0;i<opts.length;i++){ var o=document.createElement('option'); o.value=opts[i].value; o.textContent=opts[i].label; if(opts[i].selected){ o.selected=true; } logSelect.appendChild(o);} } }; xhr.send(); }catch(e){} }
+			function populateLogs(){
+				try{
+					var xhr = new XMLHttpRequest();
+					// Append ajax=1 so the server returns bare JSON (no WHM scaffolding)
+					var url = '$script?action=logtailcmd&meta=1&ajax=1';
+					xhr.open('GET', url, true);
+					try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){ }
+					xhr.onreadystatechange = function(){
+						if (xhr.readyState === 4){
+							if (xhr.status >= 200 && xhr.status < 300){
+								var text = xhr.responseText || '[]';
+								try {
+									var opts = JSON.parse(text);
+									logSelect.innerHTML = '';
+									for (var i=0;i<opts.length;i++){
+										var o = document.createElement('option');
+										o.value = opts[i].value;
+										o.textContent = opts[i].label;
+										if (opts[i].selected){ o.selected = true; }
+										logSelect.appendChild(o);
+									}
+								} catch(parseErr){
+									// If server sent HTML (e.g., login), fall back to navigating to the page
+									try { window.location = '$script?action=logtail'; } catch(__){}
+								}
+							} else {
+								// Non-2xx: fallback
+								try { window.location = '$script?action=logtail'; } catch(__){}
+							}
+						}
+					};
+					xhr.send();
+				}catch(e){}
+			}
 			// Refresh logic: 5s autocheck or 1s real-time mode; in-flight guard
 			var watcherPaused=false, watcherTick=5, watcherTimerId=null, watcherMode='auto'; window.__qhtlWatcherMode = 'auto'; window.__qhtlWatcherLoading = false;
 			// Define normal and more intense color sets for mode/state emphasis
@@ -969,7 +1006,7 @@ print <<HTML_SMART_WRAPPER;
 			}
 			window.__qhtlScheduleTick = scheduleTick;
 			function setWatcherMode(mode){ watcherMode = (mode==='live') ? 'live' : 'auto'; window.__qhtlWatcherMode = watcherMode; window.__qhtlWatcherState = { lines: [] }; if(watcherMode==='live'){ refreshBtn.textContent='Real Time'; refreshLabel.textContent=' '; timerSpan.textContent='live mode'; } else { refreshBtn.textContent='Autocheck'; refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } updateIntensity(); scheduleTick(); }
-			function doRefresh(){ if(window.__qhtlWatcherLoading){ return; } var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0'); quickViewLoad(url); }
+			function doRefresh(){ if(window.__qhtlWatcherLoading){ return; } var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0')+'&ajax=1'; quickViewLoad(url); }
 			// Mode toggle: Autocheck (5s) <-> Real Time (1s)
 			refreshBtn.addEventListener('click', function(e){ e.preventDefault(); setWatcherMode(watcherMode==='auto' ? 'live' : 'auto'); });
 			pauseBtn.addEventListener('click', function(e){ e.preventDefault(); watcherPaused=!watcherPaused; pauseBtn.textContent=watcherPaused?'Start':'Pause'; updateIntensity(); });
@@ -999,6 +1036,7 @@ print <<HTML_SMART_WRAPPER;
 			var x=new XMLHttpRequest();
 			window.__qhtlWatcherLoading=true;
 			x.open('GET', url, true);
+			try{ x.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(__){}
 			x.onreadystatechange=function(){
 				if(x.readyState===4){
 					try{
@@ -1038,7 +1076,7 @@ print <<HTML_SMART_WRAPPER;
 				// Ensure blue pulsating glow CSS exists and apply class
 				(function(){ var css=document.getElementById('qhtl-blue-style'); if(!css){ css=document.createElement('style'); css.id='qhtl-blue-style'; css.textContent=String.fromCharCode(64)+'keyframes qhtl-blue {0%,100%{box-shadow: 0 0 12px 5px rgba(0,123,255,0.55), 0 0 20px 9px rgba(0,123,255,0.3);}50%{box-shadow: 0 0 22px 12px rgba(0,123,255,0.95), 0 0 36px 16px rgba(0,123,255,0.55);}} .fire-blue{ animation: qhtl-blue 2.2s infinite ease-in-out; }'; document.head.appendChild(css);} if(d){ d.classList.add('fire-blue'); } var bodyEl=document.getElementById('quickViewBodyShim'); if(bodyEl){ /* 50% brighter than glow base (#007bff) by mixing with white */ bodyEl.style.background='linear-gradient(180deg, rgb(127,189,255) 0%, rgb(159,205,255) 100%)'; bodyEl.style.borderRadius='4px'; bodyEl.style.padding='10px'; } })();
 			// initial load and start timer (no synthetic change event to avoid loops)
-			(function(){ var ls=document.getElementById('watcherLines'), sel=document.getElementById('watcherLogSelect'); var url='$script?action=logtailcmd&lines='+(ls?encodeURIComponent(ls.value||'100'):'100')+'&lognum='+(sel?encodeURIComponent(sel.value||'0'):'0'); quickViewLoad(url, function(){ var timer=document.getElementById('watcherTimer'); if(timer){ timer.textContent='5'; } if(typeof setWatcherMode==='function'){ setWatcherMode('auto'); } else if(window.__qhtlScheduleTick){ window.__qhtlScheduleTick(); } }); })();
+			(function(){ var ls=document.getElementById('watcherLines'), sel=document.getElementById('watcherLogSelect'); var url='$script?action=logtailcmd&lines='+(ls?encodeURIComponent(ls.value||'100'):'100')+'&lognum='+(sel?encodeURIComponent(sel.value||'0'):'0')+'&ajax=1'; quickViewLoad(url, function(){ var timer=document.getElementById('watcherTimer'); if(timer){ timer.textContent='5'; } if(typeof setWatcherMode==='function'){ setWatcherMode('auto'); } else if(window.__qhtlScheduleTick){ window.__qhtlScheduleTick(); } }); })();
 				m.style.display='block'; return false; };
 		// Also expose the real opener on the original name for direct callers
 		window.openWatcher = window.__qhtlRealOpenWatcher;
@@ -1124,7 +1162,8 @@ eval {
 
 
 # After UI module is loaded and modal JS is injected, render header and Watcher button
-unless ($skip_capture) {
+# Do not render the header panel for AJAX inline loads
+unless ($skip_capture || $is_ajax) {
 		# Build a compact status badge for the header's right column
 	my $status_badge = "<span class='label label-success'>Enabled</span>";
 		my $status_buttons = '';
