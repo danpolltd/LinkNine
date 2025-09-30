@@ -284,6 +284,76 @@ if (defined $FORM{action} && $FORM{action} eq 'api_startwf') {
 	exit 0;
 }
 
+# Lightweight API to restart qhtlwaterfall daemon via systemd
+if (defined $FORM{action} && $FORM{action} eq 'api_restartwf') {
+	# Prevent browsers from treating this as a script include
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	my $scriptish = ($sec_dest eq 'script');
+	if ($scriptish) {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	my $ok = 0; my $err = '';
+	eval {
+		# Prefer systemd restart; otherwise flag + best-effort signal
+		my $systemctl = (-x '/bin/systemctl') ? '/bin/systemctl' : ((-x '/usr/bin/systemctl') ? '/usr/bin/systemctl' : undef);
+		if ($systemctl) {
+			my $rc = system($systemctl,'restart','qhtlwaterfall.service');
+			$ok = ($rc == 0) ? 1 : 0;
+			$err = 'systemctl_failed' if !$ok;
+		} else {
+			# Create restart flag for daemon to self-restart if running
+			eval { open(my $OUT, '>', '/var/lib/qhtlfirewall/qhtlwaterfall.restart'); close $OUT; 1; };
+			# Try to HUP the daemon if PID is known (optional)
+			eval {
+				my $pid='';
+				for my $pf ('/var/run/qhtlwaterfall.pid','/run/qhtlwaterfall.pid') {
+					if (-r $pf) { open(my $P,'<',$pf); $pid=<$P>; close $P; chomp $pid; $pid=~s/\D//g; last; }
+				}
+				if ($pid) { kill 'HUP', $pid; }
+				1;
+			};
+			$ok = 1; # best-effort on non-systemd systems
+		}
+		1;
+	} or do { $err = 'exception'; };
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	if ($ok) { print '{"ok":1}'; } else { print '{"ok":0,"error":"'.$err.'"}'; }
+	exit 0;
+}
+
+# Back-compat: handle qhtlwaterfallrestart both for navigation and XHR
+if (defined $FORM{action} && $FORM{action} eq 'qhtlwaterfallrestart') {
+	my $sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	my $is_nav = ($sec_mode eq 'navigate' || $sec_dest eq 'document' || $sec_dest eq 'frame' || $sec_dest eq 'iframe');
+	my $systemctl = (-x '/bin/systemctl') ? '/bin/systemctl' : ((-x '/usr/bin/systemctl') ? '/usr/bin/systemctl' : undef);
+	my $ok = 0; my $err='';
+	eval {
+		if ($systemctl) {
+			my $rc = system($systemctl,'restart','qhtlwaterfall.service');
+			$ok = ($rc == 0) ? 1 : 0;
+			$err = 'systemctl_failed' if !$ok;
+		} else {
+			# Create flag so daemon restarts itself
+			eval { open(my $OUT, '>', '/var/lib/qhtlfirewall/qhtlwaterfall.restart'); close $OUT; 1; };
+			$ok = 1;
+		}
+		1;
+	} or do { $err = 'exception'; };
+	if ($is_nav) {
+		print "Content-type: text/html\r\n\r\n";
+		print "<div style='padding:10px'><h4>Restart qhtlwaterfall</h4>";
+		print $ok ? "<div class='alert alert-success'>Restart issued.</div>" : "<div class='alert alert-danger'>Restart failed ($err)</div>";
+		print "<div><a class='btn btn-default' href='$script'>Return</a></div></div>";
+	} else {
+		print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		if ($ok) { print '{"ok":1}'; } else { print '{"ok":0,"error":"'.$err.'"}'; }
+	}
+	exit 0;
+}
+
 # Lightweight JavaScript endpoint to render a header badge without relying on inline JS in templates.
 # Usage: /cgi/qhtlink/qhtlfirewall.cgi?action=banner_js (builds an absolute cpsess-aware URL internally)
 if (defined $FORM{action} && $FORM{action} eq 'banner_js') {

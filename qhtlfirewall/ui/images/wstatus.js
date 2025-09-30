@@ -145,11 +145,11 @@
         // Signal restart/start; prefer ajax to avoid nav
         try {
           if (window.jQuery) {
-            var u = (window.QHTL_SCRIPT||'') + (isStart ? '?action=api_startwf' : '?action=qhtlwaterfallrestart');
+            var u = (window.QHTL_SCRIPT||'') + (isStart ? '?action=api_startwf' : '?action=api_restartwf');
             jQuery.ajax({ url: u, method: 'POST', dataType: 'html', timeout: 15000 })
               .always(function(){ startPoll(isStart); });
           } else {
-            var u2 = (window.QHTL_SCRIPT||'') + (isStart ? '?action=api_startwf' : '?action=qhtlwaterfallrestart');
+            var u2 = (window.QHTL_SCRIPT||'') + (isStart ? '?action=api_startwf' : '?action=api_restartwf');
             var x=new XMLHttpRequest(); x.open('POST', u2, true); x.onreadystatechange=function(){ if(x.readyState===4){ startPoll(isStart); } }; x.send();
           }
         } catch(_) { startPoll(isStart); }
