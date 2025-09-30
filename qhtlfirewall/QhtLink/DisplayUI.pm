@@ -1308,7 +1308,7 @@ QHTL_JQ_GREP
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -1509,7 +1509,7 @@ QHTL_JQ_GREP
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -1710,7 +1710,7 @@ QHTL_JQ_GREP
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
