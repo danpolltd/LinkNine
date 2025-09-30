@@ -3737,23 +3737,21 @@ QHTL_TAB_GUARD
 		print "</div>\n";
 
 		# New Waterfall tab (duplicate of QhtLink Waterfall content) placed before QhtLink Firewall
-	  print "<div id='waterfall' class='tab-pane'>\n";
+		  print "<div id='waterfall' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
 			  print "<tr><td>".
 				  "<div style='display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;justify-content:center'>".
-								"<div id='wstatus-anchor' style='position:relative;display:inline-block;width:100px;height:100px'>".
-									"<div class='wcircle'><div class='wcircle-outer'></div><div class='wcircle-inner'>Status</div><div class='wcircle-msg'></div></div>".
-								"</div>".
-						"<div id='wignore-anchor' style='width:100px;height:100px'></div>".
-						"<div id='wdirwatch-anchor' style='width:100px;height:100px'></div>".
-						"<div id='wddns-anchor' style='width:100px;height:100px'></div>".
-						"<div id='walerts-anchor' style='width:100px;height:100px'></div>".
-						"<div id='wscanner-anchor' style='width:100px;height:100px'></div>".
-						"<div id='wblocklist-anchor' style='width:100px;height:100px'></div>".
-						"<div id='wusers-anchor' style='width:100px;height:100px'></div>".
-							"</div>".
-						"</td></tr>\n";
+							"<div id='wstatus-anchor' style='position:relative;display:inline-block;width:100px;height:100px'></div>".
+					"<div id='wignore-anchor' style='width:100px;height:100px'></div>".
+					"<div id='wdirwatch-anchor' style='width:100px;height:100px'></div>".
+					"<div id='wddns-anchor' style='width:100px;height:100px'></div>".
+					"<div id='walerts-anchor' style='width:100px;height:100px'></div>".
+					"<div id='wscanner-anchor' style='width:100px;height:100px'></div>".
+					"<div id='wblocklist-anchor' style='width:100px;height:100px'></div>".
+					"<div id='wusers-anchor' style='width:100px;height:100px'></div>".
+						"</div>".
+					"</td></tr>\n";
 			print "<script src='$script?action=widget_js&name=wignore.js&v=$myv'></script>\n";
 			print "<script src='$script?action=widget_js&name=wdirwatch.js&v=$myv'></script>\n";
 			print "<script src='$script?action=widget_js&name=wddns.js&v=$myv'></script>\n";
