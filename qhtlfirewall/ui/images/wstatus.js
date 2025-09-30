@@ -16,7 +16,12 @@
       '#'+popupId+'{ position:absolute; width:100px; height:100px; border-radius:50%; display:flex; align-items:center; justify-content:center; z-index:1050;}',
       '#'+popupId+'.inline{ position:relative; }',
       '#'+outerId+'{ position:absolute; inset:0; border-radius:50%; background: radial-gradient(circle at 30% 30%, #e3f9e7 0%, #b4f2c1 50%, #7fdc95 85%); box-shadow: 0 6px 18px rgba(0,0,0,0.25), inset 0 2px 6px rgba(255,255,255,0.6); }',
-      '#'+innerId+'{ position:relative; width:80px; height:80px; border-radius:50%; border:2px solid #2f8f49; background: linear-gradient(180deg, #66e08a 0%, #34a853 100%); color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 8px 16px rgba(52,168,83,0.35); }',
+      '#'+innerId+'{ position:relative; width:80px; height:80px; border-radius:50%; border:2px solid #2f8f49; color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 8px 16px rgba(52,168,83,0.35); transition: background 3s linear; }',
+      // State colors
+      '#'+innerId+'.state-green{ background: linear-gradient(180deg, #66e08a 0%, #34a853 100%); }',
+      '#'+innerId+'.state-orange{ background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%); }',
+      '#'+innerId+'.state-red{ background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%); }',
+      '#'+innerId+'.fast{ transition: background .25s ease; }',
       '#'+innerId+':hover{ filter: brightness(1.06); }',
       '#'+msgId+'{ position:absolute; bottom:-22px; width:140px; left:50%; transform:translateX(-50%); text-align:center; font-size:12px; color:#333; text-shadow:0 1px 0 rgba(255,255,255,0.25); }',
       /* Generic class-based styles for additional stub widgets */
@@ -77,8 +82,8 @@
     wrap.style.pointerEvents = 'auto';
     if (inline) { wrap.className = 'inline'; }
 
-    var outer = document.createElement('div'); outer.id = outerId;
-    var inner = document.createElement('div'); inner.id = innerId; inner.textContent = 'On';
+  var outer = document.createElement('div'); outer.id = outerId;
+  var inner = document.createElement('div'); inner.id = innerId; inner.textContent = 'On'; inner.className = 'state-green';
     var msg = document.createElement('div'); msg.id = msgId; msg.textContent = '';
 
     wrap.appendChild(outer); wrap.appendChild(inner); wrap.appendChild(msg);
@@ -91,38 +96,51 @@
     function setBusy(text){ inner.textContent = text; inner.style.cursor='wait'; inner.setAttribute('aria-busy','true'); }
     function setReady(text){ inner.textContent = text; inner.style.cursor='pointer'; inner.removeAttribute('aria-busy'); }
 
-    function doCountdownThenRestart(){
+    // state helpers
+    function colorGreen(){ inner.classList.remove('state-orange','state-red'); inner.classList.add('state-green','fast'); setTimeout(function(){ inner.classList.remove('fast'); }, 260); }
+    function colorOrange(){ inner.classList.remove('state-green','state-red'); inner.classList.add('state-orange'); }
+    function colorRed(){ inner.classList.remove('state-green','state-orange'); inner.classList.add('state-red','fast'); setTimeout(function(){ inner.classList.remove('fast'); }, 260); }
+
+    // Track daemon state
+    var state = { running: true };
+
+    function doCountdownThenAct(isStart){
+      // After hold completes, count 3..1 while staying orange
+      colorOrange();
       var n = 3; setBusy(String(n));
       api._timer = setInterval(function(){
         n--; if (n>0) { inner.textContent = String(n); return; }
-        window.clearInterval(api._timer); api._timer = null; setBusy('Wait');
-        // Signal restart via existing action path; prefer ajax to avoid nav
+        window.clearInterval(api._timer); api._timer = null;
+        if (isStart) { setBusy('Starting'); colorOrange(); }
+        else { setBusy('Restarting'); colorRed(); }
+        // Signal restart/start via existing action path; prefer ajax to avoid nav
         try {
           if (window.jQuery) {
             jQuery.ajax({ url: (window.QHTL_SCRIPT||'') + '?action=qhtlwaterfallrestart', method: 'POST', dataType: 'html', timeout: 15000 })
-              .always(function(){ startPoll(); });
+              .always(function(){ startPoll(isStart); });
           } else {
-            var x=new XMLHttpRequest(); x.open('POST', (window.QHTL_SCRIPT||'') + '?action=qhtlwaterfallrestart', true); x.onreadystatechange=function(){ if(x.readyState===4){ startPoll(); } }; x.send();
+            var x=new XMLHttpRequest(); x.open('POST', (window.QHTL_SCRIPT||'') + '?action=qhtlwaterfallrestart', true); x.onreadystatechange=function(){ if(x.readyState===4){ startPoll(isStart); } }; x.send();
           }
-        } catch(_) { startPoll(); }
+        } catch(_) { startPoll(isStart); }
       }, 1000);
     }
 
-    function startPoll(){
+    function startPoll(isStart){
       // Poll the status endpoint until success phrase appears or 8s timeout
       var started = Date.now();
       function check(){
-        var url = (window.QHTL_SCRIPT||'') + '?action=qhtlwaterfallstatus';
+        var urlJson = (window.QHTL_SCRIPT||'') + '?action=status_json';
+        var urlHtml = (window.QHTL_SCRIPT||'') + '?action=qhtlwaterfallstatus';
         try {
           if (window.jQuery) {
-            jQuery.ajax({ url:url, method:'GET', dataType:'html', timeout:6000 })
-              .done(function(html){ if (isOk(html)) { onOK(); } })
-              .fail(function(){ /* ignore */ });
+            jQuery.ajax({ url:urlJson, method:'GET', dataType:'json', timeout:6000 })
+              .done(function(json){ if (isRunningJSON(json)) { onOK(); } })
+              .fail(function(){ jQuery.ajax({ url:urlHtml, method:'GET', dataType:'html', timeout:6000 }).done(function(html){ if (isOk(html)) { onOK(); } }); });
           } else {
-            var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4 && x.status>=200 && x.status<300){ if(isOk(x.responseText||'')){ onOK(); } } }; x.send();
+            var x=new XMLHttpRequest(); x.open('GET', urlJson, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ try{ var j=JSON.parse(x.responseText||'{}'); if(isRunningJSON(j)){ onOK(); return; } }catch(e){} } var y=new XMLHttpRequest(); y.open('GET', urlHtml, true); y.onreadystatechange=function(){ if(y.readyState===4 && y.status>=200 && y.status<300){ if(isOk(y.responseText||'')){ onOK(); } } }; y.send(); } }; x.send();
           }
         } catch(_){}
-        if (Date.now() - started > 8000) { onTimeout(); }
+        if (Date.now() - started > 8000) { onTimeout(isStart); }
       }
       api._pollTimer = setInterval(check, 1000); check();
     }
@@ -130,10 +148,41 @@
     function isOk(html){
       try { return /qhtlwaterfall\s+status|running|active/i.test(String(html||'')); } catch(_) { return false; }
     }
-    function onOK(){ try { window.clearInterval(api._pollTimer); } catch(_){} api._pollTimer=null; setReady('On'); msg.textContent=''; try { refreshHeaderStatus(); } catch(_){} }
-    function onTimeout(){ try { window.clearInterval(api._pollTimer); } catch(_){} api._pollTimer=null; setReady('On'); msg.textContent='Timed out'; }
+    function isRunningJSON(j){ try { return !!(j && (j.running===1 || j.running===true)); } catch(e){ return false; } }
+    function onOK(){ try { window.clearInterval(api._pollTimer); } catch(_){} api._pollTimer=null; state.running = true; colorGreen(); setReady('On'); msg.textContent=''; try { refreshHeaderStatus(); } catch(_){} }
+    function onTimeout(isStart){ try { window.clearInterval(api._pollTimer); } catch(_){} api._pollTimer=null; state.running = false; colorRed(); setReady('Start'); msg.textContent = isStart ? 'Start timed out' : 'Restart timed out'; }
 
-    inner.addEventListener('click', function(e){ e.preventDefault(); if(inner.getAttribute('aria-busy')==='true') return false; doCountdownThenRestart(); return false; });
+    // Initial status detection
+    function initStatus(){
+      var urlJson = (window.QHTL_SCRIPT||'') + '?action=status_json';
+      try{
+        if (window.jQuery){
+          jQuery.ajax({ url:urlJson, method:'GET', dataType:'json', timeout:6000 })
+            .done(function(j){ if(isRunningJSON(j)){ state.running=true; colorGreen(); setReady('On'); } else { state.running=false; colorRed(); setReady('Start'); } })
+            .fail(function(){ /* leave default */ });
+        } else {
+          var x=new XMLHttpRequest(); x.open('GET', urlJson, true); x.onreadystatechange=function(){ if(x.readyState===4 && x.status>=200 && x.status<300){ try{ var j=JSON.parse(x.responseText||'{}'); if(isRunningJSON(j)){ state.running=true; colorGreen(); setReady('On'); } else { state.running=false; colorRed(); setReady('Start'); } }catch(e){} } }; x.send();
+        }
+      }catch(e){}
+    }
+
+    // Press-and-hold for 3s, then run countdown and action
+    (function(){
+      var holdTimer=null, held=false;
+      function startHold(){ if(inner.getAttribute('aria-busy')==='true') return; held=false; colorOrange(); holdTimer=setTimeout(function(){ held=true; doCountdownThenAct(!state.running); }, 3000); }
+      function cancelHold(){ if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; } if(!held){ // revert to idle color/text
+          if(state.running){ colorGreen(); setReady('On'); } else { colorRed(); setReady('Start'); }
+        }
+      }
+      inner.addEventListener('pointerdown', function(e){ e.preventDefault(); startHold(); });
+      inner.addEventListener('pointerup', function(e){ e.preventDefault(); cancelHold(); });
+      inner.addEventListener('pointercancel', function(){ cancelHold(); });
+      inner.addEventListener('mouseleave', function(){ cancelHold(); });
+      // Touch fallback
+      inner.addEventListener('touchstart', function(e){ e.preventDefault(); startHold(); }, {passive:false});
+      inner.addEventListener('touchend', function(e){ e.preventDefault(); cancelHold(); }, {passive:false});
+    })();
+    initStatus();
     if (!inline) {
       // allow click outside to dismiss
       setTimeout(function(){
