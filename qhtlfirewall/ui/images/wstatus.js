@@ -134,25 +134,40 @@
     }
 
     function doCountdownThenAct(isStart){
-      // After hold completes, count 3..1 while staying orange
+      if (isStart) {
+        // Start: no countdown, engage immediately
+        colorOrange();
+        setBusy('Starting');
+        beep(660,0.07,'sine');
+        try {
+          if (window.jQuery) {
+            var uS = (window.QHTL_SCRIPT||'') + '?action=api_startwf';
+            jQuery.ajax({ url: uS, method: 'POST', dataType: 'html', timeout: 15000 })
+              .always(function(){ startPoll(true); });
+          } else {
+            var uS2 = (window.QHTL_SCRIPT||'') + '?action=api_startwf';
+            var xs=new XMLHttpRequest(); xs.open('POST', uS2, true); xs.onreadystatechange=function(){ if(xs.readyState===4){ startPoll(true); } }; xs.send();
+          }
+        } catch(_) { startPoll(true); }
+        return;
+      }
+      // Restart: keep 3..1 countdown
       colorOrange();
       var n = 3; setBusy(String(n));
       api._timer = setInterval(function(){
         n--; if (n>0) { inner.textContent = String(n); return; }
         window.clearInterval(api._timer); api._timer = null;
-        if (isStart) { setBusy('Starting'); colorOrange(); beep(660,0.07,'sine'); }
-        else { setBusy('Restarting'); colorRed(); beep(520,0.07,'triangle'); }
-        // Signal restart/start; prefer ajax to avoid nav
+        setBusy('Restarting'); colorRed(); beep(520,0.07,'triangle');
         try {
           if (window.jQuery) {
-            var u = (window.QHTL_SCRIPT||'') + (isStart ? '?action=api_startwf' : '?action=api_restartwf');
+            var u = (window.QHTL_SCRIPT||'') + '?action=api_restartwf';
             jQuery.ajax({ url: u, method: 'POST', dataType: 'html', timeout: 15000 })
-              .always(function(){ startPoll(isStart); });
+              .always(function(){ startPoll(false); });
           } else {
-            var u2 = (window.QHTL_SCRIPT||'') + (isStart ? '?action=api_startwf' : '?action=api_restartwf');
-            var x=new XMLHttpRequest(); x.open('POST', u2, true); x.onreadystatechange=function(){ if(x.readyState===4){ startPoll(isStart); } }; x.send();
+            var u2 = (window.QHTL_SCRIPT||'') + '?action=api_restartwf';
+            var x=new XMLHttpRequest(); x.open('POST', u2, true); x.onreadystatechange=function(){ if(x.readyState===4){ startPoll(false); } }; x.send();
           }
-        } catch(_) { startPoll(isStart); }
+        } catch(_) { startPoll(false); }
       }, 1000);
     }
 
@@ -207,18 +222,18 @@
     // Press-and-hold for 3s, then run countdown and action
     (function(){
       var holdTimer=null, held=false;
-      function startHold(){ if(inner.getAttribute('aria-busy')==='true') return; held=false; colorOrange(); inner.style.transform='scale(0.98)'; holdTimer=setTimeout(function(){ held=true; inner.style.transform='scale(1)'; doCountdownThenAct(!state.running); }, 3000); }
-      function cancelHold(){ if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; } if(!held){ // revert to idle color/text
+      function startHold(){ if(inner.getAttribute('aria-busy')==='true') return; held=false; colorOrange(); inner.style.transform='scale(0.98)'; holdTimer=setTimeout(function(){ held=true; inner.style.transform='scale(1)'; doCountdownThenAct(false); }, 3000); }
+      function cancelHold(){ if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; } if(inner.getAttribute('aria-busy')==='true') return; if(!held){ // revert to idle color/text
           inner.style.transform='scale(1)';
           if(state.running){ colorGreen(); setReady('On'); } else { colorRed(); setReady('Start'); }
         }
       }
-      inner.addEventListener('pointerdown', function(e){ e.preventDefault(); startHold(); });
+      inner.addEventListener('pointerdown', function(e){ e.preventDefault(); if(state.running){ startHold(); } else { doCountdownThenAct(true); } });
       inner.addEventListener('pointerup', function(e){ e.preventDefault(); cancelHold(); });
       inner.addEventListener('pointercancel', function(){ cancelHold(); });
       inner.addEventListener('mouseleave', function(){ cancelHold(); });
       // Touch fallback
-      inner.addEventListener('touchstart', function(e){ e.preventDefault(); startHold(); }, {passive:false});
+      inner.addEventListener('touchstart', function(e){ e.preventDefault(); if(state.running){ startHold(); } else { doCountdownThenAct(true); } }, {passive:false});
       inner.addEventListener('touchend', function(e){ e.preventDefault(); cancelHold(); }, {passive:false});
     })();
     initStatus();
