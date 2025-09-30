@@ -228,8 +228,8 @@
           if(state.running){ colorGreen(); setReady('On'); } else { colorRed(); setReady('Start'); }
         }
       }
-      inner.addEventListener('pointerdown', function(e){ e.preventDefault(); if(state.running){ startHold(); } else { doCountdownThenAct(true); } });
-      inner.addEventListener('pointerup', function(e){ e.preventDefault(); cancelHold(); });
+  inner.addEventListener('pointerdown', function(e){ e.preventDefault(); e.stopPropagation(); if(state.running){ startHold(); } else { doCountdownThenAct(true); } });
+  inner.addEventListener('pointerup', function(e){ e.preventDefault(); e.stopPropagation(); cancelHold(); });
       inner.addEventListener('pointercancel', function(){ cancelHold(); });
       inner.addEventListener('mouseleave', function(){ cancelHold(); });
       // Touch fallback

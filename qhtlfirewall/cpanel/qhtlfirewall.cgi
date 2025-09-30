@@ -598,6 +598,47 @@ JS
 		exit 0;
 }
 
+# Lightweight JSON for Watcher log list (avoids template capture)
+if (defined $FORM{action} && $FORM{action} eq 'watcher_meta_logs') {
+	eval {
+		my @data = ();
+		# Safely read syslogs file
+		if (-r '/etc/qhtlfirewall/qhtlfirewall.syslogs') {
+			open(my $IN, '<', '/etc/qhtlfirewall/qhtlfirewall.syslogs');
+			@data = <$IN>; close $IN;
+		}
+		# Expand Include lines
+		my @expanded = ();
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my $inc = $1; $inc =~ s/[\r\n]+$//;
+				if (-r $inc) { eval { open(my $A,'<',$inc); my @x=<$A>; close $A; push @expanded, @x; 1; }; }
+			} else { push @expanded, $line; }
+		}
+		@data = sort @expanded;
+		my @opts = (); my $cnt=0; my $default = '/var/log/qhtlwaterfall.log';
+		foreach my $file (@data) {
+			$file =~ s/[\r\n]+$//; next if $file eq '';
+			next if $file =~ /^\s*#/ || $file =~ /\bInclude\b/;
+			my @globfiles = ($file =~ /[\*\?\[]/) ? glob($file) : ($file);
+			foreach my $gf (@globfiles) {
+				if (-f $gf) {
+					my $size = (stat($gf))[7]; $size = defined $size ? int($size/1024) : 0;
+					my $sel = ($gf eq $default) ? 1 : 0;
+					$gf =~ s/"/\\"/g; # escape quotes for JSON label
+					push @opts, { value => $cnt, label => "$gf ($size kb)", selected => $sel };
+					$cnt++;
+				}
+			}
+		}
+		# Emit JSON array
+		print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		my @parts = map { '{"value":'.($_->{value}+0).',"label":"'.$_->{label}.'","selected":'.(($_->{selected})?1:0).'}' } @opts;
+		print '['.join(',', @parts).']';
+	};
+	exit 0;
+}
+
 	# Minimal HTML banner for iframe embedding (no JS required in parent)
 	if (defined $FORM{action} && $FORM{action} eq 'banner_frame') {
 		# If loaded as a <script>, emit a JS no-op instead of HTML to prevent parse errors
@@ -929,8 +970,8 @@ print <<HTML_SMART_WRAPPER;
 			function populateLogs(){
 				try{
 					var xhr = new XMLHttpRequest();
-					// Append ajax=1 so the server returns bare JSON (no WHM scaffolding)
-					var url = '$script?action=logtailcmd&meta=1&ajax=1';
+					// Direct JSON endpoint (no scaffolding)
+					var url = '$script?action=watcher_meta_logs';
 					xhr.open('GET', url, true);
 					try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){ }
 					xhr.onreadystatechange = function(){
@@ -1060,7 +1101,7 @@ print <<HTML_SMART_WRAPPER;
 			d.style.position='absolute'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0';
 		}
 				// Ensure blue pulsating glow CSS exists and apply class
-				(function(){ var css=document.getElementById('qhtl-blue-style'); if(!css){ css=document.createElement('style'); css.id='qhtl-blue-style'; css.textContent=String.fromCharCode(64)+'keyframes qhtl-blue {0%,100%{box-shadow: 0 0 12px 5px rgba(0,123,255,0.55), 0 0 20px 9px rgba(0,123,255,0.3);}50%{box-shadow: 0 0 22px 12px rgba(0,123,255,0.95), 0 0 36px 16px rgba(0,123,255,0.55);}} .fire-blue{ animation: qhtl-blue 2.2s infinite ease-in-out; }'; document.head.appendChild(css);} if(d){ d.classList.add('fire-blue'); } var bodyEl=document.getElementById('quickViewBodyShim'); if(bodyEl){ /* 50% brighter than glow base (#007bff) by mixing with white */ bodyEl.style.background='linear-gradient(180deg, rgb(127,189,255) 0%, rgb(159,205,255) 100%)'; bodyEl.style.borderRadius='4px'; bodyEl.style.padding='10px'; } })();
+				(function(){ var css=document.getElementById('qhtl-blue-style'); if(!css){ css=document.createElement('style'); css.id='qhtl-blue-style'; css.textContent=String.fromCharCode(64)+'keyframes qhtl-blue {0%,100%{box-shadow: 0 0 12px 5px rgba(0,123,255,0.55), 0 0 20px 9px rgba(0,123,255,0.3);}50%{box-shadow: 0 0 22px 12px rgba(0,123,255,0.95), 0 0 36px 16px rgba(0,123,255,0.55);}} .fire-blue{ animation: qhtl-blue 2.2s infinite ease-in-out; }'; document.head.appendChild(css);} if(d){ d.classList.add('fire-blue'); } var bodyEl=document.getElementById('quickViewBodyShim'); if(bodyEl){ bodyEl.style.background='white'; bodyEl.style.borderRadius='4px'; bodyEl.style.padding='10px'; } })();
 			// initial load and start timer (no synthetic change event to avoid loops)
 			(function(){ var ls=document.getElementById('watcherLines'), sel=document.getElementById('watcherLogSelect'); var url='$script?action=logtailcmd&lines='+(ls?encodeURIComponent(ls.value||'100'):'100')+'&lognum='+(sel?encodeURIComponent(sel.value||'0'):'0')+'&ajax=1'; quickViewLoad(url, function(){ var timer=document.getElementById('watcherTimer'); if(timer){ timer.textContent='5'; } if(typeof setWatcherMode==='function'){ setWatcherMode('auto'); } else if(window.__qhtlScheduleTick){ window.__qhtlScheduleTick(); } }); })();
 				m.style.display='block'; return false; };
