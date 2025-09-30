@@ -3792,8 +3792,8 @@ QHTL_TAB_GUARD
 		print "<tr><td><div id='qhtl-inline-area' style='padding-top:10px;min-height:200px'></div></td></tr>\n";
 		# Delegate clicks and form submits inside the Waterfall tab to load into inline area
 		print "<script>(function(){\n";
-		print "  try{ console.debug('qhtl-inline-loader v20250930'); }catch(_){}\n";
-		print "  var areaId = 'qhtl-inline-area';\n";
+	print "  if (window.__QHTL_INLINE_LOADER_ACTIVE) { return; } window.__QHTL_INLINE_LOADER_ACTIVE = true;\n";
+	print "  var areaId = 'qhtl-inline-area';\n";
 		print "  function sameOrigin(u){ try{ var a=document.createElement('a'); a.href=u; return (!a.host || a.host===location.host); }catch(e){ return false; } }\n";
 		print "  function isQhtlAction(u, form){ try{ if (String(u).indexOf('?action=')!==-1) return true; if (form && form.querySelector && form.querySelector('[name=\\x61ction]')) return true; return false; }catch(e){ return false; } }\n";
 	print "  function loadInto(url, method, data){ try{ var area=document.getElementById(areaId); if(!area){ location.href=url; return; } if (window.jQuery){ if(method==='POST'){ jQuery(area).html('<div class=\"text-muted\">Loading...</div>').load(url, data); } else { jQuery(area).html('<div class=\"text-muted\">Loading...</div>').load(url); } } else { var x=new XMLHttpRequest(); x.open(method||'GET', url, true); x.setRequestHeader('X-Requested-With','XMLHttpRequest'); if(method==='POST'){ x.setRequestHeader('Content-Type','application/x-www-form-urlencoded; charset=UTF-8'); } x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ area.innerHTML = x.responseText; } else { location.href=url; } } }; x.send(data||null); } } catch(e){ try{ location.href=url; }catch(_){} } }\n";

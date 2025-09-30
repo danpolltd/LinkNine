@@ -1213,6 +1213,7 @@ unless ($skip_capture || $is_ajax) {
 <script>
 // Keep the status text within the green button centered and sync with computed status_badge
 (function(){
+	if (window.__QHTL_STATUS_HEADER_STYLED) return; window.__QHTL_STATUS_HEADER_STYLED = true;
   try {
     var el = document.getElementById('qhtl-status-btn');
     if (!el) return;
@@ -1328,7 +1329,9 @@ if (!$skip_capture && defined $templatehtml && length $templatehtml) {
 	{
 		my $new_loader = <<'JSLOADER';
 <script>(function(){
-	try{ console.debug('qhtl-inline-loader v20250930'); }catch(_){ }
+	// Inline loader (singleton)
+	if (window.__QHTL_INLINE_LOADER_ACTIVE) { return; }
+	window.__QHTL_INLINE_LOADER_ACTIVE = true;
   var areaId = 'qhtl-inline-area';
   function sameOrigin(u){ try{ var a=document.createElement('a'); a.href=u; return (!a.host || a.host===location.host); }catch(e){ return false; } }
   function isQhtlAction(u, form){ try{ if (String(u).indexOf('?action=')!==-1) return true; if (form && form.querySelector && form.querySelector('[name=\x61ction]')) return true; return false; }catch(e){ return false; } }
