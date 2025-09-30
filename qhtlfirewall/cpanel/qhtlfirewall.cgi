@@ -1021,7 +1021,7 @@ print <<HTML_SMART_WRAPPER;
 			}
 			function scheduleTick(){ if(watcherTimerId){ clearInterval(watcherTimerId);} watcherTick=5; var mode = window.__qhtlWatcherMode || watcherMode; if(mode==='auto'){ refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } else { refreshLabel.textContent=' '; timerSpan.textContent='live mode'; }
 				updateIntensity();
-				watcherTimerId=setInterval(function(){ if(watcherPaused){ return; } if(window.__qhtlWatcherLoading){ return; }
+				watcherTimerId=setInterval(function(){ if(watcherPaused){ return; } if(window.__qhtlWatcherLoading){ return; } if(window.__qhtlWatcherClosed){ return; }
 					if((window.__qhtlWatcherMode||watcherMode)==='auto'){
 						watcherTick--; timerSpan.textContent=String(watcherTick);
 						if(watcherTick<=0){ doRefresh(); watcherTick=5; timerSpan.textContent=String(watcherTick); }
@@ -1033,13 +1033,13 @@ print <<HTML_SMART_WRAPPER;
 			}
 			window.__qhtlScheduleTick = scheduleTick;
 			function setWatcherMode(mode){ watcherMode = (mode==='live') ? 'live' : 'auto'; window.__qhtlWatcherMode = watcherMode; window.__qhtlWatcherState = { lines: [] }; if(watcherMode==='live'){ refreshBtn.textContent='Real Time'; refreshLabel.textContent=' '; timerSpan.textContent='live mode'; } else { refreshBtn.textContent='Autocheck'; refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } updateIntensity(); scheduleTick(); }
-			function doRefresh(){ if(window.__qhtlWatcherLoading){ return; } var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0')+'&ajax=1'; quickViewLoad(url); }
+			function doRefresh(){ if(window.__qhtlWatcherLoading){ return; } if(window.__qhtlWatcherClosed){ return; } var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0')+'&ajax=1'; quickViewLoad(url); }
 			// Mode toggle: Autocheck (5s) <-> Real Time (1s)
 			refreshBtn.addEventListener('click', function(e){ e.preventDefault(); setWatcherMode(watcherMode==='auto' ? 'live' : 'auto'); });
 			pauseBtn.addEventListener('click', function(e){ e.preventDefault(); watcherPaused=!watcherPaused; pauseBtn.textContent=watcherPaused?'Start':'Pause'; updateIntensity(); });
 			logSelect.addEventListener('change', function(){ window.__qhtlWatcherState = { lines: [] }; doRefresh(); scheduleTick(); });
 			linesInput.addEventListener('change', function(){ window.__qhtlWatcherState = { lines: [] }; doRefresh(); scheduleTick(); });
-			closeBtn.addEventListener('click', function(){ if(watcherTimerId){ clearInterval(watcherTimerId); watcherTimerId=null; } if(typeof dialog!=='undefined' && dialog){ dialog.classList.remove('fire-blue'); } modal.style.display='none'; });
+			closeBtn.addEventListener('click', function(){ if(watcherTimerId){ clearInterval(watcherTimerId); watcherTimerId=null; } window.__qhtlWatcherClosed = true; if(typeof dialog!=='undefined' && dialog){ dialog.classList.remove('fire-blue'); } modal.style.display='none'; });
 			populateLogs();
 			// Initialize emphasis based on defaults (auto mode, not paused)
 			updateIntensity();
@@ -1049,7 +1049,7 @@ print <<HTML_SMART_WRAPPER;
 			inner.appendChild(headerBar); inner.appendChild(body);
 			footer.appendChild(left); footer.appendChild(mid); footer.appendChild(right);
 			dialog.appendChild(inner); dialog.appendChild(footer); modal.appendChild(dialog); parent.appendChild(modal);
-			modal.addEventListener('click', function(e){ if(e.target===modal){ if(typeof dialog!=='undefined' && dialog){ dialog.classList.remove('fire-blue'); } modal.style.display='none'; } });
+			modal.addEventListener('click', function(e){ if(e.target===modal){ if(watcherTimerId){ clearInterval(watcherTimerId); watcherTimerId=null; } window.__qhtlWatcherClosed = true; if(typeof dialog!=='undefined' && dialog){ dialog.classList.remove('fire-blue'); } modal.style.display='none'; } });
 			return modal;
 		}
 
@@ -1057,6 +1057,7 @@ print <<HTML_SMART_WRAPPER;
 			var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal();
 			var b=document.getElementById('quickViewBodyShim');
 			if(!b){ return; }
+			if(window.__qhtlWatcherClosed){ return; }
 			if(!window.__qhtlWatcherMode || window.__qhtlWatcherMode !== 'live'){
 				b.textContent='Loading...';
 			}
@@ -1085,11 +1086,11 @@ print <<HTML_SMART_WRAPPER;
 				}
 			};
 			x.send(null);
-			m.style.display='block';
+			if(!window.__qhtlWatcherClosed){ m.style.display='block'; }
 		}
 
 		// Global watcher opener that sets size and starts auto-refresh
-		window.__qhtlRealOpenWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){
+		window.__qhtlRealOpenWatcher = function(){ window.__qhtlWatcherClosed = false; var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){
 			var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
 			var w = (parent && parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? (parent.clientWidth || window.innerWidth) : window.innerWidth;
 			var h = (parent && parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? (parent.clientHeight || window.innerHeight) : window.innerHeight;

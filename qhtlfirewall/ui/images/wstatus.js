@@ -221,20 +221,22 @@
 
     // Press-and-hold for 3s, then run countdown and action
     (function(){
-      var holdTimer=null, held=false;
-      function startHold(){ if(inner.getAttribute('aria-busy')==='true') return; held=false; colorOrange(); inner.style.transform='scale(0.98)'; holdTimer=setTimeout(function(){ held=true; inner.style.transform='scale(1)'; doCountdownThenAct(false); }, 3000); }
-      function cancelHold(){ if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; } if(inner.getAttribute('aria-busy')==='true') return; if(!held){ // revert to idle color/text
-          inner.style.transform='scale(1)';
-          if(state.running){ colorGreen(); setReady('On'); } else { colorRed(); setReady('Start'); }
-        }
-      }
-  inner.addEventListener('pointerdown', function(e){ e.preventDefault(); e.stopPropagation(); if(state.running){ startHold(); } else { doCountdownThenAct(true); } });
-  inner.addEventListener('pointerup', function(e){ e.preventDefault(); e.stopPropagation(); cancelHold(); });
-      inner.addEventListener('pointercancel', function(){ cancelHold(); });
-      inner.addEventListener('mouseleave', function(){ cancelHold(); });
+      var holdTimer=null, held=false, isDown=false;
+      function startHold(){ if(inner.getAttribute('aria-busy')==='true') return; held=false; inner.style.transform='scale(0.98)'; colorOrange(); holdTimer=setTimeout(function(){ held=true; inner.style.transform='scale(1)'; doCountdownThenAct(false); }, 3000); }
+      function cancelHold(){ if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; } if(inner.getAttribute('aria-busy')==='true') return; if(!held){ inner.style.transform='scale(1)'; if(state.running){ colorGreen(); setReady('On'); } else { colorRed(); setReady('Start'); } } isDown=false; }
+      function onDown(e){ e.preventDefault(); e.stopPropagation(); if(inner.getAttribute('aria-busy')==='true') return; isDown=true; if(state.running){ startHold(); } else { doCountdownThenAct(true); } }
+      function onUp(e){ e.preventDefault(); e.stopPropagation(); cancelHold(); }
+      inner.addEventListener('pointerdown', onDown);
+      inner.addEventListener('pointerup', onUp);
+      inner.addEventListener('pointercancel', cancelHold);
+      // Ignore mouseleave if pointer is still down (prevents premature cancel)
+      inner.addEventListener('mouseleave', function(){ if(!isDown){ cancelHold(); } });
+      // Mouse events fallback
+      inner.addEventListener('mousedown', onDown);
+      inner.addEventListener('mouseup', onUp);
       // Touch fallback
-      inner.addEventListener('touchstart', function(e){ e.preventDefault(); if(state.running){ startHold(); } else { doCountdownThenAct(true); } }, {passive:false});
-      inner.addEventListener('touchend', function(e){ e.preventDefault(); cancelHold(); }, {passive:false});
+      inner.addEventListener('touchstart', function(e){ e.preventDefault(); e.stopPropagation(); onDown(e); }, {passive:false});
+      inner.addEventListener('touchend', function(e){ e.preventDefault(); e.stopPropagation(); onUp(e); }, {passive:false});
     })();
     initStatus();
     if (!inline) {
