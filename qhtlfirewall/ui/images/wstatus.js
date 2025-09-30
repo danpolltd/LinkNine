@@ -194,10 +194,12 @@
       try{
         if (window.jQuery){
           jQuery.ajax({ url:urlJson, method:'GET', dataType:'json', timeout:6000 })
-            .done(function(j){ if(isRunningJSON(j)){ state.running=true; colorGreen(); setReady('On'); } else { state.running=false; colorRed(); setReady('Start'); } })
+            .done(function(j){ if(isRunningJSON(j)){ state.running=true; colorGreen(); setReady('On'); } else { // quick retry after 500ms in case service just started
+                setTimeout(function(){ jQuery.ajax({ url:urlJson, method:'GET', dataType:'json', timeout:3000 }).done(function(j2){ if(isRunningJSON(j2)){ state.running=true; colorGreen(); setReady('On'); } else { state.running=false; colorRed(); setReady('Start'); } }); }, 500);
+              } })
             .fail(function(){ jQuery.ajax({ url:urlHtml, method:'GET', dataType:'html', timeout:6000 }).done(function(html){ if(/Disabled|Stopped/i.test(String(html||''))){ state.running=false; colorRed(); setReady('Start'); } }); });
         } else {
-          var x=new XMLHttpRequest(); x.open('GET', urlJson, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ try{ var j=JSON.parse(x.responseText||'{}'); if(isRunningJSON(j)){ state.running=true; colorGreen(); setReady('On'); } else { state.running=false; colorRed(); setReady('Start'); } }catch(e){} } else { var y=new XMLHttpRequest(); y.open('GET', urlHtml, true); y.onreadystatechange=function(){ if(y.readyState===4 && y.status>=200 && y.status<300){ if(/Disabled|Stopped/i.test(String(y.responseText||''))){ state.running=false; colorRed(); setReady('Start'); } } }; y.send(); } } }; x.send();
+          var x=new XMLHttpRequest(); x.open('GET', urlJson, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ try{ var j=JSON.parse(x.responseText||'{}'); if(isRunningJSON(j)){ state.running=true; colorGreen(); setReady('On'); } else { setTimeout(function(){ var y1=new XMLHttpRequest(); y1.open('GET', urlJson, true); y1.onreadystatechange=function(){ if(y1.readyState===4 && y1.status>=200 && y1.status<300){ try{ var j2=JSON.parse(y1.responseText||'{}'); if(isRunningJSON(j2)){ state.running=true; colorGreen(); setReady('On'); } else { state.running=false; colorRed(); setReady('Start'); } }catch(e){} } }; y1.send(); }, 500); } }catch(e){} } else { var y=new XMLHttpRequest(); y.open('GET', urlHtml, true); y.onreadystatechange=function(){ if(y.readyState===4 && y.status>=200 && y.status<300){ if(/Disabled|Stopped/i.test(String(y.responseText||''))){ state.running=false; colorRed(); setReady('Start'); } } }; y.send(); } } }; x.send();
         }
       }catch(e){}
     }

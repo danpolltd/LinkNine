@@ -169,14 +169,12 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 	# Determine running state by PID file first; fall back to iptables chain
 	my $run_ok = 0; my $ipt_ok = 0;
 	eval {
-		my $pidfile = '/var/run/qhtlwaterfall.pid';
-		if (-r $pidfile) {
+		my @pidfiles = ('/var/run/qhtlwaterfall.pid','/run/qhtlwaterfall.pid');
+		PIDFILE: for my $pidfile (@pidfiles) {
+			next unless -r $pidfile;
 			if (open(my $PF, '<', $pidfile)) {
 				my $pid = <$PF>; close $PF; chomp $pid; $pid =~ s/\D//g;
-				if ($pid) {
-					# Fast check: process exists
-					if (-d "/proc/$pid") { $run_ok = 1; }
-				}
+				if ($pid && -d "/proc/$pid") { $run_ok = 1; last PIDFILE; }
 			}
 		}
 		if (!$run_ok) {
@@ -187,6 +185,14 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 			chomp @iptstatus;
 			if ($iptstatus[0] && $iptstatus[0] =~ /# Warning: iptables-legacy tables present/) { shift @iptstatus }
 			$ipt_ok = ($iptstatus[0] && $iptstatus[0] =~ /^Chain LOCALINPUT/) ? 1 : 0;
+		}
+		# As a last resort, consult systemd (non-fatal if unavailable)
+		if (!$run_ok && !$ipt_ok && -x '/bin/systemctl') {
+			my ($cin,$cout);
+			my $sp = open3($cin, $cout, $cout, '/bin/systemctl','is-active','qhtlwaterfall.service');
+			my @out = <$cout>; waitpid($sp, 0);
+			my $ans = lc(join('', @out)); $ans =~ s/\s+//g;
+			if ($ans eq 'active') { $run_ok = 1; }
 		}
 		1;
 	} or do { };
