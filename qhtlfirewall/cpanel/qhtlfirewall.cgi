@@ -56,6 +56,35 @@ if (!defined $FORM{action} || $FORM{action} eq '') {
 	}
 }
 
+# Serve wstatus.js via controlled endpoint to guarantee correct MIME and avoid nosniff issues on static paths
+if (defined $FORM{action} && $FORM{action} eq 'wstatus_js') {
+	# Always emit JS headers; this endpoint only ever returns JavaScript
+	print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my @candidates = (
+		'/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/wstatus.js',
+		'/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/ui/images/wstatus.js',
+		'/etc/qhtlfirewall/ui/images/wstatus.js',
+		'/usr/local/qhtlfirewall/ui/images/wstatus.js',
+	);
+	my $served = 0;
+	for my $p (@candidates) {
+		next unless -e $p;
+		if (open(my $JS, '<', $p)) {
+			local $/ = undef;
+			my $data = <$JS> // '';
+			close $JS;
+			print $data;
+			$served = 1;
+			last;
+		}
+	}
+	# Minimal safety fallback: define WStatus.open to navigate to status page
+	if (!$served) {
+		print "(function(){ window.WStatus = window.WStatus || { open: function(){ try{ window.location = '$script?action=qhtlwaterfallstatus'; }catch(e){ window.location='?action=qhtlwaterfallstatus'; } return false; } }; })();\n";
+	}
+	exit 0;
+}
+
 if (-e "/usr/local/cpanel/bin/register_appconfig") {
 	$script = "qhtlfirewall.cgi";
 	$images = "qhtlfirewall";
@@ -796,7 +825,7 @@ EOF
 	print <<EOF;
 	<!-- $bootstrapcss -->
 	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
-	<script src='$images/wstatus.js'></script>
+	<script src='$script?action=wstatus_js'></script>
 	<script>
 	// Fallback if wstatus.js fails to load or is blocked (e.g., MIME nosniff)
 	(function(){
