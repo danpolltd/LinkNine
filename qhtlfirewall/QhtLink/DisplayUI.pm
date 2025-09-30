@@ -3790,21 +3790,10 @@ QHTL_TAB_GUARD
 				."  // Start shortly after parse, and also run once immediately if DOM is already ready\n"
 				."  var iv=setInterval(tryMount,250); if (document.readyState!=='loading') tryMount(); else document.addEventListener('DOMContentLoaded', tryMount);\n"
 				."})();</script>\n";
+		# Inline content area for widget actions (load results below bubbles)
+		print "<tr><td><div id='qhtl-inline-area' style='padding-top:10px'></div></td></tr>\n";
+		# Keep restart control available
 		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallrestart'><input type='submit' class='btn btn-default' value='Restart'></form><div class='text-muted small' style='margin-top:6px'>Restart qhtlwaterfall</div></td></tr>\n";
-		print "<tr><td style='white-space: nowrap;'><form action='$script' method='post'><input type='hidden' name='action' value='ignorefiles'><select name='ignorefile'>\n";
-		print "<option value='qhtlfirewall.ignore'>qhtlfirewall.ignore - IP Blocking</option>\n";
-		print "<option value='qhtlfirewall.pignore'>qhtlfirewall.pignore, Process Tracking</option>\n";
-		print "<option value='qhtlfirewall.fignore'>qhtlfirewall.fignore, Directory Watching</option>\n";
-		print "<option value='qhtlfirewall.signore'>qhtlfirewall.signore, Script Alert</option>\n";
-		print "<option value='qhtlfirewall.rignore'>qhtlfirewall.rignore, Reverse DNS lookup</option>\n";
-		print "<option value='qhtlfirewall.suignore'>qhtlfirewall.suignore, Superuser check</option>\n";
-		print "<option value='qhtlfirewall.mignore'>qhtlfirewall.mignore, RT_LOCALRELAY</option>\n";
-		print "<option value='qhtlfirewall.logignore'>qhtlfirewall.logignore, Log Scanner</option>\n";
-		print "<option value='qhtlfirewall.uidignore'>qhtlfirewall.uidignore, User ID Tracking</option>\n";
-		print "</select> <input type='submit' class='btn btn-default' value='Edit'></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlwaterfall ignore file</div></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><select name='template'>\n";
-		foreach my $tmp ("alert.txt","tracking.txt","connectiontracking.txt","processtracking.txt","accounttracking.txt","usertracking.txt","sshalert.txt","webminalert.txt","sualert.txt","sudoalert.txt","uialert.txt","cpanelalert.txt","scriptalert.txt","filealert.txt","watchalert.txt","loadalert.txt","resalert.txt","integrityalert.txt","exploitalert.txt","relayalert.txt","portscan.txt","uidscan.txt","permblock.txt","netblock.txt","queuealert.txt","logfloodalert.txt","logalert.txt","modsecipdbcheck.txt") {print "<option>$tmp</option>\n"}
-		print "</select> <button name='action' value='templates' type='submit' class='btn btn-default'>Edit</button></form><div class='text-muted small' style='margin-top:6px'>Edit email alert templates. See Firewall Information for details of each file</div></td></tr>\n";
 		print "</table>\n";
 		print "</div>\n";
 

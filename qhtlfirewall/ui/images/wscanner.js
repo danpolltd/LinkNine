@@ -6,7 +6,10 @@
         try {
           var inner = node.querySelector('.wcircle-inner');
           inner.style.cursor = 'pointer';
-          inner.addEventListener('click', function(e){ e.preventDefault(); var base=(window.QHTL_SCRIPT||''); var url = base + '?action=logfiles'; try{ window.location = url; } catch(_){ location.href = url; } });
+          inner.addEventListener('click', function(e){ e.preventDefault(); var base=(window.QHTL_SCRIPT||''); var url = base + '?action=logfiles';
+            try { var area=document.getElementById('qhtl-inline-area'); if(window.jQuery){ jQuery(area).html('<div class="text-muted">Loading…</div>').load(url); } else { var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4 && x.status>=200 && x.status<300){ area.innerHTML=x.responseText; } }; x.send(); } }
+            catch(_){ try{ window.location=url; }catch(_2){ location.href=url; } }
+          });
         } catch(_){ }
         el.appendChild(node);
         return true;
