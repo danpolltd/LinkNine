@@ -802,8 +802,10 @@ for my $frag (\@header, \@footer) {
 	# Also handle cases without assuming a trailing space after the closing quote
 	s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3 }ig;
 	# Robust form without requiring whitespace after the attribute
-	s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"])}{$1$2?action=banner_js$3}ig;
-		s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(\?)(?!action=)}{$1$2$3}ig; # leave existing queries intact
+	s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3}ig;
+	# If a query exists but no action= present, insert action=banner_js at the start of the query string
+	s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)\?(?![^'"\>]*?action=)([^'"\>]*)(['"]) }{$1$2?action=banner_js&$3$4 }ig;
+	s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)\?(?![^'"\>]*?action=)([^'"\>]*)(['"]) }{$1$2?action=banner_js&$3$4}ig;
     }
 }
 
@@ -1421,7 +1423,9 @@ JSLOADER
 		# For widget_js, append &v only if not already present
 		$templatehtml =~ s{(src=\s*['"][^'"\?]+\?action=widget_js&name=[^'"&]+)(?![^'"\>]*?&v=)(['"]) }{$1&v=$myv$2 }ig;
 	}
-	$templatehtml =~ s{(src=\s*['\"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(\?)(?!action=)}{$1$2$3}ig;
+	# If a script tag references our CGI with a query but without action=, force action=banner_js to return JavaScript instead of HTML
+	$templatehtml =~ s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)\?(?![^'"\>]*?action=)([^'"\>]*)(['"]) }{$1$2?action=banner_js&$3$4 }ig;
+	$templatehtml =~ s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)\?(?![^'"\>]*?action=)([^'"\>]*)(['"]) }{$1$2?action=banner_js&$3$4}ig;
 }
 
 # If AJAX request, always return raw inner content without WHM template/header/footer regardless of action
