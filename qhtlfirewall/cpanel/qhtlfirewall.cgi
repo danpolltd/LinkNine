@@ -909,45 +909,39 @@ print <<'HTML_SMART_WRAPPER';
 			return modal;
 		}
 
-		function quickViewLoad(url, done){ var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); if(!b){ return; } if(!window.__qhtlWatcherMode || window.__qhtlWatcherMode !== 'live'){ b.innerHTML='Loading...'; } var x=new XMLHttpRequest(); window.__qhtlWatcherLoading=true; x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200&&x.status<300){ var html=x.responseText || ''; // safely remove any <script> tags without embedding a literal closing tag marker in this inline script
-				try {
-				if (!appended){
-					var frag = document.createDocumentFragment();
-					for (var i=0;i<lines.length;i++){
-						var line = lines[i];
-						var div = document.createElement('div');
-						div.textContent = line;
-						div.title = line; // full text on hover
-						div.style.whiteSpace = 'nowrap';
-						div.style.overflow = 'hidden';
-						div.style.textOverflow = 'ellipsis';
-						div.style.width = '100%';
-						div.style.boxSizing = 'border-box';
-						frag.appendChild(div);
-					}
-					if (window.__qhtlWatcherMode==='live'){
-						// In live mode when we cannot append (e.g., truncation/rotation), avoid flicker by replacing children efficiently
-						while (b.firstChild) b.removeChild(b.firstChild);
-						b.appendChild(frag);
-					} else {
-						b.innerHTML='';
-						b.appendChild(frag);
+		function quickViewLoad(url, done){
+			var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal();
+			var b=document.getElementById('quickViewBodyShim');
+			if(!b){ return; }
+			if(!window.__qhtlWatcherMode || window.__qhtlWatcherMode !== 'live'){
+				b.textContent='Loading...';
+			}
+			var x=new XMLHttpRequest();
+			window.__qhtlWatcherLoading=true;
+			x.open('GET', url, true);
+			x.onreadystatechange=function(){
+				if(x.readyState===4){
+					try{
+						if(x.status>=200 && x.status<300){
+							var html = x.responseText || '';
+							// Note: Scripts inserted via innerHTML generally do not execute; this is acceptable for log output.
+							b.innerHTML = html;
+							// Auto-scroll to bottom if not in live mode; in live mode, respect user scroll position
+							if (window.__qhtlWatcherMode !== 'live') {
+								try { b.scrollTop = b.scrollHeight; } catch(_) {}
+							}
+							if (typeof done==='function') { try{ done(); }catch(_){} }
+						} else {
+							b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>";
+						}
+					} finally {
+						window.__qhtlWatcherLoading=false;
 					}
 				}
-				// Update state
-				window.__qhtlWatcherState = { lines: lines };
-				// Scroll to bottom so the newest lines are visible; respect manual scroll-up in live mode
-				try {
-					var raf = (window.requestAnimationFrame||function(f){setTimeout(f,0)});
-					var shouldStick = true;
-					if (window.__qhtlWatcherMode==='live'){
-						var nearBottom = (b.scrollHeight - b.clientHeight - b.scrollTop) < 24; // 24px tolerance
-						shouldStick = nearBottom;
-					}
-					raf(function(){ if(shouldStick){ b.scrollTop = b.scrollHeight; } });
-				} catch(e){ if(shouldStick){ b.scrollTop = b.scrollHeight; } }
-				if (typeof done==='function') done();
-				} else { b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>"; } } finally { window.__qhtlWatcherLoading=false; } } }; x.send(); m.style.display='block'; }
+			};
+			x.send(null);
+			m.style.display='block';
+		}
 
 		// Global watcher opener that sets size and starts auto-refresh
 		window.__qhtlRealOpenWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){
