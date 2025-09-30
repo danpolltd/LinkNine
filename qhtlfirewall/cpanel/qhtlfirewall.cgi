@@ -31,6 +31,12 @@ our ($reseller, $script, $images, %rprivs, $myv, %FORM);
 Whostmgr::ACLS::init_acls();
 
 %FORM = Cpanel::Form::parseform();
+my $is_ajax = 0;
+eval {
+	my $xrw = lc($ENV{HTTP_X_REQUESTED_WITH} // '');
+	if ($xrw eq 'xmlhttprequest' || (defined $FORM{ajax} && $FORM{ajax} =~ /^(?:1|true|yes)$/i)) { $is_ajax = 1; }
+	1;
+} or do { $is_ajax = 0; };
 
 ## Postpone config and regex setup until after lightweight endpoints
 
@@ -755,7 +761,8 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	select $SCRIPTOUT;
 
 	# Provide a smart wrapper so clicking Watcher waits briefly for modal init before falling back
-	print <<EOF;
+	if (!$is_ajax) {
+print <<'HTML_SMART_WRAPPER';
 <script>
 (function(){
 	function fallback(){ try{ window.location='$script?action=logtail'; }catch(e){ window.location='$script?action=logtail'; } }
@@ -899,45 +906,6 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 
 		function quickViewLoad(url, done){ var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); if(!b){ return; } if(!window.__qhtlWatcherMode || window.__qhtlWatcherMode !== 'live'){ b.innerHTML='Loading...'; } var x=new XMLHttpRequest(); window.__qhtlWatcherLoading=true; x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200&&x.status<300){ var html=x.responseText || ''; // safely remove any <script> tags without embedding a literal closing tag marker in this inline script
 				try {
-					// Preserve HTML line breaks before stripping markup. Avoid lookahead to prevent line terminators in regex literal.
-					html = String(html).replace(/<br\\s*\\\/?>(?:)/gi, '\\n');
-					var tmp = document.createElement('div');
-					tmp.innerHTML = html;
-					var scripts = tmp.getElementsByTagName('script');
-					while (scripts.length) { scripts[0].parentNode.removeChild(scripts[0]); }
-					// Use text content to treat payload as plain text, then render one line per row
-					html = tmp.textContent || '';
-				} catch(e){}
-				// Render each line separately with truncation (no wrapping)
-				var text = (html||'').replace(/\\r\\n/g,'\\n').replace(/\\r/g,'\\n');
-				var parsed = text.split(String.fromCharCode(10));
-				// Normalize: drop a single trailing blank line
-				if (parsed.length && parsed[parsed.length-1] === '') { parsed.pop(); }
-				var lines = parsed;
-				b.style.fontFamily='SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
-				// Tail-like append in real-time mode when prior state exists and new content is an extension
-				var state = window.__qhtlWatcherState || { lines: [] };
-				var appended = false;
-				if (window.__qhtlWatcherMode==='live' && state.lines && state.lines.length && lines.length >= state.lines.length) {
-					var isExtension = true;
-					for (var pi=0; pi<state.lines.length; pi++){
-						if (state.lines[pi] !== lines[pi]) { isExtension = false; break; }
-					}
-					if (isExtension) {
-						// Append only new lines
-						var frag = document.createDocumentFragment();
-						for (var ai=state.lines.length; ai<lines.length; ai++){
-							var l = lines[ai];
-							var divA = document.createElement('div');
-							divA.textContent = l;
-							divA.title = l;
-							divA.style.whiteSpace='nowrap'; divA.style.overflow='hidden'; divA.style.textOverflow='ellipsis'; divA.style.width='100%'; divA.style.boxSizing='border-box';
-							frag.appendChild(divA);
-						}
-						b.appendChild(frag);
-						appended = true;
-					}
-				}
 				if (!appended){
 					var frag = document.createDocumentFragment();
 					for (var i=0;i<lines.length;i++){
@@ -998,66 +966,72 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 	}
 })();
 </script>
-EOF
+HTML_SMART_WRAPPER
+}
 
-	print <<EOF;
+	if (!$is_ajax) {
+	print <<'HTML_HEADER_ASSETS';
 	<!-- $bootstrapcss -->
 	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
 	<script src='$script?action=wstatus_js'></script>
 	<script>
 	// Fallback if wstatus.js fails to load or is blocked (e.g., MIME nosniff)
 	(function(){
-		try{
-			if (!window.WStatus) {
-				window.WStatus = {
-					open: function(){
-						try { window.location = '$script?action=qhtlwaterfallstatus'; } catch(_){ window.location='?action=qhtlwaterfallstatus'; }
-						return false;
-					}
-				};
-			}
-		}catch(_){ }
+	  try{
+	    if (!window.WStatus) {
+	      window.WStatus = {
+	        open: function(){
+	          try { window.location = '$script?action=qhtlwaterfallstatus'; } catch(_){ window.location='?action=qhtlwaterfallstatus'; }
+	          return false;
+	        }
+	      };
+	    }
+	  }catch(_){ }
 	})();
 	</script>
 	$jqueryjs
 	$bootstrapjs
-<style>
-.toplink {
-top: 140px;
-}
-.mobilecontainer {
-display:none;
-}
-.normalcontainer {
-display:block;
-}
-EOF
-	if ($config{STYLE_MOBILE} or $reseller) {
-		# On small screens, allow the optional mobilecontainer to display,
-		# but do NOT hide the normalcontainer (tabs live there). This keeps
-		# the tabbed UI visible on mobile while still allowing any simplified
-		# mobile elements to show if present.
-		print <<EOF;
-\@media (max-width: 600px) {
-.mobilecontainer {
-	display:block;
-}
-.normalcontainer {
-	display:block;
-}
-}
-EOF
+	<style>
+HTML_HEADER_ASSETS
 	}
-	print "</style>\n";
-	print @header;
+	if (!$is_ajax) {
+	print <<'HTML_INLINE_CSS';
+	.toplink {
+	top: 140px;
+	}
+	.mobilecontainer {
+	display:none;
+	}
+	.normalcontainer {
+	display:block;
+	}
+HTML_INLINE_CSS
+	}
+	if ($config{STYLE_MOBILE} or $reseller) {
+	    	# On small screens, allow the optional mobilecontainer to display,
+	    	# but do NOT hide the normalcontainer (tabs live there). This keeps
+	    	# the tabbed UI visible on mobile while still allowing any simplified
+	    	# mobile elements to show if present.
+	    	if (!$is_ajax) {
+	print <<'HTML_MEDIA_CSS';
+	\@media (max-width: 600px) {
+	.mobilecontainer { display:block; }
+	.normalcontainer { display:block; }
+	}
+HTML_MEDIA_CSS
+	    	}
+	}
+	if (!$is_ajax) { print "</style>\n"; print @header; }
 
-	print <<'EXTRA_BUBBLE_STYLE';
-	<style id="qhtl-plugin-bubble-style">
-	  /* Water bubble highlight for the plugin header status */
-	  #qhtl-status-btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; text-shadow:0 1px 2px rgba(0,0,0,0.25); }
-	  #qhtl-status-btn::before{ content:''; position:absolute; top:4px; left:10px; right:10px; height:40%; border-radius:999px; background:linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0)); pointer-events:none; }
-	</style>
+	if (!$is_ajax) {
+print <<'EXTRA_BUBBLE_STYLE';
+<style id="qhtl-plugin-bubble-style">
+  /* Water bubble highlight for the plugin header status */
+  #qhtl-status-btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; text-shadow:0 1px 2px rgba(0,0,0,0.25); }
+  #qhtl-status-btn::before{ content:''; position:absolute; top:4px; left:10px; right:10px; height:40%; border-radius:999px; background:linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0)); pointer-events:none; }
+</style>
 EXTRA_BUBBLE_STYLE
+}
 }
 
 
@@ -1223,6 +1197,10 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 		# Do not strip inline scripts here; UI relies on them for tabs and interactions.
 		$templatehtml =~ s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3 }ig;
 		$templatehtml =~ s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(\?)(?!action=)}{$1$2$3}ig;
+	}
+	# If AJAX request, return raw inner content without WHM template/header/footer
+	if ($is_ajax) {
+		select STDOUT; print "Content-type: text/html\r\n\r\n"; print $templatehtml; exit 0;
 	}
 	my $rendered;
 	eval {
