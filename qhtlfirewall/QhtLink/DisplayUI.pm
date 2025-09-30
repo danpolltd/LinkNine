@@ -3740,20 +3740,27 @@ QHTL_TAB_GUARD
 	  print "<div id='waterfall' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
-		print "<tr><td>".
-				"<div style='display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start'>".
-					"<div id='wstatus-anchor' style='position:relative;display:inline-block;width:100px;height:100px'></div>".
-					"<div class='wcircle'><div class='wcircle-outer'></div><div class='wcircle-inner'>Ignore List</div><div class='wcircle-msg'></div></div>".
-					"<div class='wcircle'><div class='wcircle-outer'></div><div class='wcircle-inner'>Dir Watch</div><div class='wcircle-msg'></div></div>".
-					"<div class='wcircle'><div class='wcircle-outer'></div><div class='wcircle-inner'>Dynamic DNS</div><div class='wcircle-msg'></div></div>".
-					"<div class='wcircle'><div class='wcircle-outer'></div><div class='wcircle-inner'>Alerts</div><div class='wcircle-msg'></div></div>".
-					"<div class='wcircle'><div class='wcircle-outer'></div><div class='wcircle-inner'>Scanner</div><div class='wcircle-msg'></div></div>".
-					"<div class='wcircle'><div class='wcircle-outer'></div><div class='wcircle-inner'>Blocklist</div><div class='wcircle-msg'></div></div>".
-					"<div class='wcircle'><div class='wcircle-outer'></div><div class='wcircle-inner'>Users</div><div class='wcircle-msg'></div></div>".
-				"</div>".
-				"<div class='text-muted small' style='margin-top:6px'>Display qhtlwaterfall status</div>".
-			"</td></tr>\n";
-		print "<script>(function(){ try { if (window.WStatus) { WStatus.mountInline('#wstatus-anchor'); } else { document.addEventListener('DOMContentLoaded', function(){ if (window.WStatus) { WStatus.mountInline('#wstatus-anchor'); } }); } } catch(e){} })();</script>\n";
+			print "<tr><td>".
+					"<div style='display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start'>".
+						"<div id='wstatus-anchor' style='position:relative;display:inline-block;width:100px;height:100px'></div>".
+						"<div id='wignore-anchor' style='width:100px;height:100px'></div>".
+						"<div id='wdirwatch-anchor' style='width:100px;height:100px'></div>".
+						"<div id='wddns-anchor' style='width:100px;height:100px'></div>".
+						"<div id='walerts-anchor' style='width:100px;height:100px'></div>".
+						"<div id='wscanner-anchor' style='width:100px;height:100px'></div>".
+						"<div id='wblocklist-anchor' style='width:100px;height:100px'></div>".
+						"<div id='wusers-anchor' style='width:100px;height:100px'></div>".
+					"</div>".
+					"<div class='text-muted small' style='margin-top:6px'>Display qhtlwaterfall status</div>".
+				"</td></tr>\n";
+			print "<script src='$script?action=widget_js&name=wignore.js'></script>\n";
+			print "<script src='$script?action=widget_js&name=wdirwatch.js'></script>\n";
+			print "<script src='$script?action=widget_js&name=wddns.js'></script>\n";
+			print "<script src='$script?action=widget_js&name=walerts.js'></script>\n";
+			print "<script src='$script?action=widget_js&name=wscanner.js'></script>\n";
+			print "<script src='$script?action=widget_js&name=wblocklist.js'></script>\n";
+			print "<script src='$script?action=widget_js&name=wusers.js'></script>\n";
+			print "<script>(function(){ function onready(f){ if(document.readyState!=='loading'){ f(); } else { document.addEventListener('DOMContentLoaded', f); } } onready(function(){ try{ if(window.WStatus) WStatus.mountInline('#wstatus-anchor'); }catch(e){} try{ if(window.WIgnore) WIgnore.mountInline('#wignore-anchor'); }catch(e){} try{ if(window.WDirWatch) WDirWatch.mountInline('#wdirwatch-anchor'); }catch(e){} try{ if(window.WDDNS) WDDNS.mountInline('#wddns-anchor'); }catch(e){} try{ if(window.WAlerts) WAlerts.mountInline('#walerts-anchor'); }catch(e){} try{ if(window.WScanner) WScanner.mountInline('#wscanner-anchor'); }catch(e){} try{ if(window.WBlocklist) WBlocklist.mountInline('#wblocklist-anchor'); }catch(e){} try{ if(window.WUsers) WUsers.mountInline('#wusers-anchor'); }catch(e){} }); })();</script>\n";
 		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallrestart'><input type='submit' class='btn btn-default' value='Restart'></form><div class='text-muted small' style='margin-top:6px'>Restart qhtlwaterfall</div></td></tr>\n";
 		print "<tr><td style='white-space: nowrap;'><form action='$script' method='post'><input type='hidden' name='action' value='ignorefiles'><select name='ignorefile'>\n";
 		print "<option value='qhtlfirewall.ignore'>qhtlfirewall.ignore - IP Blocking</option>\n";

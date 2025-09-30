@@ -85,6 +85,36 @@ if (defined $FORM{action} && $FORM{action} eq 'wstatus_js') {
 	exit 0;
 }
 
+# Serve additional widget JS files via a single endpoint with whitelist
+if (defined $FORM{action} && $FORM{action} eq 'widget_js') {
+	my %allowed = map { $_ => 1 } qw(
+		wignore.js wdirwatch.js wddns.js walerts.js wscanner.js wblocklist.js wusers.js
+	);
+	my $name = $FORM{name} // '';
+	$name =~ s/[^a-zA-Z0-9_.-]//g; # sanitize
+	if (!$allowed{$name}) {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my @paths = (
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/ui/images/$name",
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/$name",
+		"/etc/qhtlfirewall/ui/images/$name",
+		"/usr/local/qhtlfirewall/ui/images/$name",
+	);
+	my $done = 0;
+	for my $p (@paths) {
+		next unless -e $p;
+		if (open(my $FH, '<', $p)) {
+			local $/ = undef; my $data = <$FH> // ''; close $FH; print $data; $done = 1; last;
+		}
+	}
+	if (!$done) { print ";\n"; }
+	exit 0;
+}
+
 if (-e "/usr/local/cpanel/bin/register_appconfig") {
 	$script = "qhtlfirewall.cgi";
 	$images = "qhtlfirewall";
