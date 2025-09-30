@@ -547,20 +547,12 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 						existing.style.boxShadow = 'inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 14px '+(sty.glow||'rgba(0,0,0,0.15)');
 						existing.textContent = sty.txt;
 						existing.style.borderRadius = '999px';
-						// Scale down ~30% for WHM header badge
+						// Keep compact badge without forcing font size or extra margins to avoid header shrink
 						existing.style.padding = '4px 8px';
 						existing.style.minWidth = '67px';
-						existing.style.fontSize = '12px';
 						existing.style.display = 'inline-flex';
 						existing.style.alignItems = 'center';
 						existing.style.justifyContent = 'center';
-						// ensure wrapper provides space for glow on all sides
-						var wrap = existing.parentElement;
-						if (wrap && wrap.tagName && wrap.tagName.toUpperCase()==='A') {
-							wrap.style.marginTop = '7px';
-							wrap.style.marginBottom = '7px';
-							wrap.style.marginRight = '7px';
-						}
 						return true;
 					}
 					// Build clickable link to the Firewall UI (cpsess-aware)
@@ -569,10 +561,7 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					a.target = '_self';
 					a.setAttribute('aria-label','Open QhtLink Firewall');
 					a.style.textDecoration = 'none';
-					// 7px from top and right edge per request
-					a.style.marginTop = '7px';
-					a.style.marginBottom = '7px';
-					a.style.marginRight = '7px';
+					// Avoid margins that could influence header layout sizing
 					// Inner badge span for color/status
 					var span = document.createElement('span');
 					span.id = 'qhtlfw-header-badge';
@@ -586,7 +575,6 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					// inset highlight + outer glow for bubble feel
 					span.style.boxShadow = 'inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 14px '+(sty.glow||'rgba(0,0,0,0.15)');
 					span.style.minWidth = '67px';
-					span.style.fontSize = '12px';
 					span.style.display = 'inline-flex';
 					span.style.alignItems = 'center';
 					span.style.justifyContent = 'center';
@@ -960,12 +948,12 @@ print <<HTML_SMART_WRAPPER;
 										logSelect.appendChild(o);
 									}
 								} catch(parseErr){
-									// If server sent HTML (e.g., login), fall back to navigating to the page
-									try { window.location = '$script?action=logtail'; } catch(__){}
+									// If server sent HTML (e.g., login), stay in modal and show a hint
+									try { var b=document.getElementById('quickViewBodyShim'); if(b){ b.innerHTML = "<div class='alert alert-warning'>Unable to load log list (login or permissions required). Try reloading the page.</div>"; } } catch(__){}
 								}
 							} else {
-								// Non-2xx: fallback
-								try { window.location = '$script?action=logtail'; } catch(__){}
+								// Non-2xx: keep modal open and show an error
+								try { var b2=document.getElementById('quickViewBodyShim'); if(b2){ b2.innerHTML = "<div class='alert alert-danger'>Failed to load log list ("+xhr.status+").</div>"; } } catch(__){}
 							}
 						}
 					};
@@ -1048,7 +1036,7 @@ print <<HTML_SMART_WRAPPER;
 							}
 							if (typeof done==='function') { try{ done(); }catch(_){} }
 						} else {
-							b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>";
+							b.innerHTML = "<div class='alert alert-danger'>Failed to load content ("+x.status+"). Staying in Quick View.</div>";
 						}
 					} finally {
 						window.__qhtlWatcherLoading=false;

@@ -3780,9 +3780,9 @@ QHTL_TAB_GUARD
 				."  function mounted(sel){ var el=document.querySelector(sel); if(!el) return false; return !!el.querySelector('#wstatus-popup') || el.getAttribute('data-mounted')==='1'; }\n"
 				."  function markMounted(sel){ var el=document.querySelector(sel); if(el) el.setAttribute('data-mounted','1'); }\n"
 				."  // Remove fallback once mounted, or after a grace period even if not\n"
-				."  function removeFallback(){ try{ var f=document.getElementById('wstatus-fallback'); if(f && f.parentNode){ f.parentNode.removeChild(f); } }catch(_){} }\n"
+				."  function removeFallback(){ /* keep fallback visible as a control in case WStatus fails to mount */ }\n"
 				."  // Fallback click: try to open/refresh status\n"
-				."  (function(){ var f=document.getElementById('wstatus-fallback'); if(!f) return; try{ var inner=f.querySelector('.wcircle-inner'); if(inner){ inner.addEventListener('click', function(e){ e.preventDefault(); if (window.WStatus && typeof WStatus.open==='function'){ try{ WStatus.open(); }catch(_){ } } else { try{ var base=(window.QHTL_SCRIPT||'$script'); var u=base+'?action=qhtlwaterfallstatus'; window.location=u; }catch(__){} } }); } }catch(_){} })();\n"
+				."  (function(){ var f=document.getElementById('wstatus-fallback'); if(!f) return; try{ var inner=f.querySelector('.wcircle-inner'); if(inner){ inner.addEventListener('click', function(e){ e.preventDefault(); if (window.WStatus && typeof WStatus.open==='function'){ try{ WStatus.open(); return; }catch(_){ } } try{ var base=(window.QHTL_SCRIPT||'$script'); var u=base+'?action=qhtlwaterfallstatus&ajax=1'; var area=document.getElementById('qhtl-inline-area'); if(area){ if(window.jQuery){ jQuery(area).html('<div class=\"text-muted\">Loading...</div>').load(u); } else { var x=new XMLHttpRequest(); x.open('GET', u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4 && x.status>=200 && x.status<300){ area.innerHTML=x.responseText; } }; x.send(); } } else { /* as last resort navigate */ window.location=base+'?action=qhtlwaterfallstatus'; } }catch(__){} }); } }catch(_){} })();\n"
 				."  function tryMount(){\n"
 				."    attempts++;\n"
 				."    try{ if(!mounted('#wstatus-anchor') && window.WStatus){ if(WStatus.mountInline('#wstatus-anchor')) markMounted('#wstatus-anchor'); } }catch(e){}\n"
@@ -3798,8 +3798,7 @@ QHTL_TAB_GUARD
 				."  }\n"
 				."  // Start shortly after parse, and also run once immediately if DOM is already ready\n"
 				."  var iv=setInterval(tryMount,250); if (document.readyState!=='loading') tryMount(); else document.addEventListener('DOMContentLoaded', tryMount);\n"
-				."  // Absolute fallback: remove fallback bubble after ~6s to avoid duplicate visuals if something blocks mounting\n"
-				."  setTimeout(removeFallback, 6000);\n"
+				."  // Do not auto-remove fallback; leave it as a persistent control if WStatus fails\n"
 				."})();</script>\n";
 		# Inline content area for widget actions (load results below bubbles)
 		print "<tr><td><div id='qhtl-inline-area' style='padding-top:10px;min-height:200px'></div></td></tr>\n";
