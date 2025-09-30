@@ -236,16 +236,19 @@
     try {
       var el = document.getElementById('qhtl-status-btn');
       if (!el) return;
-      // Fetch status badge via hidden request and map to class/background
-      var url = (window.QHTL_SCRIPT||'') + '?action=qhtlwaterfallstatus';
+      // Prefer JSON for accuracy, fallback to HTML parsing
+      var urlJ = (window.QHTL_SCRIPT||'') + '?action=status_json';
+      var urlH = (window.QHTL_SCRIPT||'') + '?action=qhtlwaterfallstatus';
       if (window.jQuery) {
-        jQuery.ajax({ url:url, method:'GET', dataType:'html', timeout:6000 })
-          .done(function(html){ updateFromHTML(el, html); });
+        jQuery.ajax({ url:urlJ, method:'GET', dataType:'json', timeout:6000 })
+          .done(function(j){ updateFromJSON(el, j); })
+          .fail(function(){ jQuery.ajax({ url:urlH, method:'GET', dataType:'html', timeout:6000 }).done(function(html){ updateFromHTML(el, html); }); });
       } else {
-        var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4 && x.status>=200 && x.status<300){ updateFromHTML(el, x.responseText||''); } }; x.send();
+        var x=new XMLHttpRequest(); x.open('GET', urlJ, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ try{ var j=JSON.parse(x.responseText||'{}'); updateFromJSON(el, j); return; }catch(e){} } var y=new XMLHttpRequest(); y.open('GET', urlH, true); y.onreadystatechange=function(){ if(y.readyState===4 && y.status>=200 && y.status<300){ updateFromHTML(el, y.responseText||''); } }; y.send(); } }; x.send();
       }
     } catch(_){}
   }
+  function updateFromJSON(el, j){ try { var txt = (j && j.running) ? 'Enabled' : ((j && j.status==='disabled_stopped') ? 'Disabled' : 'Stopped'); el.textContent = txt; el.classList.remove('success','warning','danger'); if (txt==='Enabled'){ el.classList.add('success'); } else if (txt==='Disabled'){ el.classList.add('danger'); } else { el.classList.add('danger'); } } catch(_){} }
   function updateFromHTML(el, html){
     var txt = (/Disabled|Stopped/i.test(html)) ? 'Disabled' : (/Testing/i.test(html) ? 'Testing' : 'Enabled');
     el.textContent = txt; el.classList.remove('success','warning','danger');

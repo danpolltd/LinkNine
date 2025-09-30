@@ -166,30 +166,48 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 
 	my $is_disabled = -e "/etc/qhtlfirewall/qhtlfirewall.disable" ? 1 : 0;
 	my $is_test     = $cfg{TESTING} ? 1 : 0;
-	my $ipt_ok      = 0;
+	# Determine running state by PID file first; fall back to iptables chain
+	my $run_ok = 0; my $ipt_ok = 0;
 	eval {
-		my ($childin, $childout);
-		my $pid = open3($childin, $childout, $childout, "$cfg{IPTABLES} $cfg{IPTABLESWAIT} -L LOCALINPUT -n");
-		my @iptstatus = <$childout>;
-		waitpid($pid, 0);
-		chomp @iptstatus;
-		if ($iptstatus[0] && $iptstatus[0] =~ /# Warning: iptables-legacy tables present/) { shift @iptstatus }
-		$ipt_ok = ($iptstatus[0] && $iptstatus[0] =~ /^Chain LOCALINPUT/) ? 1 : 0;
-	};
+		my $pidfile = '/var/run/qhtlwaterfall.pid';
+		if (-r $pidfile) {
+			if (open(my $PF, '<', $pidfile)) {
+				my $pid = <$PF>; close $PF; chomp $pid; $pid =~ s/\D//g;
+				if ($pid) {
+					# Fast check: process exists
+					if (-d "/proc/$pid") { $run_ok = 1; }
+				}
+			}
+		}
+		if (!$run_ok) {
+			my ($childin, $childout);
+			my $pid = open3($childin, $childout, $childout, "$cfg{IPTABLES} $cfg{IPTABLESWAIT} -L LOCALINPUT -n");
+			my @iptstatus = <$childout>;
+			waitpid($pid, 0);
+			chomp @iptstatus;
+			if ($iptstatus[0] && $iptstatus[0] =~ /# Warning: iptables-legacy tables present/) { shift @iptstatus }
+			$ipt_ok = ($iptstatus[0] && $iptstatus[0] =~ /^Chain LOCALINPUT/) ? 1 : 0;
+		}
+		1;
+	} or do { };
 
 	my ($enabled, $running, $class, $text, $status_key);
 	if ($is_disabled) {
 		# Disabled state
 		($enabled, $running, $class, $text, $status_key) = (0, 0, 'danger', 'Disabled', 'disabled_stopped');
-	} elsif (!$ipt_ok) {
+	} elsif ($run_ok || $ipt_ok) {
+		# Running
+		if ($is_test) {
+			($enabled, $running, $class, $text, $status_key) = (1, 1, 'warning', 'Testing', 'enabled_test');
+		} else {
+			($enabled, $running, $class, $text, $status_key) = (1, 1, 'success', 'Enabled', 'enabled_running');
+		}
+	} elsif ($is_test) {
+		# Testing requested but process not detected
+		($enabled, $running, $class, $text, $status_key) = (1, 0, 'warning', 'Testing', 'enabled_test');
+	} else {
 		# Not running
 		($enabled, $running, $class, $text, $status_key) = (1, 0, 'danger', 'Stopped', 'enabled_stopped');
-	} elsif ($is_test) {
-		# Testing mode
-		($enabled, $running, $class, $text, $status_key) = (1, 1, 'warning', 'Testing', 'enabled_test');
-	} else {
-		# Fully operational
-		($enabled, $running, $class, $text, $status_key) = (1, 1, 'success', 'Enabled', 'enabled_running');
 	}
 
 	# Simple JSON response, no external modules required here
