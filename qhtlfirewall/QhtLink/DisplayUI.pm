@@ -3742,7 +3742,9 @@ QHTL_TAB_GUARD
 		print "<thead><tr><th>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
 			print "<tr><td>".
 					"<div style='display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start'>".
-						"<div id='wstatus-anchor' style='position:relative;display:inline-block;width:100px;height:100px'></div>".
+								"<div id='wstatus-anchor' style='position:relative;display:inline-block;width:100px;height:100px'>".
+									"<div class='wcircle'><div class='wcircle-outer'></div><div class='wcircle-inner'>Status</div><div class='wcircle-msg'></div></div>".
+								"</div>".
 						"<div id='wignore-anchor' style='width:100px;height:100px'></div>".
 						"<div id='wdirwatch-anchor' style='width:100px;height:100px'></div>".
 						"<div id='wddns-anchor' style='width:100px;height:100px'></div>".

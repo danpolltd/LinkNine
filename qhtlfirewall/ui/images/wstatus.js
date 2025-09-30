@@ -169,7 +169,7 @@
   }
 
   api.open = function(){ try { var node = render({ inline: false }); return !!node; } catch(e){ return false; } };
-  api.mountInline = function(anchor){ try { var el = anchor; if (typeof anchor === 'string') { el = document.querySelector(anchor); } return !!render({ inline: true, anchor: el }); } catch(e){ return false; } };
+  api.mountInline = function(anchor){ try { var el = anchor; if (typeof anchor === 'string') { el = document.querySelector(anchor); } if(el){ try { while(el.firstChild) el.removeChild(el.firstChild); } catch(_){} } return !!render({ inline: true, anchor: el }); } catch(e){ return false; } };
   api.close = function(){ remove(); };
 
   // auto-wire global
