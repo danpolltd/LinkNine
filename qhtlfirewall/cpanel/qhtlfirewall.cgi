@@ -404,6 +404,34 @@ if (defined $FORM{action} && $FORM{action} eq 'api_restartwf') {
 	exit 0;
 }
 
+# Lightweight API to completely disable firewall and stop waterfall
+if (defined $FORM{action} && $FORM{action} eq 'api_disablewf') {
+	# Prevent browsers from treating this as a script include
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	my $scriptish = ($sec_dest eq 'script');
+	if ($scriptish) {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	my $ok = 0; my $err = '';
+	eval {
+		# First, ask qhtlfirewall to disable itself (creates disable flag and stops rules)
+		my $rc1 = system('/usr/sbin/qhtlfirewall','-x');
+		# Then, best-effort stop the waterfall service via systemd if present
+		my $rc2 = 0; my $systemctl = (-x '/bin/systemctl') ? '/bin/systemctl' : ((-x '/usr/bin/systemctl') ? '/usr/bin/systemctl' : undef);
+		if ($systemctl) {
+			$rc2 = system($systemctl,'stop','qhtlwaterfall.service');
+		}
+		# Consider it ok if qhtlfirewall -x succeeded; systemctl stop may be a no-op on oneshot
+		if ($rc1 == 0) { $ok = 1; } else { $err = 'qhtlfirewall_disable_failed'; }
+		1;
+	} or do { $err = 'exception'; };
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	if ($ok) { print '{"ok":1}'; } else { print '{"ok":0,"error":"'.$err.'"}'; }
+	exit 0;
+}
+
 # Back-compat: handle qhtlwaterfallrestart both for navigation and XHR
 if (defined $FORM{action} && $FORM{action} eq 'qhtlwaterfallrestart') {
 	my $sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
