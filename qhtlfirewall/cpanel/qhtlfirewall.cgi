@@ -797,6 +797,21 @@ EOF
 	<!-- $bootstrapcss -->
 	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
 	<script src='$images/wstatus.js'></script>
+	<script>
+	// Fallback if wstatus.js fails to load or is blocked (e.g., MIME nosniff)
+	(function(){
+		try{
+			if (!window.WStatus) {
+				window.WStatus = {
+					open: function(){
+						try { window.location = '$script?action=qhtlwaterfallstatus'; } catch(_){ window.location='?action=qhtlwaterfallstatus'; }
+						return false;
+					}
+				};
+			}
+		}catch(_){ }
+	})();
+	</script>
 	$jqueryjs
 	$bootstrapjs
 <style>
