@@ -1127,10 +1127,10 @@ print <<HTML_HEADER_ASSETS;
 							var m = (loc.pathname||'').match(/\/cpsess\d+/);
 							var token = m ? m[0] : '';
 							// Build absolute path to our CGI, e.g., https://host:2087/cpsessXXXX/cgi/qhtlink/qhtlfirewall.cgi
-							window.QHTL_SCRIPT = origin + token + '/cgi/qhtlink/' + ($script||'qhtlfirewall.cgi');
+							window.QHTL_SCRIPT = origin + token + '/cgi/qhtlink/' + '$script';
 						} catch(e) {
 							// Fallback: relative script name (works when already inside our CGI context)
-							window.QHTL_SCRIPT = ($script||'qhtlfirewall.cgi');
+							window.QHTL_SCRIPT = '$script';
 						}
 					})();
 				</script>
