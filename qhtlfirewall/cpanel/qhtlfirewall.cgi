@@ -917,7 +917,7 @@ print <<HTML_SMART_WRAPPER;
 			}
 			modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='none'; modal.style.zIndex='9999';
 			var dialog = document.createElement('div');
-			dialog.style.width='660px'; dialog.style.maxWidth='95%'; dialog.style.height='500px'; dialog.style.background='#fff'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='absolute'; dialog.style.top='50%'; dialog.style.left='50%'; dialog.style.transform='translate(-50%, -50%)'; dialog.style.margin='0';
+			dialog.style.width='660px'; dialog.style.maxWidth='95%'; dialog.style.height='500px'; dialog.style.background='linear-gradient(180deg, #f7fafc 0%, #ffffff 40%, #f7fafc 100%)'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='absolute'; dialog.style.top='50%'; dialog.style.left='50%'; dialog.style.transform='translate(-50%, -50%)'; dialog.style.margin='0';
 			var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflowX='hidden'; body.style.overflowY='auto'; body.style.padding='10px'; body.style.minHeight='0';
 			var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';
 			// Header-right container for countdown next to title
@@ -1134,8 +1134,7 @@ print <<HTML_HEADER_ASSETS;
 	  }catch(_){ }
 	})();
 		</script>
-		$jqueryjs
-		$bootstrapjs
+		<!-- Rely on WHM's built-in jQuery/Bootstrap to avoid header/layout side-effects -->
 		<style>
 HTML_HEADER_ASSETS
 	}
