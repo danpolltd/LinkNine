@@ -99,7 +99,8 @@
   function expand(anchor, pieces){
     // Create panel overlay and animate from circle to rounded square
     var panel = document.getElementById(PANEL_ID);
-    if (panel) { // Toggle close
+    if (panel) { // Toggle close (use stored closer if available)
+      try { if (anchor && anchor._walertsClose) { anchor._walertsClose(); return; } } catch(_){}
       try { panel.parentNode.removeChild(panel); } catch(_) {}
       try { pieces.outer.style.opacity='1'; pieces.inner.style.opacity='1'; } catch(_){}
       try { anchor.style.zIndex = ''; } catch(_){}
@@ -121,6 +122,41 @@
     // Measure final height
     var body = panel.querySelector('.walerts-body');
     var targetHeight = Math.min(260, Math.max(160, (body ? (body.scrollHeight + 16) : 200)));
+
+    // Define a graceful collapse/close with animation and listener cleanup
+    var onDocClick = null, onKey = null;
+    function doClose(){
+      // remove global listeners
+      try { document.removeEventListener('click', onDocClick, true); } catch(_){}
+      try { document.removeEventListener('keydown', onKey, true); } catch(_){}
+      try { panel.classList.remove('ready'); } catch(_){}
+      // Animate collapse back to circle size
+      try {
+        panel.style.height = '100px';
+        panel.classList.remove('expanded');
+        // After transition completes, remove panel and restore bubble
+        panel.addEventListener('transitionend', function onEnd2(){
+          panel.removeEventListener('transitionend', onEnd2);
+          try { panel.parentNode && panel.parentNode.removeChild(panel); } catch(_){}
+          try { pieces.outer.style.opacity='1'; pieces.inner.style.opacity='1'; pieces.inner.style.transform='scale(1)'; } catch(_){}
+          try { anchor.style.zIndex = ''; } catch(_){}
+        });
+      } catch(_) {
+        // Fallback: immediate restore
+        try { panel.parentNode && panel.parentNode.removeChild(panel); } catch(_){}
+        try { pieces.outer.style.opacity='1'; pieces.inner.style.opacity='1'; pieces.inner.style.transform='scale(1)'; } catch(_){}
+        try { anchor.style.zIndex = ''; } catch(_){}
+      }
+    }
+
+    // Expose closer for toggle branch
+    try { anchor._walertsClose = doClose; } catch(_){}
+
+    // Outside-click and ESC to close
+    onDocClick = function(e){ try { if (panel && !panel.contains(e.target) && !anchor.contains(e.target)) { doClose(); } } catch(_){} };
+    onKey = function(e){ try { var k = e.key || e.keyCode; if (k === 'Escape' || k === 'Esc' || k === 27) { doClose(); } } catch(_){} };
+    try { document.addEventListener('click', onDocClick, true); } catch(_){}
+    try { document.addEventListener('keydown', onKey, true); } catch(_){}
 
     // Trigger expansion
     requestAnimationFrame(function(){
