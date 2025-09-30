@@ -145,6 +145,26 @@ if (defined $FORM{action} && $FORM{action} eq 'widget_js') {
 	exit 0;
 }
 
+# Serve wstatus.js via controlled endpoint to guarantee correct MIME and avoid nosniff issues
+if (defined $FORM{action} && $FORM{action} eq 'wstatus_js') {
+	print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my @paths = (
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/ui/images/wstatus.js",
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/wstatus.js",
+		"/etc/qhtlfirewall/ui/images/wstatus.js",
+		"/usr/local/qhtlfirewall/ui/images/wstatus.js",
+	);
+	my $done = 0;
+	for my $p (@paths) {
+		next unless -e $p;
+		if (open(my $FH, '<', $p)) {
+			local $/ = undef; my $data = <$FH> // ''; close $FH; print $data; $done = 1; last;
+		}
+	}
+	if (!$done) { print ";\n"; }
+	exit 0;
+}
+
 if (-e "/usr/local/cpanel/bin/register_appconfig") {
 	$script = "qhtlfirewall.cgi";
 	$images = "qhtlfirewall";
