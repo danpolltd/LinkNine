@@ -133,6 +133,28 @@
       } catch(_) {}
     }
 
+    function openInlineStatus(){
+      try {
+        var base = (window.QHTL_SCRIPT||'');
+        var url  = base + '?action=qhtlwaterfallstatus&ajax=1';
+        var area = document.getElementById('qhtl-inline-area');
+        if (area) {
+          if (window.jQuery) {
+            jQuery(area).html('<div class="text-muted">Loading...</div>').load(url);
+          } else {
+            var x=new XMLHttpRequest();
+            x.open('GET', url, true);
+            try { x.setRequestHeader('X-Requested-With','XMLHttpRequest'); } catch(__){}
+            x.onreadystatechange=function(){ if(x.readyState===4 && x.status>=200 && x.status<300){ area.innerHTML = x.responseText; } };
+            x.send();
+          }
+        } else {
+          // Fallback: navigate to the full page if inline area is unavailable
+          window.location = base + '?action=qhtlwaterfallstatus';
+        }
+      } catch(e) {}
+    }
+
     function doCountdownThenAct(isStart){
       if (isStart) {
         // Start: no countdown, engage immediately
@@ -225,7 +247,7 @@
       function startHold(){ if(inner.getAttribute('aria-busy')==='true') return; held=false; inner.style.transform='scale(0.98)'; colorOrange(); holdTimer=setTimeout(function(){ held=true; inner.style.transform='scale(1)'; doCountdownThenAct(false); }, 3000); }
       function cancelHold(){ if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; } if(inner.getAttribute('aria-busy')==='true') return; if(!held){ inner.style.transform='scale(1)'; if(state.running){ colorGreen(); setReady('On'); } else { colorRed(); setReady('Start'); } } isDown=false; }
       function onDown(e){ e.preventDefault(); e.stopPropagation(); if(inner.getAttribute('aria-busy')==='true') return; isDown=true; if(state.running){ startHold(); } else { doCountdownThenAct(true); } }
-      function onUp(e){ e.preventDefault(); e.stopPropagation(); cancelHold(); }
+      function onUp(e){ e.preventDefault(); e.stopPropagation(); var wasHeld = held; cancelHold(); if (!wasHeld && state.running && inner.getAttribute('aria-busy')!=='true') { openInlineStatus(); } }
       inner.addEventListener('pointerdown', onDown);
       inner.addEventListener('pointerup', onUp);
       inner.addEventListener('pointercancel', cancelHold);
