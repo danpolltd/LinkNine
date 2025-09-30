@@ -3761,7 +3761,35 @@ QHTL_TAB_GUARD
 			print "<script src='$script?action=widget_js&name=wscanner.js'></script>\n";
 			print "<script src='$script?action=widget_js&name=wblocklist.js'></script>\n";
 			print "<script src='$script?action=widget_js&name=wusers.js'></script>\n";
-			print "<script>(function(){ function onready(f){ if(document.readyState!=='loading'){ f(); } else { document.addEventListener('DOMContentLoaded', f); } } onready(function(){ try{ if(window.WStatus) WStatus.mountInline('#wstatus-anchor'); }catch(e){} try{ if(window.WIgnore) WIgnore.mountInline('#wignore-anchor'); }catch(e){} try{ if(window.WDirWatch) WDirWatch.mountInline('#wdirwatch-anchor'); }catch(e){} try{ if(window.WDDNS) WDDNS.mountInline('#wddns-anchor'); }catch(e){} try{ if(window.WAlerts) WAlerts.mountInline('#walerts-anchor'); }catch(e){} try{ if(window.WScanner) WScanner.mountInline('#wscanner-anchor'); }catch(e){} try{ if(window.WBlocklist) WBlocklist.mountInline('#wblocklist-anchor'); }catch(e){} try{ if(window.WUsers) WUsers.mountInline('#wusers-anchor'); }catch(e){} }); })();</script>\n";
+			print "<script>(function(){\n"
+				."  // Ensure wstatus.js is loaded; if not, inject it now\n"
+				."  if (!window.WStatus) {\n"
+				."    try {\n"
+				."      var s=document.createElement('script');\n"
+				."      var base = (typeof QHTL_SCRIPT!=='undefined' && QHTL_SCRIPT) ? QHTL_SCRIPT : '$script';\n"
+				."      s.src = base + '?action=wstatus_js';\n"
+				."      s.defer = true;\n"
+				."      (document.head||document.documentElement).appendChild(s);\n"
+				."    } catch(e){}\n"
+				."  }\n"
+				."  var attempts=0, maxAttempts=40; // ~10s at 250ms\n"
+				."  function mounted(sel){ var el=document.querySelector(sel); if(!el) return false; return !!el.querySelector('#wstatus-popup') || el.getAttribute('data-mounted')==='1'; }\n"
+				."  function markMounted(sel){ var el=document.querySelector(sel); if(el) el.setAttribute('data-mounted','1'); }\n"
+				."  function tryMount(){\n"
+				."    attempts++;\n"
+				."    try{ if(!mounted('#wstatus-anchor') && window.WStatus){ if(WStatus.mountInline('#wstatus-anchor')) markMounted('#wstatus-anchor'); } }catch(e){}\n"
+				."    try{ if(!mounted('#wignore-anchor') && window.WIgnore){ if(WIgnore.mountInline('#wignore-anchor')) markMounted('#wignore-anchor'); } }catch(e){}\n"
+				."    try{ if(!mounted('#wdirwatch-anchor') && window.WDirWatch){ if(WDirWatch.mountInline('#wdirwatch-anchor')) markMounted('#wdirwatch-anchor'); } }catch(e){}\n"
+				."    try{ if(!mounted('#wddns-anchor') && window.WDDNS){ if(WDDNS.mountInline('#wddns-anchor')) markMounted('#wddns-anchor'); } }catch(e){}\n"
+				."    try{ if(!mounted('#walerts-anchor') && window.WAlerts){ if(WAlerts.mountInline('#walerts-anchor')) markMounted('#walerts-anchor'); } }catch(e){}\n"
+				."    try{ if(!mounted('#wscanner-anchor') && window.WScanner){ if(WScanner.mountInline('#wscanner-anchor')) markMounted('#wscanner-anchor'); } }catch(e){}\n"
+				."    try{ if(!mounted('#wblocklist-anchor') && window.WBlocklist){ if(WBlocklist.mountInline('#wblocklist-anchor')) markMounted('#wblocklist-anchor'); } }catch(e){}\n"
+				."    try{ if(!mounted('#wusers-anchor') && window.WUsers){ if(WUsers.mountInline('#wusers-anchor')) markMounted('#wusers-anchor'); } }catch(e){}\n"
+				."    if (attempts>=maxAttempts || (mounted('#wstatus-anchor')&&mounted('#wignore-anchor')&&mounted('#wdirwatch-anchor')&&mounted('#wddns-anchor')&&mounted('#walerts-anchor')&&mounted('#wscanner-anchor')&&mounted('#wblocklist-anchor')&&mounted('#wusers-anchor'))) { clearInterval(iv); }\n"
+				."  }\n"
+				."  // Start shortly after parse, and also run once immediately if DOM is already ready\n"
+				."  var iv=setInterval(tryMount,250); if (document.readyState!=='loading') tryMount(); else document.addEventListener('DOMContentLoaded', tryMount);\n"
+				."})();</script>\n";
 		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallrestart'><input type='submit' class='btn btn-default' value='Restart'></form><div class='text-muted small' style='margin-top:6px'>Restart qhtlwaterfall</div></td></tr>\n";
 		print "<tr><td style='white-space: nowrap;'><form action='$script' method='post'><input type='hidden' name='action' value='ignorefiles'><select name='ignorefile'>\n";
 		print "<option value='qhtlfirewall.ignore'>qhtlfirewall.ignore - IP Blocking</option>\n";
