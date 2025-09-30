@@ -141,8 +141,8 @@ if (open(my $IN, '<', '/etc/qhtlfirewall/version.txt')) {
 if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 	# If this endpoint is accidentally loaded as a <script>, emit a JS no-op to avoid parse errors
 	my $sj_sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
-	my $sj_accept   = lc($ENV{HTTP_ACCEPT} // '');
-	if ($sj_sec_dest eq 'script' || $sj_accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/) {
+	# Allow XHR/fetch (Sec-Fetch-Dest usually "empty"); only block when explicitly requested as a script
+	if ($sj_sec_dest eq 'script') {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
 		exit 0;
@@ -230,8 +230,8 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 if (defined $FORM{action} && $FORM{action} eq 'api_restartq') {
 	# Prevent browsers from treating this as a script include
 	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
-	my $accept   = lc($ENV{HTTP_ACCEPT} // '');
-	my $scriptish = ($sec_dest eq 'script') || ($accept =~ /\b(?:application|text)\/javascript\b/);
+	# Allow XHR/fetch and form POSTs; only block when explicitly loaded as a script
+	my $scriptish = ($sec_dest eq 'script');
 	if ($scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
@@ -624,17 +624,13 @@ if ($Cpanel::Version::Tiny::major_version >= 65) {
 	}
 }
 
-# If an action other than our lightweight endpoints is being requested in a script-like context,
-# emit a JS no-op to prevent browsers from parsing full HTML as JavaScript.
+# If an action other than our lightweight endpoints is being requested in a true script-like context,
+# emit a JS no-op to prevent browsers from parsing full HTML as JavaScript. Do not block XHR/fetch.
 if (defined $FORM{action} && $FORM{action} ne '' && $FORM{action} !~ /^(?:status_json|banner_js|banner_frame)$/) {
 	my $g_sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
-	my $g_sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
-	my $g_sec_user = lc($ENV{HTTP_SEC_FETCH_USER} // '');
-	my $g_accept   = lc($ENV{HTTP_ACCEPT} // '');
 	my $g_is_script_dest = ($g_sec_dest eq 'script');
-	my $g_accept_js      = ($g_accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
-	my $g_is_nav = ($g_sec_mode eq 'navigate' || $g_sec_dest eq 'document' || $g_sec_dest eq 'frame' || $g_sec_dest eq 'iframe' || $g_sec_user eq '?1');
-	my $g_scriptish = $g_is_script_dest || (!$g_is_nav && $g_accept_js);
+	# Only block when the destination is explicitly "script"; allow XHR/fetch (dest "empty")
+	my $g_scriptish = $g_is_script_dest ? 1 : 0;
 	if ($g_scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
