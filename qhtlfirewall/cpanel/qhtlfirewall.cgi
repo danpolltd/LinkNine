@@ -392,14 +392,16 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 							}
 						}
 
-			onReady(function(){
-			// Don't inject on our own firewall UI page to avoid doubling there
-			var path = String(location.pathname || '');
-			var href = path + String(location.search || '');
-		if (/\/qhtlfirewall\.cgi(?:\?|$)/.test(href)) { return; }
+						onReady(function(){
+						// Don't inject on our own firewall UI page to avoid doubling there
+						var path = String(location.pathname || '');
+						var href = path + String(location.search || '');
+						try {
+							if (href.indexOf('/qhtlfirewall.cgi') !== -1) { return; }
+						} catch(_) {}
 			// Run only when a cpsess token is present (login pages won't have it)
 
-		function cps(){ var m=(location.pathname||'').match(/\/cpsess[^\/]+/); return m?m[0]:''; }
+	function cps(){ try { var p = String(location.pathname||''); var i = p.indexOf('/cpsess'); if (i === -1) return ''; var j = p.indexOf('/', i+8); return (j === -1) ? p.substring(i) : p.substring(i, j); } catch(_) { return ''; } }
 		function origin(){ return (location && (location.origin || (location.protocol+'//'+location.host))) || ''; }
 		var token = cps();
 		if (!token) { return; } // avoid CSRF/login redirects that return HTML
