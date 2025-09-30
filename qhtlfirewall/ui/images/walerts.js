@@ -62,8 +62,14 @@
   function navigateToTemplate(name){
     try {
       var url = baseUrl() + '?action=templates&template=' + encodeURIComponent(name);
-      // Prefer POST to mimic original form? GET is acceptable as backend reads $FORM
-      window.location.href = url;
+      var area = document.getElementById('qhtl-inline-area');
+      if (area) {
+        var u = url + (url.indexOf('?')>-1?'&':'?') + 'ajax=1';
+        if (window.jQuery) { jQuery(area).html('<div class="text-muted">Loading...</div>').load(u); }
+        else { var x=new XMLHttpRequest(); x.open('GET', u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4 && x.status>=200 && x.status<300){ area.innerHTML=x.responseText; } }; x.send(); }
+      } else {
+        window.location.href = url;
+      }
     } catch(_) {}
   }
 

@@ -7,7 +7,7 @@
         var inner = node.querySelector('.wcircle-inner');
         inner.style.cursor = 'pointer';
         inner.addEventListener('click', function(e){ e.preventDefault(); var base=(window.QHTL_SCRIPT||''); var url = base + '?action=dyndns';
-          try { var area=document.getElementById('qhtl-inline-area'); if(window.jQuery){ jQuery(area).html('<div class="text-muted">Loading…</div>').load(url); } else { var x=new XMLHttpRequest(); x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4 && x.status>=200 && x.status<300){ area.innerHTML=x.responseText; } }; x.send(); }}
+          try { var area=document.getElementById('qhtl-inline-area'); var u=url+(url.indexOf('?')>-1?'&':'?')+'ajax=1'; if(window.jQuery){ jQuery(area).html('<div class="text-muted">Loading...</div>').load(u); } else { var x=new XMLHttpRequest(); x.open('GET', u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4 && x.status>=200 && x.status<300){ area.innerHTML=x.responseText; } }; x.send(); }}
           catch(_){ try{ window.location=url; }catch(_2){ location.href=url; } }
         });
       } catch(_){ }
