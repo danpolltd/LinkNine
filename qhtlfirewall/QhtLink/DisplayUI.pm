@@ -3792,8 +3792,6 @@ QHTL_TAB_GUARD
 				."})();</script>\n";
 		# Inline content area for widget actions (load results below bubbles)
 		print "<tr><td><div id='qhtl-inline-area' style='padding-top:10px'></div></td></tr>\n";
-		# Keep restart control available
-		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallrestart'><input type='submit' class='btn btn-default' value='Restart'></form><div class='text-muted small' style='margin-top:6px'>Restart qhtlwaterfall</div></td></tr>\n";
 		print "</table>\n";
 		print "</div>\n";
 
