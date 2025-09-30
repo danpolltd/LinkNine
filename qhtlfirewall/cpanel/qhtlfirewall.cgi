@@ -165,6 +165,35 @@ if (defined $FORM{action} && $FORM{action} eq 'wstatus_js') {
 	exit 0;
 }
 
+# Serve holiday decoration assets (SVG/CSS) from known locations with strict sanitization
+if (defined $FORM{action} && $FORM{action} eq 'holiday_asset') {
+	my $name = $FORM{name} // '';
+	$name =~ s/[^a-zA-Z0-9_.-]//g; # sanitize
+	# Allowlist of files
+	my %ok = map { $_ => 1 } qw(pumpkin.svg bat.svg style.css);
+	if (!$ok{$name}) {
+		print "Content-type: application/octet-stream\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ""; exit 0;
+	}
+	my $ctype = 'application/octet-stream';
+	$ctype = 'image/svg+xml' if $name =~ /\.svg$/i;
+	$ctype = 'text/css; charset=UTF-8' if $name =~ /\.css$/i;
+	print "Content-type: $ctype\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my @paths = (
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/ui/images/holiday/$name",
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/holiday/$name",
+		"/etc/qhtlfirewall/ui/images/holiday/$name",
+		"/usr/local/qhtlfirewall/ui/images/holiday/$name",
+	);
+	my $done = 0;
+	for my $p (@paths) {
+		next unless -e $p;
+		if (open(my $FH, '<', $p)) { local $/ = undef; my $data = <$FH> // ''; close $FH; print $data; $done = 1; last; }
+	}
+	if (!$done) { print ""; }
+	exit 0;
+}
+
 if (-e "/usr/local/cpanel/bin/register_appconfig") {
 	$script = "qhtlfirewall.cgi";
 	$images = "qhtlfirewall";

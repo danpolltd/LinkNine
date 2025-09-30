@@ -101,7 +101,7 @@
       centerNearAnchor(wrap);
     }
 
-    function setBusy(text){ inner.textContent = text; inner.style.cursor='wait'; inner.setAttribute('aria-busy','true'); }
+  function setBusy(text){ inner.textContent = text; inner.style.cursor='wait'; inner.setAttribute('aria-busy','true'); }
     function setReady(text){ inner.textContent = text; inner.style.cursor='pointer'; inner.removeAttribute('aria-busy'); }
 
     // state helpers
@@ -183,7 +183,7 @@
       }
       // Restart-oriented sequence: 3s WARNING (release to restart), then 3s dim countdown (auto restart at end)
       colorOrange();
-      api._phase = 'warn';
+  api._phase = 'warn';
       inner.classList.add('blink-warn');
       var warnStart = Date.now();
       setBusy('3');
@@ -281,6 +281,17 @@
         }
       }catch(e){}
     }
+
+    // Expose a restart hook for programmatic triggers
+    api._restart = function(){
+      try {
+        if (inner.getAttribute('aria-busy') === 'true') return;
+        // start the warn->dim countdown immediately (no 3s hold)
+        doCountdownThenAct(false);
+        // show a small message below the bubble for user feedback
+        try { msg.textContent = 'Restarting via save…'; } catch(_e){}
+      } catch(_){ }
+    };
 
     // Press-and-hold for 3s, then run countdown and action
     (function(){
@@ -390,6 +401,18 @@
       }
       return false;
     } catch(e) { return false; }
+  };
+  // Programmatic restart countdown trigger: starts the warn->dim countdown and performs restart
+  // If the inline widget isn't mounted yet, attempt to mount then trigger shortly after.
+  api.restartCountdown = function(){
+    try {
+      // If a rendered instance stored a restart hook, use it
+      if (typeof api._restart === 'function') { api._restart(); return true; }
+      // Ensure it's mounted inline, then try again
+      try { api.mountInline('#wstatus-anchor'); } catch(_){ }
+      setTimeout(function(){ try { if (typeof api._restart === 'function') { api._restart(); } } catch(_){} }, 200);
+      return true;
+    } catch(_) { return false; }
   };
   api.close = function(){ remove(); };
 

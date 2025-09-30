@@ -3740,7 +3740,7 @@ QHTL_TAB_GUARD
 		  print "<div id='waterfall' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
-			  print "<tr><td>".
+		  print "<tr><td>".
 				  "<div style='display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;justify-content:center'>".
 						"<div id='wstatus-anchor' style='position:relative;display:inline-block;width:100px;height:100px'>".
 							"<div id='wstatus-fallback' class='wcircle' style='position:relative;width:100px;height:100px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;vertical-align:top;'>".
@@ -3758,6 +3758,8 @@ QHTL_TAB_GUARD
 					"<div id='wusers-anchor' style='width:100px;height:100px'></div>".
 						"</div>".
 					"</td></tr>\n";
+		# Seasonal decorations loader (Oct 1–31)
+		print "<script>(function(){ try { var d=new Date(); var m=d.getUTCMonth()+1, day=d.getUTCDate(); if (m===10 && day>=1 && day<=31) { var base=(window.QHTL_SCRIPT||'$script'); var css=document.createElement('link'); css.rel='stylesheet'; css.href=base+'?action=holiday_asset&name=style.css&v=$myv'; (document.head||document.documentElement).appendChild(css); var layer=document.createElement('div'); layer.id='qhtl-holiday-layer'; var a=document.getElementById('wstatus-anchor'); if(a){ a.style.position='relative'; a.appendChild(layer); var p=new Image(); p.src=base+'?action=holiday_asset&name=pumpkin.svg&v=$myv'; p.className='qhtl-pumpkin'; layer.appendChild(p); var b=new Image(); b.src=base+'?action=holiday_asset&name=bat.svg&v=$myv'; b.className='qhtl-bat'; b.style.top='-4px'; layer.appendChild(b); var outer=document.getElementById('wstatus-outer'); if(outer){ outer.classList.add('qhtl-halloween'); } } } } catch(e){} })();</script>\n";
 			print "<script src='$script?action=widget_js&name=wignore.js&v=$myv'></script>\n";
 			print "<script src='$script?action=widget_js&name=wdirwatch.js&v=$myv'></script>\n";
 			print "<script src='$script?action=widget_js&name=wddns.js&v=$myv'></script>\n";
@@ -4920,15 +4922,18 @@ sub savefile {
 
 	if ($restart eq "qhtlfirewall") {
 		print "<div>Changes saved. You should restart qhtlfirewall.</div>\n";
+		# Keep legacy button for firewall only (not tied to On bubble)
 		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restart'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall'></form></div>\n";
 	}
 	elsif ($restart eq "qhtlwaterfall") {
-		print "<div>Changes saved. You should restart qhtlwaterfall.</div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallrestart'><input type='submit' class='btn btn-default' value='Restart qhtlwaterfall'></form></div>\n";
+		print "<div>Changes saved. Restarting qhtlwaterfall…</div>\n";
+		# Auto-trigger the On bubble restart countdown; no manual button
+		print "<script>(function(){ try { if (window.WStatus && typeof WStatus.restartCountdown==='function') { WStatus.restartCountdown(); } else { /* ensure loader present then trigger */ var s=document.createElement('script'); s.src=(window.QHTL_SCRIPT||'$script')+'?action=wstatus_js&v=$myv'; s.onload=function(){ try{ if(window.WStatus&&WStatus.restartCountdown) WStatus.restartCountdown(); }catch(e){} }; (document.head||document.documentElement).appendChild(s); } } catch(e){} })();</script>\n";
 	}
 	elsif ($restart eq "both") {
-		print "<div>Changes saved. You should restart qhtlfirewall and qhtlwaterfall.</p>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall+qhtlwaterfall'></form></div>\n";
+		print "<div>Changes saved. Restarting qhtlwaterfall now; qhtlfirewall may also need a restart depending on your change.</div>\n";
+		# Trigger bubble restart for qhtlwaterfall; keep firewall combo button hidden to reduce clutter
+		print "<script>(function(){ try { if (window.WStatus && typeof WStatus.restartCountdown==='function') { WStatus.restartCountdown(); } else { var s=document.createElement('script'); s.src=(window.QHTL_SCRIPT||'$script')+'?action=wstatus_js&v=$myv'; s.onload=function(){ try{ if(window.WStatus&&WStatus.restartCountdown) WStatus.restartCountdown(); }catch(e){} }; (document.head||document.documentElement).appendChild(s); } } catch(e){} })();</script>\n";
 	}
 	else {
 		print "<div>Changes saved.</div>\n";
