@@ -3794,6 +3794,7 @@ QHTL_TAB_GUARD
 		print "<tr><td><div id='qhtl-inline-area' style='padding-top:10px;min-height:200px'></div></td></tr>\n";
 		# Delegate clicks and form submits inside the Waterfall tab to load into inline area
 		print "<script>(function(){\n";
+		print "  try{ console.debug('qhtl-inline-loader v20250930'); }catch(_){}\n";
 		print "  var areaId = 'qhtl-inline-area';\n";
 		print "  function sameOrigin(u){ try{ var a=document.createElement('a'); a.href=u; return (!a.host || a.host===location.host); }catch(e){ return false; } }\n";
 		print "  function isQhtlAction(u){ try{ return String(u).indexOf('?action=')!==-1; }catch(e){ return false; } }\n";
