@@ -672,13 +672,17 @@ unless ($config{STYLE_CUSTOM}) {
 # Replace any VERSION/placeholder tokens in header/footer with installed version
 for my $frag (\@header, \@footer) {
     next unless @$frag;
-    for (@$frag) {
+	for (@$frag) {
         s/\bVERSION\b/$myv/g;
         s/\bv\.?VERSION\b/v$myv/gi;
         s/\bqhtlfirewall_version\b/$myv/gi;
-		# Sanitize legacy script includes that point to our CGI without an action
-		# Convert .../qhtlink/qhtlfirewall.cgi to .../qhtlink/qhtlfirewall.cgi?action=banner_js
-		s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3 }ig;
+	# Sanitize legacy script includes that point to our CGI without an action
+	# Convert .../qhtlink/qhtlfirewall.cgi to .../qhtlink/qhtlfirewall.cgi?action=banner_js
+	s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3 }ig;
+	# Also handle cases without assuming a trailing space after the closing quote
+	s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3 }ig;
+	# Robust form without requiring whitespace after the attribute
+	s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"])}{$1$2?action=banner_js$3}ig;
 		s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(\?)(?!action=)}{$1$2$3}ig; # leave existing queries intact
     }
 }
@@ -752,7 +756,7 @@ if (defined $FORM{action} && $FORM{action} ne '' && $FORM{action} !~ /^(?:status
 	}
 }
 
-print "Content-type: text/html\r\n\r\n";
+print "Content-type: text/html\r\nX-Content-Type-Options: nosniff\r\n\r\n";
 #if ($Cpanel::Version::Tiny::major_version < 65) {$modalstyle = "style='top:120px'"}
 
 my $templatehtml;
@@ -974,7 +978,7 @@ HTML_SMART_WRAPPER
 	print <<'HTML_HEADER_ASSETS';
 	<!-- $bootstrapcss -->
 	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
-	<script src='$script?action=wstatus_js'></script>
+	<script src='$script?action=wstatus_js&v=$myv'></script>
 	<script>
 	// Fallback if wstatus.js fails to load or is blocked (e.g., MIME nosniff)
 	(function(){
@@ -1202,6 +1206,40 @@ select STDOUT;
 if (!$skip_capture && defined $templatehtml && length $templatehtml) {
 	# Do not strip inline scripts here; UI relies on them for tabs and interactions.
 	$templatehtml =~ s{(src=\s*['\"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['\"]) }{$1$2?action=banner_js$3 }ig;
+	# Also handle cases without assuming a trailing space after the closing quote
+	$templatehtml =~ s{(src=\s*['\"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['\"]) }{$1$2?action=banner_js$3 }ig;
+	# Robust form without requiring whitespace after the attribute
+	$templatehtml =~ s{(src=\s*['\"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['\"]) }{$1$2?action=banner_js$3}ig;
+
+	# Replace legacy inline loader block (starting with var areaId = 'qhtl-inline-area') with the updated, safer version
+	{
+		my $new_loader = <<'JSLOADER';
+<script>(function(){
+	try{ console.debug('qhtl-inline-loader v20250930'); }catch(_){ }
+  var areaId = 'qhtl-inline-area';
+  function sameOrigin(u){ try{ var a=document.createElement('a'); a.href=u; return (!a.host || a.host===location.host); }catch(e){ return false; } }
+  function isQhtlAction(u, form){ try{ if (String(u).indexOf('?action=')!==-1) return true; if (form && form.querySelector && form.querySelector('[name=\x61ction]')) return true; return false; }catch(e){ return false; } }
+  function loadInto(url, method, data){ try{ var area=document.getElementById(areaId); if(!area){ location.href=url; return; } if (window.jQuery){ if(method==='POST'){ jQuery(area).html('<div class="text-muted">Loading...</div>').load(url, data); } else { jQuery(area).html('<div class="text-muted">Loading...</div>').load(url); } } else { var x=new XMLHttpRequest(); x.open(method||'GET', url, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} if(method==='POST'){ try{x.setRequestHeader('Content-Type','application/x-www-form-urlencoded; charset=UTF-8');}catch(__){} } x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ area.innerHTML = x.responseText; } else { location.href=url; } } }; x.send(data||null); } } catch(e){ try{ location.href=url; }catch(_){} } }
+  var __qhtl_lastSubmitter=null;
+  function serialize(form, submitter){ try{ var p=[]; for(var i=0;i<form.elements.length;i++){ var el=form.elements[i]; if(!el || !el.name || el.disabled) continue; var t=(el.type||'').toLowerCase(); if(t==='file') continue; if((t==='checkbox'||t==='radio')&&!el.checked) continue; if(t==='submit'||t==='button'){ if(submitter && el===submitter){ p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(el.value)); } continue; } if(t==='select-multiple'){ for(var j=0;j<el.options.length;j++){ var opt=el.options[j]; if(opt.selected){ p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(opt.value)); } } continue; } p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(el.value)); } if(submitter && submitter.name){ var found=false; for(var k=0;k<form.elements.length;k++){ if(form.elements[k]===submitter){ found=true; break; } } if(!found){ p.push(encodeURIComponent(submitter.name)+'='+encodeURIComponent(submitter.value||'')); } } return p.join('&'); }catch(e){ return ''; } }
+  var root = document.getElementById('waterfall') || document;
+  root.addEventListener('click', function(ev){ var tgt=ev.target; var btn=tgt && tgt.closest ? tgt.closest('button, input[type=submit]') : null; if(btn && (String(btn.type||'').toLowerCase()==='submit')){ __qhtl_lastSubmitter=btn; } var a=tgt && tgt.closest ? tgt.closest('a') : null; if(!a) return; var href=a.getAttribute('href')||''; if(!href || href==='javascript:void(0)') return; if(!sameOrigin(href) || !isQhtlAction(href, null)) return; ev.preventDefault(); var u = href + (href.indexOf('?')>-1?'&':'?') + 'ajax=1'; loadInto(u, 'GET'); }, true);
+  root.addEventListener('submit', function(ev){ var f=ev.target; if(!f || f.tagName!=='FORM') return; var action=f.getAttribute('action')||location.pathname; if(!sameOrigin(action) || !isQhtlAction(action, f)) return; var enc=(f.enctype||''); if (enc && String(enc).toLowerCase().indexOf('multipart/form-data')!==-1) return; ev.preventDefault(); var submitter = (ev.submitter ? ev.submitter : __qhtl_lastSubmitter); var data=serialize(f, submitter); loadInto(action + (action.indexOf('?')>-1?'&':'?') + 'ajax=1', (f.method||'GET').toUpperCase(), data); }, true);
+})();</script>
+JSLOADER
+		# Replace only if we find the legacy loader signature with exact areaId marker
+		$templatehtml =~ s{<script[^>]*>\s*\(function\(\)\{\s*var\s+areaId\s*=\s*['"]qhtl-inline-area['"];.*?\}\)\(\);\s*</script>}{$new_loader}is;
+		# Also replace any script block that declares the legacy isQhtlAction(u) implementation
+		$templatehtml =~ s{<script[^>]*>[^<]*function\s+isQhtlAction\s*\(\s*u\s*\)\s*\{[^<]*?/\\\?action=/.+?</script>}{$new_loader}is;
+	}
+
+	# Ensure cache-busting is present on status and widget loaders in captured HTML
+	# Add &v=$myv to wstatus_js if missing
+	if ($myv && $myv ne 'unknown') {
+		$templatehtml =~ s{(src=\s*['"][^'"\?]+\?action=wstatus_js)(['"]) }{$1&v=$myv$2 }ig;
+		# For widget_js, append &v only if not already present
+		$templatehtml =~ s{(src=\s*['"][^'"\?]+\?action=widget_js&name=[^'"&]+)(?![^'"\>]*?&v=)(['"]) }{$1&v=$myv$2 }ig;
+	}
 	$templatehtml =~ s{(src=\s*['\"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(\?)(?!action=)}{$1$2$3}ig;
 }
 

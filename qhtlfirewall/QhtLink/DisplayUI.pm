@@ -3754,20 +3754,20 @@ QHTL_TAB_GUARD
 						"<div id='wusers-anchor' style='width:100px;height:100px'></div>".
 							"</div>".
 						"</td></tr>\n";
-			print "<script src='$script?action=widget_js&name=wignore.js'></script>\n";
-			print "<script src='$script?action=widget_js&name=wdirwatch.js'></script>\n";
-			print "<script src='$script?action=widget_js&name=wddns.js'></script>\n";
-			print "<script src='$script?action=widget_js&name=walerts.js'></script>\n";
-			print "<script src='$script?action=widget_js&name=wscanner.js'></script>\n";
-			print "<script src='$script?action=widget_js&name=wblocklist.js'></script>\n";
-			print "<script src='$script?action=widget_js&name=wusers.js'></script>\n";
+			print "<script src='$script?action=widget_js&name=wignore.js&v=$myv'></script>\n";
+			print "<script src='$script?action=widget_js&name=wdirwatch.js&v=$myv'></script>\n";
+			print "<script src='$script?action=widget_js&name=wddns.js&v=$myv'></script>\n";
+			print "<script src='$script?action=widget_js&name=walerts.js&v=$myv'></script>\n";
+			print "<script src='$script?action=widget_js&name=wscanner.js&v=$myv'></script>\n";
+			print "<script src='$script?action=widget_js&name=wblocklist.js&v=$myv'></script>\n";
+			print "<script src='$script?action=widget_js&name=wusers.js&v=$myv'></script>\n";
 			print "<script>(function(){\n"
 				."  // Ensure wstatus.js is loaded; if not, inject it now\n"
 				."  if (!window.WStatus) {\n"
 				."    try {\n"
 				."      var s=document.createElement('script');\n"
 				."      var base = (typeof QHTL_SCRIPT!=='undefined' && QHTL_SCRIPT) ? QHTL_SCRIPT : '$script';\n"
-				."      s.src = base + '?action=wstatus_js';\n"
+				."      s.src = base + '?action=wstatus_js&v=$myv';\n"
 				."      s.defer = true;\n"
 				."      (document.head||document.documentElement).appendChild(s);\n"
 				."    } catch(e){}\n"
@@ -3797,12 +3797,13 @@ QHTL_TAB_GUARD
 		print "  try{ console.debug('qhtl-inline-loader v20250930'); }catch(_){}\n";
 		print "  var areaId = 'qhtl-inline-area';\n";
 		print "  function sameOrigin(u){ try{ var a=document.createElement('a'); a.href=u; return (!a.host || a.host===location.host); }catch(e){ return false; } }\n";
-		print "  function isQhtlAction(u, form){ try{ if (String(u).indexOf('?action=')!==-1) return true; if (form && form.querySelector && form.querySelector('input[name=\\x61ction]')) return true; return false; }catch(e){ return false; } }\n";
+		print "  function isQhtlAction(u, form){ try{ if (String(u).indexOf('?action=')!==-1) return true; if (form && form.querySelector && form.querySelector('[name=\\x61ction]')) return true; return false; }catch(e){ return false; } }\n";
 	print "  function loadInto(url, method, data){ try{ var area=document.getElementById(areaId); if(!area){ location.href=url; return; } if (window.jQuery){ if(method==='POST'){ jQuery(area).html('<div class=\"text-muted\">Loading...</div>').load(url, data); } else { jQuery(area).html('<div class=\"text-muted\">Loading...</div>').load(url); } } else { var x=new XMLHttpRequest(); x.open(method||'GET', url, true); x.setRequestHeader('X-Requested-With','XMLHttpRequest'); if(method==='POST'){ x.setRequestHeader('Content-Type','application/x-www-form-urlencoded; charset=UTF-8'); } x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ area.innerHTML = x.responseText; } else { location.href=url; } } }; x.send(data||null); } } catch(e){ try{ location.href=url; }catch(_){} } }\n";
-		print "  function serialize(form){ try{ var p=[]; for(var i=0;i<form.elements.length;i++){ var el=form.elements[i]; if(!el.name || el.disabled) continue; var t=(el.type||'').toLowerCase(); if((t==='checkbox'||t==='radio')&&!el.checked) continue; p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(el.value)); } return p.join('&'); }catch(e){ return ''; } }\n";
+		print "  var __qhtl_lastSubmitter=null;\n";
+		print "  function serialize(form, submitter){ try{ var p=[]; for(var i=0;i<form.elements.length;i++){ var el=form.elements[i]; if(!el || !el.name || el.disabled) continue; var t=(el.type||'').toLowerCase(); if(t==='file') continue; if((t==='checkbox'||t==='radio')&&!el.checked) continue; if(t==='submit'||t==='button'){ if(submitter && el===submitter){ p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(el.value)); } continue; } if(t==='select-multiple'){ for(var j=0;j<el.options.length;j++){ var opt=el.options[j]; if(opt.selected){ p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(opt.value)); } } continue; } p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(el.value)); } if(submitter && submitter.name){ /* ensure submitter included even if not part of elements */ var found=false; for(var k=0;k<form.elements.length;k++){ if(form.elements[k]===submitter){ found=true; break; } } if(!found){ p.push(encodeURIComponent(submitter.name)+'='+encodeURIComponent(submitter.value||'')); } } return p.join('&'); }catch(e){ return ''; } }\n";
 		print "  var root = document.getElementById('waterfall') || document;\n";
-	print "  root.addEventListener('click', function(ev){ var a=ev.target.closest('a'); if(!a) return; var href=a.getAttribute('href')||''; if(!href || href==='javascript:void(0)') return; if(!sameOrigin(href) || !isQhtlAction(href, null)) return; ev.preventDefault(); var u = href + (href.indexOf('?')>-1?'&':'?') + 'ajax=1'; loadInto(u, 'GET'); }, true);\n";
-		print "  root.addEventListener('submit', function(ev){ var f=ev.target; if(!f || f.tagName!=='FORM') return; var action=f.getAttribute('action')||location.pathname; if(!sameOrigin(action) || !isQhtlAction(action, f)) return; var enc=(f.enctype||''); if (enc && String(enc).toLowerCase().indexOf('multipart/form-data')!==-1) return; ev.preventDefault(); var data=serialize(f); loadInto(action + (action.indexOf('?')>-1?'&':'?') + 'ajax=1', (f.method||'GET').toUpperCase(), data); }, true);\n";
+	print "  root.addEventListener('click', function(ev){ var tgt=ev.target; var btn=tgt && tgt.closest ? tgt.closest('button, input[type=submit]') : null; if(btn && (String(btn.type||'').toLowerCase()==='submit')){ __qhtl_lastSubmitter=btn; } var a=tgt && tgt.closest ? tgt.closest('a') : null; if(!a) return; var href=a.getAttribute('href')||''; if(!href || href==='javascript:void(0)') return; if(!sameOrigin(href) || !isQhtlAction(href, null)) return; ev.preventDefault(); var u = href + (href.indexOf('?')>-1?'&':'?') + 'ajax=1'; loadInto(u, 'GET'); }, true);\n";
+		print "  root.addEventListener('submit', function(ev){ var f=ev.target; if(!f || f.tagName!=='FORM') return; var action=f.getAttribute('action')||location.pathname; if(!sameOrigin(action) || !isQhtlAction(action, f)) return; var enc=(f.enctype||''); if (enc && String(enc).toLowerCase().indexOf('multipart/form-data')!==-1) return; ev.preventDefault(); var submitter = (ev.submitter ? ev.submitter : __qhtl_lastSubmitter); var data=serialize(f, submitter); loadInto(action + (action.indexOf('?')>-1?'&':'?') + 'ajax=1', (f.method||'GET').toUpperCase(), data); }, true);\n";
 		print "})();</script>\n";
 		print "</table>\n";
 		print "</div>\n";
