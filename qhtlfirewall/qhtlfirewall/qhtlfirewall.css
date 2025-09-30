@@ -313,18 +313,18 @@ td .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status),
 .tab-content td a.btn:not(.btn-watcher-bubble):not(.btn-status),
 .tab-content td input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status){
 	padding:4px 12px;
-}
-
-/* Safety: ensure tab panes are visible even if wrapper scoping changes */
-.tab-content > .tab-pane { display:none; }
-.tab-content > .tab-pane.active { display:block; }
-
-/* Watcher "water bubble" button */
-.btn-watcher-bubble {
+	--bubble-light: #ffe7c2;
+	--bubble-mid:   #ffb74d;
+	--bubble-dark:  #f57c00;
+	--bubble-border:#ff9800;
+	--bubble-glow:  rgba(255,152,0,0.45);
 	position: relative;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
+	border-radius: 999px;
+	border: 1px solid var(--bubble-border);
+	background: radial-gradient(circle at 30% 30%, var(--bubble-light) 0%, var(--bubble-mid) 45%, var(--bubble-dark) 85%);
+	color: #111 !important;
+	font-weight: 600;
+	padding: 6px 16px;
 	/* Slightly reduced height (~15%) */
 	padding: 5px 12px;
 	min-width: 110px;
