@@ -275,7 +275,23 @@
   }
 
   api.open = function(){ try { var node = render({ inline: false }); return !!node; } catch(e){ return false; } };
-  api.mountInline = function(anchor){ try { var el = anchor; if (typeof anchor === 'string') { el = document.querySelector(anchor); } if(el){ try { while(el.firstChild) el.removeChild(el.firstChild); } catch(_){} } return !!render({ inline: true, anchor: el }); } catch(e){ return false; } };
+  api.mountInline = function(anchor){
+    try {
+      var el = anchor;
+      if (typeof anchor === 'string') { el = document.querySelector(anchor); }
+      if (el) {
+        try { while (el.firstChild) el.removeChild(el.firstChild); } catch(_){}
+        // Render with inline:true to ensure .inline class and position:relative
+        var node = render({ inline: true, anchor: el });
+        if (node && node.classList && !node.classList.contains('inline')) {
+          node.classList.add('inline');
+          node.style.position = 'relative';
+        }
+        return !!node;
+      }
+      return false;
+    } catch(e) { return false; }
+  };
   api.close = function(){ remove(); };
 
   // auto-wire global
