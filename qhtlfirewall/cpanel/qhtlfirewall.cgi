@@ -166,7 +166,7 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 
 	my $is_disabled = -e "/etc/qhtlfirewall/qhtlfirewall.disable" ? 1 : 0;
 	my $is_test     = $cfg{TESTING} ? 1 : 0;
-	# Determine running state by PID file first; fall back to iptables chain
+	# Determine running state of the qhtlwaterfall daemon: PID file, then systemd
 	my $run_ok = 0; my $ipt_ok = 0;
 	eval {
 		my @pidfiles = ('/var/run/qhtlwaterfall.pid','/run/qhtlwaterfall.pid');
@@ -176,15 +176,6 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 				my $pid = <$PF>; close $PF; chomp $pid; $pid =~ s/\D//g;
 				if ($pid && -d "/proc/$pid") { $run_ok = 1; last PIDFILE; }
 			}
-		}
-		if (!$run_ok) {
-			my ($childin, $childout);
-			my $pid = open3($childin, $childout, $childout, "$cfg{IPTABLES} $cfg{IPTABLESWAIT} -L LOCALINPUT -n");
-			my @iptstatus = <$childout>;
-			waitpid($pid, 0);
-			chomp @iptstatus;
-			if ($iptstatus[0] && $iptstatus[0] =~ /# Warning: iptables-legacy tables present/) { shift @iptstatus }
-			$ipt_ok = ($iptstatus[0] && $iptstatus[0] =~ /^Chain LOCALINPUT/) ? 1 : 0;
 		}
 		# As a last resort, consult systemd (non-fatal if unavailable)
 		my $systemctl = (-x '/bin/systemctl') ? '/bin/systemctl' : ((-x '/usr/bin/systemctl') ? '/usr/bin/systemctl' : undef);
@@ -198,11 +189,23 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 		1;
 	} or do { };
 
+	# Optional: keep iptables status for future use, but do NOT use it to infer daemon running
+	eval {
+		my ($childin, $childout);
+		my $pid = open3($childin, $childout, $childout, "$cfg{IPTABLES} $cfg{IPTABLESWAIT} -L LOCALINPUT -n");
+		my @iptstatus = <$childout>;
+		waitpid($pid, 0);
+		chomp @iptstatus;
+		if ($iptstatus[0] && $iptstatus[0] =~ /# Warning: iptables-legacy tables present/) { shift @iptstatus }
+		$ipt_ok = ($iptstatus[0] && $iptstatus[0] =~ /^Chain LOCALINPUT/) ? 1 : 0;
+		1;
+	} or do { $ipt_ok = 0; };
+
 	my ($enabled, $running, $class, $text, $status_key);
 	if ($is_disabled) {
 		# Disabled state
 		($enabled, $running, $class, $text, $status_key) = (0, 0, 'danger', 'Disabled', 'disabled_stopped');
-	} elsif ($run_ok || $ipt_ok) {
+	} elsif ($run_ok) {
 		# Running
 		if ($is_test) {
 			($enabled, $running, $class, $text, $status_key) = (1, 1, 'warning', 'Testing', 'enabled_test');
@@ -219,8 +222,8 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 
 	# Simple JSON response, no external modules required here
 	my $json = sprintf(
-		'{"enabled":%d,"running":%d,"test_mode":%d,"status":"%s","text":"%s","class":"%s","version":"%s"}',
-		$enabled, $running, $is_test, $status_key, $text, $class, $myv
+		'{"enabled":%d,"running":%d,"test_mode":%d,"status":"%s","text":"%s","class":"%s","iptables_ok":%d,"version":"%s"}',
+		$enabled, $running, $is_test, $status_key, $text, $class, $ipt_ok, $myv
 	);
 	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\n\r\n";
 	print $json;
