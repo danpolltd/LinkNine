@@ -14,6 +14,7 @@
     s.id = 'wstatus-style';
     s.textContent = [
       '#'+popupId+'{ position:absolute; width:100px; height:100px; border-radius:50%; display:flex; align-items:center; justify-content:center; z-index:1050;}',
+      '#'+popupId+'.inline{ position:relative; }',
       '#'+outerId+'{ position:absolute; inset:0; border-radius:50%; background: radial-gradient(circle at 30% 30%, #e3f9e7 0%, #b4f2c1 50%, #7fdc95 85%); box-shadow: 0 6px 18px rgba(0,0,0,0.25), inset 0 2px 6px rgba(255,255,255,0.6); }',
       '#'+innerId+'{ position:relative; width:80px; height:80px; border-radius:50%; border:2px solid #2f8f49; background: linear-gradient(180deg, #66e08a 0%, #34a853 100%); color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 8px 16px rgba(52,168,83,0.35); }',
       '#'+innerId+':hover{ filter: brightness(1.06); }',
@@ -56,22 +57,30 @@
     } catch(_) { document.body.appendChild(container); }
   }
 
-  function render(){
+  function render(opts){
+    opts = opts || {};
+    var inline = !!opts.inline;
+    var inlineAnchor = opts.anchor || null;
     ensureStyles();
     remove();
-    var host = findAnchor();
+    var host = inline ? (inlineAnchor || findAnchor()) : findAnchor();
     var wrap = document.createElement('div');
     wrap.id = popupId;
     wrap.setAttribute('role','dialog');
     wrap.setAttribute('aria-label','Waterfall status');
     wrap.style.pointerEvents = 'auto';
+    if (inline) { wrap.className = 'inline'; }
 
     var outer = document.createElement('div'); outer.id = outerId;
     var inner = document.createElement('div'); inner.id = innerId; inner.textContent = 'On';
     var msg = document.createElement('div'); msg.id = msgId; msg.textContent = '';
 
     wrap.appendChild(outer); wrap.appendChild(inner); wrap.appendChild(msg);
-    centerNearAnchor(wrap);
+    if (inline) {
+      try { host.appendChild(wrap); } catch(_) { document.body.appendChild(wrap); }
+    } else {
+      centerNearAnchor(wrap);
+    }
 
     function setBusy(text){ inner.textContent = text; inner.style.cursor='wait'; inner.setAttribute('aria-busy','true'); }
     function setReady(text){ inner.textContent = text; inner.style.cursor='pointer'; inner.removeAttribute('aria-busy'); }
@@ -119,11 +128,13 @@
     function onTimeout(){ try { window.clearInterval(api._pollTimer); } catch(_){} api._pollTimer=null; setReady('On'); msg.textContent='Timed out'; }
 
     inner.addEventListener('click', function(e){ e.preventDefault(); if(inner.getAttribute('aria-busy')==='true') return false; doCountdownThenRestart(); return false; });
-    // allow click outside to dismiss
-    setTimeout(function(){
-      function outside(e){ try{ if (!wrap.contains(e.target)) { remove(); document.removeEventListener('click', outside, true); } }catch(_){} }
-      document.addEventListener('click', outside, true);
-    }, 0);
+    if (!inline) {
+      // allow click outside to dismiss
+      setTimeout(function(){
+        function outside(e){ try{ if (!wrap.contains(e.target)) { remove(); document.removeEventListener('click', outside, true); } }catch(_){} }
+        document.addEventListener('click', outside, true);
+      }, 0);
+    }
 
     api._state = { visible:true };
     return wrap;
@@ -151,7 +162,8 @@
     else { el.classList.add('success'); }
   }
 
-  api.open = function(){ try { var node = render(); return !!node; } catch(e){ return false; } };
+  api.open = function(){ try { var node = render({ inline: false }); return !!node; } catch(e){ return false; } };
+  api.mountInline = function(anchor){ try { var el = anchor; if (typeof anchor === 'string') { el = document.querySelector(anchor); } return !!render({ inline: true, anchor: el }); } catch(e){ return false; } };
   api.close = function(){ remove(); };
 
   // auto-wire global

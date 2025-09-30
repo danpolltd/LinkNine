@@ -3740,9 +3740,9 @@ QHTL_TAB_GUARD
 	  print "<div id='waterfall' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
-	  print "<tr><td><div id='wstatus-anchor' style='position:relative;display:inline-block'>".
-		  "<button type='button' class='btn btn-default' onclick=\"return (window.WStatus?WStatus.open():false);\">Status</button>".
-		  "</div><div class='text-muted small' style='margin-top:6px'>Display qhtlwaterfall status</div></td></tr>\n";
+	  print "<tr><td><div id='wstatus-anchor' style='position:relative;display:inline-block;width:100px;height:100px'></div>".
+		  "<div class='text-muted small' style='margin-top:6px'>Display qhtlwaterfall status</div></td></tr>\n";
+	  print "<script>(function(){ try { if (window.WStatus) { WStatus.mountInline('#wstatus-anchor'); } else { document.addEventListener('DOMContentLoaded', function(){ if (window.WStatus) { WStatus.mountInline('#wstatus-anchor'); } }); } } catch(e){} })();</script>\n";
 		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallrestart'><input type='submit' class='btn btn-default' value='Restart'></form><div class='text-muted small' style='margin-top:6px'>Restart qhtlwaterfall</div></td></tr>\n";
 		print "<tr><td style='white-space: nowrap;'><form action='$script' method='post'><input type='hidden' name='action' value='ignorefiles'><select name='ignorefile'>\n";
 		print "<option value='qhtlfirewall.ignore'>qhtlfirewall.ignore - IP Blocking</option>\n";
