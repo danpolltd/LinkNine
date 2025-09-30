@@ -3805,9 +3805,6 @@ QHTL_TAB_GUARD
 		print "<tr><td><form action='$script' method='post'><select name='template'>\n";
 		foreach my $tmp ("alert.txt","tracking.txt","connectiontracking.txt","processtracking.txt","accounttracking.txt","usertracking.txt","sshalert.txt","webminalert.txt","sualert.txt","sudoalert.txt","uialert.txt","cpanelalert.txt","scriptalert.txt","filealert.txt","watchalert.txt","loadalert.txt","resalert.txt","integrityalert.txt","exploitalert.txt","relayalert.txt","portscan.txt","uidscan.txt","permblock.txt","netblock.txt","queuealert.txt","logfloodalert.txt","logalert.txt","modsecipdbcheck.txt") {print "<option>$tmp</option>\n"}
 		print "</select> <button name='action' value='templates' type='submit' class='btn btn-default'>Edit</button></form><div class='text-muted small' style='margin-top:6px'>Edit email alert templates. See Firewall Information for details of each file</div></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='logfiles' type='submit' class='btn btn-default'>Log Scanner Files</button></form><div class='text-muted small' style='margin-top:6px'>Edit the Log Scanner file (qhtlfirewall.logfiles) - Scan listed log files for log lines and periodically send a report</div></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='blocklists' type='submit' class='btn btn-default'>Blocklists</button></form><div class='text-muted small' style='margin-top:6px'>Edit the Blocklists configuration file (qhtlfirewall.blocklists)</div></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='syslogusers' type='submit' class='btn btn-default'>Syslog Users</button></form><div class='text-muted small' style='margin-top:6px'>Edit the syslog/rsyslog allowed users file (qhtlfirewall.syslogusers)</div></td></tr>\n";
 		print "</table>\n";
 		print "</div>\n";
 

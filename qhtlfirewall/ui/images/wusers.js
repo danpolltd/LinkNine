@@ -1,6 +1,17 @@
 (function(){
   window.WUsers = {
-    mountInline: function(anchor){ try { var el = typeof anchor==='string'?document.querySelector(anchor):anchor; if(!el) return false; ensure(); el.appendChild(make('Users')); return true; } catch(e){ return false; } }
+    mountInline: function(anchor){
+      try {
+        var el = typeof anchor==='string'?document.querySelector(anchor):anchor; if(!el) return false; ensure(); var node = make('Users');
+        try {
+          var inner = node.querySelector('.wcircle-inner');
+          inner.style.cursor = 'pointer';
+          inner.addEventListener('click', function(e){ e.preventDefault(); var base=(window.QHTL_SCRIPT||''); var url = base + '?action=syslogusers'; try{ window.location = url; } catch(_){ location.href = url; } });
+        } catch(_){ }
+        el.appendChild(node);
+        return true;
+      } catch(e){ return false; }
+    }
   };
   function ensure(){ if(document.getElementById('wwidget-style')) return; var s=document.createElement('style'); s.id='wwidget-style'; s.textContent=[
     '.wcircle{ position:relative; width:100px; height:100px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; vertical-align:top; }',
