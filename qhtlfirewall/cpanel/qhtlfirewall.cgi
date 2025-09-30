@@ -1134,7 +1134,8 @@ print <<HTML_HEADER_ASSETS;
 	  }catch(_){ }
 	})();
 		</script>
-		<!-- Rely on WHM's built-in jQuery/Bootstrap to avoid header/layout side-effects -->
+		$jqueryjs
+		<!-- Keep Bootstrap disabled here to avoid header/layout side-effects; we only need jQuery for inline scripts. -->
 		<style>
 HTML_HEADER_ASSETS
 	}
