@@ -17,24 +17,39 @@ use lib '/usr/local/qhtlfirewall/lib';
 require QhtLink::Slurp;
 
 use lib '/usr/local/cpanel';
-require Cpanel::Form;
-require Cpanel::Config;
-require Whostmgr::ACLS;
-require Cpanel::Rlimit;
-require Cpanel::Template;
-require Cpanel::Version::Tiny;
+# IMPORTANT: Do NOT require cPanel modules here; some environments lack optional deps (e.g., Class::XSAccessor)
+# We'll require them after lightweight endpoints are handled.
 ###############################################################################
 # start main
 
 our ($reseller, $script, $images, %rprivs, $myv, %FORM);
+# Minimal GET query parser to avoid pulling cPanel deps early
+sub _qhtl_parse_get_query {
+	my $qs = $ENV{QUERY_STRING} // '';
+	my %h;
+	for my $pair (split /[&;]/, $qs) {
+		next unless length $pair;
+		my ($k,$v) = split(/=/, $pair, 2);
+		for ($k,$v) {
+			$_ = '' unless defined $_;
+			s/\+/ /g;
+			s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
+		}
+		$h{$k} = $v;
+	}
+	return %h;
+}
 
-Whostmgr::ACLS::init_acls();
-
-%FORM = Cpanel::Form::parseform();
+%FORM = _qhtl_parse_get_query();
+my $is_ajax = 0;
+eval {
+	my $xrw = lc($ENV{HTTP_X_REQUESTED_WITH} // '');
+	if ($xrw eq 'xmlhttprequest' || (defined $FORM{ajax} && $FORM{ajax} =~ /^(?:1|true|yes)$/i)) { $is_ajax = 1; }
+	1;
+} or do { $is_ajax = 0; };
 
 ## Postpone config and regex setup until after lightweight endpoints
-
-Cpanel::Rlimit::set_rlimit_to_infinity();
+# Avoid calling cPanel Rlimit before we ensure cPanel deps are available
 
 # Defensive: if this CGI is requested in a script-like context without an action, return a JS no-op.
 # Simple rule: only consider it script-like when Sec-Fetch-Dest=script or Accept indicates JavaScript.
@@ -47,13 +62,136 @@ if (!defined $FORM{action} || $FORM{action} eq '') {
 	my $accept_js      = ($accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
 	# Consider it a normal navigation if Sec-Fetch indicates navigation/document/frame or a user gesture is present
 	my $is_nav = ($sec_mode eq 'navigate' || $sec_dest eq 'document' || $sec_dest eq 'frame' || $sec_dest eq 'iframe' || $sec_user eq '?1');
-	# Treat script-like only when clearly a script destination, or when Accept looks like JS AND it's not a navigation
-	my $scriptish = $is_script_dest || (!$is_nav && $accept_js);
+	my $accepts_html = ($accept =~ /\btext\/html\b/);
+	# Treat as script-like when destination is script, OR when not a nav and the Accept header does NOT include text/html
+	# This catches Firefox script fetches that often use Accept: */* and do not send Sec-Fetch headers.
+	my $scriptish = $is_script_dest || (!$is_nav && !$accepts_html) || (!$is_nav && $accept_js);
 	if ($scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
 		exit 0;
 	}
+}
+
+# Serve wstatus.js via controlled endpoint to guarantee correct MIME and avoid nosniff issues on static paths
+if (defined $FORM{action} && $FORM{action} eq 'diag') {
+	my $ok = 0;
+	my $out = '';
+	eval {
+		# Simple JSON escaper (sufficient for our values)
+		my $esc = sub {
+			my ($s) = @_;
+			$s = '' unless defined $s;
+			$s =~ s/\\/\\\\/g;  # backslashes
+			$s =~ s/\"/\\\"/g;  # quotes
+			$s =~ s/\r/\\r/g;     # CR
+			$s =~ s/\n/\\n/g;     # LF
+			$s =~ s/\t/\\t/g;     # TAB
+			return $s;
+		};
+		my $j = '{'
+		  . '"version":"' . $esc->($myv) . '",' 
+		  . '"is_ajax":' . ($is_ajax ? 1 : 0) . ','
+		  . '"sec_fetch":{'
+			  . '"dest":"' . $esc->($sec_dest) . '",' 
+			  . '"mode":"' . $esc->($sec_mode) . '",' 
+			  . '"user":"' . $esc->($sec_user) . '"},'
+		  . '"accept":"' . $esc->($accept) . '",' 
+		  . '"rule":"noaction => js-noop when (dest==script) OR (not navigate AND Accept not text/html)",' 
+		  . '"now":"' . $esc->(scalar localtime()) . '"' 
+		  . '}';
+		$out = $j;
+		$ok = 1;
+		1;
+	} or do {
+		$ok = 0;
+		$out = $@ || 'diag failed';
+	};
+	if ($ok) {
+		print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print $out;
+	} else {
+		print "Content-type: text/plain\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print "diag error: ".$out."\n";
+	}
+	exit 0;
+}
+if (defined $FORM{action} && $FORM{action} eq 'widget_js') {
+	my %allowed = map { $_ => 1 } qw(
+		wignore.js wdirwatch.js wddns.js walerts.js wscanner.js wblocklist.js wusers.js
+	);
+	my $name = $FORM{name} // '';
+	$name =~ s/[^a-zA-Z0-9_.-]//g; # sanitize
+	if (!$allowed{$name}) {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my @paths = (
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/ui/images/$name",
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/$name",
+		"/etc/qhtlfirewall/ui/images/$name",
+		"/usr/local/qhtlfirewall/ui/images/$name",
+	);
+	my $done = 0;
+	for my $p (@paths) {
+		next unless -e $p;
+		if (open(my $FH, '<', $p)) {
+			local $/ = undef; my $data = <$FH> // ''; close $FH; print $data; $done = 1; last;
+		}
+	}
+	if (!$done) { print ";\n"; }
+	exit 0;
+}
+
+# Serve wstatus.js via controlled endpoint to guarantee correct MIME and avoid nosniff issues
+if (defined $FORM{action} && $FORM{action} eq 'wstatus_js') {
+	print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my @paths = (
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/ui/images/wstatus.js",
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/wstatus.js",
+		"/etc/qhtlfirewall/ui/images/wstatus.js",
+		"/usr/local/qhtlfirewall/ui/images/wstatus.js",
+	);
+	my $done = 0;
+	for my $p (@paths) {
+		next unless -e $p;
+		if (open(my $FH, '<', $p)) {
+			local $/ = undef; my $data = <$FH> // ''; close $FH; print $data; $done = 1; last;
+		}
+	}
+	if (!$done) { print ";\n"; }
+	exit 0;
+}
+
+# Serve holiday decoration assets (SVG/CSS) from known locations with strict sanitization
+if (defined $FORM{action} && $FORM{action} eq 'holiday_asset') {
+	my $name = $FORM{name} // '';
+	$name =~ s/[^a-zA-Z0-9_.-]//g; # sanitize
+	# Allowlist of files
+	my %ok = map { $_ => 1 } qw(pumpkin.svg bat.svg style.css);
+	if (!$ok{$name}) {
+		print "Content-type: application/octet-stream\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ""; exit 0;
+	}
+	my $ctype = 'application/octet-stream';
+	$ctype = 'image/svg+xml' if $name =~ /\.svg$/i;
+	$ctype = 'text/css; charset=UTF-8' if $name =~ /\.css$/i;
+	print "Content-type: $ctype\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my @paths = (
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/ui/images/holiday/$name",
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/holiday/$name",
+		"/etc/qhtlfirewall/ui/images/holiday/$name",
+		"/usr/local/qhtlfirewall/ui/images/holiday/$name",
+	);
+	my $done = 0;
+	for my $p (@paths) {
+		next unless -e $p;
+		if (open(my $FH, '<', $p)) { local $/ = undef; my $data = <$FH> // ''; close $FH; print $data; $done = 1; last; }
+	}
+	if (!$done) { print ""; }
+	exit 0;
 }
 
 if (-e "/usr/local/cpanel/bin/register_appconfig") {
@@ -82,8 +220,8 @@ if (open(my $IN, '<', '/etc/qhtlfirewall/version.txt')) {
 if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 	# If this endpoint is accidentally loaded as a <script>, emit a JS no-op to avoid parse errors
 	my $sj_sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
-	my $sj_accept   = lc($ENV{HTTP_ACCEPT} // '');
-	if ($sj_sec_dest eq 'script' || $sj_accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/) {
+	# Allow XHR/fetch (Sec-Fetch-Dest usually "empty"); only block when explicitly requested as a script
+	if ($sj_sec_dest eq 'script') {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
 		exit 0;
@@ -107,7 +245,30 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 
 	my $is_disabled = -e "/etc/qhtlfirewall/qhtlfirewall.disable" ? 1 : 0;
 	my $is_test     = $cfg{TESTING} ? 1 : 0;
-	my $ipt_ok      = 0;
+	# Determine running state of the qhtlwaterfall daemon: PID file, then systemd
+	my $run_ok = 0; my $ipt_ok = 0;
+	eval {
+		my @pidfiles = ('/var/run/qhtlwaterfall.pid','/run/qhtlwaterfall.pid');
+		PIDFILE: for my $pidfile (@pidfiles) {
+			next unless -r $pidfile;
+			if (open(my $PF, '<', $pidfile)) {
+				my $pid = <$PF>; close $PF; chomp $pid; $pid =~ s/\D//g;
+				if ($pid && -d "/proc/$pid") { $run_ok = 1; last PIDFILE; }
+			}
+		}
+		# As a last resort, consult systemd (non-fatal if unavailable)
+		my $systemctl = (-x '/bin/systemctl') ? '/bin/systemctl' : ((-x '/usr/bin/systemctl') ? '/usr/bin/systemctl' : undef);
+		if (!$run_ok && !$ipt_ok && $systemctl) {
+			my ($cin,$cout);
+			my $sp = open3($cin, $cout, $cout, $systemctl,'is-active','qhtlwaterfall.service');
+			my @out = <$cout>; waitpid($sp, 0);
+			my $ans = lc(join('', @out)); $ans =~ s/\s+//g;
+			if ($ans eq 'active') { $run_ok = 1; }
+		}
+		1;
+	} or do { };
+
+	# Optional: keep iptables status for future use, but do NOT use it to infer daemon running
 	eval {
 		my ($childin, $childout);
 		my $pid = open3($childin, $childout, $childout, "$cfg{IPTABLES} $cfg{IPTABLESWAIT} -L LOCALINPUT -n");
@@ -116,30 +277,251 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 		chomp @iptstatus;
 		if ($iptstatus[0] && $iptstatus[0] =~ /# Warning: iptables-legacy tables present/) { shift @iptstatus }
 		$ipt_ok = ($iptstatus[0] && $iptstatus[0] =~ /^Chain LOCALINPUT/) ? 1 : 0;
-	};
+		1;
+	} or do { $ipt_ok = 0; };
 
 	my ($enabled, $running, $class, $text, $status_key);
 	if ($is_disabled) {
 		# Disabled state
 		($enabled, $running, $class, $text, $status_key) = (0, 0, 'danger', 'Disabled', 'disabled_stopped');
-	} elsif (!$ipt_ok) {
+	} elsif ($run_ok) {
+		# Running
+		if ($is_test) {
+			($enabled, $running, $class, $text, $status_key) = (1, 1, 'warning', 'Testing', 'enabled_test');
+		} else {
+			($enabled, $running, $class, $text, $status_key) = (1, 1, 'success', 'Enabled', 'enabled_running');
+		}
+	} elsif ($is_test) {
+		# Testing requested but process not detected
+		($enabled, $running, $class, $text, $status_key) = (1, 0, 'warning', 'Testing', 'enabled_test');
+	} else {
 		# Not running
 		($enabled, $running, $class, $text, $status_key) = (1, 0, 'danger', 'Stopped', 'enabled_stopped');
-	} elsif ($is_test) {
-		# Testing mode
-		($enabled, $running, $class, $text, $status_key) = (1, 1, 'warning', 'Testing', 'enabled_test');
-	} else {
-		# Fully operational
-		($enabled, $running, $class, $text, $status_key) = (1, 1, 'success', 'Enabled', 'enabled_running');
 	}
 
 	# Simple JSON response, no external modules required here
 	my $json = sprintf(
-		'{"enabled":%d,"running":%d,"test_mode":%d,"status":"%s","text":"%s","class":"%s","version":"%s"}',
-		$enabled, $running, $is_test, $status_key, $text, $class, $myv
+		'{"enabled":%d,"running":%d,"test_mode":%d,"status":"%s","text":"%s","class":"%s","iptables_ok":%d,"version":"%s"}',
+		$enabled, $running, $is_test, $status_key, $text, $class, $ipt_ok, $myv
 	);
 	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\n\r\n";
 	print $json;
+	exit 0;
+}
+
+# Diagnostic endpoint to verify routing, headers, and version on live servers
+if (defined $FORM{action} && $FORM{action} eq 'diag') {
+	my %info = (
+		version     => $myv // 'unknown',
+		is_ajax     => $is_ajax ? 1 : 0,
+		sec_fetch   => {
+			dest => $sec_dest,
+			mode => $sec_mode,
+			user => $sec_user,
+		},
+		accept      => $accept,
+		script_like_noaction_logic => 'noaction => js-noop when (dest==script) OR (not navigate AND Accept not text/html)',
+		now         => scalar localtime(),
+	);
+	# Render compact JSON without external modules
+	my $json = '{'
+		. '"version":"'.($info{version} =~ s/"/\\"/gr).'",'
+		. '"is_ajax":'.($info{is_ajax} ? 1 : 0).','
+		. '"sec_fetch":{'
+			. '"dest":"'.($info{sec_fetch}{dest} =~ s/"/\\"/gr).'",' 
+			. '"mode":"'.($info{sec_fetch}{mode} =~ s/"/\\"/gr).'",' 
+			. '"user":"'.($info{sec_fetch}{user} =~ s/"/\\"/gr).'"},'
+		. '"accept":"'.($info{accept} =~ s/"/\\"/gr).'",' 
+		. '"rule":"'.$info{script_like_noaction_logic}.'",'
+		. '"now":"'.($info{now} =~ s/"/\\"/gr).'"' 
+		. '}';
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	print $json;
+	exit 0;
+}
+
+# Lightweight API to (re)start qhtlwaterfall via qhtlfirewall -q
+if (defined $FORM{action} && $FORM{action} eq 'api_restartq') {
+	# Prevent browsers from treating this as a script include
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	# Allow XHR/fetch and form POSTs; only block when explicitly loaded as a script
+	my $scriptish = ($sec_dest eq 'script');
+	if ($scriptish) {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	my $ok = 0; my $err = '';
+	eval {
+		my $rc = system('/usr/sbin/qhtlfirewall','-q');
+		if ($rc == 0) { $ok = 1; } else { $err = 'exec_failed'; }
+		1;
+	} or do { $err = 'exception'; };
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	if ($ok) { print '{"ok":1}'; } else { print '{"ok":0,"error":"'.$err.'"}'; }
+	exit 0;
+}
+
+# Lightweight API to start qhtlwaterfall daemon via systemd
+if (defined $FORM{action} && $FORM{action} eq 'api_startwf') {
+	# Prevent browsers from treating this as a script include
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	my $scriptish = ($sec_dest eq 'script');
+	if ($scriptish) {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	my $ok = 0; my $err = '';
+	eval {
+		# Prefer systemd
+		my $systemctl = (-x '/bin/systemctl') ? '/bin/systemctl' : ((-x '/usr/bin/systemctl') ? '/usr/bin/systemctl' : undef);
+		if ($systemctl) {
+			my $rc = system($systemctl,'start','qhtlwaterfall.service');
+			$ok = ($rc == 0) ? 1 : 0;
+			$err = 'systemctl_failed' if !$ok;
+		} else {
+			# Fallback: attempt to exec the daemon directly in background
+			my $pid = fork();
+			if (!defined $pid) { $ok = 0; $err = 'fork_failed'; }
+			elsif ($pid == 0) { exec('/usr/sbin/qhtlwaterfall'); exit 0; }
+			else { $ok = 1; }
+		}
+		1;
+	} or do { $err = 'exception'; };
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	if ($ok) { print '{"ok":1}'; } else { print '{"ok":0,"error":"'.$err.'"}'; }
+	exit 0;
+}
+
+# Lightweight API to restart qhtlwaterfall daemon via systemd
+if (defined $FORM{action} && $FORM{action} eq 'api_restartwf') {
+	# Prevent browsers from treating this as a script include
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	my $scriptish = ($sec_dest eq 'script');
+	if ($scriptish) {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	my $ok = 0; my $err = '';
+	eval {
+		# Prefer systemd restart; otherwise flag + best-effort signal
+		my $systemctl = (-x '/bin/systemctl') ? '/bin/systemctl' : ((-x '/usr/bin/systemctl') ? '/usr/bin/systemctl' : undef);
+		if ($systemctl) {
+			my $rc = system($systemctl,'restart','qhtlwaterfall.service');
+			$ok = ($rc == 0) ? 1 : 0;
+			$err = 'systemctl_failed' if !$ok;
+		} else {
+			# Create restart flag for daemon to self-restart if running
+			eval { open(my $OUT, '>', '/var/lib/qhtlfirewall/qhtlwaterfall.restart'); close $OUT; 1; };
+			# Try to HUP the daemon if PID is known (optional)
+			eval {
+				my $pid='';
+				for my $pf ('/var/run/qhtlwaterfall.pid','/run/qhtlwaterfall.pid') {
+					if (-r $pf) { open(my $P,'<',$pf); $pid=<$P>; close $P; chomp $pid; $pid=~s/\D//g; last; }
+				}
+				if ($pid) { kill 'HUP', $pid; }
+				1;
+			};
+			$ok = 1; # best-effort on non-systemd systems
+		}
+		1;
+	} or do { $err = 'exception'; };
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	if ($ok) { print '{"ok":1}'; } else { print '{"ok":0,"error":"'.$err.'"}'; }
+	exit 0;
+}
+
+# Lightweight API to stop qhtlwaterfall daemon via systemd (without disabling firewall)
+if (defined $FORM{action} && $FORM{action} eq 'api_stopwf') {
+	# Prevent browsers from treating this as a script include
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	my $scriptish = ($sec_dest eq 'script');
+	if ($scriptish) {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	my $ok = 0; my $err = '';
+	eval {
+		my $systemctl = (-x '/bin/systemctl') ? '/bin/systemctl' : ((-x '/usr/bin/systemctl') ? '/usr/bin/systemctl' : undef);
+		if ($systemctl) {
+			my $rc = system($systemctl,'stop','qhtlwaterfall.service');
+			$ok = ($rc == 0) ? 1 : 0;
+			$err = 'systemctl_failed' if !$ok;
+		} else {
+			# Best-effort: try to signal the daemon via PID file
+			my $pid='';
+			for my $pf ('/var/run/qhtlwaterfall.pid','/run/qhtlwaterfall.pid') {
+				if (-r $pf) { open(my $P,'<',$pf); $pid=<$P>; close $P; chomp $pid; $pid=~s/\D//g; last; }
+			}
+			if ($pid) { eval { kill 'TERM', $pid; 1; }; $ok = 1; } else { $ok = 0; $err = 'no_systemd_no_pid'; }
+		}
+		1;
+	} or do { $err = 'exception'; };
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	if ($ok) { print '{"ok":1}'; } else { print '{"ok":0,"error":"'.$err.'"}'; }
+	exit 0;
+}
+
+# Lightweight API to completely disable firewall and stop waterfall
+if (defined $FORM{action} && $FORM{action} eq 'api_disablewf') {
+	# Prevent browsers from treating this as a script include
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	my $scriptish = ($sec_dest eq 'script');
+	if ($scriptish) {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	my $ok = 0; my $err = '';
+	eval {
+		# First, ask qhtlfirewall to disable itself (creates disable flag and stops rules)
+		my $rc1 = system('/usr/sbin/qhtlfirewall','-x');
+		# Then, best-effort stop the waterfall service via systemd if present
+		my $rc2 = 0; my $systemctl = (-x '/bin/systemctl') ? '/bin/systemctl' : ((-x '/usr/bin/systemctl') ? '/usr/bin/systemctl' : undef);
+		if ($systemctl) {
+			$rc2 = system($systemctl,'stop','qhtlwaterfall.service');
+		}
+		# Consider it ok if qhtlfirewall -x succeeded; systemctl stop may be a no-op on oneshot
+		if ($rc1 == 0) { $ok = 1; } else { $err = 'qhtlfirewall_disable_failed'; }
+		1;
+	} or do { $err = 'exception'; };
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	if ($ok) { print '{"ok":1}'; } else { print '{"ok":0,"error":"'.$err.'"}'; }
+	exit 0;
+}
+
+# Back-compat: handle qhtlwaterfallrestart both for navigation and XHR
+if (defined $FORM{action} && $FORM{action} eq 'qhtlwaterfallrestart') {
+	my $sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	my $is_nav = ($sec_mode eq 'navigate' || $sec_dest eq 'document' || $sec_dest eq 'frame' || $sec_dest eq 'iframe');
+	my $systemctl = (-x '/bin/systemctl') ? '/bin/systemctl' : ((-x '/usr/bin/systemctl') ? '/usr/bin/systemctl' : undef);
+	my $ok = 0; my $err='';
+	eval {
+		if ($systemctl) {
+			my $rc = system($systemctl,'restart','qhtlwaterfall.service');
+			$ok = ($rc == 0) ? 1 : 0;
+			$err = 'systemctl_failed' if !$ok;
+		} else {
+			# Create flag so daemon restarts itself
+			eval { open(my $OUT, '>', '/var/lib/qhtlfirewall/qhtlwaterfall.restart'); close $OUT; 1; };
+			$ok = 1;
+		}
+		1;
+	} or do { $err = 'exception'; };
+	if ($is_nav) {
+		print "Content-type: text/html\r\n\r\n";
+		print "<div style='padding:10px'><h4>Restart qhtlwaterfall</h4>";
+		print $ok ? "<div class='alert alert-success'>Restart issued.</div>" : "<div class='alert alert-danger'>Restart failed ($err)</div>";
+	# Legacy Return button removed; navigation can be done via tabs or browser back
+	print "</div>";
+	} else {
+		print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		if ($ok) { print '{"ok":1}'; } else { print '{"ok":0,"error":"'.$err.'"}'; }
+	}
 	exit 0;
 }
 
@@ -175,14 +557,16 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 							}
 						}
 
-			onReady(function(){
-			// Don't inject on our own firewall UI page to avoid doubling there
-			var path = String(location.pathname || '');
-			var href = path + String(location.search || '');
-		if (/\/qhtlfirewall\.cgi(?:\?|$)/.test(href)) { return; }
+						onReady(function(){
+						// Don't inject on our own firewall UI page to avoid doubling there
+						var path = String(location.pathname || '');
+						var href = path + String(location.search || '');
+						try {
+							if (href.indexOf('/qhtlfirewall.cgi') !== -1) { return; }
+						} catch(_) {}
 			// Run only when a cpsess token is present (login pages won't have it)
 
-		function cps(){ var m=(location.pathname||'').match(/\/cpsess[^\/]+/); return m?m[0]:''; }
+	function cps(){ try { var p = String(location.pathname||''); var i = p.indexOf('/cpsess'); if (i === -1) return ''; var j = p.indexOf('/', i+8); return (j === -1) ? p.substring(i) : p.substring(i, j); } catch(_) { return ''; } }
 		function origin(){ return (location && (location.origin || (location.protocol+'//'+location.host))) || ''; }
 		var token = cps();
 		if (!token) { return; } // avoid CSRF/login redirects that return HTML
@@ -272,20 +656,12 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 						existing.style.boxShadow = 'inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 14px '+(sty.glow||'rgba(0,0,0,0.15)');
 						existing.textContent = sty.txt;
 						existing.style.borderRadius = '999px';
-						// Scale down ~30% for WHM header badge
+						// Keep compact badge without forcing font size or extra margins to avoid header shrink
 						existing.style.padding = '4px 8px';
 						existing.style.minWidth = '67px';
-						existing.style.fontSize = '12px';
 						existing.style.display = 'inline-flex';
 						existing.style.alignItems = 'center';
 						existing.style.justifyContent = 'center';
-						// ensure wrapper provides space for glow on all sides
-						var wrap = existing.parentElement;
-						if (wrap && wrap.tagName && wrap.tagName.toUpperCase()==='A') {
-							wrap.style.marginTop = '7px';
-							wrap.style.marginBottom = '7px';
-							wrap.style.marginRight = '7px';
-						}
 						return true;
 					}
 					// Build clickable link to the Firewall UI (cpsess-aware)
@@ -294,10 +670,7 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					a.target = '_self';
 					a.setAttribute('aria-label','Open QhtLink Firewall');
 					a.style.textDecoration = 'none';
-					// 7px from top and right edge per request
-					a.style.marginTop = '7px';
-					a.style.marginBottom = '7px';
-					a.style.marginRight = '7px';
+					// Avoid margins that could influence header layout sizing
 					// Inner badge span for color/status
 					var span = document.createElement('span');
 					span.id = 'qhtlfw-header-badge';
@@ -311,7 +684,6 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 					// inset highlight + outer glow for bubble feel
 					span.style.boxShadow = 'inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 14px '+(sty.glow||'rgba(0,0,0,0.15)');
 					span.style.minWidth = '67px';
-					span.style.fontSize = '12px';
 					span.style.display = 'inline-flex';
 					span.style.alignItems = 'center';
 					span.style.justifyContent = 'center';
@@ -333,6 +705,47 @@ if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
 JS
 		;
 		exit 0;
+}
+
+# Lightweight JSON for Watcher log list (avoids template capture)
+if (defined $FORM{action} && $FORM{action} eq 'watcher_meta_logs') {
+	eval {
+		my @data = ();
+		# Safely read syslogs file
+		if (-r '/etc/qhtlfirewall/qhtlfirewall.syslogs') {
+			open(my $IN, '<', '/etc/qhtlfirewall/qhtlfirewall.syslogs');
+			@data = <$IN>; close $IN;
+		}
+		# Expand Include lines
+		my @expanded = ();
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my $inc = $1; $inc =~ s/[\r\n]+$//;
+				if (-r $inc) { eval { open(my $A,'<',$inc); my @x=<$A>; close $A; push @expanded, @x; 1; }; }
+			} else { push @expanded, $line; }
+		}
+		@data = sort @expanded;
+		my @opts = (); my $cnt=0; my $default = '/var/log/qhtlwaterfall.log';
+		foreach my $file (@data) {
+			$file =~ s/[\r\n]+$//; next if $file eq '';
+			next if $file =~ /^\s*#/ || $file =~ /\bInclude\b/;
+			my @globfiles = ($file =~ /[\*\?\[]/) ? glob($file) : ($file);
+			foreach my $gf (@globfiles) {
+				if (-f $gf) {
+					my $size = (stat($gf))[7]; $size = defined $size ? int($size/1024) : 0;
+					my $sel = ($gf eq $default) ? 1 : 0;
+					$gf =~ s/"/\\"/g; # escape quotes for JSON label
+					push @opts, { value => $cnt, label => "$gf ($size kb)", selected => $sel };
+					$cnt++;
+				}
+			}
+		}
+		# Emit JSON array
+		print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		my @parts = map { '{"value":'.($_->{value}+0).',"label":"'.$_->{label}.'","selected":'.(($_->{selected})?1:0).'}' } @opts;
+		print '['.join(',', @parts).']';
+	};
+	exit 0;
 }
 
 	# Minimal HTML banner for iframe embedding (no JS required in parent)
@@ -397,12 +810,27 @@ JS
 		exit 0;
 	}
 
-## From here onwards, load full config and regex helpers, then resolve reseller ACLs
-require QhtLink::Config;
-my $config = QhtLink::Config->loadconfig();
-my %config = $config->config;
-my $slurpreg = QhtLink::Slurp->slurpreg;
-my $cleanreg = QhtLink::Slurp->cleanreg;
+	## From here onwards, load full config and regex helpers, then resolve reseller ACLs
+	# Now that lightweight endpoints are done, it's safe to pull in cPanel modules
+	require Cpanel::Form;
+	require Cpanel::Config;
+	require Whostmgr::ACLS;
+	require Cpanel::Rlimit;
+	require Cpanel::Template;
+	require Cpanel::Version::Tiny;
+
+	# Parse full form (including POST) with cPanel's parser when available
+	eval { %FORM = Cpanel::Form::parseform(); 1; };
+
+	Cpanel::Rlimit::set_rlimit_to_infinity();
+
+	require QhtLink::Config;
+	my $config = QhtLink::Config->loadconfig();
+	my %config = $config->config;
+	my $slurpreg = QhtLink::Slurp->slurpreg;
+	my $cleanreg = QhtLink::Slurp->cleanreg;
+
+Whostmgr::ACLS::init_acls();
 
 foreach my $line (QhtLink::Slurp::slurp("/etc/qhtlfirewall/qhtlfirewall.resellers")) {
 	$line =~ s/$cleanreg//g;
@@ -453,14 +881,20 @@ unless ($config{STYLE_CUSTOM}) {
 # Replace any VERSION/placeholder tokens in header/footer with installed version
 for my $frag (\@header, \@footer) {
     next unless @$frag;
-    for (@$frag) {
+	for (@$frag) {
         s/\bVERSION\b/$myv/g;
         s/\bv\.?VERSION\b/v$myv/gi;
         s/\bqhtlfirewall_version\b/$myv/gi;
-		# Sanitize legacy script includes that point to our CGI without an action
-		# Convert .../qhtlink/qhtlfirewall.cgi to .../qhtlink/qhtlfirewall.cgi?action=banner_js
-		s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3 }ig;
-		s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(\?)(?!action=)}{$1$2$3}ig; # leave existing queries intact
+	# Sanitize legacy script includes that point to our CGI without an action
+	# Convert .../qhtlink/qhtlfirewall.cgi to .../qhtlink/qhtlfirewall.cgi?action=banner_js
+	s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3 }ig;
+	# Also handle cases without assuming a trailing space after the closing quote
+	s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3 }ig;
+	# Robust form without requiring whitespace after the attribute
+	s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3}ig;
+	# If a query exists but no action= present, insert action=banner_js at the start of the query string
+	s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)\?(?![^'"\>]*?action=)([^'"\>]*)(['"]) }{$1$2?action=banner_js&$3$4 }ig;
+	s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)\?(?![^'"\>]*?action=)([^'"\>]*)(['"]) }{$1$2?action=banner_js&$3$4}ig;
     }
 }
 
@@ -519,17 +953,21 @@ if ($Cpanel::Version::Tiny::major_version >= 65) {
 	}
 }
 
-# If an action other than our lightweight endpoints is being requested in a script-like context,
-# emit a JS no-op to prevent browsers from parsing full HTML as JavaScript.
-if (defined $FORM{action} && $FORM{action} ne '' && $FORM{action} !~ /^(?:status_json|banner_js|banner_frame)$/) {
+# If an action other than our lightweight endpoints is being requested in a true script-like context,
+# emit a JS no-op to prevent browsers from parsing full HTML as JavaScript. Do not block XHR/fetch.
+if (defined $FORM{action} && $FORM{action} ne '' && $FORM{action} !~ /^(?:status_json|banner_js|banner_frame|diag)$/) {
 	my $g_sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
-	my $g_sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
-	my $g_sec_user = lc($ENV{HTTP_SEC_FETCH_USER} // '');
-	my $g_accept   = lc($ENV{HTTP_ACCEPT} // '');
 	my $g_is_script_dest = ($g_sec_dest eq 'script');
-	my $g_accept_js      = ($g_accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
-	my $g_is_nav = ($g_sec_mode eq 'navigate' || $g_sec_dest eq 'document' || $g_sec_dest eq 'frame' || $g_sec_dest eq 'iframe' || $g_sec_user eq '?1');
-	my $g_scriptish = $g_is_script_dest || (!$g_is_nav && $g_accept_js);
+	my $g_sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
+	my $g_accept   = lc($ENV{HTTP_ACCEPT} // '');
+	my $g_is_nav   = ($g_sec_mode eq 'navigate' || $g_sec_dest eq 'document' || $g_sec_dest eq 'frame' || $g_sec_dest eq 'iframe');
+	my $g_accepts_html = ($g_accept =~ /\btext\/html\b/);
+    # Treat explicit XHR/fetch or ajax=1 as safe (not script-like)
+    my $g_is_ajax_hdr = (lc($ENV{HTTP_X_REQUESTED_WITH} // '') eq 'xmlhttprequest');
+    my $g_has_ajax_qs = (defined $FORM{ajax} && $FORM{ajax} =~ /^(?:1|true|yes)$/i) ? 1 : 0;
+	# Block when explicitly a script destination, OR when not a navigation and Accept does not include text/html
+	my $g_scriptish = ($g_is_script_dest || (!$g_is_nav && !$g_accepts_html)) ? 1 : 0;
+    if ($g_is_ajax_hdr || $g_has_ajax_qs) { $g_scriptish = 0; }
 	if ($g_scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
@@ -537,32 +975,35 @@ if (defined $FORM{action} && $FORM{action} ne '' && $FORM{action} !~ /^(?:status
 	}
 }
 
-print "Content-type: text/html\r\n\r\n";
+print "Content-type: text/html\r\nX-Content-Type-Options: nosniff\r\n\r\n";
 #if ($Cpanel::Version::Tiny::major_version < 65) {$modalstyle = "style='top:120px'"}
 
 my $templatehtml;
 my $SCRIPTOUT;
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
+my $skip_capture = (
+	$FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist"
+);
+# For AJAX requests, do not skip capture—always capture so we can return bare content
+$skip_capture = 0 if $is_ajax;
+unless ($skip_capture) {
 #	open(STDERR, ">&STDOUT");
 	open ($SCRIPTOUT, '>', \$templatehtml);
 	select $SCRIPTOUT;
 
-	# Provide a smart wrapper so clicking Watcher waits briefly for modal init before falling back
-	print <<EOF;
+	# Provide a direct modal opener for Watcher without fallback navigation
+	if (!$is_ajax) {
+print <<HTML_SMART_WRAPPER;
 <script>
 (function(){
-	function fallback(){ try{ window.location='$script?action=logtail'; }catch(e){ window.location='$script?action=logtail'; } }
 	window.__qhtlOpenWatcherSmart = function(){
-		// Prefer calling the real opener if present; avoid calling the smart wrapper via window.openWatcher to prevent recursion
-		if (window.__qhtlQuickViewShim && typeof window.__qhtlRealOpenWatcher==='function') { try{ window.__qhtlRealOpenWatcher(); } catch(e){ fallback(); } return false; }
+		if (window.__qhtlQuickViewShim && typeof window.__qhtlRealOpenWatcher==='function') { try{ window.__qhtlRealOpenWatcher(); } catch(e){} return false; }
 		var attempts = 0, iv = setInterval(function(){
 			attempts++;
 			if (window.__qhtlQuickViewShim && typeof window.__qhtlRealOpenWatcher==='function'){
 				clearInterval(iv);
-				try{ window.__qhtlRealOpenWatcher(); } catch(e){ fallback(); }
-			} else if (attempts >= 30) { // ~3s total
+				try{ window.__qhtlRealOpenWatcher(); } catch(e){}
+			} else if (attempts >= 30) {
 				clearInterval(iv);
-				fallback();
 			}
 		}, 100);
 		return false;
@@ -587,7 +1028,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			}
 			modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='none'; modal.style.zIndex='9999';
 			var dialog = document.createElement('div');
-			dialog.style.width='660px'; dialog.style.maxWidth='95%'; dialog.style.height='500px'; dialog.style.background='#fff'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='absolute'; dialog.style.top='50%'; dialog.style.left='50%'; dialog.style.transform='translate(-50%, -50%)'; dialog.style.margin='0';
+			dialog.style.width='660px'; dialog.style.maxWidth='95%'; dialog.style.height='500px'; dialog.style.background='linear-gradient(180deg, #f7fafc 0%, #ffffff 40%, #f7fafc 100%)'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='absolute'; dialog.style.top='50%'; dialog.style.left='50%'; dialog.style.transform='translate(-50%, -50%)'; dialog.style.margin='0';
 			var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflowX='hidden'; body.style.overflowY='auto'; body.style.padding='10px'; body.style.minHeight='0';
 			var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';
 			// Header-right container for countdown next to title
@@ -637,7 +1078,40 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			right.style.display='inline-flex'; right.style.alignItems='center'; right.style.gap='8px';
 			right.appendChild(btnCol); right.appendChild(closeBtn);
 			// Populate log options
-			function populateLogs(){ try{ var xhr=new XMLHttpRequest(); xhr.open('GET', '$script?action=logtailcmd&meta=1', true); xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){ var opts = JSON.parse(xhr.responseText||'[]'); logSelect.innerHTML=''; for(var i=0;i<opts.length;i++){ var o=document.createElement('option'); o.value=opts[i].value; o.textContent=opts[i].label; if(opts[i].selected){ o.selected=true; } logSelect.appendChild(o);} } }; xhr.send(); }catch(e){} }
+			function populateLogs(){
+				try{
+					var xhr = new XMLHttpRequest();
+					// Direct JSON endpoint (no scaffolding)
+					var url = '$script?action=watcher_meta_logs';
+					xhr.open('GET', url, true);
+					try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){ }
+					xhr.onreadystatechange = function(){
+						if (xhr.readyState === 4){
+							if (xhr.status >= 200 && xhr.status < 300){
+								var text = xhr.responseText || '[]';
+								try {
+									var opts = JSON.parse(text);
+									logSelect.innerHTML = '';
+									for (var i=0;i<opts.length;i++){
+										var o = document.createElement('option');
+										o.value = opts[i].value;
+										o.textContent = opts[i].label;
+										if (opts[i].selected){ o.selected = true; }
+										logSelect.appendChild(o);
+									}
+								} catch(parseErr){
+									// If server sent HTML (e.g., login), stay in modal and show a hint
+									try { var b=document.getElementById('quickViewBodyShim'); if(b){ b.innerHTML = "<div class='alert alert-warning'>Unable to load log list (login or permissions required). Try reloading the page.</div>"; } } catch(__){}
+								}
+							} else {
+								// Non-2xx: keep modal open and show an error
+								try { var b2=document.getElementById('quickViewBodyShim'); if(b2){ b2.innerHTML = "<div class='alert alert-danger'>Failed to load log list ("+xhr.status+").</div>"; } } catch(__){}
+							}
+						}
+					};
+					xhr.send();
+				}catch(e){}
+			}
 			// Refresh logic: 5s autocheck or 1s real-time mode; in-flight guard
 			var watcherPaused=false, watcherTick=5, watcherTimerId=null, watcherMode='auto'; window.__qhtlWatcherMode = 'auto'; window.__qhtlWatcherLoading = false;
 			// Define normal and more intense color sets for mode/state emphasis
@@ -658,7 +1132,7 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			}
 			function scheduleTick(){ if(watcherTimerId){ clearInterval(watcherTimerId);} watcherTick=5; var mode = window.__qhtlWatcherMode || watcherMode; if(mode==='auto'){ refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } else { refreshLabel.textContent=' '; timerSpan.textContent='live mode'; }
 				updateIntensity();
-				watcherTimerId=setInterval(function(){ if(watcherPaused){ return; } if(window.__qhtlWatcherLoading){ return; }
+				watcherTimerId=setInterval(function(){ if(watcherPaused){ return; } if(window.__qhtlWatcherLoading){ return; } if(window.__qhtlWatcherClosed){ return; }
 					if((window.__qhtlWatcherMode||watcherMode)==='auto'){
 						watcherTick--; timerSpan.textContent=String(watcherTick);
 						if(watcherTick<=0){ doRefresh(); watcherTick=5; timerSpan.textContent=String(watcherTick); }
@@ -670,13 +1144,13 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			}
 			window.__qhtlScheduleTick = scheduleTick;
 			function setWatcherMode(mode){ watcherMode = (mode==='live') ? 'live' : 'auto'; window.__qhtlWatcherMode = watcherMode; window.__qhtlWatcherState = { lines: [] }; if(watcherMode==='live'){ refreshBtn.textContent='Real Time'; refreshLabel.textContent=' '; timerSpan.textContent='live mode'; } else { refreshBtn.textContent='Autocheck'; refreshLabel.textContent=' Refresh in '; timerSpan.textContent=String(watcherTick); } updateIntensity(); scheduleTick(); }
-			function doRefresh(){ if(window.__qhtlWatcherLoading){ return; } var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0'); quickViewLoad(url); }
+			function doRefresh(){ if(window.__qhtlWatcherLoading){ return; } if(window.__qhtlWatcherClosed){ return; } var url='$script?action=logtailcmd&lines='+encodeURIComponent(linesInput.value||'100')+'&lognum='+encodeURIComponent(logSelect.value||'0')+'&ajax=1'; quickViewLoad(url); }
 			// Mode toggle: Autocheck (5s) <-> Real Time (1s)
 			refreshBtn.addEventListener('click', function(e){ e.preventDefault(); setWatcherMode(watcherMode==='auto' ? 'live' : 'auto'); });
 			pauseBtn.addEventListener('click', function(e){ e.preventDefault(); watcherPaused=!watcherPaused; pauseBtn.textContent=watcherPaused?'Start':'Pause'; updateIntensity(); });
 			logSelect.addEventListener('change', function(){ window.__qhtlWatcherState = { lines: [] }; doRefresh(); scheduleTick(); });
 			linesInput.addEventListener('change', function(){ window.__qhtlWatcherState = { lines: [] }; doRefresh(); scheduleTick(); });
-			closeBtn.addEventListener('click', function(){ if(watcherTimerId){ clearInterval(watcherTimerId); watcherTimerId=null; } if(typeof dialog!=='undefined' && dialog){ dialog.classList.remove('fire-blue'); } modal.style.display='none'; });
+			closeBtn.addEventListener('click', function(){ if(watcherTimerId){ clearInterval(watcherTimerId); watcherTimerId=null; } window.__qhtlWatcherClosed = true; if(typeof dialog!=='undefined' && dialog){ dialog.classList.remove('fire-blue'); } modal.style.display='none'; });
 			populateLogs();
 			// Initialize emphasis based on defaults (auto mode, not paused)
 			updateIntensity();
@@ -686,91 +1160,48 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			inner.appendChild(headerBar); inner.appendChild(body);
 			footer.appendChild(left); footer.appendChild(mid); footer.appendChild(right);
 			dialog.appendChild(inner); dialog.appendChild(footer); modal.appendChild(dialog); parent.appendChild(modal);
-			modal.addEventListener('click', function(e){ if(e.target===modal){ if(typeof dialog!=='undefined' && dialog){ dialog.classList.remove('fire-blue'); } modal.style.display='none'; } });
+			modal.addEventListener('click', function(e){ if(e.target===modal){ if(watcherTimerId){ clearInterval(watcherTimerId); watcherTimerId=null; } window.__qhtlWatcherClosed = true; if(typeof dialog!=='undefined' && dialog){ dialog.classList.remove('fire-blue'); } modal.style.display='none'; } });
 			return modal;
 		}
 
-		function quickViewLoad(url, done){ var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal(); var b=document.getElementById('quickViewBodyShim'); if(!b){ return; } if(!window.__qhtlWatcherMode || window.__qhtlWatcherMode !== 'live'){ b.innerHTML='Loading...'; } var x=new XMLHttpRequest(); window.__qhtlWatcherLoading=true; x.open('GET', url, true); x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200&&x.status<300){ var html=x.responseText || ''; // safely remove any <script> tags without embedding a literal closing tag marker in this inline script
-				try {
-					// Preserve HTML line breaks before stripping markup. Avoid lookahead to prevent line terminators in regex literal.
-					html = String(html).replace(/<br\\s*\\\/?>(?:)/gi, '\\n');
-					var tmp = document.createElement('div');
-					tmp.innerHTML = html;
-					var scripts = tmp.getElementsByTagName('script');
-					while (scripts.length) { scripts[0].parentNode.removeChild(scripts[0]); }
-					// Use text content to treat payload as plain text, then render one line per row
-					html = tmp.textContent || '';
-				} catch(e){}
-				// Render each line separately with truncation (no wrapping)
-				var text = (html||'').replace(/\\r\\n/g,'\\n').replace(/\\r/g,'\\n');
-				var parsed = text.split(String.fromCharCode(10));
-				// Normalize: drop a single trailing blank line
-				if (parsed.length && parsed[parsed.length-1] === '') { parsed.pop(); }
-				var lines = parsed;
-				b.style.fontFamily='SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
-				// Tail-like append in real-time mode when prior state exists and new content is an extension
-				var state = window.__qhtlWatcherState || { lines: [] };
-				var appended = false;
-				if (window.__qhtlWatcherMode==='live' && state.lines && state.lines.length && lines.length >= state.lines.length) {
-					var isExtension = true;
-					for (var pi=0; pi<state.lines.length; pi++){
-						if (state.lines[pi] !== lines[pi]) { isExtension = false; break; }
-					}
-					if (isExtension) {
-						// Append only new lines
-						var frag = document.createDocumentFragment();
-						for (var ai=state.lines.length; ai<lines.length; ai++){
-							var l = lines[ai];
-							var divA = document.createElement('div');
-							divA.textContent = l;
-							divA.title = l;
-							divA.style.whiteSpace='nowrap'; divA.style.overflow='hidden'; divA.style.textOverflow='ellipsis'; divA.style.width='100%'; divA.style.boxSizing='border-box';
-							frag.appendChild(divA);
+		function quickViewLoad(url, done){
+			var m=document.getElementById('quickViewModalShim') || ensureQuickViewModal();
+			var b=document.getElementById('quickViewBodyShim');
+			if(!b){ return; }
+			if(window.__qhtlWatcherClosed){ return; }
+			if(!window.__qhtlWatcherMode || window.__qhtlWatcherMode !== 'live'){
+				b.textContent='Loading...';
+			}
+			var x=new XMLHttpRequest();
+			window.__qhtlWatcherLoading=true;
+			x.open('GET', url, true);
+			try{ x.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(__){}
+			x.onreadystatechange=function(){
+				if(x.readyState===4){
+					try{
+						if(x.status>=200 && x.status<300){
+							var html = x.responseText || '';
+							// Note: Scripts inserted via innerHTML generally do not execute; this is acceptable for log output.
+							b.innerHTML = html;
+							// Auto-scroll to bottom if not in live mode; in live mode, respect user scroll position
+							if (window.__qhtlWatcherMode !== 'live') {
+								try { b.scrollTop = b.scrollHeight; } catch(_) {}
+							}
+							if (typeof done==='function') { try{ done(); }catch(_){} }
+						} else {
+							b.innerHTML = "<div class='alert alert-danger'>Failed to load content ("+x.status+"). Staying in Quick View.</div>";
 						}
-						b.appendChild(frag);
-						appended = true;
+					} finally {
+						window.__qhtlWatcherLoading=false;
 					}
 				}
-				if (!appended){
-					var frag = document.createDocumentFragment();
-					for (var i=0;i<lines.length;i++){
-						var line = lines[i];
-						var div = document.createElement('div');
-						div.textContent = line;
-						div.title = line; // full text on hover
-						div.style.whiteSpace = 'nowrap';
-						div.style.overflow = 'hidden';
-						div.style.textOverflow = 'ellipsis';
-						div.style.width = '100%';
-						div.style.boxSizing = 'border-box';
-						frag.appendChild(div);
-					}
-					if (window.__qhtlWatcherMode==='live'){
-						// In live mode when we cannot append (e.g., truncation/rotation), avoid flicker by replacing children efficiently
-						while (b.firstChild) b.removeChild(b.firstChild);
-						b.appendChild(frag);
-					} else {
-						b.innerHTML='';
-						b.appendChild(frag);
-					}
-				}
-				// Update state
-				window.__qhtlWatcherState = { lines: lines };
-				// Scroll to bottom so the newest lines are visible; respect manual scroll-up in live mode
-				try {
-					var raf = (window.requestAnimationFrame||function(f){setTimeout(f,0)});
-					var shouldStick = true;
-					if (window.__qhtlWatcherMode==='live'){
-						var nearBottom = (b.scrollHeight - b.clientHeight - b.scrollTop) < 24; // 24px tolerance
-						shouldStick = nearBottom;
-					}
-					raf(function(){ if(shouldStick){ b.scrollTop = b.scrollHeight; } });
-				} catch(e){ if(shouldStick){ b.scrollTop = b.scrollHeight; } }
-				if (typeof done==='function') done();
-				} else { b.innerHTML = "<div class='alert alert-danger'>Failed to load content</div>"; } } finally { window.__qhtlWatcherLoading=false; } } }; x.send(); m.style.display='block'; }
+			};
+			x.send(null);
+			if(!window.__qhtlWatcherClosed){ m.style.display='block'; }
+		}
 
 		// Global watcher opener that sets size and starts auto-refresh
-		window.__qhtlRealOpenWatcher = function(){ var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){
+		window.__qhtlRealOpenWatcher = function(){ window.__qhtlWatcherClosed = false; var m=ensureQuickViewModal(); var t=document.getElementById('quickViewTitleShim'); var d=m.querySelector('div'); t.textContent='Watcher'; if(d){
 			var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
 			var w = (parent && parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? (parent.clientWidth || window.innerWidth) : window.innerWidth;
 			var h = (parent && parent.classList && parent.classList.contains('qhtl-bubble-bg')) ? (parent.clientHeight || window.innerHeight) : window.innerHeight;
@@ -782,59 +1213,98 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 			d.style.position='absolute'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0';
 		}
 				// Ensure blue pulsating glow CSS exists and apply class
-				(function(){ var css=document.getElementById('qhtl-blue-style'); if(!css){ css=document.createElement('style'); css.id='qhtl-blue-style'; css.textContent=String.fromCharCode(64)+'keyframes qhtl-blue {0%,100%{box-shadow: 0 0 12px 5px rgba(0,123,255,0.55), 0 0 20px 9px rgba(0,123,255,0.3);}50%{box-shadow: 0 0 22px 12px rgba(0,123,255,0.95), 0 0 36px 16px rgba(0,123,255,0.55);}} .fire-blue{ animation: qhtl-blue 2.2s infinite ease-in-out; }'; document.head.appendChild(css);} if(d){ d.classList.add('fire-blue'); } var bodyEl=document.getElementById('quickViewBodyShim'); if(bodyEl){ /* 50% brighter than glow base (#007bff) by mixing with white */ bodyEl.style.background='linear-gradient(180deg, rgb(127,189,255) 0%, rgb(159,205,255) 100%)'; bodyEl.style.borderRadius='4px'; bodyEl.style.padding='10px'; } })();
+				(function(){ var css=document.getElementById('qhtl-blue-style'); if(!css){ css=document.createElement('style'); css.id='qhtl-blue-style'; css.textContent=String.fromCharCode(64)+'keyframes qhtl-blue {0%,100%{box-shadow: 0 0 12px 5px rgba(0,123,255,0.55), 0 0 20px 9px rgba(0,123,255,0.3);}50%{box-shadow: 0 0 22px 12px rgba(0,123,255,0.95), 0 0 36px 16px rgba(0,123,255,0.55);}} .fire-blue{ animation: qhtl-blue 2.2s infinite ease-in-out; }'; document.head.appendChild(css);} if(d){ d.classList.add('fire-blue'); } var bodyEl=document.getElementById('quickViewBodyShim'); if(bodyEl){ bodyEl.style.background='white'; bodyEl.style.borderRadius='4px'; bodyEl.style.padding='10px'; } })();
 			// initial load and start timer (no synthetic change event to avoid loops)
-			(function(){ var ls=document.getElementById('watcherLines'), sel=document.getElementById('watcherLogSelect'); var url='$script?action=logtailcmd&lines='+(ls?encodeURIComponent(ls.value||'100'):'100')+'&lognum='+(sel?encodeURIComponent(sel.value||'0'):'0'); quickViewLoad(url, function(){ var timer=document.getElementById('watcherTimer'); if(timer){ timer.textContent='5'; } if(typeof setWatcherMode==='function'){ setWatcherMode('auto'); } else if(window.__qhtlScheduleTick){ window.__qhtlScheduleTick(); } }); })();
+			(function(){ var ls=document.getElementById('watcherLines'), sel=document.getElementById('watcherLogSelect'); var url='$script?action=logtailcmd&lines='+(ls?encodeURIComponent(ls.value||'100'):'100')+'&lognum='+(sel?encodeURIComponent(sel.value||'0'):'0')+'&ajax=1'; quickViewLoad(url, function(){ var timer=document.getElementById('watcherTimer'); if(timer){ timer.textContent='5'; } if(typeof setWatcherMode==='function'){ setWatcherMode('auto'); } else if(window.__qhtlScheduleTick){ window.__qhtlScheduleTick(); } }); })();
 				m.style.display='block'; return false; };
 		// Also expose the real opener on the original name for direct callers
 		window.openWatcher = window.__qhtlRealOpenWatcher;
 	}
 })();
 </script>
-EOF
+HTML_SMART_WRAPPER
+}
 
-	print <<EOF;
-	<!-- $bootstrapcss -->
-	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
+		if (!$is_ajax) {
+print <<HTML_HEADER_ASSETS;
+				<!-- Intentionally omit Bootstrap CSS here to avoid WHM header/layout side-effects -->
+				<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
+				<!-- Provide a stable absolute script URL for all inline widgets/APIs (resolves WHM token path) -->
+				<script>
+					(function(){
+						try {
+							var loc = window.location || {};
+							var origin = loc.origin || (loc.protocol + '//' + loc.host);
+							var m = (loc.pathname||'').match(/\/cpsess\d+/);
+							var token = m ? m[0] : '';
+							// Build absolute path to our CGI, e.g., https://host:2087/cpsessXXXX/cgi/qhtlink/qhtlfirewall.cgi
+							window.QHTL_SCRIPT = origin + token + '/cgi/qhtlink/' + '$script';
+						} catch(e) {
+							// Fallback: relative script name (works when already inside our CGI context)
+							window.QHTL_SCRIPT = '$script';
+						}
+					})();
+				</script>
+				<script src='$script?action=wstatus_js&v=$myv'></script>
+		<script>
+	// Fallback if wstatus.js fails to load or is blocked (e.g., MIME nosniff)
+	(function(){
+	  try{
+	    if (!window.WStatus) {
+	      window.WStatus = {
+	        open: function(){
+	          try { window.location = '$script?action=qhtlwaterfallstatus'; } catch(_){ window.location='?action=qhtlwaterfallstatus'; }
+	          return false;
+	        }
+	      };
+	    }
+	  }catch(_){ }
+	})();
+		</script>
 	$jqueryjs
+	<!-- Enable Bootstrap JS for modals/popovers used by Quick Actions and Promo (CSS intentionally not included) -->
 	$bootstrapjs
-<style>
-.toplink {
-top: 140px;
-}
-.mobilecontainer {
-display:none;
-}
-.normalcontainer {
-display:block;
-}
-EOF
-	if ($config{STYLE_MOBILE} or $reseller) {
-		# On small screens, allow the optional mobilecontainer to display,
-		# but do NOT hide the normalcontainer (tabs live there). This keeps
-		# the tabbed UI visible on mobile while still allowing any simplified
-		# mobile elements to show if present.
-		print <<EOF;
-\@media (max-width: 600px) {
-.mobilecontainer {
-	display:block;
-}
-.normalcontainer {
-	display:block;
-}
-}
-EOF
+		<style>
+HTML_HEADER_ASSETS
 	}
-	print "</style>\n";
-	print @header;
+	if (!$is_ajax) {
+	print <<'HTML_INLINE_CSS';
+	.toplink {
+	top: 140px;
+	}
+	.mobilecontainer {
+	display:none;
+	}
+	.normalcontainer {
+	display:block;
+	}
+HTML_INLINE_CSS
+	}
+	if ($config{STYLE_MOBILE} or $reseller) {
+	    	# On small screens, allow the optional mobilecontainer to display,
+	    	# but do NOT hide the normalcontainer (tabs live there). This keeps
+	    	# the tabbed UI visible on mobile while still allowing any simplified
+	    	# mobile elements to show if present.
+	    	if (!$is_ajax) {
+	print <<'HTML_MEDIA_CSS';
+	\@media (max-width: 600px) {
+	.mobilecontainer { display:block; }
+	.normalcontainer { display:block; }
+	}
+HTML_MEDIA_CSS
+	    	}
+	}
+	if (!$is_ajax) { print "</style>\n"; print @header; }
 
-	print <<'EXTRA_BUBBLE_STYLE';
-	<style id="qhtl-plugin-bubble-style">
-	  /* Water bubble highlight for the plugin header status */
-	  #qhtl-status-btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; text-shadow:0 1px 2px rgba(0,0,0,0.25); }
-	  #qhtl-status-btn::before{ content:''; position:absolute; top:4px; left:10px; right:10px; height:40%; border-radius:999px; background:linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0)); pointer-events:none; }
-	</style>
+	if (!$is_ajax) {
+print <<'EXTRA_BUBBLE_STYLE';
+<style id="qhtl-plugin-bubble-style">
+  /* Water bubble highlight for the plugin header status */
+  #qhtl-status-btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; text-shadow:0 1px 2px rgba(0,0,0,0.25); }
+  #qhtl-status-btn::before{ content:''; position:absolute; top:4px; left:10px; right:10px; height:40%; border-radius:999px; background:linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0)); pointer-events:none; }
+</style>
 EXTRA_BUBBLE_STYLE
+}
 }
 
 
@@ -848,7 +1318,8 @@ eval {
 
 
 # After UI module is loaded and modal JS is injected, render header and Watcher button
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
+# Do not render the header panel for AJAX inline loads
+unless ($skip_capture || $is_ajax) {
 		# Build a compact status badge for the header's right column
 	my $status_badge = "<span class='label label-success'>Enabled</span>";
 		my $status_buttons = '';
@@ -898,14 +1369,16 @@ unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq
 <script>
 // Keep the status text within the green button centered and sync with computed status_badge
 (function(){
+	if (window.__QHTL_STATUS_HEADER_STYLED) return; window.__QHTL_STATUS_HEADER_STYLED = true;
   try {
     var el = document.getElementById('qhtl-status-btn');
     if (!el) return;
 	var txt = (function(){ var d = document.createElement('div'); d.innerHTML = "${status_badge}"; var s=d.querySelector('.label'); return s ? s.textContent.trim() : 'Enabled'; })();
 	el.textContent = txt;
 		el.classList.remove('success','warning','danger');
-	if (/Disabled|Stopped/i.test(txt)) { el.classList.add('danger'); }
-	else if (/Testing/i.test(txt)) { el.classList.add('warning'); }
+		var lct = String(txt||'').toLowerCase();
+		if (lct.indexOf('disabled')!==-1 || lct.indexOf('stopped')!==-1) { el.classList.add('danger'); }
+		else if (lct.indexOf('testing')!==-1) { el.classList.add('warning'); }
 	else { el.classList.add('success'); }
 
 		// Squeeze font size to fit inside the button without wrapping
@@ -959,7 +1432,7 @@ EOF
 }
 
 # Open gradient wrapper just before main content (exclude header)
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
+unless ($skip_capture) {
 	print "<div class='qhtl-bubble-bg'>\n";
 }
 
@@ -974,9 +1447,11 @@ if (!$ui_error) {
 	} or do { $ui_error = $@ || 'Unknown error in UI renderer'; };
 }
 
-# Close gradient wrapper right after main content
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
-	print "</div>\n";
+# Close gradient wrapper right after main content (not for AJAX inline loads)
+unless ($skip_capture) {
+	if (!$is_ajax) {
+		print "</div>\n";
+	}
 }
 
 if ($ui_error) {
@@ -984,23 +1459,71 @@ if ($ui_error) {
 }
 
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
-	# Print sanitized footer if provided; otherwise print a minimal version link with the exact left text
-	if (@footer) {
-		# Print array content, not a symbol reference
-		print join('', @footer);
-	} else {
-		print "<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;'><div style='font-size:12px;'>©2025 (Daniel Nowakowski)</div><div style='font-size:12px;'><a href='$script?action=readme' target='_self' style='text-decoration:none;'>Qht Link Firewall v$myv</a></div></div>\n";
+	if (!$is_ajax) {
+		# Print sanitized footer if provided; otherwise print a minimal version link with the exact left text
+		if (@footer) {
+			# Print array content, not a symbol reference
+			print join('', @footer);
+		} else {
+			print "<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;'><div style='font-size:12px;'>©2025 (Daniel Nowakowski)</div><div style='font-size:12px;'><a href='$script?action=readme' target='_self' style='text-decoration:none;'>Qht Link Firewall v$myv</a></div></div>\n";
+		}
 	}
 }
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
-	close ($SCRIPTOUT);
-	select STDOUT;
-	# Defensive cleanup: rewrite any legacy includes in the captured template HTML
-	if (defined $templatehtml && length $templatehtml) {
-		# Do not strip inline scripts here; UI relies on them for tabs and interactions.
-		$templatehtml =~ s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3 }ig;
-		$templatehtml =~ s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(\?)(?!action=)}{$1$2$3}ig;
+close ($SCRIPTOUT) unless ($skip_capture);
+select STDOUT;
+
+# Defensive cleanup: rewrite any legacy includes in the captured template HTML
+if (!$skip_capture && defined $templatehtml && length $templatehtml) {
+	# Do not strip inline scripts here; UI relies on them for tabs and interactions.
+	$templatehtml =~ s{(src=\s*['\"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['\"]) }{$1$2?action=banner_js$3 }ig;
+	# Also handle cases without assuming a trailing space after the closing quote
+	$templatehtml =~ s{(src=\s*['\"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['\"]) }{$1$2?action=banner_js$3 }ig;
+	# Robust form without requiring whitespace after the attribute
+	$templatehtml =~ s{(src=\s*['\"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['\"]) }{$1$2?action=banner_js$3}ig;
+
+	# Replace legacy inline loader block (starting with var areaId = 'qhtl-inline-area') with the updated, safer version
+	{
+		my $new_loader = <<'JSLOADER';
+<script>(function(){
+	// Inline loader (singleton)
+	if (window.__QHTL_INLINE_LOADER_ACTIVE) { return; }
+	window.__QHTL_INLINE_LOADER_ACTIVE = true;
+  var areaId = 'qhtl-inline-area';
+  function sameOrigin(u){ try{ var a=document.createElement('a'); a.href=u; return (!a.host || a.host===location.host); }catch(e){ return false; } }
+  function isQhtlAction(u, form){ try{ if (String(u).indexOf('?action=')!==-1) return true; if (form && form.querySelector && form.querySelector('[name=\x61ction]')) return true; return false; }catch(e){ return false; } }
+  function loadInto(url, method, data){ try{ var area=document.getElementById(areaId); if(!area){ location.href=url; return; } if (window.jQuery){ if(method==='POST'){ jQuery(area).html('<div class="text-muted">Loading...</div>').load(url, data); } else { jQuery(area).html('<div class="text-muted">Loading...</div>').load(url); } } else { var x=new XMLHttpRequest(); x.open(method||'GET', url, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} if(method==='POST'){ try{x.setRequestHeader('Content-Type','application/x-www-form-urlencoded; charset=UTF-8');}catch(__){} } x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ area.innerHTML = x.responseText; } else { location.href=url; } } }; x.send(data||null); } } catch(e){ try{ location.href=url; }catch(_){} } }
+  var __qhtl_lastSubmitter=null;
+  function serialize(form, submitter){ try{ var p=[]; for(var i=0;i<form.elements.length;i++){ var el=form.elements[i]; if(!el || !el.name || el.disabled) continue; var t=(el.type||'').toLowerCase(); if(t==='file') continue; if((t==='checkbox'||t==='radio')&&!el.checked) continue; if(t==='submit'||t==='button'){ if(submitter && el===submitter){ p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(el.value)); } continue; } if(t==='select-multiple'){ for(var j=0;j<el.options.length;j++){ var opt=el.options[j]; if(opt.selected){ p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(opt.value)); } } continue; } p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(el.value)); } if(submitter && submitter.name){ var found=false; for(var k=0;k<form.elements.length;k++){ if(form.elements[k]===submitter){ found=true; break; } } if(!found){ p.push(encodeURIComponent(submitter.name)+'='+encodeURIComponent(submitter.value||'')); } } return p.join('&'); }catch(e){ return ''; } }
+  var root = document.getElementById('waterfall') || document;
+  root.addEventListener('click', function(ev){ var tgt=ev.target; var btn=tgt && tgt.closest ? tgt.closest('button, input[type=submit]') : null; if(btn && (String(btn.type||'').toLowerCase()==='submit')){ __qhtl_lastSubmitter=btn; } var a=tgt && tgt.closest ? tgt.closest('a') : null; if(!a) return; var href=a.getAttribute('href')||''; if(!href || href==='javascript:void(0)') return; if(!sameOrigin(href) || !isQhtlAction(href, null)) return; ev.preventDefault(); var u = href + (href.indexOf('?')>-1?'&':'?') + 'ajax=1'; loadInto(u, 'GET'); }, true);
+  root.addEventListener('submit', function(ev){ var f=ev.target; if(!f || f.tagName!=='FORM') return; var action=f.getAttribute('action')||location.pathname; if(!sameOrigin(action) || !isQhtlAction(action, f)) return; var enc=(f.enctype||''); if (enc && String(enc).toLowerCase().indexOf('multipart/form-data')!==-1) return; ev.preventDefault(); var submitter = (ev.submitter ? ev.submitter : __qhtl_lastSubmitter); var data=serialize(f, submitter); loadInto(action + (action.indexOf('?')>-1?'&':'?') + 'ajax=1', (f.method||'GET').toUpperCase(), data); }, true);
+})();</script>
+JSLOADER
+		# Replace only if we find the legacy loader signature with exact areaId marker
+		$templatehtml =~ s{<script[^>]*>\s*\(function\(\)\{\s*var\s+areaId\s*=\s*['"]qhtl-inline-area['"];.*?\}\)\(\);\s*</script>}{$new_loader}is;
+		# Also replace any script block that declares the legacy isQhtlAction(u) implementation
+		$templatehtml =~ s{<script[^>]*>[^<]*function\s+isQhtlAction\s*\(\s*u\s*\)\s*\{[^<]*?/\\\?action=/.+?</script>}{$new_loader}is;
 	}
+
+	# Ensure cache-busting is present on status and widget loaders in captured HTML
+	# Add &v=$myv to wstatus_js if missing
+	if ($myv && $myv ne 'unknown') {
+		$templatehtml =~ s{(src=\s*['"][^'"\?]+\?action=wstatus_js)(['"]) }{$1&v=$myv$2 }ig;
+		# For widget_js, append &v only if not already present
+		$templatehtml =~ s{(src=\s*['"][^'"\?]+\?action=widget_js&name=[^'"&]+)(?![^'"\>]*?&v=)(['"]) }{$1&v=$myv$2 }ig;
+	}
+	# If a script tag references our CGI with a query but without action=, force action=banner_js to return JavaScript instead of HTML
+	$templatehtml =~ s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)\?(?![^'"\>]*?action=)([^'"\>]*)(['"]) }{$1$2?action=banner_js&$3$4 }ig;
+	$templatehtml =~ s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)\?(?![^'"\>]*?action=)([^'"\>]*)(['"]) }{$1$2?action=banner_js&$3$4}ig;
+}
+
+# If AJAX request, always return raw inner content without WHM template/header/footer regardless of action
+if ($is_ajax) {
+	print $templatehtml if defined $templatehtml;
+	exit 0;
+}
+
+unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
 	my $rendered;
 	eval {
 		$rendered = Cpanel::Template::process_template(

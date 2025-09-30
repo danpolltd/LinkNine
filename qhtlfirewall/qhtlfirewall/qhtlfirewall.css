@@ -235,7 +235,7 @@ td .btn, th .btn {
 	border-radius: 999px;
 	border: 1px solid var(--bubble-border);
 	background: radial-gradient(circle at 30% 30%, var(--bubble-light) 0%, var(--bubble-mid) 45%, var(--bubble-dark) 85%);
-	color: #fff !important;
+	color: #111 !important;
 	font-weight: 600;
 	padding: 6px 16px;
 	line-height: 1.2;
@@ -312,15 +312,13 @@ td .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status),
 .tab-content td button.btn:not(.btn-watcher-bubble):not(.btn-status),
 .tab-content td a.btn:not(.btn-watcher-bubble):not(.btn-status),
 .tab-content td input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status){
-	padding:4px 12px;
+	/* Compact size for buttons placed inside table cells */
+	padding: 4px 12px;
+	/* Ensure legible text color remains black within tab panes */
+	color: #111 !important;
 }
-
-/* Safety: ensure tab panes are visible even if wrapper scoping changes */
-.tab-content > .tab-pane { display:none; }
-.tab-content > .tab-pane.active { display:block; }
-
-/* Watcher "water bubble" button */
 .btn-watcher-bubble {
+	/* Base styling to ensure non-hover state has the intended blue gradient look */
 	position: relative;
 	display: inline-flex;
 	align-items: center;
@@ -331,7 +329,7 @@ td .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status),
 	border-radius: 999px;
 	border: 1px solid #2b79ff;
 	color: #ffffff !important;
-	background: radial-gradient(circle at 30% 30%, #9fd3ff 0%, #4aa3ff 45%, #1976d2 80%);
+	background: radial-gradient(circle at 30% 30%, #9fd3ff 0%, #4aa3ff 45%, #1976d2 80%) !important;
 	box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 16px rgba(25, 118, 210, 0.35);
 	text-shadow: 0 1px 2px rgba(0,0,0,0.25);
 }
@@ -341,6 +339,8 @@ td .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status),
 	/* Nudge highlight to keep proportions with reduced height */
 	top: 2px; left: 10px; right: 10px; height: 40%;
 	border-radius: 999px;
+	/* glossy highlight */
+	background: linear-gradient( to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0) );
 	pointer-events: none;
 }
 .btn-watcher-bubble:hover {
@@ -421,3 +421,19 @@ td .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status),
 .qhtl-bubble-bg .btn-status.success { box-shadow: 0 0 0 3px rgba(76,175,80,0.15); }
 .qhtl-bubble-bg .btn-status.warning { box-shadow: 0 0 0 3px rgba(240,173,78,0.15); }
 .qhtl-bubble-bg .btn-status.danger  { box-shadow: 0 0 0 3px rgba(217,83,79,0.15); }
+
+/* Ensure tab action buttons use black text inside the gradient wrapper
+   This overrides semantic .btn-* white text rules defined above. */
+.qhtl-bubble-bg .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status),
+.qhtl-bubble-bg .tab-content a.btn:not(.btn-watcher-bubble):not(.btn-status),
+.qhtl-bubble-bg .tab-content input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status),
+.qhtl-bubble-bg .tab-content .btn:not(.btn-watcher-bubble):not(.btn-status) {
+	color: #111 !important;
+}
+
+.qhtl-bubble-bg .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status):hover,
+.qhtl-bubble-bg .tab-content a.btn:not(.btn-watcher-bubble):not(.btn-status):hover,
+.qhtl-bubble-bg .tab-content input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status):hover,
+.qhtl-bubble-bg .tab-content .btn:not(.btn-watcher-bubble):not(.btn-status):hover {
+	color: #111 !important;
+}

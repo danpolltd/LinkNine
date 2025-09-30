@@ -44,6 +44,22 @@
 .qhtl-bubble-bg .nav-tabs>li.active>a:hover { color:#555; cursor:default; background-color:#fff; border:1px solid #ddd; border-bottom-color:transparent; }
 .qhtl-bubble-bg .tab-content>.tab-pane { display:none; }
 .qhtl-bubble-bg .tab-content>.active { display:block; }
+
+/* Ensure tab action buttons use black text inside the gradient wrapper
+   This overrides semantic .btn-* white text rules from Bootstrap when inside tabs. */
+.qhtl-bubble-bg .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status),
+.qhtl-bubble-bg .tab-content a.btn:not(.btn-watcher-bubble):not(.btn-status),
+.qhtl-bubble-bg .tab-content input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status),
+.qhtl-bubble-bg .tab-content .btn:not(.btn-watcher-bubble):not(.btn-status) {
+	color: #111 !important;
+}
+
+.qhtl-bubble-bg .tab-content button.btn:not(.btn-watcher-bubble):not(.btn-status):hover,
+.qhtl-bubble-bg .tab-content a.btn:not(.btn-watcher-bubble):not(.btn-status):hover,
+.qhtl-bubble-bg .tab-content input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status):hover,
+.qhtl-bubble-bg .tab-content .btn:not(.btn-watcher-bubble):not(.btn-status):hover {
+	color: #111 !important;
+}
 .btn-qhtlfirewall-config:focus,
 .btn-qhtlfirewall-config:hover,
 .btn-qhtlfirewall-config:active,
@@ -244,7 +260,7 @@ td .btn, th .btn {
 .btn * { white-space: inherit !important; }
 
 /* Watcher "water bubble" button */
-.btn-watcher-bubble {
+.qhtl-bubble-bg .btn-watcher-bubble, .btn-watcher-bubble {
 	position: relative;
 	display: inline-flex;
 	align-items: center;
@@ -255,7 +271,7 @@ td .btn, th .btn {
 	border-radius: 999px;
 	border: 1px solid #2b79ff;
 	color: #ffffff !important;
-	background: radial-gradient(circle at 30% 30%, #9fd3ff 0%, #4aa3ff 45%, #1976d2 80%);
+	background: radial-gradient(circle at 30% 30%, #9fd3ff 0%, #4aa3ff 45%, #1976d2 80%) !important;
 	box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 6px 16px rgba(25, 118, 210, 0.35);
 	text-shadow: 0 1px 2px rgba(0,0,0,0.25);
 }
@@ -269,7 +285,7 @@ td .btn, th .btn {
 	background: linear-gradient( to bottom, rgba(255,255,255,0.55), rgba(255,255,255,0) );
 	pointer-events: none;
 }
-.btn-watcher-bubble:hover {
+.qhtl-bubble-bg .btn-watcher-bubble:hover, .btn-watcher-bubble:hover {
 	background: radial-gradient(circle at 30% 30%, #b7e0ff 0%, #5bb0ff 45%, #237ad6 80%);
 	box-shadow: inset 0 2px 6px rgba(255,255,255,0.4), 0 8px 18px rgba(25, 118, 210, 0.45);
 	color: #ffffff !important;
@@ -298,7 +314,7 @@ td .btn, th .btn {
 	border-radius: 999px;
 	border: 1px solid var(--bubble-border);
 	background: radial-gradient(circle at 30% 30%, var(--bubble-light) 0%, var(--bubble-mid) 45%, var(--bubble-dark) 85%);
-	color: #fff !important;
+	color: #111 !important;
 	font-weight: 600;
 	padding: 6px 16px;
 	line-height: 1.2;

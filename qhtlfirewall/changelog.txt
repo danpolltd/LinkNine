@@ -1,5 +1,43 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
+Date: 2025-09-30
+Version: 0.1.10 “Sharp Scratch”
+
+Waterfall UI/UX
+- Replaced Waterfall “Status” with a dedicated “On” bubble and removed the old Status button.
+- All bubble actions now load inline below the bubbles via AJAX only; page scaffolding is not re-rendered.
+- Watcher modal fixed: JSON.parse issues resolved, now modal-only with outside-click close, and no scroll locking.
+- Quick Actions/gear popup stabilized, closes on outside click, avoids header overlay issues.
+- Kept Bootstrap JS, removed Bootstrap CSS to prevent WHM header shrinking.
+- Added blue “water bubble” hover sheen and ring pulse on success.
+
+Security & Robustness
+- Safe JS delivery: added wstatus_js and banner_js endpoints with correct MIME and X-Content-Type-Options: nosniff; guarded script-like requests with a JS no-op.
+- Early absolute QHTL_SCRIPT initializer fixed; added cache-busting via version token on script includes.
+- Hardened status_json to tolerate transient service states and systemd presence or PID checks.
+
+“On” Bubble Behavior
+- Running state: short click does nothing; press-and-hold refined into a two-phase flow:
+	1) 3s WARNING countdown (release during this phase triggers Restart immediately)
+	2) then 3s dim countdown (auto-Restart at end)
+- Stopped/Disabled state: tap-to-start works immediately.
+- Cancel freeze during WARNING fixed; timers/classes cleaned safely.
+
+APIs
+- Implemented lightweight APIs: api_startwf, api_restartwf, api_stopwf, and retained api_disablewf for potential future use.
+
+Post-save Auto-Restart
+- After saving any of the seven Waterfall edit panels, the UI now auto-triggers the On bubble restart countdown (no manual Restart button). A brief “Restarting qhtlwaterfall…” message is shown.
+- Added WStatus.restartCountdown() for programmatic restarts; resilient if widget isn’t mounted (mounts and triggers).
+
+Seasonal Decorations
+- Added a lightweight seasonal loader (Oct 1–31) that decorates the On bubble with a small pumpkin, a subtle bat animation, and a gentle glow. Assets live under ui/images/holiday/ and can be replaced.
+- Added holiday_asset endpoint to serve holiday CSS/SVG with nosniff and sanitization.
+
+General
+- Reduced console noise and added singleton guards to avoid duplicate wiring.
+- Back-compat maintained for qhtlwaterfallrestart.
+
 Date: 2025-09-29
 Version: 0.1.9 “Snow Castle”
 

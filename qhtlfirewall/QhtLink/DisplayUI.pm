@@ -228,7 +228,7 @@ sub main {
 	elsif ($FORM{action} eq "stop") {
 		print "<div><p>Stopping qhtlfirewall...</p>\n";
 		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
+		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:none; clear:both' id='output'>\n";
 		&printcmd("/usr/sbin/qhtlfirewall","-f");
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&resize("bot",1);
@@ -237,7 +237,7 @@ sub main {
 	elsif ($FORM{action} eq "disable") {
 		print "<div><p>Disabling qhtlfirewall...</p>\n";
 		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
+		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:none; clear:both' id='output'>\n";
 		&printcmd("/usr/sbin/qhtlfirewall","-x");
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&resize("bot",1);
@@ -249,7 +249,7 @@ sub main {
 		} else {
 			print "<div><p>Enabling qhtlfirewall...</p>\n";
 			&resize("top");
-			print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
+			print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:none; clear:both' id='output'>\n";
 			&printcmd("/usr/sbin/qhtlfirewall","-e");
 			print "</pre>";
 			&resize("bot",1);
@@ -311,7 +311,7 @@ sub main {
 <div>Refresh in <span id="QHTLFIREWALLtimer">0</span> <button class='btn btn-default' id="QHTLFIREWALLpauseID" onclick="QHTLFIREWALLpausetimer()" style="width:80px;">Pause</button> <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both"> &nbsp; </pre>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both"> &nbsp; </pre>
 
 		<script>
 			QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
@@ -504,7 +504,7 @@ QHTL_JQ_TAIL
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -705,7 +705,7 @@ QHTL_JQ_GREP
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -906,7 +906,7 @@ QHTL_JQ_GREP
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -1107,7 +1107,7 @@ QHTL_JQ_GREP
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -1308,7 +1308,7 @@ QHTL_JQ_GREP
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -1509,7 +1509,7 @@ QHTL_JQ_GREP
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -1710,7 +1710,7 @@ QHTL_JQ_GREP
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:both; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -1854,7 +1854,7 @@ QHTL_JQ_GREP
 	}
 	elsif ($FORM{action} eq "readme") {
 		&resize("top");
-		print "<pre id='output' class='comment' style='white-space: pre-wrap;height: 500px; overflow: auto; resize:both; clear:both'>\n";
+		print "<pre id='output' class='comment' style='white-space: pre-wrap;height: 500px; overflow: auto; resize:none; clear:both'>\n";
 		open (my $IN, "<", "/etc/qhtlfirewall/readme.txt") or die $!;
 		flock ($IN, LOCK_SH);
 		my @readme = <$IN>;
@@ -1873,7 +1873,7 @@ QHTL_JQ_GREP
 	elsif ($FORM{action} eq "changelog") {
 		# Render the installed changelog file the same way as readme
 		&resize("top");
-		print "<pre id='output' class='comment' style='white-space: pre-wrap;height: 500px; overflow: auto; resize:both; clear:both'>\n";
+		print "<pre id='output' class='comment' style='white-space: pre-wrap;height: 500px; overflow: auto; resize:none; clear:both'>\n";
 		my $cl = "/etc/qhtlfirewall/changelog.txt";
 		if (-e $cl) {
 			open (my $CL, "<", $cl) or die $!;
@@ -1959,7 +1959,7 @@ QHTL_JQ_GREP
 		} else {
 			print "<div>Report schedule cancelled $extra</div>\n";
 		}
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='servercheck'><input type='submit' class='btn btn-default' value='Return'></form></div>\n";
+		# Return button removed (legacy); users can navigate via tabs or browser back
 	}
 	elsif ($FORM{action} eq "rblcheck") {
 		my ($status, undef) = QhtLink::RBLCheck::report($FORM{verbose},$images,1);
@@ -2022,15 +2022,15 @@ QHTL_JQ_GREP
 		} else {
 			print "<div>Report schedule cancelled $extra</div>\n";
 		}
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='rblcheck'><input type='submit' class='btn btn-default' value='Return'></form></div>\n";
+		# Return button removed (legacy); users can navigate via tabs or browser back
 	}
 	elsif ($FORM{action} eq "rblcheckedit") {
 		&editfile("/etc/qhtlfirewall/qhtlfirewall.rblconf","saverblcheckedit");
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='rblcheck'><input type='submit' class='btn btn-default' value='Return'></form></div>\n";
+		# Return button removed (legacy); users can navigate via tabs or browser back
 	}
 	elsif ($FORM{action} eq "saverblcheckedit") {
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.rblconf","");
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='rblcheck'><input type='submit' class='btn btn-default' value='Return'></form></div>\n";
+		# Return button removed (legacy); users can navigate via tabs or browser back
 	}
 	elsif ($FORM{action} eq "cloudflareedit") {
 		&editfile("/etc/qhtlfirewall/qhtlfirewall.cloudflare","savecloudflareedit");
@@ -2043,7 +2043,7 @@ QHTL_JQ_GREP
 	elsif ($FORM{action} eq "restartboth") {
 		print "<div><p>Restarting qhtlfirewall...</p>\n";
 		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
+		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:none; clear:both' id='output'>\n";
 		&printcmd("/usr/sbin/qhtlfirewall","-sf");
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		if ($config{THIS_UI}) {
@@ -2210,7 +2210,7 @@ QHTL_JQ_GREP
 	elsif ($FORM{action} eq "grep") {
 		print "<div><p>Searching for $FORM{ip}...</p>\n";
 		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
+		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:none; clear:both' id='output'>\n";
 		my ($childin, $childout);
 		my $pid = open3($childin, $childout, $childout, "/usr/sbin/qhtlfirewall","-g",$FORM{ip});
 		my $unblock;
@@ -2801,7 +2801,7 @@ EOD
 			print "<p>Please reconnect or refresh this page in about 30–60 seconds.</p>";
 			if (open(my $UIN, '<', $ulog)) {
 				print "<p>Current upgrade log snapshot:</p>\n";
-				print "<pre class='comment' style='white-space: pre-wrap; height: 400px; overflow: auto; resize:both; clear:both'>\n";
+				print "<pre class='comment' style='white-space: pre-wrap; height: 400px; overflow: auto; resize:none; clear:both'>\n";
 				while (my $L = <$UIN>) { $L =~ s/</&lt;/g; $L =~ s/>/&gt;/g; print $L; }
 				close($UIN);
 				print "</pre>\n";
@@ -2811,7 +2811,7 @@ EOD
 		} else {
 			print "<div><p>Upgrading qhtlfirewall...</p>\n";
 			&resize("top");
-			print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
+			print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:none; clear:both' id='output'>\n";
 			&printcmd("/usr/sbin/qhtlfirewall","-u");
 			print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 			&resize("bot",1);
@@ -2828,7 +2828,7 @@ EOD
 	elsif ($FORM{action} eq "denyf") {
 		print "<div><p>Removing all entries from qhtlfirewall.deny...</p>\n";
 		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
+		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:none; clear:both' id='output'>\n";
 		&printcmd("/usr/sbin/qhtlfirewall","-df");
 		&printcmd("/usr/sbin/qhtlfirewall","-tf");
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
@@ -3095,7 +3095,7 @@ EOD
 		print "<div class='panel-heading panel-heading'>Enabling pure-ftpd PASV hole:</div>\n";
 		print "<div class='panel-body'>";
 		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
+		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:none; clear:both' id='output'>\n";
 
 		my $ftpdone = 0;
 		if (-e "/usr/local/cpanel/version") {
@@ -3258,7 +3258,7 @@ EOD
 		print "<div class='panel-body'>";
 
 		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
+		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:none; clear:both' id='output'>\n";
 		copy("/etc/qhtlfirewall/qhtlfirewall.conf","/var/lib/qhtlfirewall/backup/".time."_prefixalerts");
 		&printcmd("/usr/sbin/qhtlfirewall","--profile","apply","disable_alerts");
 		print "</pre>\n";
@@ -3291,7 +3291,7 @@ sh install.sh
 EOF
 		close ($REINSTALL);
 		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:both; clear:both' id='output'>\n";
+		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:none; clear:both' id='output'>\n";
 		&printcmd("bash","/usr/src/reinstall_$time.sh");
 		unlink "/usr/src/reinstall_$time.sh";
 		print "</pre>\n";
@@ -3737,30 +3737,86 @@ QHTL_TAB_GUARD
 		print "</div>\n";
 
 		# New Waterfall tab (duplicate of QhtLink Waterfall content) placed before QhtLink Firewall
-		print "<div id='waterfall' class='tab-pane'>\n";
+		  print "<div id='waterfall' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
-		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallstatus'><input type='submit' class='btn btn-default' value='Status'></form><div class='text-muted small' style='margin-top:6px'>Display qhtlwaterfall status</div></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallrestart'><input type='submit' class='btn btn-default' value='Restart'></form><div class='text-muted small' style='margin-top:6px'>Restart qhtlwaterfall</div></td></tr>\n";
-		print "<tr><td style='white-space: nowrap;'><form action='$script' method='post'><input type='hidden' name='action' value='ignorefiles'><select name='ignorefile'>\n";
-		print "<option value='qhtlfirewall.ignore'>qhtlfirewall.ignore - IP Blocking</option>\n";
-		print "<option value='qhtlfirewall.pignore'>qhtlfirewall.pignore, Process Tracking</option>\n";
-		print "<option value='qhtlfirewall.fignore'>qhtlfirewall.fignore, Directory Watching</option>\n";
-		print "<option value='qhtlfirewall.signore'>qhtlfirewall.signore, Script Alert</option>\n";
-		print "<option value='qhtlfirewall.rignore'>qhtlfirewall.rignore, Reverse DNS lookup</option>\n";
-		print "<option value='qhtlfirewall.suignore'>qhtlfirewall.suignore, Superuser check</option>\n";
-		print "<option value='qhtlfirewall.mignore'>qhtlfirewall.mignore, RT_LOCALRELAY</option>\n";
-		print "<option value='qhtlfirewall.logignore'>qhtlfirewall.logignore, Log Scanner</option>\n";
-		print "<option value='qhtlfirewall.uidignore'>qhtlfirewall.uidignore, User ID Tracking</option>\n";
-		print "</select> <input type='submit' class='btn btn-default' value='Edit'></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlwaterfall ignore file</div></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='dirwatch' type='submit' class='btn btn-default'>qhtlwaterfall Directory File Watching</button></form><div class='text-muted small' style='margin-top:6px'>Edit the Directory File Watching file (qhtlfirewall.dirwatch) - all listed files and directories will be watched for changes by qhtlwaterfall</div></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='dyndns' type='submit' class='btn btn-default'>qhtlwaterfall Dynamic DNS</button></form><div class='text-muted small' style='margin-top:6px'>Edit the Dynamic DNS file (qhtlfirewall.dyndns) - all listed domains will be resolved and allowed through the firewall</div></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><select name='template'>\n";
-		foreach my $tmp ("alert.txt","tracking.txt","connectiontracking.txt","processtracking.txt","accounttracking.txt","usertracking.txt","sshalert.txt","webminalert.txt","sualert.txt","sudoalert.txt","uialert.txt","cpanelalert.txt","scriptalert.txt","filealert.txt","watchalert.txt","loadalert.txt","resalert.txt","integrityalert.txt","exploitalert.txt","relayalert.txt","portscan.txt","uidscan.txt","permblock.txt","netblock.txt","queuealert.txt","logfloodalert.txt","logalert.txt","modsecipdbcheck.txt") {print "<option>$tmp</option>\n"}
-		print "</select> <button name='action' value='templates' type='submit' class='btn btn-default'>Edit</button></form><div class='text-muted small' style='margin-top:6px'>Edit email alert templates. See Firewall Information for details of each file</div></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='logfiles' type='submit' class='btn btn-default'>Log Scanner Files</button></form><div class='text-muted small' style='margin-top:6px'>Edit the Log Scanner file (qhtlfirewall.logfiles) - Scan listed log files for log lines and periodically send a report</div></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='blocklists' type='submit' class='btn btn-default'>Blocklists</button></form><div class='text-muted small' style='margin-top:6px'>Edit the Blocklists configuration file (qhtlfirewall.blocklists)</div></td></tr>\n";
-		print "<tr><td><form action='$script' method='post'><button name='action' value='syslogusers' type='submit' class='btn btn-default'>Syslog Users</button></form><div class='text-muted small' style='margin-top:6px'>Edit the syslog/rsyslog allowed users file (qhtlfirewall.syslogusers)</div></td></tr>\n";
+		  print "<tr><td>".
+				  "<div style='display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;justify-content:center'>".
+						"<div id='wstatus-anchor' style='position:relative;display:inline-block;width:100px;height:100px'>".
+							"<div id='wstatus-fallback' class='wcircle' style='position:relative;width:100px;height:100px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;vertical-align:top;'>".
+								"<div class='wcircle-outer' style='position:absolute;inset:0;border-radius:50%;background: radial-gradient(circle at 30% 30%, #e3f9e7 0%, #b4f2c1 50%, #7fdc95 85%);box-shadow: 0 6px 18px rgba(0,0,0,0.25), inset 0 2px 6px rgba(255,255,255,0.6);'></div>".
+								"<div class='wcircle-inner' role='button' tabindex='0' title='Waterfall Status' style='position:relative;width:80px;height:80px;border-radius:50%;border:2px solid #2f8f49;background: linear-gradient(180deg, #66e08a 0%, #34a853 100%);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;user-select:none;box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 8px 16px rgba(52,168,83,0.35);cursor:pointer;'>On</div>".
+								"<div class='wcircle-msg' style='position:absolute;bottom:-22px;width:140px;left:50%;transform:translateX(-50%);text-align:center;font-size:12px;color:#333;text-shadow:0 1px 0 rgba(255,255,255,0.25);'></div>".
+							"</div>".
+						"</div>".
+					"<div id='wignore-anchor' style='width:100px;height:100px'></div>".
+					"<div id='wdirwatch-anchor' style='width:100px;height:100px'></div>".
+					"<div id='wddns-anchor' style='width:100px;height:100px'></div>".
+					"<div id='walerts-anchor' style='width:100px;height:100px'></div>".
+					"<div id='wscanner-anchor' style='width:100px;height:100px'></div>".
+					"<div id='wblocklist-anchor' style='width:100px;height:100px'></div>".
+					"<div id='wusers-anchor' style='width:100px;height:100px'></div>".
+						"</div>".
+					"</td></tr>\n";
+		# Seasonal decorations loader (Oct 1–31)
+		print "<script>(function(){ try { var d=new Date(); var m=d.getUTCMonth()+1, day=d.getUTCDate(); if (m===10 && day>=1 && day<=31) { var base=(window.QHTL_SCRIPT||'$script'); var css=document.createElement('link'); css.rel='stylesheet'; css.href=base+'?action=holiday_asset&name=style.css&v=$myv'; (document.head||document.documentElement).appendChild(css); var layer=document.createElement('div'); layer.id='qhtl-holiday-layer'; var a=document.getElementById('wstatus-anchor'); if(a){ a.style.position='relative'; a.appendChild(layer); var p=new Image(); p.src=base+'?action=holiday_asset&name=pumpkin.svg&v=$myv'; p.className='qhtl-pumpkin'; layer.appendChild(p); var b=new Image(); b.src=base+'?action=holiday_asset&name=bat.svg&v=$myv'; b.className='qhtl-bat'; b.style.top='-4px'; layer.appendChild(b); var outer=document.getElementById('wstatus-outer'); if(outer){ outer.classList.add('qhtl-halloween'); } } } } catch(e){} })();</script>\n";
+			print "<script src='$script?action=widget_js&name=wignore.js&v=$myv'></script>\n";
+			print "<script src='$script?action=widget_js&name=wdirwatch.js&v=$myv'></script>\n";
+			print "<script src='$script?action=widget_js&name=wddns.js&v=$myv'></script>\n";
+			print "<script src='$script?action=widget_js&name=walerts.js&v=$myv'></script>\n";
+			print "<script src='$script?action=widget_js&name=wscanner.js&v=$myv'></script>\n";
+			print "<script src='$script?action=widget_js&name=wblocklist.js&v=$myv'></script>\n";
+			print "<script src='$script?action=widget_js&name=wusers.js&v=$myv'></script>\n";
+			print "<script>(function(){\n"
+				."  // Ensure wstatus.js is loaded; if not, inject it now\n"
+				."  if (!window.WStatus) {\n"
+				."    try {\n"
+				."      var s=document.createElement('script');\n"
+				."      var base = (typeof QHTL_SCRIPT!=='undefined' && QHTL_SCRIPT) ? QHTL_SCRIPT : '$script';\n"
+				."      s.src = base + '?action=wstatus_js&v=$myv';\n"
+				."      s.defer = true;\n"
+				."      (document.head||document.documentElement).appendChild(s);\n"
+				."    } catch(e){}\n"
+				."  }\n"
+				."  var attempts=0, maxAttempts=40; // ~10s at 250ms\n"
+				."  function mounted(sel){ var el=document.querySelector(sel); if(!el) return false; return !!el.querySelector('#wstatus-popup') || el.getAttribute('data-mounted')==='1'; }\n"
+				."  function markMounted(sel){ var el=document.querySelector(sel); if(el) el.setAttribute('data-mounted','1'); }\n"
+				."  // Remove fallback once mounted, or after a grace period even if not\n"
+				."  function removeFallback(){ /* keep fallback visible as a control in case WStatus fails to mount */ }\n"
+				."  // Fallback click: try to open/refresh status\n"
+				."  (function(){ var f=document.getElementById('wstatus-fallback'); if(!f) return; try{ var inner=f.querySelector('.wcircle-inner'); if(inner){ inner.addEventListener('click', function(e){ e.preventDefault(); if (window.WStatus && typeof WStatus.open==='function'){ try{ WStatus.open(); return; }catch(_){ } } try{ var base=(window.QHTL_SCRIPT||'$script'); var u=base+'?action=qhtlwaterfallstatus&ajax=1'; var area=document.getElementById('qhtl-inline-area'); if(area){ if(window.jQuery){ jQuery(area).html('<div class=\"text-muted\">Loading...</div>').load(u); } else { var x=new XMLHttpRequest(); x.open('GET', u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4 && x.status>=200 && x.status<300){ area.innerHTML=x.responseText; } }; x.send(); } } else { /* as last resort navigate */ window.location=base+'?action=qhtlwaterfallstatus'; } }catch(__){} }); } }catch(_){} })();\n"
+				."  function tryMount(){\n"
+				."    attempts++;\n"
+				."    try{ if(!mounted('#wstatus-anchor') && window.WStatus){ if(WStatus.mountInline('#wstatus-anchor')) markMounted('#wstatus-anchor'); } }catch(e){}\n"
+				."    if (mounted('#wstatus-anchor')) { removeFallback(); }\n"
+				."    try{ if(!mounted('#wignore-anchor') && window.WIgnore){ if(WIgnore.mountInline('#wignore-anchor')) markMounted('#wignore-anchor'); } }catch(e){}\n"
+				."    try{ if(!mounted('#wdirwatch-anchor') && window.WDirWatch){ if(WDirWatch.mountInline('#wdirwatch-anchor')) markMounted('#wdirwatch-anchor'); } }catch(e){}\n"
+				."    try{ if(!mounted('#wddns-anchor') && window.WDDNS){ if(WDDNS.mountInline('#wddns-anchor')) markMounted('#wddns-anchor'); } }catch(e){}\n"
+				."    try{ if(!mounted('#walerts-anchor') && window.WAlerts){ if(WAlerts.mountInline('#walerts-anchor')) markMounted('#walerts-anchor'); } }catch(e){}\n"
+				."    try{ if(!mounted('#wscanner-anchor') && window.WScanner){ if(WScanner.mountInline('#wscanner-anchor')) markMounted('#wscanner-anchor'); } }catch(e){}\n"
+				."    try{ if(!mounted('#wblocklist-anchor') && window.WBlocklist){ if(WBlocklist.mountInline('#wblocklist-anchor')) markMounted('#wblocklist-anchor'); } }catch(e){}\n"
+				."    try{ if(!mounted('#wusers-anchor') && window.WUsers){ if(WUsers.mountInline('#wusers-anchor')) markMounted('#wusers-anchor'); } }catch(e){}\n"
+				."    if (attempts>=maxAttempts || (mounted('#wstatus-anchor')&&mounted('#wignore-anchor')&&mounted('#wdirwatch-anchor')&&mounted('#wddns-anchor')&&mounted('#walerts-anchor')&&mounted('#wscanner-anchor')&&mounted('#wblocklist-anchor')&&mounted('#wusers-anchor'))) { clearInterval(iv); }\n"
+				."  }\n"
+				."  // Start shortly after parse, and also run once immediately if DOM is already ready\n"
+				."  var iv=setInterval(tryMount,250); if (document.readyState!=='loading') tryMount(); else document.addEventListener('DOMContentLoaded', tryMount);\n"
+				."  // Do not auto-remove fallback; leave it as a persistent control if WStatus fails\n"
+				."})();</script>\n";
+		# Inline content area for widget actions (load results below bubbles)
+		print "<tr><td><div id='qhtl-inline-area' style='padding-top:10px;min-height:200px'></div></td></tr>\n";
+		# Delegate clicks and form submits inside the Waterfall tab to load into inline area
+		print "<script>(function(){\n";
+	print "  if (window.__QHTL_INLINE_LOADER_ACTIVE) { return; } window.__QHTL_INLINE_LOADER_ACTIVE = true;\n";
+	print "  var areaId = 'qhtl-inline-area';\n";
+		print "  function sameOrigin(u){ try{ var a=document.createElement('a'); a.href=u; return (!a.host || a.host===location.host); }catch(e){ return false; } }\n";
+		print "  function isQhtlAction(u, form){ try{ if (String(u).indexOf('?action=')!==-1) return true; if (form && form.querySelector && form.querySelector('[name=\\x61ction]')) return true; return false; }catch(e){ return false; } }\n";
+	print "  function loadInto(url, method, data){ try{ var area=document.getElementById(areaId); if(!area){ location.href=url; return; } if (window.jQuery){ if(method==='POST'){ jQuery(area).html('<div class=\"text-muted\">Loading...</div>').load(url, data); } else { jQuery(area).html('<div class=\"text-muted\">Loading...</div>').load(url); } } else { var x=new XMLHttpRequest(); x.open(method||'GET', url, true); x.setRequestHeader('X-Requested-With','XMLHttpRequest'); if(method==='POST'){ x.setRequestHeader('Content-Type','application/x-www-form-urlencoded; charset=UTF-8'); } x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ area.innerHTML = x.responseText; } else { location.href=url; } } }; x.send(data||null); } } catch(e){ try{ location.href=url; }catch(_){} } }\n";
+		print "  var __qhtl_lastSubmitter=null;\n";
+		print "  function serialize(form, submitter){ try{ var p=[]; for(var i=0;i<form.elements.length;i++){ var el=form.elements[i]; if(!el || !el.name || el.disabled) continue; var t=(el.type||'').toLowerCase(); if(t==='file') continue; if((t==='checkbox'||t==='radio')&&!el.checked) continue; if(t==='submit'||t==='button'){ if(submitter && el===submitter){ p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(el.value)); } continue; } if(t==='select-multiple'){ for(var j=0;j<el.options.length;j++){ var opt=el.options[j]; if(opt.selected){ p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(opt.value)); } } continue; } p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(el.value)); } if(submitter && submitter.name){ /* ensure submitter included even if not part of elements */ var found=false; for(var k=0;k<form.elements.length;k++){ if(form.elements[k]===submitter){ found=true; break; } } if(!found){ p.push(encodeURIComponent(submitter.name)+'='+encodeURIComponent(submitter.value||'')); } } return p.join('&'); }catch(e){ return ''; } }\n";
+		print "  var root = document.getElementById('waterfall') || document;\n";
+	print "  root.addEventListener('click', function(ev){ var tgt=ev.target; var btn=tgt && tgt.closest ? tgt.closest('button, input[type=submit]') : null; if(btn && (String(btn.type||'').toLowerCase()==='submit')){ __qhtl_lastSubmitter=btn; } var a=tgt && tgt.closest ? tgt.closest('a') : null; if(!a) return; var href=a.getAttribute('href')||''; if(!href || href==='javascript:void(0)') return; if(!sameOrigin(href) || !isQhtlAction(href, null)) return; ev.preventDefault(); var u = href + (href.indexOf('?')>-1?'&':'?') + 'ajax=1'; loadInto(u, 'GET'); }, true);\n";
+		print "  root.addEventListener('submit', function(ev){ var f=ev.target; if(!f || f.tagName!=='FORM') return; var action=f.getAttribute('action')||location.pathname; if(!sameOrigin(action) || !isQhtlAction(action, f)) return; var enc=(f.enctype||''); if (enc && String(enc).toLowerCase().indexOf('multipart/form-data')!==-1) return; ev.preventDefault(); var submitter = (ev.submitter ? ev.submitter : __qhtl_lastSubmitter); var data=serialize(f, submitter); loadInto(action + (action.indexOf('?')>-1?'&':'?') + 'ajax=1', (f.method||'GET').toUpperCase(), data); }, true);\n";
+		print "})();</script>\n";
 		print "</table>\n";
 		print "</div>\n";
 
@@ -3826,7 +3882,7 @@ QHTL_TAB_GUARD
 			print "</table>\n";
 	# Enforce Quick View modal sizing (500x400) with scrollable body
 	print "<style>\n";
-	print "#quickViewModal { position: absolute !important; inset: 0 !important; z-index: 1000 !important; }\n";
+	print "#quickViewModal { position: absolute !important; inset: 0 !important; z-index: 1000 !important; touch-action: auto !important; }\n";
 	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 95% !important; position: absolute !important; top: 12px !important; left: 50% !important; transform: translateX(-50%) !important; margin: 0 !important; }\n";
 	print "#quickViewModal .modal-content { height: auto !important; max-height:480px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
 	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow:auto !important; min-height:0 !important; padding:10px !important; }\n";
@@ -3981,9 +4037,10 @@ QHTL_TAB_GUARD
 			});
       $modal.on('click', '#qhtlPromoCloseBtn', function(){ try{ $modal.modal('hide'); } catch(e){} });
       // cleanup on hide
-      $modal.on('hidden.bs.modal', function(){
+			$modal.on('hidden.bs.modal', function(){
         try { $modal.off(); } catch(_) {}
         try { $modal.remove(); } catch(_) {}
+				try { $('body').removeClass('modal-open').css({ overflow: '' }); } catch(_) {}
       });
 	// show modal
 	$modal.modal({ show:true, backdrop:false, keyboard:true });
@@ -4085,6 +4142,22 @@ function openQuickView(url, which) {
 	} catch(_) {}
 	// Show without Bootstrap backdrop so it doesn't cover the full window
 	$modal.modal({ show: true, backdrop: false, keyboard: true });
+	// Keep page scroll enabled (defensive against Bootstrap's modal-open)
+	try { $('body').removeClass('modal-open').css({ overflow: '' }); } catch(_ignore) {}
+	// Close when clicking outside the dialog (overlay area)
+	try {
+		$modal.off('mousedown.qhtlOutside');
+		$modal.on('mousedown.qhtlOutside', function(ev){
+			try {
+				var dlg = $(this).find('.modal-dialog')[0];
+				if (!dlg) { return; }
+				var t = ev.target;
+				if (t === this || (dlg && !dlg.contains(t))) {
+					$(this).modal('hide');
+				}
+			} catch(__){}
+		});
+	} catch(__){}
 	$('#quickViewEditBtn').show();
 	$('#quickViewSaveBtn').hide();
 	$('#quickViewCancelBtn').hide();
@@ -4849,15 +4922,18 @@ sub savefile {
 
 	if ($restart eq "qhtlfirewall") {
 		print "<div>Changes saved. You should restart qhtlfirewall.</div>\n";
+		# Keep legacy button for firewall only (not tied to On bubble)
 		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restart'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall'></form></div>\n";
 	}
 	elsif ($restart eq "qhtlwaterfall") {
-		print "<div>Changes saved. You should restart qhtlwaterfall.</div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='qhtlwaterfallrestart'><input type='submit' class='btn btn-default' value='Restart qhtlwaterfall'></form></div>\n";
+		print "<div>Changes saved. Restarting qhtlwaterfall…</div>\n";
+		# Auto-trigger the On bubble restart countdown; no manual button
+		print "<script>(function(){ try { if (window.WStatus && typeof WStatus.restartCountdown==='function') { WStatus.restartCountdown(); } else { /* ensure loader present then trigger */ var s=document.createElement('script'); s.src=(window.QHTL_SCRIPT||'$script')+'?action=wstatus_js&v=$myv'; s.onload=function(){ try{ if(window.WStatus&&WStatus.restartCountdown) WStatus.restartCountdown(); }catch(e){} }; (document.head||document.documentElement).appendChild(s); } } catch(e){} })();</script>\n";
 	}
 	elsif ($restart eq "both") {
-		print "<div>Changes saved. You should restart qhtlfirewall and qhtlwaterfall.</p>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall+qhtlwaterfall'></form></div>\n";
+		print "<div>Changes saved. Restarting qhtlwaterfall now; qhtlfirewall may also need a restart depending on your change.</div>\n";
+		# Trigger bubble restart for qhtlwaterfall; keep firewall combo button hidden to reduce clutter
+		print "<script>(function(){ try { if (window.WStatus && typeof WStatus.restartCountdown==='function') { WStatus.restartCountdown(); } else { var s=document.createElement('script'); s.src=(window.QHTL_SCRIPT||'$script')+'?action=wstatus_js&v=$myv'; s.onload=function(){ try{ if(window.WStatus&&WStatus.restartCountdown) WStatus.restartCountdown(); }catch(e){} }; (document.head||document.documentElement).appendChild(s); } } catch(e){} })();</script>\n";
 	}
 	else {
 		print "<div>Changes saved.</div>\n";
@@ -4930,7 +5006,7 @@ JS
 # end cloudflare
 1;
 sub printreturn {
-	print "<hr><div><form action='$script' method='post'><input type='hidden' name='mobi' value='$mobile'><input id='qhtlfirewallreturn' type='submit' class='btn btn-default' value='Return'></form></div>\n";
+	# Return button deprecated; keeping function for compatibility but intentionally emits nothing
 
 	return;
 }
