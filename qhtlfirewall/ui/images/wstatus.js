@@ -145,11 +145,11 @@
         // Signal restart/start via existing action path; prefer ajax to avoid nav
         try {
           if (window.jQuery) {
-            var u = (window.QHTL_SCRIPT||'') + (isStart ? '?action=restartq' : '?action=qhtlwaterfallrestart');
+            var u = (window.QHTL_SCRIPT||'') + (isStart ? '?action=api_restartq' : '?action=qhtlwaterfallrestart');
             jQuery.ajax({ url: u, method: 'POST', dataType: 'html', timeout: 15000 })
               .always(function(){ startPoll(isStart); });
           } else {
-            var u2 = (window.QHTL_SCRIPT||'') + (isStart ? '?action=restartq' : '?action=qhtlwaterfallrestart');
+            var u2 = (window.QHTL_SCRIPT||'') + (isStart ? '?action=api_restartq' : '?action=qhtlwaterfallrestart');
             var x=new XMLHttpRequest(); x.open('POST', u2, true); x.onreadystatechange=function(){ if(x.readyState===4){ startPoll(isStart); } }; x.send();
           }
         } catch(_) { startPoll(isStart); }
@@ -180,19 +180,24 @@
       try { return /qhtlwaterfall\s+status|running|active/i.test(String(html||'')); } catch(_) { return false; }
     }
     function isRunningJSON(j){ try { return !!(j && (j.running===1 || j.running===true)); } catch(e){ return false; } }
-  function onOK(){ try { window.clearInterval(api._pollTimer); } catch(_){} api._pollTimer=null; state.running = true; colorGreen(); setReady('On'); msg.textContent=''; pulseRing('rgba(52,168,83,0.85)'); beep(880,0.09,'sine'); try { refreshHeaderStatus(); } catch(_){} }
+    function onOK(){ try { window.clearInterval(api._pollTimer); } catch(_){} api._pollTimer=null; state.running = true; colorGreen(); setReady('On'); msg.textContent='';
+      // Ring reliability tweak: append ring then force reflow before animating
+      pulseRing('rgba(52,168,83,0.85)');
+      try { void wrap.offsetHeight; } catch(_){ }
+      beep(880,0.09,'sine'); try { refreshHeaderStatus(); } catch(_){} }
   function onTimeout(isStart){ try { window.clearInterval(api._pollTimer); } catch(_){} api._pollTimer=null; state.running = false; colorRed(); setReady('Start'); msg.textContent = isStart ? 'Start timed out' : 'Restart timed out'; pulseRing('rgba(220,38,38,0.85)'); beep(330,0.09,'sawtooth'); }
 
     // Initial status detection
     function initStatus(){
       var urlJson = (window.QHTL_SCRIPT||'') + '?action=status_json';
+      var urlHtml = (window.QHTL_SCRIPT||'') + '?action=qhtlwaterfallstatus';
       try{
         if (window.jQuery){
           jQuery.ajax({ url:urlJson, method:'GET', dataType:'json', timeout:6000 })
             .done(function(j){ if(isRunningJSON(j)){ state.running=true; colorGreen(); setReady('On'); } else { state.running=false; colorRed(); setReady('Start'); } })
-            .fail(function(){ /* leave default */ });
+            .fail(function(){ jQuery.ajax({ url:urlHtml, method:'GET', dataType:'html', timeout:6000 }).done(function(html){ if(/Disabled|Stopped/i.test(String(html||''))){ state.running=false; colorRed(); setReady('Start'); } }); });
         } else {
-          var x=new XMLHttpRequest(); x.open('GET', urlJson, true); x.onreadystatechange=function(){ if(x.readyState===4 && x.status>=200 && x.status<300){ try{ var j=JSON.parse(x.responseText||'{}'); if(isRunningJSON(j)){ state.running=true; colorGreen(); setReady('On'); } else { state.running=false; colorRed(); setReady('Start'); } }catch(e){} } }; x.send();
+          var x=new XMLHttpRequest(); x.open('GET', urlJson, true); x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ try{ var j=JSON.parse(x.responseText||'{}'); if(isRunningJSON(j)){ state.running=true; colorGreen(); setReady('On'); } else { state.running=false; colorRed(); setReady('Start'); } }catch(e){} } else { var y=new XMLHttpRequest(); y.open('GET', urlHtml, true); y.onreadystatechange=function(){ if(y.readyState===4 && y.status>=200 && y.status<300){ if(/Disabled|Stopped/i.test(String(y.responseText||''))){ state.running=false; colorRed(); setReady('Start'); } } }; y.send(); } } }; x.send();
         }
       }catch(e){}
     }

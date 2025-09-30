@@ -202,6 +202,28 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 	exit 0;
 }
 
+# Lightweight API to (re)start qhtlwaterfall via qhtlfirewall -q
+if (defined $FORM{action} && $FORM{action} eq 'api_restartq') {
+	# Prevent browsers from treating this as a script include
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	my $accept   = lc($ENV{HTTP_ACCEPT} // '');
+	my $scriptish = ($sec_dest eq 'script') || ($accept =~ /\b(?:application|text)\/javascript\b/);
+	if ($scriptish) {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	my $ok = 0; my $err = '';
+	eval {
+		my $rc = system('/usr/sbin/qhtlfirewall','-q');
+		if ($rc == 0) { $ok = 1; } else { $err = 'exec_failed'; }
+		1;
+	} or do { $err = 'exception'; };
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	if ($ok) { print '{"ok":1}'; } else { print '{"ok":0,"error":"'.$err.'"}'; }
+	exit 0;
+}
+
 # Lightweight JavaScript endpoint to render a header badge without relying on inline JS in templates.
 # Usage: /cgi/qhtlink/qhtlfirewall.cgi?action=banner_js (builds an absolute cpsess-aware URL internally)
 if (defined $FORM{action} && $FORM{action} eq 'banner_js') {
