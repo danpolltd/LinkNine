@@ -407,7 +407,8 @@ if (defined $FORM{action} && $FORM{action} eq 'qhtlwaterfallrestart') {
 		print "Content-type: text/html\r\n\r\n";
 		print "<div style='padding:10px'><h4>Restart qhtlwaterfall</h4>";
 		print $ok ? "<div class='alert alert-success'>Restart issued.</div>" : "<div class='alert alert-danger'>Restart failed ($err)</div>";
-		print "<div><a class='btn btn-default' href='$script'>Return</a></div></div>";
+	# Legacy Return button removed; navigation can be done via tabs or browser back
+	print "</div>";
 	} else {
 		print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		if ($ok) { print '{"ok":1}'; } else { print '{"ok":0,"error":"'.$err.'"}'; }
@@ -849,23 +850,20 @@ unless ($skip_capture) {
 	open ($SCRIPTOUT, '>', \$templatehtml);
 	select $SCRIPTOUT;
 
-	# Provide a smart wrapper so clicking Watcher waits briefly for modal init before falling back
+	# Provide a direct modal opener for Watcher without fallback navigation
 	if (!$is_ajax) {
 print <<HTML_SMART_WRAPPER;
 <script>
 (function(){
-	function fallback(){ try{ window.location='$script?action=logtail'; }catch(e){ window.location='$script?action=logtail'; } }
 	window.__qhtlOpenWatcherSmart = function(){
-		// Prefer calling the real opener if present; avoid calling the smart wrapper via window.openWatcher to prevent recursion
-		if (window.__qhtlQuickViewShim && typeof window.__qhtlRealOpenWatcher==='function') { try{ window.__qhtlRealOpenWatcher(); } catch(e){ fallback(); } return false; }
+		if (window.__qhtlQuickViewShim && typeof window.__qhtlRealOpenWatcher==='function') { try{ window.__qhtlRealOpenWatcher(); } catch(e){} return false; }
 		var attempts = 0, iv = setInterval(function(){
 			attempts++;
 			if (window.__qhtlQuickViewShim && typeof window.__qhtlRealOpenWatcher==='function'){
 				clearInterval(iv);
-				try{ window.__qhtlRealOpenWatcher(); } catch(e){ fallback(); }
-			} else if (attempts >= 30) { // ~3s total
+				try{ window.__qhtlRealOpenWatcher(); } catch(e){}
+			} else if (attempts >= 30) {
 				clearInterval(iv);
-				fallback();
 			}
 		}, 100);
 		return false;
