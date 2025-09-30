@@ -13,7 +13,7 @@
     var s = document.createElement('style');
     s.id = 'wstatus-style';
     s.textContent = [
-      '#'+popupId+'{ position:absolute; width:100px; height:100px; border-radius:50%; display:flex; align-items:center; justify-content:center; z-index:1050;}',
+  '#'+popupId+'{ position:absolute; width:100px; height:100px; border-radius:50%; display:flex; align-items:center; justify-content:center; z-index:950;}',
       '#'+popupId+'.inline{ position:relative; }',
       '#'+outerId+'{ position:absolute; inset:0; border-radius:50%; background: radial-gradient(circle at 30% 30%, #e3f9e7 0%, #b4f2c1 50%, #7fdc95 85%); box-shadow: 0 6px 18px rgba(0,0,0,0.25), inset 0 2px 6px rgba(255,255,255,0.6); }',
   '#'+innerId+'{ position:relative; width:80px; height:80px; border-radius:50%; border:2px solid #2f8f49; color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 8px 16px rgba(52,168,83,0.35); transition: background 3s linear, transform .12s ease; }',
@@ -56,7 +56,9 @@
       var scY = (window.scrollY||window.pageYOffset||0);
       container.style.left = (left + scX) + 'px';
       container.style.top  = (top + scY) + 'px';
-      container.style.position = host === document.body ? 'fixed' : 'absolute';
+  container.style.position = host === document.body ? 'absolute' : 'absolute';
+  // Do not trap interactions above the header; clicks should pass to header when scrolled
+  container.style.pointerEvents = 'auto';
       if (host !== document.body) {
         // attach inside host to keep within the UI bubble
         host.appendChild(container);

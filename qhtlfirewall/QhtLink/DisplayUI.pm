@@ -3880,7 +3880,7 @@ QHTL_TAB_GUARD
 			print "</table>\n";
 	# Enforce Quick View modal sizing (500x400) with scrollable body
 	print "<style>\n";
-	print "#quickViewModal { position: absolute !important; inset: 0 !important; z-index: 1000 !important; }\n";
+	print "#quickViewModal { position: absolute !important; inset: 0 !important; z-index: 1000 !important; touch-action: auto !important; }\n";
 	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 95% !important; position: absolute !important; top: 12px !important; left: 50% !important; transform: translateX(-50%) !important; margin: 0 !important; }\n";
 	print "#quickViewModal .modal-content { height: auto !important; max-height:480px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
 	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow:auto !important; min-height:0 !important; padding:10px !important; }\n";
@@ -4035,9 +4035,10 @@ QHTL_TAB_GUARD
 			});
       $modal.on('click', '#qhtlPromoCloseBtn', function(){ try{ $modal.modal('hide'); } catch(e){} });
       // cleanup on hide
-      $modal.on('hidden.bs.modal', function(){
+			$modal.on('hidden.bs.modal', function(){
         try { $modal.off(); } catch(_) {}
         try { $modal.remove(); } catch(_) {}
+				try { $('body').removeClass('modal-open').css({ overflow: '' }); } catch(_) {}
       });
 	// show modal
 	$modal.modal({ show:true, backdrop:false, keyboard:true });
@@ -4139,6 +4140,22 @@ function openQuickView(url, which) {
 	} catch(_) {}
 	// Show without Bootstrap backdrop so it doesn't cover the full window
 	$modal.modal({ show: true, backdrop: false, keyboard: true });
+	// Keep page scroll enabled (defensive against Bootstrap's modal-open)
+	try { $('body').removeClass('modal-open').css({ overflow: '' }); } catch(_ignore) {}
+	// Close when clicking outside the dialog (overlay area)
+	try {
+		$modal.off('mousedown.qhtlOutside');
+		$modal.on('mousedown.qhtlOutside', function(ev){
+			try {
+				var dlg = $(this).find('.modal-dialog')[0];
+				if (!dlg) { return; }
+				var t = ev.target;
+				if (t === this || (dlg && !dlg.contains(t))) {
+					$(this).modal('hide');
+				}
+			} catch(__){}
+		});
+	} catch(__){}
 	$('#quickViewEditBtn').show();
 	$('#quickViewSaveBtn').hide();
 	$('#quickViewCancelBtn').hide();
