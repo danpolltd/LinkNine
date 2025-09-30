@@ -1170,9 +1170,11 @@ if (!$ui_error) {
 	} or do { $ui_error = $@ || 'Unknown error in UI renderer'; };
 }
 
-# Close gradient wrapper right after main content
+# Close gradient wrapper right after main content (not for AJAX inline loads)
 unless ($skip_capture) {
-	print "</div>\n";
+	if (!$is_ajax) {
+		print "</div>\n";
+	}
 }
 
 if ($ui_error) {
@@ -1180,27 +1182,33 @@ if ($ui_error) {
 }
 
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
-	# Print sanitized footer if provided; otherwise print a minimal version link with the exact left text
-	if (@footer) {
-		# Print array content, not a symbol reference
-		print join('', @footer);
-	} else {
-		print "<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;'><div style='font-size:12px;'>©2025 (Daniel Nowakowski)</div><div style='font-size:12px;'><a href='$script?action=readme' target='_self' style='text-decoration:none;'>Qht Link Firewall v$myv</a></div></div>\n";
+	if (!$is_ajax) {
+		# Print sanitized footer if provided; otherwise print a minimal version link with the exact left text
+		if (@footer) {
+			# Print array content, not a symbol reference
+			print join('', @footer);
+		} else {
+			print "<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;'><div style='font-size:12px;'>©2025 (Daniel Nowakowski)</div><div style='font-size:12px;'><a href='$script?action=readme' target='_self' style='text-decoration:none;'>Qht Link Firewall v$myv</a></div></div>\n";
+		}
 	}
 }
+close ($SCRIPTOUT) unless ($skip_capture);
+select STDOUT;
+
+# Defensive cleanup: rewrite any legacy includes in the captured template HTML
+if (!$skip_capture && defined $templatehtml && length $templatehtml) {
+	# Do not strip inline scripts here; UI relies on them for tabs and interactions.
+	$templatehtml =~ s{(src=\s*['\"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['\"]) }{$1$2?action=banner_js$3 }ig;
+	$templatehtml =~ s{(src=\s*['\"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(\?)(?!action=)}{$1$2$3}ig;
+}
+
+# If AJAX request, always return raw inner content without WHM template/header/footer regardless of action
+if ($is_ajax) {
+	print $templatehtml if defined $templatehtml;
+	exit 0;
+}
+
 unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
-	close ($SCRIPTOUT);
-	select STDOUT;
-	# Defensive cleanup: rewrite any legacy includes in the captured template HTML
-	if (defined $templatehtml && length $templatehtml) {
-		# Do not strip inline scripts here; UI relies on them for tabs and interactions.
-		$templatehtml =~ s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(['"]) }{$1$2?action=banner_js$3 }ig;
-		$templatehtml =~ s{(src=\s*['"])((?:[^'"\s>]+/)?cgi/qhtlink/(?:qhtlfirewall|addon_qhtlfirewall)\.cgi)(\?)(?!action=)}{$1$2$3}ig;
-	}
-	# If AJAX request, return raw inner content without WHM template/header/footer
-	if ($is_ajax) {
-		select STDOUT; print "Content-type: text/html\r\n\r\n"; print $templatehtml; exit 0;
-	}
 	my $rendered;
 	eval {
 		$rendered = Cpanel::Template::process_template(
