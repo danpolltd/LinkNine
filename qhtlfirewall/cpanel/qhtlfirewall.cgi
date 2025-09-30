@@ -17,20 +17,30 @@ use lib '/usr/local/qhtlfirewall/lib';
 require QhtLink::Slurp;
 
 use lib '/usr/local/cpanel';
-require Cpanel::Form;
-require Cpanel::Config;
-require Whostmgr::ACLS;
-require Cpanel::Rlimit;
-require Cpanel::Template;
-require Cpanel::Version::Tiny;
+# IMPORTANT: Do NOT require cPanel modules here; some environments lack optional deps (e.g., Class::XSAccessor)
+# We'll require them after lightweight endpoints are handled.
 ###############################################################################
 # start main
 
 our ($reseller, $script, $images, %rprivs, $myv, %FORM);
+# Minimal GET query parser to avoid pulling cPanel deps early
+sub _qhtl_parse_get_query {
+	my $qs = $ENV{QUERY_STRING} // '';
+	my %h;
+	for my $pair (split /[&;]/, $qs) {
+		next unless length $pair;
+		my ($k,$v) = split(/=/, $pair, 2);
+		for ($k,$v) {
+			$_ = '' unless defined $_;
+			s/\+/ /g;
+			s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
+		}
+		$h{$k} = $v;
+	}
+	return %h;
+}
 
-Whostmgr::ACLS::init_acls();
-
-%FORM = Cpanel::Form::parseform();
+%FORM = _qhtl_parse_get_query();
 my $is_ajax = 0;
 eval {
 	my $xrw = lc($ENV{HTTP_X_REQUESTED_WITH} // '');
@@ -39,8 +49,7 @@ eval {
 } or do { $is_ajax = 0; };
 
 ## Postpone config and regex setup until after lightweight endpoints
-
-Cpanel::Rlimit::set_rlimit_to_infinity();
+# Avoid calling cPanel Rlimit before we ensure cPanel deps are available
 
 # Defensive: if this CGI is requested in a script-like context without an action, return a JS no-op.
 # Simple rule: only consider it script-like when Sec-Fetch-Dest=script or Accept indicates JavaScript.
@@ -53,8 +62,10 @@ if (!defined $FORM{action} || $FORM{action} eq '') {
 	my $accept_js      = ($accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
 	# Consider it a normal navigation if Sec-Fetch indicates navigation/document/frame or a user gesture is present
 	my $is_nav = ($sec_mode eq 'navigate' || $sec_dest eq 'document' || $sec_dest eq 'frame' || $sec_dest eq 'iframe' || $sec_user eq '?1');
-	# Treat script-like only when clearly a script destination, or when Accept looks like JS AND it's not a navigation
-	my $scriptish = $is_script_dest || (!$is_nav && $accept_js);
+	my $accepts_html = ($accept =~ /\btext\/html\b/);
+	# Treat as script-like when destination is script, OR when not a nav and the Accept header does NOT include text/html
+	# This catches Firefox script fetches that often use Accept: */* and do not send Sec-Fetch headers.
+	my $scriptish = $is_script_dest || (!$is_nav && !$accepts_html) || (!$is_nav && $accept_js);
 	if ($scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
@@ -63,35 +74,48 @@ if (!defined $FORM{action} || $FORM{action} eq '') {
 }
 
 # Serve wstatus.js via controlled endpoint to guarantee correct MIME and avoid nosniff issues on static paths
-if (defined $FORM{action} && $FORM{action} eq 'wstatus_js') {
-	# Always emit JS headers; this endpoint only ever returns JavaScript
-	print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
-	my @candidates = (
-		'/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/wstatus.js',
-		'/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/ui/images/wstatus.js',
-		'/etc/qhtlfirewall/ui/images/wstatus.js',
-		'/usr/local/qhtlfirewall/ui/images/wstatus.js',
-	);
-	my $served = 0;
-	for my $p (@candidates) {
-		next unless -e $p;
-		if (open(my $JS, '<', $p)) {
-			local $/ = undef;
-			my $data = <$JS> // '';
-			close $JS;
-			print $data;
-			$served = 1;
-			last;
-		}
-	}
-	# Minimal safety fallback: define WStatus.open to navigate to status page
-	if (!$served) {
-		print "(function(){ window.WStatus = window.WStatus || { open: function(){ try{ window.location = '$script?action=qhtlwaterfallstatus'; }catch(e){ window.location='?action=qhtlwaterfallstatus'; } return false; } }; })();\n";
+if (defined $FORM{action} && $FORM{action} eq 'diag') {
+	my $ok = 0;
+	my $out = '';
+	eval {
+		# Simple JSON escaper (sufficient for our values)
+		my $esc = sub {
+			my ($s) = @_;
+			$s = '' unless defined $s;
+			$s =~ s/\\/\\\\/g;  # backslashes
+			$s =~ s/\"/\\\"/g;  # quotes
+			$s =~ s/\r/\\r/g;     # CR
+			$s =~ s/\n/\\n/g;     # LF
+			$s =~ s/\t/\\t/g;     # TAB
+			return $s;
+		};
+		my $j = '{'
+		  . '"version":"' . $esc->($myv) . '",' 
+		  . '"is_ajax":' . ($is_ajax ? 1 : 0) . ','
+		  . '"sec_fetch":{'
+			  . '"dest":"' . $esc->($sec_dest) . '",' 
+			  . '"mode":"' . $esc->($sec_mode) . '",' 
+			  . '"user":"' . $esc->($sec_user) . '"},'
+		  . '"accept":"' . $esc->($accept) . '",' 
+		  . '"rule":"noaction => js-noop when (dest==script) OR (not navigate AND Accept not text/html)",' 
+		  . '"now":"' . $esc->(scalar localtime()) . '"' 
+		  . '}';
+		$out = $j;
+		$ok = 1;
+		1;
+	} or do {
+		$ok = 0;
+		$out = $@ || 'diag failed';
+	};
+	if ($ok) {
+		print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print $out;
+	} else {
+		print "Content-type: text/plain\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print "diag error: ".$out."\n";
 	}
 	exit 0;
 }
-
-# Serve additional widget JS files via a single endpoint with whitelist
 if (defined $FORM{action} && $FORM{action} eq 'widget_js') {
 	my %allowed = map { $_ => 1 } qw(
 		wignore.js wdirwatch.js wddns.js walerts.js wscanner.js wblocklist.js wusers.js
@@ -232,6 +256,37 @@ if (defined $FORM{action} && $FORM{action} eq 'status_json') {
 		$enabled, $running, $is_test, $status_key, $text, $class, $ipt_ok, $myv
 	);
 	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\n\r\n";
+	print $json;
+	exit 0;
+}
+
+# Diagnostic endpoint to verify routing, headers, and version on live servers
+if (defined $FORM{action} && $FORM{action} eq 'diag') {
+	my %info = (
+		version     => $myv // 'unknown',
+		is_ajax     => $is_ajax ? 1 : 0,
+		sec_fetch   => {
+			dest => $sec_dest,
+			mode => $sec_mode,
+			user => $sec_user,
+		},
+		accept      => $accept,
+		script_like_noaction_logic => 'noaction => js-noop when (dest==script) OR (not navigate AND Accept not text/html)',
+		now         => scalar localtime(),
+	);
+	# Render compact JSON without external modules
+	my $json = '{'
+		. '"version":"'.($info{version} =~ s/"/\\"/gr).'",'
+		. '"is_ajax":'.($info{is_ajax} ? 1 : 0).','
+		. '"sec_fetch":{'
+			. '"dest":"'.($info{sec_fetch}{dest} =~ s/"/\\"/gr).'",' 
+			. '"mode":"'.($info{sec_fetch}{mode} =~ s/"/\\"/gr).'",' 
+			. '"user":"'.($info{sec_fetch}{user} =~ s/"/\\"/gr).'"},'
+		. '"accept":"'.($info{accept} =~ s/"/\\"/gr).'",' 
+		. '"rule":"'.$info{script_like_noaction_logic}.'",'
+		. '"now":"'.($info{now} =~ s/"/\\"/gr).'"' 
+		. '}';
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 	print $json;
 	exit 0;
 }
@@ -616,12 +671,27 @@ JS
 		exit 0;
 	}
 
-## From here onwards, load full config and regex helpers, then resolve reseller ACLs
-require QhtLink::Config;
-my $config = QhtLink::Config->loadconfig();
-my %config = $config->config;
-my $slurpreg = QhtLink::Slurp->slurpreg;
-my $cleanreg = QhtLink::Slurp->cleanreg;
+	## From here onwards, load full config and regex helpers, then resolve reseller ACLs
+	# Now that lightweight endpoints are done, it's safe to pull in cPanel modules
+	require Cpanel::Form;
+	require Cpanel::Config;
+	require Whostmgr::ACLS;
+	require Cpanel::Rlimit;
+	require Cpanel::Template;
+	require Cpanel::Version::Tiny;
+
+	# Parse full form (including POST) with cPanel's parser when available
+	eval { %FORM = Cpanel::Form::parseform(); 1; };
+
+	Cpanel::Rlimit::set_rlimit_to_infinity();
+
+	require QhtLink::Config;
+	my $config = QhtLink::Config->loadconfig();
+	my %config = $config->config;
+	my $slurpreg = QhtLink::Slurp->slurpreg;
+	my $cleanreg = QhtLink::Slurp->cleanreg;
+
+Whostmgr::ACLS::init_acls();
 
 foreach my $line (QhtLink::Slurp::slurp("/etc/qhtlfirewall/qhtlfirewall.resellers")) {
 	$line =~ s/$cleanreg//g;
@@ -744,11 +814,15 @@ if ($Cpanel::Version::Tiny::major_version >= 65) {
 
 # If an action other than our lightweight endpoints is being requested in a true script-like context,
 # emit a JS no-op to prevent browsers from parsing full HTML as JavaScript. Do not block XHR/fetch.
-if (defined $FORM{action} && $FORM{action} ne '' && $FORM{action} !~ /^(?:status_json|banner_js|banner_frame)$/) {
+if (defined $FORM{action} && $FORM{action} ne '' && $FORM{action} !~ /^(?:status_json|banner_js|banner_frame|diag)$/) {
 	my $g_sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
 	my $g_is_script_dest = ($g_sec_dest eq 'script');
-	# Only block when the destination is explicitly "script"; allow XHR/fetch (dest "empty")
-	my $g_scriptish = $g_is_script_dest ? 1 : 0;
+	my $g_sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
+	my $g_accept   = lc($ENV{HTTP_ACCEPT} // '');
+	my $g_is_nav   = ($g_sec_mode eq 'navigate' || $g_sec_dest eq 'document' || $g_sec_dest eq 'frame' || $g_sec_dest eq 'iframe');
+	my $g_accepts_html = ($g_accept =~ /\btext\/html\b/);
+	# Block when explicitly a script destination, OR when not a navigation and Accept does not include text/html
+	my $g_scriptish = $g_is_script_dest || (!$g_is_nav && !$g_accepts_html);
 	if ($g_scriptish) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
@@ -773,7 +847,7 @@ unless ($skip_capture) {
 
 	# Provide a smart wrapper so clicking Watcher waits briefly for modal init before falling back
 	if (!$is_ajax) {
-print <<'HTML_SMART_WRAPPER';
+print <<HTML_SMART_WRAPPER;
 <script>
 (function(){
 	function fallback(){ try{ window.location='$script?action=logtail'; }catch(e){ window.location='$script?action=logtail'; } }
@@ -974,12 +1048,12 @@ print <<'HTML_SMART_WRAPPER';
 HTML_SMART_WRAPPER
 }
 
-	if (!$is_ajax) {
-	print <<'HTML_HEADER_ASSETS';
-	<!-- $bootstrapcss -->
-	<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
-	<script src='$script?action=wstatus_js&v=$myv'></script>
-	<script>
+		if (!$is_ajax) {
+print <<HTML_HEADER_ASSETS;
+		$bootstrapcss
+		<link href='$images/qhtlfirewall.css' rel='stylesheet' type='text/css'>
+		<script src='$script?action=wstatus_js&v=$myv'></script>
+		<script>
 	// Fallback if wstatus.js fails to load or is blocked (e.g., MIME nosniff)
 	(function(){
 	  try{
@@ -993,10 +1067,10 @@ HTML_SMART_WRAPPER
 	    }
 	  }catch(_){ }
 	})();
-	</script>
-	$jqueryjs
-	$bootstrapjs
-	<style>
+		</script>
+		$jqueryjs
+		$bootstrapjs
+		<style>
 HTML_HEADER_ASSETS
 	}
 	if (!$is_ajax) {
