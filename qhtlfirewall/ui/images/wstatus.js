@@ -181,57 +181,57 @@
         } catch(_) { startPoll(true); }
         return;
       }
-      // Stop sequence: WARNING blink (fast), 2s gap, then 3s smooth dim countdown with 3..1; release cancels throughout
+      // Restart-oriented sequence: 3s WARNING (release to restart), then 3s dim countdown (auto restart at end)
       colorOrange();
-      setBusy('WARNING');
+      api._phase = 'warn';
       inner.classList.add('blink-warn');
-      // Stage 1: quick warning blink (~0.6s total). We'll extend to ~0.6 and then a gap to make ~2s before countdown
-      var warnTimeout = setTimeout(function(){
-        inner.classList.remove('blink-warn');
-        setBusy('');
-        // Stage 2: 2s gap with steady orange (user can still cancel)
-        var gapTimeout = setTimeout(function(){
-          // Stage 3: 3s countdown with smooth color fade orange->red
-          var n = 3; setBusy(String(n));
+      var warnStart = Date.now();
+      setBusy('3');
+      function warnTick(){
+        if (!api._timer) return;
+        var elapsed = Date.now() - warnStart;
+        var remaining = Math.ceil((3000 - elapsed)/1000);
+        if (remaining > 0) { inner.textContent = String(remaining); }
+        if (elapsed >= 3000) {
+          // Move to second countdown immediately
+          clearInterval(api._timer); api._timer = null;
+          try { inner.classList.remove('blink-warn'); } catch(_e){}
+          api._phase = 'countdown';
+          // 3s smooth dim orange->red with 3..2..1
           var startTs = Date.now();
-          function tick(){
-            // If canceled externally, stop
+          setBusy('3');
+          function cdTick(){
             if (!api._timer) return;
-            var elapsed = Date.now() - startTs;
-            var progress = Math.min(1, Math.max(0, elapsed/3000));
-            // Smooth fade based on progress
+            var e = Date.now() - startTs;
+            var progress = Math.min(1, Math.max(0, e/3000));
             if (progress < 1) {
-              // approximate smooth fade using class swaps at thirds plus filter boost
               if (progress < 0.33) { colorOrange(); inner.style.filter='brightness(1.0)'; }
               else if (progress < 0.66) { inner.classList.remove('state-green','state-red'); inner.classList.add('state-orange'); inner.style.filter='brightness(0.95)'; }
               else { colorRed(); inner.style.filter='brightness(0.92)'; }
             } else { colorRed(); inner.style.filter=''; }
-            // Countdown numbers based on full seconds remaining
-            var remaining = Math.ceil((3000 - elapsed)/1000);
-            if (remaining > 0) { inner.textContent = String(remaining); }
-            if (elapsed >= 3000) {
-              clearInterval(api._timer); api._timer = null;
-              setBusy('Stopping'); colorRed(); beep(420,0.07,'square');
+            var rem = Math.ceil((3000 - e)/1000);
+            if (rem > 0) { inner.textContent = String(rem); }
+            if (e >= 3000) {
+              clearInterval(api._timer); api._timer = null; api._phase = null;
+              setBusy('Restarting'); colorRed(); beep(520,0.07,'triangle');
               try {
                 if (window.jQuery) {
-                  var u = (window.QHTL_SCRIPT||'') + '?action=api_stopwf';
-                  jQuery.ajax({ url: u, method: 'POST', dataType: 'json', timeout: 20000 })
-                    .always(function(){ state.running = false; colorRed(); setReady('Start'); msg.textContent=''; pulseRing('rgba(220,38,38,0.85)'); refreshHeaderStatus(); });
+                  var u = (window.QHTL_SCRIPT||'') + '?action=api_restartwf';
+                  jQuery.ajax({ url: u, method: 'POST', dataType: 'html', timeout: 20000 })
+                    .always(function(){ startPoll(false); });
                 } else {
-                  var u2 = (window.QHTL_SCRIPT||'') + '?action=api_stopwf';
-                  var x=new XMLHttpRequest(); x.open('POST', u2, true); x.onreadystatechange=function(){ if(x.readyState===4){ state.running = false; colorRed(); setReady('Start'); msg.textContent=''; pulseRing('rgba(220,38,38,0.85)'); refreshHeaderStatus(); } }; x.send();
+                  var u2 = (window.QHTL_SCRIPT||'') + '?action=api_restartwf';
+                  var x=new XMLHttpRequest(); x.open('POST', u2, true); x.onreadystatechange=function(){ if(x.readyState===4){ startPoll(false); } }; x.send();
                 }
-              } catch(_) { state.running = false; colorRed(); setReady('Start'); msg.textContent=''; pulseRing('rgba(220,38,38,0.85)'); refreshHeaderStatus(); }
+              } catch(_) { startPoll(false); }
             }
           }
-          api._timer = setInterval(tick, 50);
-          tick();
-        }, 2000);
-        // Stash gap timeout so cancel can clear it
-        api._gapTimeout = gapTimeout;
-      }, 600);
-      // Stash warning timeout for cancel
-      api._warnTimeout = warnTimeout;
+          api._timer = setInterval(cdTick, 50);
+          cdTick();
+        }
+      }
+      api._timer = setInterval(warnTick, 50);
+      warnTick();
     }
 
     function startPoll(isStart){
@@ -291,26 +291,38 @@
         held=false; shutdownEngaged=false; inner.style.transform='scale(0.98)'; colorOrange();
         holdTimer=setTimeout(function(){
           held=true; shutdownEngaged=true; inner.style.transform='scale(1)';
-          // begin cancelable stop countdown sequence
+          // begin restart sequence (warn -> dim-countdown)
           doCountdownThenAct(false);
         }, 3000);
       }
       function resetVisual(){ if(state.running){ colorGreen(); setReady('On'); } else { colorRed(); setReady('Start'); } }
       function cancelHold(){
         if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
-        // Cancel warning, gap, countdown timers if present
-        if (api._warnTimeout){ try{ clearTimeout(api._warnTimeout); }catch(_){ } api._warnTimeout=null; }
-        if (api._gapTimeout){ try{ clearTimeout(api._gapTimeout); }catch(_){ } api._gapTimeout=null; }
-        if (shutdownEngaged && api._timer){ try{ clearInterval(api._timer); }catch(_){ } api._timer=null; }
-        shutdownEngaged=false; held=false;
+        // If in warn phase and user releases: trigger Restart immediately
+        var triggerRestart = (api._phase === 'warn');
+        if (api._timer){ try{ clearInterval(api._timer); }catch(_){ } api._timer=null; }
+        api._phase = null; shutdownEngaged=false; held=false;
         try { inner.classList.remove('blink-warn'); inner.style.filter=''; } catch(_e){}
-        // Always reset visual/text regardless of busy state
         inner.style.transform='scale(1)';
-        resetVisual();
+        if (triggerRestart){
+          setBusy('Restarting'); colorOrange();
+          try {
+            if (window.jQuery) {
+              var u = (window.QHTL_SCRIPT||'') + '?action=api_restartwf';
+              jQuery.ajax({ url: u, method: 'POST', dataType: 'html', timeout: 15000 })
+                .always(function(){ startPoll(false); });
+            } else {
+              var u2 = (window.QHTL_SCRIPT||'') + '?action=api_restartwf';
+              var xr=new XMLHttpRequest(); xr.open('POST', u2, true); xr.onreadystatechange=function(){ if(xr.readyState===4){ startPoll(false); } }; xr.send();
+            }
+          } catch(_) { startPoll(false); }
+        } else {
+          resetVisual();
+        }
         isDown=false;
       }
       function onDown(e){ e.preventDefault(); e.stopPropagation(); if(inner.getAttribute('aria-busy')==='true') return; isDown=true; if(state.running){ startHold(); } else { doCountdownThenAct(true); } }
-  function onUp(e){ e.preventDefault(); e.stopPropagation(); var wasHeld = held; cancelHold(); /* When running, single tap does nothing now */ }
+      function onUp(e){ e.preventDefault(); e.stopPropagation(); var wasHeld = held; cancelHold(); /* When running, single tap does nothing now */ }
       inner.addEventListener('pointerdown', onDown);
       inner.addEventListener('pointerup', onUp);
       inner.addEventListener('pointercancel', cancelHold);
