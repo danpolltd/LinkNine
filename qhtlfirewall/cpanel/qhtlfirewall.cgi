@@ -755,7 +755,12 @@ print "Content-type: text/html\r\n\r\n";
 
 my $templatehtml;
 my $SCRIPTOUT;
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
+my $skip_capture = (
+	$FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist"
+);
+# For AJAX requests, do not skip capture—always capture so we can return bare content
+$skip_capture = 0 if $is_ajax;
+unless ($skip_capture) {
 #	open(STDERR, ">&STDOUT");
 	open ($SCRIPTOUT, '>', \$templatehtml);
 	select $SCRIPTOUT;
@@ -1045,7 +1050,7 @@ eval {
 
 
 # After UI module is loaded and modal JS is injected, render header and Watcher button
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
+unless ($skip_capture) {
 		# Build a compact status badge for the header's right column
 	my $status_badge = "<span class='label label-success'>Enabled</span>";
 		my $status_buttons = '';
@@ -1156,7 +1161,7 @@ EOF
 }
 
 # Open gradient wrapper just before main content (exclude header)
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
+unless ($skip_capture) {
 	print "<div class='qhtl-bubble-bg'>\n";
 }
 
@@ -1172,7 +1177,7 @@ if (!$ui_error) {
 }
 
 # Close gradient wrapper right after main content
-unless ($FORM{action} eq "tailcmd" or $FORM{action} =~ /^cf/ or $FORM{action} eq "logtailcmd" or $FORM{action} eq "loggrepcmd" or $FORM{action} eq "viewlist" or $FORM{action} eq "editlist" or $FORM{action} eq "savelist") {
+unless ($skip_capture) {
 	print "</div>\n";
 }
 
