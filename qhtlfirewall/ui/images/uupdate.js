@@ -3,7 +3,7 @@
     var manual = document.getElementById('qhtl-upgrade-manual');
     var install = document.getElementById('qhtl-upgrade-install');
     function wire(btn, mode){ if(!btn) return; var tri = btn.querySelector('.tri'); var shell = btn.querySelector('.qhtl-tri-btn') || btn; var pct=0, t;
-      function setFill(p){ if(!tri) return; p=Math.max(0,Math.min(100,p)); tri.style.transform = 'scale(var(--k)) scaleY(' + (p/100) + ')'; }
+  function setFill(p){ if(!tri) return; p=Math.max(0,Math.min(100,p)); tri.style.transform = 'translateY(calc(-33.333% * (1 - var(--k)))) scale(var(--k)) scaleY(' + (p/100) + ')'; }
       function explode(){ try{ shell.classList.add('expl'); setTimeout(function(){ shell.classList.remove('expl'); }, 700); }catch(_){ } }
   btn.addEventListener('click', function(e){ e.preventDefault();
         if(mode==='install'){
