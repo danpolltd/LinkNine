@@ -58,15 +58,10 @@ my $sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
 my $sec_user = lc($ENV{HTTP_SEC_FETCH_USER} // ''); # '?1' for user navigations
 my $accept   = lc($ENV{HTTP_ACCEPT} // '');
 if (!defined $FORM{action} || $FORM{action} eq '') {
-	my $is_script_dest = ($sec_dest eq 'script');
-	my $accept_js      = ($accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
-	# Consider it a normal navigation if Sec-Fetch indicates navigation/document/frame or a user gesture is present
+	# If this CGI is fetched in any non-navigation context without an explicit action,
+	# return a JS no-op to prevent browsers parsing full HTML as JavaScript.
 	my $is_nav = ($sec_mode eq 'navigate' || $sec_dest eq 'document' || $sec_dest eq 'frame' || $sec_dest eq 'iframe' || $sec_user eq '?1');
-	my $accepts_html = ($accept =~ /\btext\/html\b/);
-	# Treat as script-like when destination is script, OR when not a nav and the Accept header does NOT include text/html
-	# This catches Firefox script fetches that often use Accept: */* and do not send Sec-Fetch headers.
-	my $scriptish = $is_script_dest || (!$is_nav && !$accepts_html) || (!$is_nav && $accept_js);
-	if ($scriptish) {
+	if (!$is_nav) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
 		exit 0;
@@ -745,6 +740,27 @@ if (defined $FORM{action} && $FORM{action} eq 'watcher_meta_logs') {
 		my @parts = map { '{"value":'.($_->{value}+0).',"label":"'.$_->{label}.'","selected":'.(($_->{selected})?1:0).'}' } @opts;
 		print '['.join(',', @parts).']';
 	};
+	exit 0;
+}
+
+# Lightweight endpoint to expose the upgrade log for AJAX polling
+if (defined $FORM{action} && $FORM{action} eq 'upgrade_log') {
+	my $ulog = "/var/log/qhtlfirewall-ui-upgrade.log";
+	# If this endpoint is accidentally loaded as a <script>, emit a JS no-op
+	my $ul_sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	if ($ul_sec_dest eq 'script') {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	print "Content-type: text/plain; charset=UTF-8\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	if (open(my $UIN, '<', $ulog)) {
+		local $/ = undef; my $data = <$UIN> // '';
+		close $UIN;
+		print $data;
+	} else {
+		print ""; # no output yet
+	}
 	exit 0;
 }
 

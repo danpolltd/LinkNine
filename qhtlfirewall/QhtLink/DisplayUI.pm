@@ -2798,14 +2798,51 @@ EOD
 			my $cmd  = "(/bin/sleep 2; /usr/sbin/qhtlfirewall -u) > $ulog 2>&1 &";
 			system($cmd);
 			print "<div><p>Upgrade started in the background. This UI may restart during the process and disconnect your session.</p>";
-			print "<p>Please reconnect or refresh this page in about 30–60 seconds.</p>";
-			if (open(my $UIN, '<', $ulog)) {
-				print "<p>Current upgrade log snapshot:</p>\n";
-				print "<pre class='comment' style='white-space: pre-wrap; height: 400px; overflow: auto; resize:none; clear:both'>\n";
-				while (my $L = <$UIN>) { $L =~ s/</&lt;/g; $L =~ s/>/&gt;/g; print $L; }
-				close($UIN);
-				print "</pre>\n";
-			}
+			print "<p>The log below will update automatically for a short time. If it remains empty, try refreshing after 30–60 seconds.</p>";
+			print "<p>Current upgrade log snapshot:</p>\n";
+			print "<pre id='qhtl-upgrade-log' class='comment' style='white-space: pre-wrap; height: 400px; overflow: auto; resize:none; clear:both'><span class=\"text-muted\">(no output yet)</span></pre>\n";
+			# Client-side poller to fetch the log content periodically
+			print <<'QHTL_UPGRADE_POLL';
+<script>
+(function(){
+	try {
+		var box = document.getElementById('qhtl-upgrade-log');
+		if (!box) return;
+		var attempts = 0, maxAttempts = 30; // ~60s @ 2s interval
+		function fetchLog(){
+			attempts++;
+			var url = (window.QHTL_SCRIPT || '') + '?action=upgrade_log&_=' + String(Date.now());
+			try {
+				var xhr = new XMLHttpRequest();
+				xhr.open('GET', url, true);
+				try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){ }
+				xhr.onreadystatechange = function(){
+					if (xhr.readyState === 4) {
+						if (xhr.status >= 200 && xhr.status < 300) {
+							var text = xhr.responseText || '';
+							if (text) {
+								// Escape minimal HTML
+								text = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+								box.innerHTML = text;
+								// Keep scrolled to bottom
+								try { box.scrollTop = box.scrollHeight; } catch(e){}
+							} else {
+								if (attempts <= 1) {
+									box.innerHTML = '<span class="text-muted">(no output yet)</span>';
+								}
+							}
+						}
+					}
+				};
+				xhr.send(null);
+			} catch(e){}
+			if (attempts < maxAttempts) { setTimeout(fetchLog, 2000); }
+		}
+		setTimeout(fetchLog, 500);
+	} catch(e){}
+})();
+</script>
+QHTL_UPGRADE_POLL
 			print "</div>\n";
 			&printreturn;
 		} else {
@@ -3405,7 +3442,7 @@ EOF
 		print "<div class='normalcontainer'>\n";
 		# Enforce tab-pane visibility regardless of host theme CSS and disable tab clicks while Quick View is open
 		print "<style>.tab-content>.tab-pane{display:none!important}.tab-content>.tab-pane.active{display:block!important}.qhtl-tabs-locked #myTabs a[data-toggle='tab']{pointer-events:none;cursor:not-allowed;opacity:.6;filter:grayscale(.25)}</style>\n";
-		print "<div class='bs-callout bs-callout-info text-center collapse' id='upgradebs'><h4>A new version of qhtlfirewall is <a href='#upgradetable'>available</a></h4></div>";
+	# Removed upgrade-available ribbon above tabs per request
 
 		print "<ul class='nav nav-tabs' id='myTabs' style='font-weight:bold'>\n";
 		print "<li><a data-toggle='tab' href='#upgrade'>Upgrade</a></li>\n";
