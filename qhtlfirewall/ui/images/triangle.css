@@ -27,7 +27,7 @@
 	clip-path:inherit;
 	/* Rounded stroke ring (light green tint) + imprint base gradient */
 	background:
-		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 86.6'%3E%3Cpath d='M50 3 L96 83.6 L4 83.6 Z' fill='none' stroke='%23e9fbf3' stroke-width='14' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% 100% no-repeat,
+		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 86.6'%3E%3Cpath d='M50 3 L96 83.6 L4 83.6 Z' fill='none' stroke='%23f7fefc' stroke-width='18' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% 100% no-repeat,
 		radial-gradient(circle at 30% 30%, #ffffff 0%, #f2fff7 45%, #defbe9 80%);
 	z-index:0; /* sits below ::after inner face */
 }
@@ -43,7 +43,7 @@
 	transform-origin:bottom center;
 	transform:translateY(calc(-33.333% * (1 - var(--k)))) scale(var(--k));
 	/* Add a subtle inner edge to emphasize the imprint gap */
-	box-shadow: inset 0 0 0 1.5px rgba(0,0,0,0.08);
+	box-shadow: inset 0 0 0 3px rgba(11,19,32,0.22);
 	z-index:1;
 }
 /* Fill overlay - scales from bottom within the same inner triangle */
@@ -101,7 +101,7 @@
 .qhtl-tri-btn.secondary::before{
 	/* Blue imprint ring */
 	background:
-		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 86.6'%3E%3Cpath d='M50 3 L96 83.6 L4 83.6 Z' fill='none' stroke='%23eaf3ff' stroke-width='14' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% 100% no-repeat,
+		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 86.6'%3E%3Cpath d='M50 3 L96 83.6 L4 83.6 Z' fill='none' stroke='%23f6f9ff' stroke-width='18' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% 100% no-repeat,
 		radial-gradient(circle at 30% 30%, #ffffff 0%, #f4f9ff 45%, #d6e9ff 80%);
 }
 .qhtl-tri-btn.secondary::after{ 
