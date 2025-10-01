@@ -17,7 +17,12 @@
         } else {
           // Manual check: post without rising/fill animation (no scaleY changes)
           btn.disabled=true; if(shell) shell.classList.add('running');
-          try{ fetch((window.QHTL_SCRIPT||'')||'', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'}, body:'action=manualcheck' }); }catch(_){ }
+          try{
+            var base = (typeof window.QHTL_SCRIPT === 'string' && window.QHTL_SCRIPT)
+              ? window.QHTL_SCRIPT
+              : (location.pathname + (location.search || ''));
+            fetch(base, { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'}, body:'action=manualcheck' });
+          }catch(_){ }
           // brief pulse feedback only, then re-enable
           explode();
           setTimeout(function(){ try{ if(shell) shell.classList.remove('running'); }catch(_){ } btn.disabled=false; }, 700);
