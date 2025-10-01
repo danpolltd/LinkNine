@@ -3747,6 +3747,8 @@ QHTL_UPGRADE_GLOBAL_RESUME
 				if (state.polls < 200) { state.timer=setTimeout(fetchLog, 1500); }
 			}
 		function start(){ if(state.running) return; state.running=true; btn.classList.add('installing'); btn.disabled=true; try{ label.textContent='Installing...'; }catch(_){ } try{ localStorage.setItem('qhtlUActive','1'); localStorage.setItem('qhtlULastPct','2'); localStorage.setItem('qhtlULastChange', String(Date.now())); }catch(_){} ensureMini(); setPct(2);
+			// Open standalone tracker window to persist across full reloads
+			try{ var base=(window.QHTL_SCRIPT||'')|| '$script'; window.open(base+'?action=upg_widget','qhtl_upg','width=420,height=140,noopener,noreferrer'); }catch(_){ }
 			// Fire API
 			var base=(window.QHTL_SCRIPT||'')|| '$script';
 			var url = base + '?action=api_start_upgrade&_=' + String(Date.now());

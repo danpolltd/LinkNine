@@ -195,6 +195,89 @@ if (defined $FORM{action} && $FORM{action} eq 'holiday_asset') {
 	exit 0;
 }
 
+# Standalone upgrade tracker: HTML widget window
+if (defined $FORM{action} && $FORM{action} eq 'upg_widget') {
+		# Serve a minimal HTML page that loads an external JS (same-origin) to avoid CSP inline-script issues
+		my $self = $ENV{SCRIPT_NAME} // '/cgi/qhtlink/qhtlfirewall.cgi';
+		print "Content-type: text/html; charset=UTF-8\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print <<HTML;
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>QhtLink Upgrade</title>
+	<style>
+		html,body{margin:0;padding:0;background:#0b0b0b;color:#fff;font:14px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif}
+		.wrap{padding:14px 16px}
+		.title{font-weight:600;font-size:14px;margin-bottom:8px}
+		.track{height:8px;background:rgba(255,255,255,.15);border-radius:5px;overflow:hidden}
+		.bar{height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#10b981);transition:width .35s ease}
+		.meta{margin-top:8px;color:#b3b3b3;font-size:12px}
+	</style>
+</head>
+<body>
+	<div class="wrap">
+		<div class="title">QhtLink upgrade progress <span id="pct" style="color:#a7f3d0;">0%</span></div>
+		<div class="track"><div id="bar" class="bar"></div></div>
+		<div id="msg" class="meta">Do not close this window. It will close automatically when finished.</div>
+	</div>
+	<script src="$self?action=upg_js"></script>
+	<noscript><div class="meta">JavaScript required for live progress.</div></noscript>
+</body>
+</html>
+HTML
+		exit 0;
+}
+
+# Standalone upgrade tracker script (no dependencies, CSP-friendly)
+if (defined $FORM{action} && $FORM{action} eq 'upg_js') {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print <<'UPG_JS';
+(function(){
+	function setPct(v){ v=Math.max(0,Math.min(100,Math.round(v))); try{ var b=document.getElementById('bar'); if(b) b.style.width=v+'%'; var p=document.getElementById('pct'); if(p) p.textContent=v+'%'; localStorage.setItem('qhtlUActive','1'); localStorage.setItem('qhtlULastPct',String(v)); localStorage.setItem('qhtlULastChange',String(Date.now())); }catch(_){}}
+	function guessPctFromLog(t,last){ if(!t) return Math.max(5,last||0); var s=String(t).toLowerCase();
+		if (s.indexOf('downloading')>-1 || s.indexOf('retriev')>-1) return 10;
+		if (s.indexOf('unpacking')>-1 || s.indexOf('extract')>-1 || s.indexOf('tar -xzf')>-1) return 40;
+		if (s.indexOf('install.sh')>-1 || s.indexOf('installing')>-1) return 70;
+		if (s.indexOf('restarting qhtlfirewall')>-1) return 85;
+		if (s.indexOf('restarting qhtlwaterfall')>-1 || s.indexOf('qhtlwaterfall')>-1) return 92;
+		if (s.indexOf('all done')>-1 || s.indexOf('...all done')>-1) return 100;
+		return Math.min(98, Math.max(12, (last||0)+2));
+	}
+	var prevLen=0,lastChange=Date.now();
+	function tick(){
+		var base=location.pathname; var url=base+'?action=upgrade_log&_='+String(Date.now());
+		var xhr=new XMLHttpRequest(); xhr.open('GET', url, true); try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){ }
+		xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){
+			var ct=(xhr.getResponseHeader&&xhr.getResponseHeader('Content-Type'))||'';
+			var marker=(xhr.getResponseHeader&&xhr.getResponseHeader('X-QHTL-ULOG'))||'';
+			var hLen=(xhr.getResponseHeader&&xhr.getResponseHeader('X-QHTL-ULOG-LEN'))||'';
+			var hDone=(xhr.getResponseHeader&&xhr.getResponseHeader('X-QHTL-ULOG-DONE'))||'';
+			if(marker==='1' || /^text\/plain/i.test(ct)){
+				var txt=xhr.responseText||''; var lines=txt.split(/\r?\n/).filter(Boolean);
+				var last=lines.length?lines[lines.length-1]:txt; var prev=(parseInt(localStorage.getItem('qhtlULastPct')||'0',10)||0);
+				var target=guessPctFromLog(last, prev);
+				if (String(hDone)==='1') { target = 100; }
+				var nLen=parseInt(hLen||'0',10)||txt.length; if(nLen>prevLen){ prevLen=nLen; lastChange=Date.now(); }
+				if (nLen>0 && prev < 12) { target = Math.max(target, 14); }
+				setPct(target);
+				if (target>=100){ try{ localStorage.removeItem('qhtlUActive'); localStorage.removeItem('qhtlULastPct'); localStorage.removeItem('qhtlULastChange'); }catch(_){} try{ var m=document.getElementById('msg'); if(m) m.textContent='Finished.'; }catch(_){} try{ setTimeout(function(){ window.close(); }, 1200); }catch(_){} return; }
+				// Idle-based completion fallback
+				var idleMs=Date.now()-lastChange; if(idleMs>20000 && (prev>=70 || /restarting qhtl|qhtlwaterfall/i.test(txt))){ setPct(100); try{ setTimeout(function(){ window.close(); }, 1200); }catch(_){ } return; }
+			}
+		} };
+		try{ xhr.send(null); }catch(_e){}
+		setTimeout(tick, 1500);
+	}
+	try{ var init=parseInt(localStorage.getItem('qhtlULastPct')||'0',10)||0; setPct(init); }catch(_){ }
+	if (document.readyState==='loading') { document.addEventListener('DOMContentLoaded', tick); } else { tick(); }
+})();
+UPG_JS
+		;
+		exit 0;
+}
+
 if (-e "/usr/local/cpanel/bin/register_appconfig") {
 	$script = "qhtlfirewall.cgi";
 	$images = "qhtlfirewall";
