@@ -814,6 +814,155 @@ if (defined $FORM{action} && $FORM{action} eq 'api_start_upgrade') {
 	exit 0;
 }
 
+# API endpoint to manually check for the latest available version (used by the Upgrade tab/button)
+if (defined $FORM{action} && $FORM{action} eq 'api_manual_check') {
+	# If accidentally loaded as a <script>, emit a JS no-op
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	if ($sec_dest eq 'script') {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+
+	# Helper: semantic version compare (returns 1 if a>b, -1 if a<b, 0 if equal)
+	my $ver_cmp = sub {
+		my ($a,$b) = @_;
+		my @a = split /\./, ($a // '');
+		my @b = split /\./, ($b // '');
+		for (my $i=0; $i < @a || $i < @b; $i++) {
+			my $ai = $i < @a ? int($a[$i]||0) : 0;
+			my $bi = $i < @b ? int($b[$i]||0) : 0;
+			return 1 if $ai > $bi;
+			return -1 if $ai < $bi;
+		}
+		return 0;
+	};
+
+	# Load minimal config safely
+	my %cfg = (
+		URLGET         => 1,                    # prefer HTTP::Tiny
+		URLPROXY       => '',
+		DOWNLOADSERVER => '',
+	);
+	my $cleanreg;
+	eval {
+		require QhtLink::Config;
+		require QhtLink::Slurp;
+		my $c = QhtLink::Config->loadconfig();
+		my %full = $c->config;
+		$cfg{URLGET}         = $full{URLGET}         if defined $full{URLGET};
+		$cfg{URLPROXY}       = $full{URLPROXY}       if defined $full{URLPROXY};
+		$cfg{DOWNLOADSERVER} = $full{DOWNLOADSERVER} if defined $full{DOWNLOADSERVER};
+		$cleanreg = QhtLink::Slurp->cleanreg;
+		1;
+	} or do { };
+
+	# Initialize HTTP client
+	my $urlget;
+	my $ua_ok = eval { require QhtLink::URLGet; 1 } ? 1 : 0;
+	if ($ua_ok) {
+		$urlget = QhtLink::URLGet->new($cfg{URLGET}, "qhtlfirewall/$myv", $cfg{URLPROXY});
+		if (!defined $urlget) {
+			# Fallback to HTTP::Tiny mode
+			$cfg{URLGET} = 1;
+			$urlget = QhtLink::URLGet->new($cfg{URLGET}, "qhtlfirewall/$myv", $cfg{URLPROXY});
+		}
+	}
+
+	my $ok = 0; my $err = '';
+	my $avail = ''; my $src = '';
+	my $curr = $myv // '';
+
+	if (!$ua_ok || !defined $urlget) {
+		$err = 'HTTP client not initialized';
+	} else {
+		eval {
+			# Build mirrors list from file and config
+			my %seen; my @mirrors;
+			my $list = '/etc/qhtlfirewall/downloadservers';
+			if (eval { -r $list }) {
+				eval {
+					require QhtLink::Slurp;
+					my @lines = QhtLink::Slurp::slurp($list);
+					foreach my $line (@lines) {
+						$line =~ s/$cleanreg//g if defined $cleanreg;
+						$line =~ s/#.*$//; $line =~ s/^\s+|\s+$//g;
+						next unless length $line;
+						$line =~ s{^https?://}{}i;   # drop scheme
+						$line =~ s{/.*$}{};          # drop path
+						$line =~ s{/+\z}{};         # drop trailing slash
+						next if $seen{lc $line}++;
+						push @mirrors, $line;
+					}
+					1;
+				} or do { };
+			}
+			if (defined $cfg{DOWNLOADSERVER} && $cfg{DOWNLOADSERVER} ne '') {
+				my $c = $cfg{DOWNLOADSERVER};
+				$c =~ s{^https?://}{}i; $c =~ s{/.*$}{}; $c =~ s{/+\z}{};
+				if (!$seen{lc $c}++) { unshift @mirrors, $c; }
+			}
+			# Fallback legacy host only if none explicitly provided
+			push @mirrors, 'update.qhtl.link' if !@mirrors;
+
+			# Shuffle for resilience
+			for (my $x = @mirrors; --$x;) {
+				my $y = int(rand($x+1));
+				next if $x == $y;
+				@mirrors[$x,$y] = @mirrors[$y,$x];
+			}
+
+			my $last_err = '';
+			MIRROR: for my $host (@mirrors) {
+				for my $scheme ('https','http') {
+					my $url = "$scheme://$host/qhtlfirewall/version.txt";
+					my ($rc, $data) = $urlget->urlget($url);
+					if (!$rc && defined $data) {
+						# Strip BOM and parse for a version token
+						$data =~ s/^\xEF\xBB\xBF//;
+						my $found = '';
+						for my $line (split /\r?\n/, $data) {
+							$line =~ s/^\s+|\s+$//g; next unless length $line;
+							if ($line =~ /^v?(\d+(?:\.\d+){1,3})\b/i) { $found = $1; last; }
+						}
+						if (!$found && $data =~ /^\s*v?(\d+(?:\.\d+){1,3})\s*$/m) { $found = $1; }
+						if ($found) { $avail = $found; $src = $host; }
+					}
+					if ($avail) { last MIRROR; }
+					else {
+						my $why = defined $data ? $data : '';
+						$why =~ s/[\r\n]+/ /g; $why =~ s/\s{2,}/ /g; $why = substr($why,0,180);
+						$last_err = ($why ne '' ? $why : 'Unknown error');
+					}
+				}
+			}
+			if (!$avail) { $err = 'Version check failed: '.($last_err||''); }
+			1;
+		} or do { $err = 'Version check failed'; };
+	}
+
+	my $need_up = 0;
+	if ($avail && $curr) {
+		# Remove leading v's if present
+		(my $a = $avail) =~ s/^v//i; (my $c = $curr) =~ s/^v//i;
+		$need_up = ($ver_cmp->($a, $c) == 1) ? 1 : 0;
+	}
+
+	my $okflag = ($avail ne '' && $err eq '') ? 1 : 0;
+	# Emit JSON
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my $json = '{'
+		. '"ok":'.($okflag?1:0).','
+		. '"current":"'.($curr//'') .'",'
+		. '"available":"'.($avail//'').'",'
+		. '"upgrade":'.($need_up?1:0).','
+		. '"source":"'.($src//'').'",'
+		. '"error":"'.($err//'').'"'
+		. '}';
+	print $json;
+	exit 0;
+}
+
 	# Minimal HTML banner for iframe embedding (no JS required in parent)
 	if (defined $FORM{action} && $FORM{action} eq 'banner_frame') {
 		# If loaded as a <script>, emit a JS no-op instead of HTML to prevent parse errors
