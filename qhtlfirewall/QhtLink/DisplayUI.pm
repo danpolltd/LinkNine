@@ -1,50 +1,15 @@
 package QhtLink::DisplayUI;
-
-# Lightweight module wiring and shared state used across handlers in this package
-# Avoid enabling strict here due to legacy globals; keep changes minimal and targeted
-use lib '/usr/local/qhtlfirewall/lib';
-use Fcntl qw(:DEFAULT :flock);
-use Carp;
-use IPC::Open3;
-use File::Basename qw(fileparse);
-use QhtLink::Config;
-use QhtLink::Slurp qw(slurp);
-use QhtLink::Sanity qw(sanity);
-use QhtLink::URLGet;
-use QhtLink::ServerStats;
-use QhtLink::GetEthDev;
-use QhtLink::Ports;
-use QhtLink::ServerCheck;
-use QhtLink::RBLCheck;
-use QhtLink::Service;
-use QhtLink::CloudFlare;
-
-# Shared state used across handlers in this package
-our ($chart, $ipscidr6, $ipv6reg, $ipv4reg, %config, %ips, $mobile,
-	 %FORM, $script, $script_da, $images, $myv, $hostname,
-	 $hostshort, $panel, $urlget, $cleanreg);
-
-# ---------------------------------------------------------------------------
-# Utility helpers (must appear before main() so calls work during early actions)
-# ---------------------------------------------------------------------------
-
-# Safe no-op resize stub retained for legacy template compatibility
-sub resize {
-	# Expected legacy signatures: resize("top"); resize("bot", optionalFlag)
-	# We intentionally do nothing to avoid layout side-effects in modern UI.
-	return;
-}
-
-# Version compare: returns 1 if a > b, -1 if a < b, 0 if equal
-sub ver_cmp {
-	my ($a,$b) = @_;
-	return 0 if !defined $a || !defined $b;
-	my @a = split /\./, $a;
-	my @b = split /\./, $b;
-	for (my $i=0; $i < @a || $i < @b; $i++) {
-		my $ai = $a[$i] // 0; $ai =~ s/\D//g; # strip non-numeric safety
-		my $bi = $b[$i] // 0; $bi =~ s/\D//g;
-		return 1 if $ai > $bi;
+		if ($upgrade) {
+				print "<tr><td colspan='2'><div style='display:flex;gap:10px;flex-wrap:wrap;align-items:center'>";
+				# Triangle-styled Install and ChangeLog; hide Manual Check when upgrade available
+				print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css' />";
+				print "  <button id='qhtl-upgrade-install' type='button' title='Install Update' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn'><span class='tri'></span><span>Install Update</span></span></button>";
+				print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>View ChangeLog</span></span></button>";
+				print "</div>";
+				# Load triangle handlers (uupdate handles both manual and install modes)
+				print "<script src='$script?action=widget_js&name=uupdate.js'></script>";
+				print "<script src='$script?action=widget_js&name=uchange.js'></script>";
+				print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div></div></td></tr>\n";
 		return -1 if $ai < $bi;
 	}
 	return 0;
@@ -3608,10 +3573,13 @@ QHTL_TAB_GUARD
 	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
 		if ($upgrade) {
 				print "<tr><td colspan='2'><div style='display:flex;gap:8px;flex-wrap:wrap;align-items:center'>";
-				# Progress-capable button wrapper
-				print "<div id='qhtl-upgrade-wrap' style='position:relative; display:inline-block;'>";
-				print "  <button id='qhtl-upgrade-btn' type='button' class='btn btn-default' data-bubble-color='green' style='position:relative; overflow:hidden;'><span class='qhtl-upgrade-label'>Install</span></button>";
-				print "  <span id='qhtl-upgrade-pct' class='small text-muted' style='margin-left:6px; display:none'>0%</span>";
+		# Show only Manual Check (triangle) when no upgrade available
+			print "<tr><td colspan='2'>";
+		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css' />";
+		print "<div style='margin-bottom:6px'>";
+		print "  <button id='qhtl-upgrade-manual' type='button' title='Manual Check' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn'><span class='tri'></span><span>Manual Check</span></span></button>";
+		print "  <script src='$script?action=widget_js&name=uupdate.js'></script>";
+		print "</div>";
 				print "  <style>#qhtl-upgrade-btn .qhtl-fill{position:absolute; left:0; top:0; bottom:0; width:0%; background: linear-gradient(90deg, rgba(34,197,94,0.9) 0%, rgba(16,185,129,0.95) 100%); z-index:0; transition:width .35s ease} #qhtl-upgrade-btn .qhtl-content{position:relative; z-index:1} #qhtl-upgrade-btn.installing{color:#fff; border-color:#16a34a}</style>";
 				print "</div>";
 				print "<button name='action' value='changelog' type='submit' class='btn btn-default' data-bubble-color='blue'>View ChangeLog</button>";

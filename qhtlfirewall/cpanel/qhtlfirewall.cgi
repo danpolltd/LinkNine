@@ -121,7 +121,7 @@ if (defined $FORM{action} && $FORM{action} eq 'widget_js') {
 	my %allowed = map { $_ => 1 } qw(
 		wignore.js wdirwatch.js wddns.js walerts.js wscanner.js wblocklist.js wusers.js uupdate.js uchange.js
 	);
-	my $name = $FORM{name} // '';
+	my $name = $FORM{name} // ''; 
 	$name =~ s/[^a-zA-Z0-9_.-]//g; # sanitize
 	if (!$allowed{$name}) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
