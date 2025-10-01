@@ -1,4 +1,14 @@
 package QhtLink::DisplayUI;
+BEGIN {
+	# Try to load ServerStats if available; ignore if missing
+	eval {
+		require QhtLink::ServerStats;
+		QhtLink::ServerStats->import();
+		1;
+	} or do {
+		# Module not available; charts will be disabled gracefully
+	};
+}
 ## Version comparison helper (returns 1 if a > b, -1 if a < b, 0 if equal)
 sub ver_cmp {
 	my ($a, $b) = @_;
@@ -113,8 +123,10 @@ sub main {
 	$cleanreg   = QhtLink::Slurp->cleanreg;
 
 	# Optional charts: initialize stats backend when enabled
+	my $chart = 1;
 	if ($config{ST_ENABLE}) {
-		if (!defined QhtLink::ServerStats::init()) { $chart = 0 }
+		my $init_ok = eval { QhtLink::ServerStats::init() };
+		if (!defined $init_ok) { $chart = 0 }
 	}
 
 	# HTTP client used for version/changelog fetches
