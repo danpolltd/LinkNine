@@ -2809,9 +2809,9 @@ EOD
 			my $shell = (-x '/bin/sh') ? '/bin/sh' : '/usr/bin/sh';
 			my $cmd;
 			if ($nohup ne '') {
-				$cmd = "$nohup $shell -c '/usr/sbin/qhtlfirewall -u' >> $ulog 2>&1 &";
+				$cmd = "$nohup $shell -c '/usr/sbin/qhtlfirewall -uf' >> $ulog 2>&1 &";
 			} else {
-				$cmd = "(/usr/sbin/qhtlfirewall -u) >> $ulog 2>&1 &";
+				$cmd = "(/usr/sbin/qhtlfirewall -uf) >> $ulog 2>&1 &";
 			}
 			system($cmd);
 			print "<div><p>Upgrade started in the background. This UI may restart during the process and disconnect your session.</p>";
