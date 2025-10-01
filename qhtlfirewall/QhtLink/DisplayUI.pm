@@ -3603,7 +3603,7 @@ QHTL_TAB_GUARD
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
 	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
 		if ($upgrade) {
-				print "<tr><td colspan='2'><div style='display:flex;gap:10px;flex-wrap:wrap;align-items:center'>";
+				print "<tr><td colspan='2'><div style='display:flex;gap:15px;flex-wrap:wrap;align-items:center'>";
 		# Show only Manual Check (triangle) when no upgrade available
 			print "<tr><td colspan='2'>";
 		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
@@ -3702,7 +3702,7 @@ QHTL_UPGRADE_PROGRESS_JS
 		# Replace with triangle-styled buttons and JS
 			print "<tr><td colspan='2'>";
 		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
-	print "<div style='display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;justify-content:center'>";
+	print "<div style='display:flex;gap:15px;flex-wrap:wrap;margin-bottom:6px;justify-content:center'>";
 	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Check Manually</span></span></button>";
 	print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>View ChangeLog</span></span></button>";
 	# New independent triangles (placeholders)

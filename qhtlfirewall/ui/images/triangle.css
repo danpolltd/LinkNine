@@ -70,7 +70,7 @@
 .qhtl-tri-btn > span:last-child{
 	position:absolute;
 	left:50%;
-	bottom:calc(var(--labelPad) + 8px); /* keep text above halo */
+	bottom:var(--labelPad); /* align text baseline to triangle bottom edge, not halo */
 	transform:translateX(-50%);
 	/* Keep label inside triangle without curved clip: use a narrower center block */
 	width:66%;
