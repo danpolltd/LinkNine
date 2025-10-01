@@ -5,6 +5,7 @@
 	--w: 132px;               /* slightly larger */
 	--h: calc(var(--w) * 0.8660254);
 	--d: 0px;                 /* remove imprint gap */
+	--labelPad: 12px;         /* fixed padding to keep text inside triangle (not halo) */
 	--k: calc(1 - (3 * var(--d) / var(--h))); /* scales to 1 when gap is 0 */
 	position:relative;
 	display:inline-block;
@@ -34,8 +35,8 @@
 	position:absolute;
 	inset:0;
 	clip-path:inherit;
-	/* Flat 60% tint of green button color */
-	background: rgba(52,168,83,0.60);
+	/* No background tint; avoid extra triangular background */
+	background: transparent;
 	z-index:0; /* sits below ::after inner face */
 }
 /* Inner face (base) via scale for uniform gap */
@@ -69,9 +70,10 @@
 .qhtl-tri-btn > span:last-child{
 	position:absolute;
 	left:50%;
-	bottom:calc(var(--d) + 6px);
+	bottom:var(--labelPad);
 	transform:translateX(-50%);
-	width:calc(100% - (2 * var(--d)) - 6px);
+	width:calc(100% - (2 * var(--labelPad)));
+	clip-path:inherit; /* ensure text stays within triangle shape */
 	text-align:center;
 	color:#fff;
 	font-size:13px;
@@ -106,8 +108,8 @@
 	/* No separate blue background */
 	background: transparent;
 }
-/* 60% blue tint for halo background */
-.qhtl-tri-btn.secondary::before{ background: rgba(30,111,209,0.60); }
+/* No blue base tint to avoid background triangle */
+.qhtl-tri-btn.secondary::before{ background: transparent; }
 .qhtl-tri-btn.secondary::after{ 
 	/* Blue inner face */
 	background:linear-gradient(180deg, #4ea8ff 0%, #1e6fd1 100%);
