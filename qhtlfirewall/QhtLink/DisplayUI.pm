@@ -3729,11 +3729,8 @@ QHTL_UPGRADE_WIRE_JS
 		print "<script src='$script?action=widget_js&name=qhtlrex.js'></script>";
 		print "<script src='$script?action=widget_js&name=qhtlmpass.js'></script>";
 		print "<script src='$script?action=widget_js&name=qhtlmshield.js'></script>";
-		if ($actv ne "" && ver_cmp($actv, $myv) == 1) {
-			print "<div class='text-muted small' style='margin-top:6px'>Latest available version is v$actv. Your version is v$myv. Please upgrade.</div></td></tr>\n";
-		} else {
-			print "<div class='text-muted small' style='margin-top:6px'>You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (qhtlfirewallget)</div></td></tr>\n";
-		}
+		# Removed version status/info line to reduce height
+		print "</td></tr>\n";
     
 		print "</table>\n";
 		print "</form>\n";
