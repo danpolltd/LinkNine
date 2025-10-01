@@ -10,9 +10,9 @@
 	width:var(--w);
 	height:var(--h);
 	clip-path:polygon(50% 0,100% 100%,0 100%);
-	/* No triangular background; only inner face (::after) and SVG outline are visible */
+	/* Flat background; keep only soft drop shadow (no white ring) */
 	background: transparent;
-	box-shadow: none;
+	box-shadow: 0 6px 18px rgba(0,0,0,0.25);
 	cursor:pointer;
 	overflow:visible;         /* allow caption outside */
 	margin-bottom: 18px;      /* space for label below */
@@ -27,14 +27,14 @@
 	pointer-events:none;
 	clip-path:inherit;
 }
-/* Imprint ring (10px gap area) - brighter shades */
+/* Imprint ring (10px gap area) - flat tint */
 .qhtl-tri-btn::before{
 	content:"";
 	position:absolute;
 	inset:0;
 	clip-path:inherit;
-	/* No background halo; keep transparent so no secondary triangle shows */
-	background: transparent;
+	/* Flat 60% tint of green button color */
+	background: rgba(52,168,83,0.60);
 	z-index:0; /* sits below ::after inner face */
 }
 /* Inner face (base) via scale for uniform gap */
@@ -105,7 +105,8 @@
 	/* No separate blue background */
 	background: transparent;
 }
-.qhtl-tri-btn.secondary::before{ background: transparent; }
+/* 60% blue tint for halo background */
+.qhtl-tri-btn.secondary::before{ background: rgba(30,111,209,0.60); }
 .qhtl-tri-btn.secondary::after{ 
 	/* Blue inner face */
 	background:linear-gradient(180deg, #4ea8ff 0%, #1e6fd1 100%);
