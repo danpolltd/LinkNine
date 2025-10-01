@@ -1257,8 +1257,14 @@ print <<HTML_HEADER_ASSETS;
 						try {
 							var loc = window.location || {};
 							var origin = loc.origin || (loc.protocol + '//' + loc.host);
-							var m = (loc.pathname||'').match(/\/cpsess\d+/);
-							var token = m ? m[0] : '';
+							// Extract cpsess token without regex to avoid parsing issues
+							var pth = String(loc.pathname || '');
+							var idx = pth.indexOf('/cpsess');
+							var token = '';
+							if (idx !== -1) {
+								var end = pth.indexOf('/', idx + 1);
+								token = (end === -1) ? pth.substring(idx) : pth.substring(idx, end);
+							}
 							// Build absolute path to our CGI, e.g., https://host:2087/cpsessXXXX/cgi/qhtlink/qhtlfirewall.cgi
 							window.QHTL_SCRIPT = origin + token + '/cgi/qhtlink/' + '$script';
 						} catch(e) {
