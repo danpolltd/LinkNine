@@ -3691,12 +3691,19 @@ QHTL_UPGRADE_PROGRESS_JS
 		# Replace with triangle-styled buttons and JS
 			print "<tr><td colspan='2'>";
 		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css' />";
-		print "<div style='display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px'>";
+		print "<div style='display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px;justify-content:center'>";
 		print "  <button id='qhtl-upgrade-manual' type='button' title='Manual Check' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn'><span class='tri'></span><span>Manual Check</span></span></button>";
 		print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>View ChangeLog</span></span></button>";
+		# New independent triangles (placeholders)
+		print "  <button id='qhtl-upgrade-rex' type='button' title='Rex' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn'><span class='tri'></span><span>Rex</span></span></button>";
+		print "  <button id='qhtl-upgrade-mpass' type='button' title='Mpass' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>Mpass</span></span></button>";
+		print "  <button id='qhtl-upgrade-mshield' type='button' title='Mshield' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn'><span class='tri'></span><span>Mshield</span></span></button>";
 		print "</div>";
 		print "<script src='$script?action=widget_js&name=uupdate.js'></script>";
 		print "<script src='$script?action=widget_js&name=uchange.js'></script>";
+		print "<script src='$script?action=widget_js&name=qhtlrex.js'></script>";
+		print "<script src='$script?action=widget_js&name=qhtlmpass.js'></script>";
+		print "<script src='$script?action=widget_js&name=qhtlmshield.js'></script>";
 			if ($actv ne "" && ver_cmp($actv, $myv) == 1) {
 					print "<div class='text-muted small' style='margin-top:6px'>Latest available version is v$actv. Your version is v$myv. Please upgrade.</div></td></tr>\n";
 		} elsif ($actv ne "") {

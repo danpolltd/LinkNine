@@ -119,7 +119,7 @@ if (defined $FORM{action} && $FORM{action} eq 'diag') {
 }
 if (defined $FORM{action} && $FORM{action} eq 'widget_js') {
 	my %allowed = map { $_ => 1 } qw(
-		wignore.js wdirwatch.js wddns.js walerts.js wscanner.js wblocklist.js wusers.js uupdate.js uchange.js triangle.css
+		wignore.js wdirwatch.js wddns.js walerts.js wscanner.js wblocklist.js wusers.js uupdate.js uchange.js triangle.css qhtlrex.js qhtlmpass.js qhtlmshield.js
 	);
 	my $name = $FORM{name} // ''; 
 	$name =~ s/[^a-zA-Z0-9_.-]//g; # sanitize
