@@ -50,9 +50,10 @@ sub manualversion {
 				$line =~ s/$cleanreg//g if defined $cleanreg;
 				$line =~ s/#.*$//; $line =~ s/^\s+|\s+$//g;
 				next unless length $line;
-				# accept bare hostnames or scheme+host
+				# accept bare hostnames or scheme+host (strip any path portion)
 				$line =~ s{^https?://}{}i;   # strip any scheme
-				$line =~ s{/+\z}{};         # trim trailing slash
+				$line =~ s{/.*$}{};          # drop any path after host[:port]
+				$line =~ s{/+\z}{};         # trim stray trailing slash
 				next if $seen{lc $line}++;
 				push @servers, $line;
 			}
@@ -60,7 +61,7 @@ sub manualversion {
 		# Prefer the chosen server (if available in config) at the front
 		if (defined $config{DOWNLOADSERVER} && $config{DOWNLOADSERVER} ne '') {
 			my $c = $config{DOWNLOADSERVER};
-			$c =~ s{^https?://}{}i; $c =~ s{/+\z}{};
+			$c =~ s{^https?://}{}i; $c =~ s{/.*$}{}; $c =~ s{/+\z}{};
 			if (!$seen{lc $c}++) { unshift @servers, $c; }
 		}
 		# Shuffle for resilience
@@ -72,8 +73,13 @@ sub manualversion {
 		return @servers;
 	};
 
+	# Ensure HTTP client is available; provide a clear error if not
+	if (!defined $urlget) {
+		$err = 'HTTP client not initialized';
+		return ($upgrade, $actv, $src, $err);
+	}
+
 	eval {
-		return unless defined $urlget; # cannot proceed without HTTP client
 
 		my @mirrors = $load_mirrors->();
 		# Fallback legacy host only if no mirrors defined
@@ -84,8 +90,15 @@ sub manualversion {
 			for my $scheme ('https','http') {
 				my $url = "$scheme://$host/qhtlfirewall/version.txt";
 				my ($rc, $data) = $urlget->urlget($url);
-				if (!$rc && defined $data && $data =~ /^(\d+\.\d+(?:\.\d+)?)/) {
-					$actv = $1; $src = $host;
+				if (!$rc && defined $data) {
+					# Be tolerant: strip BOM/whitespace and accept optional 'v' prefix
+					$data =~ s/^\xEF\xBB\xBF//;   # UTF-8 BOM
+					$data =~ s/^\s+//;              # leading whitespace
+					if ($data =~ /^v?(\d+\.\d+(?:\.\d+)?)/i) {
+						$actv = $1; $src = $host;
+					}
+				}
+				if ($actv) {
 					$upgrade = 1 if ver_cmp($actv, $curv) == 1;
 					$err = '';
 					last MIRROR;
