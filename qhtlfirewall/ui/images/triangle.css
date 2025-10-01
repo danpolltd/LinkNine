@@ -10,9 +10,9 @@
 	width:var(--w);
 	height:var(--h);
 	clip-path:polygon(50% 0,100% 100%,0 100%);
-	/* Waterfall (green bubble) style outer shading */
-	background: radial-gradient(circle at 30% 30%, #e3f9e7 0%, #b4f2c1 50%, #7fdc95 85%);
-	box-shadow: 0 6px 18px rgba(0,0,0,0.25), 0 0 0 6px rgba(255,255,255,0.55);
+	/* No triangular background; only inner face (::after) and SVG outline are visible */
+	background: transparent;
+	box-shadow: none;
 	cursor:pointer;
 	overflow:visible;         /* allow caption outside */
 	margin-bottom: 18px;      /* space for label below */
@@ -33,8 +33,8 @@
 	position:absolute;
 	inset:0;
 	clip-path:inherit;
-	/* No ring here; inline SVG draws the only ring. Keep a soft base to emulate bubble */
-	background: radial-gradient(circle at 30% 30%, #ffffff 0%, #f2fff7 45%, #defbe9 80%);
+	/* No background halo; keep transparent so no secondary triangle shows */
+	background: transparent;
 	z-index:0; /* sits below ::after inner face */
 }
 /* Inner face (base) via scale for uniform gap */
@@ -102,13 +102,10 @@
 
 /* Secondary (blue) variant */
 .qhtl-tri-btn.secondary{ 
-	/* Waterfall (blue bubble) outer shading */
-	background: radial-gradient(circle at 30% 30%, #cfe7ff 0%, #a9d7ff 45%, #55a9ff 80%);
+	/* No separate blue background */
+	background: transparent;
 }
-/* Make base halo 60% of the button color (avoid white-looking highlights) */
-.qhtl-tri-btn.secondary::before{ 
-	background: radial-gradient(circle at 30% 30%, rgba(78,168,255,0.60) 0%, rgba(78,168,255,0.45) 45%, rgba(30,111,209,0.35) 80%);
-}
+.qhtl-tri-btn.secondary::before{ background: transparent; }
 .qhtl-tri-btn.secondary::after{ 
 	/* Blue inner face */
 	background:linear-gradient(180deg, #4ea8ff 0%, #1e6fd1 100%);
