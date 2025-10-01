@@ -4109,18 +4109,29 @@ QHTL_UPGRADE_WIRE_JS
 	print "<tr style='background:transparent!important'><td style='background:transparent!important'><div id='qhtl-inline-area' style='padding-top:10px;min-height:180px;background:transparent'></div></td></tr>\n";
 	print "<script>\n";
 	print "(function(){\n";
-	print "  function makeAutoClear(id){ var el=document.getElementById(id); if(!el) return; el.style.transition = el.style.transition || 'opacity 5s ease'; var t=null, fading=false;\n";
-	print "    function clearNow(){ try{ el.innerHTML=''; el.style.opacity=''; el.style.pointerEvents=''; }catch(_){ } }\n";
-	print "    function beginFade(){ if(fading) return; fading=true; el.style.opacity='0'; el.style.pointerEvents='none'; setTimeout(clearNow, 5000); }\n";
-	print "    function arm(){ if(t){ clearTimeout(t); } fading=false; el.style.opacity=''; el.style.pointerEvents=''; t=setTimeout(beginFade, 10000); }\n";
-	print "    // Arm on interactions and when content changes\n";
-	print "    ['click','input','mousemove','wheel','keydown','touchstart'].forEach(function(evt){ el.addEventListener(evt, arm, {passive:true}); });\n";
+	print "  function makeAutoClear(id){ var el=document.getElementById(id); if(!el) return; el.style.transition = el.style.transition || 'opacity 5s ease'; var t=null, fading=false, fadeTimer=null;\n";
+	print "    function clearNow(){ try{ el.innerHTML=''; el.style.opacity=''; el.style.pointerEvents=''; fading=false; if(fadeTimer){ clearTimeout(fadeTimer); fadeTimer=null; } }catch(_){ } }\n";
+	print "    function beginFade(){ if(fading) return; fading=true; el.style.opacity='0'; el.style.pointerEvents='none'; fadeTimer=setTimeout(clearNow, 5000); }\n";
+	print "    function cancelFade(){ if(!fading) return; try{ el.style.opacity=''; el.style.pointerEvents=''; }catch(_){ } fading=false; if(fadeTimer){ clearTimeout(fadeTimer); fadeTimer=null; } }\n";
+	print "    function arm(){ if(t){ clearTimeout(t); } cancelFade(); t=setTimeout(beginFade, 10000); }\n";
+	print "    // Arm on interactions and when content changes; also cancel any active dimming to keep content visible\n";
+	print "    ['click','input','mousemove','wheel','keydown','touchstart','pointermove','pointerdown'].forEach(function(evt){ el.addEventListener(evt, arm, {passive:true}); });\n";
 	print "    var mo = new MutationObserver(arm); mo.observe(el, { childList:true, subtree:true }); arm();\n";
+	print "    // Expose small helpers for external use (e.g., tab re-click toggles)\n";
+	print "    el.qhtlClearNow = clearNow; el.qhtlCancelFade = cancelFade; el.qhtlArmAuto = arm;\n";
 	print "  }\n";
 	print "  makeAutoClear('qhtl-inline-area');\n";
 	print "  makeAutoClear('qhtl-upgrade-inline-area');\n";
 	print "})();\n";
 	print "</script>\n";
+	# Re-click active tab name to clear its own inline area and cancel dimming
+	print "<script>(function(){\n";
+	print "  try{ var tabs=document.getElementById('myTabs'); if(!tabs) return; var lastClick=0;\n";
+	print "    tabs.addEventListener('click', function(ev){ var a=ev.target && ev.target.closest ? ev.target.closest('a[data-toggle=\\'tab\\']') : null; if(!a) return; var href=a.getAttribute('href')||''; if(!href) return; var li=a.parentNode; var isActive = li && li.classList && li.classList.contains('active');\n";
+	print "      if(isActive){ ev.preventDefault(); var now=Date.now(); if(now - lastClick < 350){ return; } lastClick=now; var areaId = (href==='#upgrade') ? 'qhtl-upgrade-inline-area' : (href==='#waterfall' ? 'qhtl-inline-area' : null); if(!areaId) return; var area=document.getElementById(areaId); if(!area) return; try{ if(area.qhtlCancelFade) area.qhtlCancelFade(); area.innerHTML=''; if(area.qhtlArmAuto) area.qhtlArmAuto(); }catch(_){} }\n";
+	print "    }, true);\n";
+	print "  }catch(e){}\n";
+	print "})();</script>\n";
 		# Delegate clicks and form submits inside the Waterfall tab to load into inline area
 		print "<script>(function(){\n";
 	print "  if (window.__QHTL_INLINE_LOADER_ACTIVE) { return; } window.__QHTL_INLINE_LOADER_ACTIVE = true;\n";

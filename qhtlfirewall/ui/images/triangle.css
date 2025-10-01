@@ -71,7 +71,7 @@
 	position:absolute;
 	left:50%;
 	/* place ~one line above label, safely inside triangle */
-	bottom: calc(var(--labelPad) + 22px);
+	bottom: calc(var(--labelPad) + 32px);
 	transform: translateX(-50%);
 	width:72%;
 	text-align:center;
