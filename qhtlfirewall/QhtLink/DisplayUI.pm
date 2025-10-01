@@ -3599,7 +3599,7 @@ QHTL_TAB_GUARD
 			print "<tr><td colspan='2'>";
 		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css' />";
 		print "<div style='margin-bottom:6px'>";
-	print "  <button id='qhtl-upgrade-manual' type='button' title='Manual Check' style='all:unset;margin:0 18px' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>Manual Check</span></span></button>";
+	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0 24px' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>Check Manually</span></span></button>";
 		print "  <script src='$script?action=widget_js&name=uupdate.js'></script>";
 		print "</div>";
 				print "</div>";
@@ -3694,7 +3694,7 @@ QHTL_UPGRADE_PROGRESS_JS
 			print "<tr><td colspan='2'>";
 		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css' />";
 		print "<div style='display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px;justify-content:center'>";
-		print "  <button id='qhtl-upgrade-manual' type='button' title='Manual Check' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>Manual Check</span></span></button>";
+	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0 24px' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>Check Manually</span></span></button>";
 	print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset;margin:0 18px' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>View ChangeLog</span></span></button>";
 		# New independent triangles (placeholders)
 	print "  <button id='qhtl-upgrade-rex' type='button' title='Rex' style='all:unset;margin:0 18px' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>Rex</span></span></button>";
