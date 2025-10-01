@@ -3612,7 +3612,7 @@ QHTL_TAB_GUARD
 				print "<div id='qhtl-upgrade-wrap' style='position:relative; display:inline-block;'>";
 				print "  <button id='qhtl-upgrade-btn' type='button' class='btn btn-default' data-bubble-color='green' style='position:relative; overflow:hidden;'><span class='qhtl-upgrade-label'>Install</span></button>";
 				print "  <span id='qhtl-upgrade-pct' class='small text-muted' style='margin-left:6px; display:none'>0%</span>";
-				print "  <style>#qhtl-upgrade-btn .qhtl-fill{position:absolute; left:0; top:0; bottom:0; width:0%; background: linear-gradient(90deg, rgba(34,197,94,0.9) 0%, rgba(16,185,129,0.95) 100%); z-index:0; transition:width .35s ease} #qhtl-upgrade-btn .qhtl-content{position:relative; z-index:1} #qhtl-upgrade-btn.installing{color:#fff; border-color:#16a34a} #qhtl-upgrade-btn.installing .qhtl-upgrade-label::before{content:'Installing';} </style>";
+				print "  <style>#qhtl-upgrade-btn .qhtl-fill{position:absolute; left:0; top:0; bottom:0; width:0%; background: linear-gradient(90deg, rgba(34,197,94,0.9) 0%, rgba(16,185,129,0.95) 100%); z-index:0; transition:width .35s ease} #qhtl-upgrade-btn .qhtl-content{position:relative; z-index:1} #qhtl-upgrade-btn.installing{color:#fff; border-color:#16a34a}</style>";
 				print "</div>";
 				print "<button name='action' value='changelog' type='submit' class='btn btn-default' data-bubble-color='blue'>View ChangeLog</button>";
 				print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div></div></td></tr>\n";
@@ -3630,7 +3630,7 @@ QHTL_TAB_GUARD
 		// Move existing label into content
 		var label = btn.querySelector('.qhtl-upgrade-label'); if (!label){ label=document.createElement('span'); label.className='qhtl-upgrade-label'; label.textContent='Install'; btn.appendChild(label); }
 		btn.textContent=''; btn.appendChild(fill); content.appendChild(label); btn.appendChild(content);
-		var state = { running:false, phase:'idle', lastPct:0, timer:null, polls:0 };
+	var state = { running:false, phase:'idle', lastPct:0, timer:null, polls:0, prevLen:0, lastChange:Date.now(), sawRestart:false };
 		function setPct(v){ v=Math.max(0,Math.min(100,Math.round(v))); state.lastPct=v; fill.style.width=v+'%'; if(pct){ pct.style.display='inline-block'; pct.textContent=v+'%'; } }
 			function smoothTo(target, step){ var cur=state.lastPct; var inc=step||3; if (target<=cur) { setPct(target); return; }
 				var i=setInterval(function(){ cur+=inc; if(cur>=target){ clearInterval(i); cur=target; } setPct(cur); }, 140);
@@ -3665,9 +3665,15 @@ QHTL_TAB_GUARD
 							if (String(hDone)==='1') { target = 100; }
 							// If log length is non-zero but lastPct is very low, nudge forward to avoid stalling visuals
 							var nLen = parseInt(hLen||'0',10) || txt.length;
+							if (nLen > (state.prevLen||0)) { state.prevLen = nLen; state.lastChange = Date.now(); }
 							if (nLen>0 && state.lastPct < 12) { target = Math.max(target, 14); }
+							// Detect restart for stronger completion fallback
+							try{ var low = (txt||'').toLowerCase(); if (low.indexOf('restarting qhtlfirewall')>-1 || low.indexOf('restarting qhtlwaterfall')>-1 || low.indexOf('qhtlwaterfall')>-1) { state.sawRestart = true; } }catch(_){ }
 							if (target>state.lastPct) { smoothTo(target, (target>95)?1:3); }
 							if (target>=100){ finish(true); return; }
+							// Idle fallback: if no growth >20s and we are past heavy work, finish visually
+							var idleMs = Date.now() - (state.lastChange||Date.now());
+							if (idleMs > 20000 && (state.lastPct >= 70 || state.sawRestart)) { finish(true); return; }
 						}
 					}
 				};
@@ -3675,7 +3681,7 @@ QHTL_TAB_GUARD
 				// Extend polling to ~5 minutes to bridge any UI reloads or file replacement delays
 				if (state.polls < 200) { state.timer=setTimeout(fetchLog, 1500); }
 			}
-		function start(){ if(state.running) return; state.running=true; btn.classList.add('installing'); btn.disabled=true; setPct(2);
+	function start(){ if(state.running) return; state.running=true; btn.classList.add('installing'); btn.disabled=true; try{ label.textContent='Installing...'; }catch(_){ } setPct(2);
 			// Fire API
 			var base=(window.QHTL_SCRIPT||'')|| '$script';
 			var url = base + '?action=api_start_upgrade&_=' + String(Date.now());
