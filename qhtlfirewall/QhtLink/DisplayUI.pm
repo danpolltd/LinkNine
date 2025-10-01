@@ -3624,56 +3624,52 @@ QHTL_TAB_GUARD
 		}
 		function startUpgrade(){
 			try{ tri.classList.add('installing'); }catch(_){ }
-			// visually start a fill animation and pulse
+			// visually start a minimal fill animation and pulse
 			try{ var fill = tri.querySelector('.tri'); if (fill){ fill.style.transition = 'transform 0.6s ease'; fill.style.transform = fill.style.transform.replace(/scaleY\([^)]*\)/,'scaleY(0.05)'); } }catch(_){ }
 			var xhr = new XMLHttpRequest();
 			xhr.open('POST', base + '?action=api_start_upgrade&_=' + String(Date.now()), true);
 			try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); }catch(_){ }
 			xhr.onreadystatechange=function(){ if(xhr.readyState===4){
-				// Begin polling progress and reload when done
-				try { pollUpgradeProgress(); } catch(__){}
+				// Start timed auto refreshes (every 10s for up to 60s) and stop when upgrade button disappears
+				try { beginTimedAutoRefresh(); } catch(__){}
 			} };
-			try{ xhr.send('start=1'); } catch(e){ try { pollUpgradeProgress(); } catch(__){} }
+			try{ xhr.send('start=1'); } catch(e){ try { beginTimedAutoRefresh(); } catch(__){} }
 		}
 
-		function pollUpgradeProgress(){
-			var attempts = 0, maxAttempts = 180; // up to ~3 minutes @ 1s
-			var lastPct = -1;
-			var fill = null; try { fill = tri.querySelector('.tri'); } catch(_){ }
-			function step(){
-				attempts++;
-				var req = new XMLHttpRequest();
-				req.open('GET', base + '?action=upgrade_progress&_=' + String(Date.now()), true);
-				try{ req.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){ }
-				req.onreadystatechange = function(){
-					if (req.readyState === 4) {
-						var data = null; try { data = JSON.parse(req.responseText||'{}'); } catch(__){}
-						if (data && data.ok){
-							var pct = (typeof data.pct === 'number' ? data.pct : -1);
-							var done = !!data.done;
-							if (fill){
-								var y = 0.08; // minimum visible fill
-								if (pct >= 0){ y = Math.max(0.08, Math.min(1.0, pct/100)); }
-								try { var t = getComputedStyle(fill).transform; } catch(_){ }
-								try {
-									var current = fill.style.transform || '';
-									if (current.indexOf('scaleY(') >= 0){ fill.style.transform = current.replace(/scaleY\([^)]*\)/, 'scaleY(' + y + ')'); }
-									else { fill.style.transform += ' scaleY(' + y + ')'; }
-								} catch(_){ }
-							}
-							if (done){
-								// Finalize fill and reload to pick up new version
-								try { if (fill){ fill.style.transform = fill.style.transform.replace(/scaleY\([^)]*\)/,'scaleY(1)'); } } catch(_){ }
-								setTimeout(function(){ try{ location.reload(); }catch(e){} }, 800);
-								return;
-							}
+		// Persist a short-lived auto-refresh schedule in sessionStorage so it survives reloads
+		function beginTimedAutoRefresh(){
+			try{
+				var until = Date.now() + 60000; // 1 minute
+				sessionStorage.setItem('qhtlAutoRefreshUntil', String(until));
+				sessionStorage.setItem('qhtlAutoRefreshEvery', '10000'); // 10 seconds
+				scheduleAutoRefresh();
+			}catch(_){ }
+		}
+
+		function scheduleAutoRefresh(){
+			try{
+				if (window.QHTL_AUTO_REFRESH_RUNNING) { return; }
+				var untilS = sessionStorage.getItem('qhtlAutoRefreshUntil');
+				if (!untilS) { return; }
+				var until = parseInt(untilS, 10) || 0;
+				if (!until || Date.now() > until) { try{ sessionStorage.removeItem('qhtlAutoRefreshUntil'); sessionStorage.removeItem('qhtlAutoRefreshEvery'); }catch(__){} return; }
+				var every = parseInt(sessionStorage.getItem('qhtlAutoRefreshEvery')||'10000',10);
+				if (!(every > 0)) { every = 10000; }
+				window.QHTL_AUTO_REFRESH_RUNNING = setInterval(function(){
+					try{
+						var triBtn = document.querySelector('#qhtl-upgrade-manual .qhtl-tri-btn');
+						var isUpgrade = !!(triBtn && triBtn.classList.contains('upgrade'));
+						var expired = Date.now() > (parseInt(sessionStorage.getItem('qhtlAutoRefreshUntil')||'0',10) || 0);
+						if (!isUpgrade || expired){
+							clearInterval(window.QHTL_AUTO_REFRESH_RUNNING);
+							window.QHTL_AUTO_REFRESH_RUNNING = null;
+							try{ sessionStorage.removeItem('qhtlAutoRefreshUntil'); sessionStorage.removeItem('qhtlAutoRefreshEvery'); }catch(__){}
+							return;
 						}
-						if (attempts < maxAttempts){ setTimeout(step, 1000); }
-					}
-				};
-				try { req.send(null); } catch(_){ if (attempts < maxAttempts) { setTimeout(step, 1200); } }
-			}
-			setTimeout(step, 900);
+						location.reload();
+					}catch(__){}
+				}, every);
+			}catch(__){}
 		}
 		function applyResult(data, fromCountdown){
 			try{
