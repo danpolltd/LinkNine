@@ -66,6 +66,23 @@
 	transform:translateY(calc(-33.333% * (1 - var(--k)))) scale(var(--k)) scaleY(0);   /* JS may set final scaleY */
 	z-index:2;
 }
+/* Inline status text inside triangle (above label) */
+.qhtl-tri-btn .tri-status{
+	position:absolute;
+	left:50%;
+	bottom: calc(var(--labelPad) + 18px);
+	transform: translateX(-50%);
+	width:72%;
+	text-align:center;
+	color:#16a34a;          /* default green */
+	font-size:12px;
+	font-weight:800;
+	line-height:1;
+	min-height:1.2em;       /* reserve space so label doesn’t jump */
+	z-index:4;
+	pointer-events:none;
+	text-shadow: 0 1px 1px rgba(0,0,0,.35);
+}
 /* Caption inside the triangle, bold black */
 .qhtl-tri-btn > span:last-child{
 	position:absolute;
