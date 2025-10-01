@@ -119,7 +119,7 @@ if (defined $FORM{action} && $FORM{action} eq 'diag') {
 }
 if (defined $FORM{action} && $FORM{action} eq 'widget_js') {
 	my %allowed = map { $_ => 1 } qw(
-		wignore.js wdirwatch.js wddns.js walerts.js wscanner.js wblocklist.js wusers.js uupdate.js uchange.js
+		wignore.js wdirwatch.js wddns.js walerts.js wscanner.js wblocklist.js wusers.js uupdate.js uchange.js triangle.css
 	);
 	my $name = $FORM{name} // ''; 
 	$name =~ s/[^a-zA-Z0-9_.-]//g; # sanitize
@@ -128,7 +128,8 @@ if (defined $FORM{action} && $FORM{action} eq 'widget_js') {
 		print ";\n";
 		exit 0;
 	}
-	print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my $ctype = ($name =~ /\.css\z/i) ? 'text/css' : 'application/javascript';
+	print "Content-type: $ctype\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 	my @paths = (
 		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/ui/images/$name",
 		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/$name",
