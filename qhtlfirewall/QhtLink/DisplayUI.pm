@@ -3597,9 +3597,9 @@ QHTL_TAB_GUARD
 				print "<tr><td colspan='2'><div style='display:flex;gap:8px;flex-wrap:wrap;align-items:center'>";
 		# Show only Manual Check (triangle) when no upgrade available
 			print "<tr><td colspan='2'>";
-		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css' />";
+		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
 		print "<div style='margin-bottom:6px'>";
-	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0 24px' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='white' stroke-width='16' stroke-linejoin='round'/><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#1e6fd1' stroke-width='5' stroke-linejoin='round'/></svg><span class='tri'></span><span>Check Manually</span></span></button>";
+	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0 24px' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='white' stroke-width='8' stroke-linejoin='round'/><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#1e6fd1' stroke-width='5' stroke-linejoin='round'/></svg><span class='tri'></span><span>Check Manually</span></span></button>";
 		print "  <script src='$script?action=widget_js&name=uupdate.js'></script>";
 		print "</div>";
 				print "</div>";
@@ -3692,9 +3692,9 @@ QHTL_UPGRADE_PROGRESS_JS
 		} else {
 		# Replace with triangle-styled buttons and JS
 			print "<tr><td colspan='2'>";
-		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css' />";
+		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
 		print "<div style='display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px;justify-content:center'>";
-	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0 24px' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='white' stroke-width='26' stroke-linejoin='round'/><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#1e6fd1' stroke-width='6' stroke-linejoin='round'/></svg><span class='tri'></span><span>Check Manually</span></span></button>";
+	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0 24px' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='white' stroke-width='8' stroke-linejoin='round'/><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#1e6fd1' stroke-width='5' stroke-linejoin='round'/></svg><span class='tri'></span><span>Check Manually</span></span></button>";
 	print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset;margin:0 24px' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='white' stroke-width='8' stroke-linejoin='round'/><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#1e6fd1' stroke-width='5' stroke-linejoin='round'/></svg><span class='tri'></span><span>View ChangeLog</span></span></button>";
 		# New independent triangles (placeholders)
 	print "  <button id='qhtl-upgrade-rex' type='button' title='eXploit Scanner' style='all:unset;margin:0 24px' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='white' stroke-width='8' stroke-linejoin='round'/><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#1e6fd1' stroke-width='5' stroke-linejoin='round'/></svg><span class='tri'></span><span>eXploit Scanner</span></span></button>";
@@ -3718,22 +3718,7 @@ QHTL_UPGRADE_PROGRESS_JS
 		print "</form>\n";
 		if ($upgrade) {print "<script>\$('\#upgradebs').show();</script>\n"}
 
-		# Moved informational callouts from General Options to Upgrade tab
-		unless (-e "/etc/qhtlwatcher/qhtlwatcher.pl") {
-			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN} or $config{INTERWORX} or $config{VESTA} or $config{CWP} or $config{CYBERPANEL}) {
-				print "<div class='bs-callout bs-callout-info h4'>Add server and user data protection against exploits using <a href='#' onclick=\"if(window.openPromoModal){openPromoModal(); return false;} return false;\">QHTL eXploit Scanner (qhtlscanner)</a></div>\n";
-			}
-		}
-		unless (-e "/etc/qhtlmoderator/qhtlmoderator.pl") {
-			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
-				print "<div class='bs-callout bs-callout-info h4'>Add outgoing spam monitoring and prevention using <a href='#' onclick=\"if(window.openPromoModal){openPromoModal(); return false;} return false;\">QHTL Outgoing Mail Moderator (qhtlmoderator)</a></div>\n";
-			}
-		}
-		unless (-e "/usr/msfe/mschange.pl") {
-			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
-				print "<div class='bs-callout bs-callout-info h4'>Add effective incoming virus and spam detection and user level processing using <a href='#' onclick=\"if(window.openPromoModal){openPromoModal(); return false;} return false;\">QHTL MailScanner Front-End (qhtlscanner)</a></div>\n";
-			}
-		}
+		# Remove informational callouts (buttons now cover these functions)
 
 		# Removed legacy Mobile View panel/button; tabs are now mobile-friendly by default
 		print "</div>\n";
