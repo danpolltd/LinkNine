@@ -307,19 +307,27 @@ sub main {
 			QHTLFIREWALLtimer();
 		</script>
 EOF
+	# Triangle buttons under logtail UI
 	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0 24px' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Check Manually</span></span></button>";
-<script>
 	print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset;margin:0 24px' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>View ChangeLog</span></span></button>";
-var myFont = 14;
 	print "  <button id='qhtl-upgrade-rex' type='button' title='eXploit Scanner' style='all:unset;margin:0 24px' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>eXploit Scanner</span></span></button>";
-    myFont++;
 	print "  <button id='qhtl-upgrade-mpass' type='button' title='Mail Moderator' style='all:unset;margin:0 24px' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Mail Moderator</span></span></button>";
-    $('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
 	print "  <button id='qhtl-upgrade-mshield' type='button' title='Mail Shiled' style='all:unset;margin:0 24px' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Mail Shiled</span></span></button>";
+    
+	# JS to control logtail font sizing
+	print <<'QHTL_JQ_TAIL';
+<script>
+var myFont = 14;
+$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
 $("#fontminus-btn").on('click', function () {
-    myFont--;
-    if (myFont < 12) { myFont = 12 }
-    $('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontplus-btn").on('click', function () {
+	myFont++;
+	if (myFont > 40) { myFont = 40 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
 });
 </script>
 <!-- Quick View modal handlers are defined once in the main UI script below -->
