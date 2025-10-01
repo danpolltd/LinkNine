@@ -1,10 +1,10 @@
 /* Triangle buttons: default width 120px (50% larger than 80px). Height is equilateral ~0.866*w.
    Keep a fixed ~10px imprint (gap) using dynamic scale: k = 1 - 3*d/h, here d=10px, h=w*0.866. */
 .qhtl-tri-btn{
-	--w: 120px;               /* default width (50% larger than 80px) */
+	--w: 140px;               /* slightly larger */
 	--h: calc(var(--w) * 0.8660254);
-	--d: 6px;                 /* tighter imprint gap to visually enlarge inner face */
-	--k: calc(1 - (3 * var(--d) / var(--h))); /* uniform 10px gap for equilateral via centroid scaling */
+	--d: 0px;                 /* remove imprint gap */
+	--k: calc(1 - (3 * var(--d) / var(--h))); /* scales to 1 when gap is 0 */
 	position:relative;
 	display:inline-block;
 	width:var(--w);
@@ -48,8 +48,8 @@
 	/* Use bottom origin + centroid compensation so inner centers perfectly inside outer */
 	transform-origin:bottom center;
 	transform:translateY(calc(-33.333% * (1 - var(--k)))) scale(var(--k));
-	/* Add a subtle inner edge to emphasize the imprint gap */
-	box-shadow: inset 0 0 0 3.5px rgba(11,19,32,0.24);
+	/* No inner edge when gap is removed */
+	box-shadow: none;
 	z-index:1;
 }
 /* Fill overlay - scales from bottom within the same inner triangle */
