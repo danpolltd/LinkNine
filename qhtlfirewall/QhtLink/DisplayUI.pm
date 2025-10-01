@@ -3632,7 +3632,12 @@ QHTL_TAB_GUARD
 		btn.textContent=''; btn.appendChild(fill); content.appendChild(label); btn.appendChild(content);
 		var state = { running:false, phase:'idle', lastPct:0, timer:null, polls:0 };
 		function setPct(v){ v=Math.max(0,Math.min(100,Math.round(v))); state.lastPct=v; fill.style.width=v+'%'; if(pct){ pct.style.display='inline-block'; pct.textContent=v+'%'; } }
-		function smoothTo(target, step){ var cur=state.lastPct; var inc=step||3; if (target<=cur) { setPct(target); return; } var i=setInterval(function(){ cur+=inc; if(cur>=target){ clearInterval(i); cur=target; } setPct(cur); }, 140); }
+			function smoothTo(target, step){ var cur=state.lastPct; var inc=step||3; if (target<=cur) { setPct(target); return; }
+				var i=setInterval(function(){ cur+=inc; if(cur>=target){ clearInterval(i); cur=target; } setPct(cur); }, 140);
+				// Safety: if nothing new arrives for a while but we're between 10..40, gently creep to 40
+				try { clearTimeout(state._idleKick); } catch(_){}
+				state._idleKick = setTimeout(function(){ if (state.lastPct>=10 && state.lastPct<40) { setPct(Math.min(40, state.lastPct+1)); } }, 2500);
+			}
 		function guessPctFromLog(t){
 			// Heuristic mapping of known milestones
 			if (!t) return 5; var s=t.toLowerCase();
@@ -3644,14 +3649,32 @@ QHTL_TAB_GUARD
 			if (s.indexOf('all done')>-1 || s.indexOf('...all done')>-1) return 100;
 			return Math.min(98, Math.max(12, state.lastPct + 2));
 		}
-		function fetchLog(){
-			state.polls++; var base=(window.QHTL_SCRIPT||'')|| '$script';
-			var url = base + '?action=upgrade_log&_=' + String(Date.now());
-			var xhr=new XMLHttpRequest(); xhr.open('GET', url, true); try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){}
-			xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){ var ct=(xhr.getResponseHeader&&xhr.getResponseHeader('Content-Type'))||''; var marker=(xhr.getResponseHeader&&xhr.getResponseHeader('X-QHTL-ULOG'))||''; if(marker==='1' || /^text\/plain/i.test(ct)){ var txt=xhr.responseText||''; var lines=txt.split(/\r?\n/).filter(Boolean); var last=lines.length?lines[lines.length-1]:txt; var target=guessPctFromLog(last); if (target>state.lastPct) { smoothTo(target, (target>95)?1:3); } if (target>=100){ finish(true); return; } } } };
-			try{ xhr.send(null); }catch(_e){}
-			if (state.polls < 90) { state.timer=setTimeout(fetchLog, 1500); } // ~2+ minutes
-		}
+			function fetchLog(){
+				state.polls++; var base=(window.QHTL_SCRIPT||'')|| '$script';
+				var url = base + '?action=upgrade_log&_=' + String(Date.now());
+				var xhr=new XMLHttpRequest(); xhr.open('GET', url, true); try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){}
+				xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){
+						var ct=(xhr.getResponseHeader&&xhr.getResponseHeader('Content-Type'))||'';
+						var marker=(xhr.getResponseHeader&&xhr.getResponseHeader('X-QHTL-ULOG'))||'';
+						var hLen=(xhr.getResponseHeader&&xhr.getResponseHeader('X-QHTL-ULOG-LEN'))||'';
+						var hDone=(xhr.getResponseHeader&&xhr.getResponseHeader('X-QHTL-ULOG-DONE'))||'';
+						if(marker==='1' || /^text\/plain/i.test(ct)){
+							var txt=xhr.responseText||''; var lines=txt.split(/\r?\n/).filter(Boolean);
+							var last=lines.length?lines[lines.length-1]:txt; var target=guessPctFromLog(last);
+							// If server says DONE, override to 100 immediately
+							if (String(hDone)==='1') { target = 100; }
+							// If log length is non-zero but lastPct is very low, nudge forward to avoid stalling visuals
+							var nLen = parseInt(hLen||'0',10) || txt.length;
+							if (nLen>0 && state.lastPct < 12) { target = Math.max(target, 14); }
+							if (target>state.lastPct) { smoothTo(target, (target>95)?1:3); }
+							if (target>=100){ finish(true); return; }
+						}
+					}
+				};
+				try{ xhr.send(null); }catch(_e){}
+				// Extend polling to ~5 minutes to bridge any UI reloads or file replacement delays
+				if (state.polls < 200) { state.timer=setTimeout(fetchLog, 1500); }
+			}
 		function start(){ if(state.running) return; state.running=true; btn.classList.add('installing'); btn.disabled=true; setPct(2);
 			// Fire API
 			var base=(window.QHTL_SCRIPT||'')|| '$script';

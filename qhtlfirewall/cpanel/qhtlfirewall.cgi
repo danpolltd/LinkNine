@@ -759,15 +759,21 @@ if (defined $FORM{action} && $FORM{action} eq 'upgrade_log') {
 		print ";\n";
 		exit 0;
 	}
-	# Emit a verification header so clients can verify this is truly the log stream
-	print "Content-type: text/plain; charset=UTF-8\r\nX-QHTL-ULOG: 1\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my ($data, $len, $done) = ('', 0, 0);
 	if (open(my $UIN, '<', $ulog)) {
-		local $/ = undef; my $data = <$UIN> // '';
+		local $/ = undef; $data = <$UIN> // '';
 		close $UIN;
-		print $data;
+		$len = length($data);
+		# Consider upgrade finished if the log contains an "All done" marker
+		$done = ($data =~ /\bAll done\b|\.\.\.All done/i) ? 1 : 0;
 	} else {
-		print ""; # no output yet
+		$data = '';
+		$len = 0;
+		$done = 0;
 	}
+	# Emit verification and progress hint headers
+	print "Content-type: text/plain; charset=UTF-8\r\nX-QHTL-ULOG: 1\r\nX-QHTL-ULOG-LEN: $len\r\nX-QHTL-ULOG-DONE: $done\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	print $data;
 	exit 0;
 }
 
