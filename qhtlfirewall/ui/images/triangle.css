@@ -16,6 +16,8 @@
 	cursor:pointer;
 	overflow:visible;         /* allow caption outside */
 	margin-bottom: 18px;      /* space for label below */
+	/* ring color picked up by ::before SVG stroke */
+	color:#c9f3d9;
 }
 /* Imprint ring (10px gap area) - brighter shades */
 .qhtl-tri-btn::before{
@@ -23,8 +25,10 @@
 	position:absolute;
 	inset:0;
 	clip-path:inherit;
-	/* default (green-set) imprint, will be overridden by .secondary below */
-	background: radial-gradient(circle at 30% 30%, #ffffff 0%, #f2fff7 45%, #defbe9 80%);
+	/* Add a visible rounded stroke around triangle using an inline SVG, then base imprint gradient */
+	background:
+		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 86.6'%3E%3Cpath d='M50 3 L96 83.6 L4 83.6 Z' fill='none' stroke='currentColor' stroke-width='8' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% 100% no-repeat,
+		radial-gradient(circle at 30% 30%, #ffffff 0%, #f2fff7 45%, #defbe9 80%);
 	z-index:0; /* sits below ::after inner face */
 }
 /* Inner face (base) via scale for uniform gap */
@@ -39,7 +43,9 @@
 	transform-origin:bottom center;
 	transform:translateY(calc(-33.333% * (1 - var(--k, 0.72)))) scale(var(--k, 0.72));
 	/* Add a subtle inner edge to emphasize the imprint gap */
-	box-shadow: inset 0 0 0 1.25px rgba(0,0,0,0.06);
+	box-shadow: inset 0 0 0 1.5px rgba(0,0,0,0.08);
+	/* Bold outer ring akin to Waterfall's circular edge */
+	filter: drop-shadow(0 0 0 8px rgba(255,255,255,0.9));
 	z-index:1;
 }
 /* Fill overlay - scales from bottom within the same inner triangle */
@@ -54,20 +60,21 @@
 	transform:translateY(calc(-33.333% * (1 - var(--k, 0.72)))) scale(var(--k, 0.72)) scaleY(0);   /* JS sets final scaleY */
 	z-index:2;
 }
-/* Caption below triangle for maximum visibility */
+/* Caption inside the triangle, bold black */
 .qhtl-tri-btn > span:last-child{
 	position:absolute;
 	left:50%;
-	top:100%;
-	transform:translateX(-50%);
-	margin-top:6px;
-	color:#0b1220; /* darker for readability */
+	top:56%;
+	transform:translate(-50%,-50%);
+	color:#111;
 	font-size:13px;
-	font-weight:700;
+	font-weight:800;
+	letter-spacing:.1px;
 	white-space:nowrap;
 	line-height:1;
 	z-index:3;
 	pointer-events:none;
+	text-shadow:0 1px 0 rgba(255,255,255,0.8);
 }
 /* Running pulse */
 .qhtl-tri-btn.running::before{
@@ -84,10 +91,13 @@
 .qhtl-tri-btn.secondary{ 
 	/* Waterfall (blue bubble) outer shading */
 	background: radial-gradient(circle at 30% 30%, #cae7ff 0%, #9fd3ff 45%, #4aa3ff 80%);
+	color:#cfe2ff; /* ring stroke color for blue variant */
 }
 .qhtl-tri-btn.secondary::before{
 	/* Blue imprint ring */
-	background: radial-gradient(circle at 30% 30%, #ffffff 0%, #f4f9ff 45%, #d6e9ff 80%);
+	background:
+		url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 86.6'%3E%3Cpath d='M50 3 L96 83.6 L4 83.6 Z' fill='none' stroke='currentColor' stroke-width='8' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% 100% no-repeat,
+		radial-gradient(circle at 30% 30%, #ffffff 0%, #f4f9ff 45%, #d6e9ff 80%);
 }
 .qhtl-tri-btn.secondary::after{ 
 	/* Blue inner face */
