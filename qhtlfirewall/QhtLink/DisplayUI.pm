@@ -3605,6 +3605,60 @@ QHTL_TAB_GUARD
 		print "<form action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped' id='upgradetable'>\n";
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
+		# Global resume snippet: keeps a tiny progress bar alive across reloads
+		print <<'QHTL_UPGRADE_GLOBAL_RESUME';
+	<script>
+	(function(){
+		try{
+			var active = (localStorage.getItem('qhtlUActive')==='1');
+			if (!active) return;
+			function ensureMini(){
+				if (document.getElementById('qhtl-mini-upg')) return;
+				var box = document.createElement('div'); box.id='qhtl-mini-upg';
+				box.style.cssText='position:fixed;right:12px;bottom:12px;z-index:2147483000;background:#111;color:#fff;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.25);padding:8px 10px;min-width:180px;font:12px/1.2 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;';
+				box.innerHTML = "<div id='qhtl-mini-upg-label' style='font-weight:600'>QhtLink upgrade</div><div class='track' style='height:6px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;margin-top:6px'><div id='qhtl-mini-upg-bar' style='height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#10b981);transition:width .35s ease'></div></div>";
+				document.body.appendChild(box);
+			}
+			function setMiniPct(v){ var bar=document.getElementById('qhtl-mini-upg-bar'); if(bar){ bar.style.width=Math.max(0,Math.min(100,Math.round(v)))+'%'; } }
+			function setPct(v){ try{ localStorage.setItem('qhtlULastPct', String(v)); localStorage.setItem('qhtlULastChange', String(Date.now())); }catch(_){} setMiniPct(v); }
+			function guessPctFromLog(t, last){ if(!t) return Math.max(5,last||0); var s=String(t).toLowerCase();
+				if (s.indexOf('downloading')>-1 || s.indexOf('retriev')>-1) return 10;
+				if (s.indexOf('unpacking')>-1 || s.indexOf('extract')>-1 || s.indexOf('tar -xzf')>-1) return 40;
+				if (s.indexOf('install.sh')>-1 || s.indexOf('installing')>-1) return 70;
+				if (s.indexOf('restarting qhtlfirewall')>-1) return 85;
+				if (s.indexOf('restarting qhtlwaterfall')>-1 || s.indexOf('qhtlwaterfall')>-1) return 92;
+				if (s.indexOf('all done')>-1 || s.indexOf('...all done')>-1) return 100;
+				return Math.min(98, Math.max(12, (last||0) + 2));
+			}
+			function fetchLog(){
+				ensureMini(); var base=(window.QHTL_SCRIPT||'')|| '$script';
+				var url = base + '?action=upgrade_log&_=' + String(Date.now());
+				var xhr=new XMLHttpRequest(); xhr.open('GET', url, true); try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){}
+				xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){
+					var ct=(xhr.getResponseHeader&&xhr.getResponseHeader('Content-Type'))||'';
+					var marker=(xhr.getResponseHeader&&xhr.getResponseHeader('X-QHTL-ULOG'))||'';
+					var hLen=(xhr.getResponseHeader&&xhr.getResponseHeader('X-QHTL-ULOG-LEN'))||'';
+					var hDone=(xhr.getResponseHeader&&xhr.getResponseHeader('X-QHTL-ULOG-DONE'))||'';
+					if(marker==='1' || /^text\/plain/i.test(ct)){
+						var txt=xhr.responseText||''; var lines=txt.split(/\r?\n/).filter(Boolean);
+						var last=lines.length?lines[lines.length-1]:txt; var prev=(parseInt(localStorage.getItem('qhtlULastPct')||'0',10)||0);
+						var target=guessPctFromLog(last, prev);
+						if (String(hDone)==='1') { target = 100; }
+						var nLen = parseInt(hLen||'0',10) || txt.length;
+						if (nLen>0 && prev < 12) { target = Math.max(target, 14); }
+						setPct(target);
+						if (target>=100){ try{ localStorage.removeItem('qhtlUActive'); localStorage.removeItem('qhtlULastPct'); localStorage.removeItem('qhtlULastChange'); }catch(_){} return; }
+					}
+				} };
+				try{ xhr.send(null); }catch(_e){}
+				setTimeout(fetchLog, 1500);
+			}
+			// Initial kick
+			ensureMini(); var p=parseInt(localStorage.getItem('qhtlULastPct')||'0',10)||0; setMiniPct(p); fetchLog();
+		}catch(e){}
+	})();
+	</script>
+	QHTL_UPGRADE_GLOBAL_RESUME
 	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
 		if ($upgrade) {
 				print "<tr><td colspan='2'><div style='display:flex;gap:8px;flex-wrap:wrap;align-items:center'>";
@@ -3630,8 +3684,19 @@ QHTL_TAB_GUARD
 		// Move existing label into content
 		var label = btn.querySelector('.qhtl-upgrade-label'); if (!label){ label=document.createElement('span'); label.className='qhtl-upgrade-label'; label.textContent='Install'; btn.appendChild(label); }
 		btn.textContent=''; btn.appendChild(fill); content.appendChild(label); btn.appendChild(content);
-	var state = { running:false, phase:'idle', lastPct:0, timer:null, polls:0, prevLen:0, lastChange:Date.now(), sawRestart:false };
-		function setPct(v){ v=Math.max(0,Math.min(100,Math.round(v))); state.lastPct=v; fill.style.width=v+'%'; if(pct){ pct.style.display='inline-block'; pct.textContent=v+'%'; } }
+		var state = { running:false, phase:'idle', lastPct:0, timer:null, polls:0, prevLen:0, lastChange:Date.now(), sawRestart:false };
+		// Mini progress bar helpers
+		function ensureMini(){
+			if (document.getElementById('qhtl-mini-upg')) return;
+			var box = document.createElement('div'); box.id='qhtl-mini-upg';
+			box.style.cssText='position:fixed;right:12px;bottom:12px;z-index:2147483000;background:#111;color:#fff;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.25);padding:8px 10px;min-width:180px;font:12px/1.2 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;';
+			box.innerHTML = "<div id='qhtl-mini-upg-label' style='font-weight:600'>QhtLink upgrade</div><div class='track' style='height:6px;background:rgba(255,255,255,.15);border-radius:4px;overflow:hidden;margin-top:6px'><div id='qhtl-mini-upg-bar' style='height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#10b981);transition:width .35s ease'></div></div>";
+			document.body.appendChild(box);
+		}
+		function setMiniPct(v){ var bar=document.getElementById('qhtl-mini-upg-bar'); if(bar){ bar.style.width=Math.max(0,Math.min(100,Math.round(v)))+'%'; } }
+		function hideMini(){ var box=document.getElementById('qhtl-mini-upg'); if(box){ try{ box.parentNode.removeChild(box);}catch(_){} } }
+
+		function setPct(v){ v=Math.max(0,Math.min(100,Math.round(v))); state.lastPct=v; fill.style.width=v+'%'; if(pct){ pct.style.display='inline-block'; pct.textContent=v+'%'; } try{ setMiniPct(v); localStorage.setItem('qhtlULastPct', String(v)); localStorage.setItem('qhtlULastChange', String(Date.now())); }catch(_){} }
 			function smoothTo(target, step){ var cur=state.lastPct; var inc=step||3; if (target<=cur) { setPct(target); return; }
 				var i=setInterval(function(){ cur+=inc; if(cur>=target){ clearInterval(i); cur=target; } setPct(cur); }, 140);
 				// Safety: if nothing new arrives for a while but we're between 10..40, gently creep to 40
@@ -3681,7 +3746,7 @@ QHTL_TAB_GUARD
 				// Extend polling to ~5 minutes to bridge any UI reloads or file replacement delays
 				if (state.polls < 200) { state.timer=setTimeout(fetchLog, 1500); }
 			}
-	function start(){ if(state.running) return; state.running=true; btn.classList.add('installing'); btn.disabled=true; try{ label.textContent='Installing...'; }catch(_){ } setPct(2);
+		function start(){ if(state.running) return; state.running=true; btn.classList.add('installing'); btn.disabled=true; try{ label.textContent='Installing...'; }catch(_){ } try{ localStorage.setItem('qhtlUActive','1'); localStorage.setItem('qhtlULastPct','2'); localStorage.setItem('qhtlULastChange', String(Date.now())); }catch(_){} ensureMini(); setPct(2);
 			// Fire API
 			var base=(window.QHTL_SCRIPT||'')|| '$script';
 			var url = base + '?action=api_start_upgrade&_=' + String(Date.now());
@@ -3691,8 +3756,8 @@ QHTL_TAB_GUARD
 			} };
 			try{ xhr.send('start=1'); }catch(_e){ setTimeout(fetchLog, 600); }
 		}
-		function finish(ok){ try{ clearTimeout(state.timer); }catch(_){}
-			setPct(100); btn.disabled=false; btn.classList.remove('installing'); btn.classList.add('btn-success'); label.textContent='Finished';
+		function finish(ok){ try{ clearTimeout(state.timer); }catch(_){ }
+			setPct(100); btn.disabled=false; btn.classList.remove('installing'); btn.classList.add('btn-success'); label.textContent='Finished'; try{ localStorage.removeItem('qhtlUActive'); localStorage.removeItem('qhtlULastPct'); localStorage.removeItem('qhtlULastChange'); }catch(_){} hideMini();
 			// brief pulse effect
 			try{ btn.style.transition='box-shadow .4s ease'; btn.style.boxShadow='0 0 0 0 rgba(16,185,129,0.0)'; setTimeout(function(){ btn.style.boxShadow='0 0 0 8px rgba(16,185,129,0.25)'; }, 30); setTimeout(function(){ btn.style.boxShadow=''; }, 800); }catch(_){ }
 		}
