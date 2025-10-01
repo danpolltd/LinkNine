@@ -1382,7 +1382,13 @@ unless ($skip_capture || $is_ajax) {
 	<div class='row' style='display:flex;align-items:center;'>
 		<div class='col-sm-8 col-xs-12' style='display:flex;align-items:center;gap:10px;'>
 			<img src='$images/qhtlfirewall_small.gif' onerror="this.onerror=null;this.src='$images/qhtlfirewall_small.png';" style='width:48px;height:48px;vertical-align:middle' alt='Logo'>
-			<h4 style='margin:5px 0;'>QhtLink Firewall v$myv</h4>
+			<h4 style='margin:5px 0;'>
+				<a href='$script' style='text-decoration:none;' title='Open QhtLink Firewall'
+					onclick="try{ if(window.QHTL_SCRIPT){ window.location = window.QHTL_SCRIPT; return false; } }catch(e){}">
+					QhtLink Firewall
+				</a>
+				&nbsp;v$myv
+			</h4>
 		</div>
 		<div class='col-sm-4 col-xs-12'>
 			<div style='display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:10px;padding-right:10px;'>
