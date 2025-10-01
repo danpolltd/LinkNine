@@ -3661,9 +3661,20 @@ QHTL_TAB_GUARD
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
 	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
 		if ($upgrade) {
-					print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'><div style='display:flex;gap:15px;flex-wrap:wrap;align-items:center'>";
+					print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
+					# Status box above the manual check button
+					print "<div id='qhtl-upgrade-status-box' style='display:block;text-align:center;margin:2px 0 6px 0;line-height:1.15'>";
+					print "  <div id='qhtl-upgrade-status' style='font-weight:800;color:#16a34a;min-height:1.1em'></div>";
+					print "  <div id='qhtl-upgrade-version' style='font-weight:700;color:#16a34a;min-height:1.1em'></div>";
+					print "</div>";
+					print "<div style='display:flex;gap:15px;flex-wrap:wrap;align-items:center'>";
 		# Show only Manual Check (triangle) when no upgrade available
-			print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
+	    print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
+    # Status box above the manual check button
+    print "<div id='qhtl-upgrade-status-box' style='display:block;text-align:center;margin:2px 0 6px 0;line-height:1.15'>";
+    print "  <div id='qhtl-upgrade-status' style='font-weight:800;color:#16a34a;min-height:1.1em'></div>";
+    print "  <div id='qhtl-upgrade-version' style='font-weight:700;color:#16a34a;min-height:1.1em'></div>";
+    print "</div>";
 	print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
 	print "<div style='margin-bottom:0'>";
 	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Check Manually</span></span></button>";
@@ -3761,6 +3772,11 @@ QHTL_UPGRADE_PROGRESS_JS
 		} else {
 		# Replace with triangle-styled buttons and JS
 			print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
+		# Status box above the manual check button
+		print "<div id='qhtl-upgrade-status-box' style='display:block;text-align:center;margin:2px 0 6px 0;line-height:1.15'>";
+		print "  <div id='qhtl-upgrade-status' style='font-weight:800;color:#16a34a;min-height:1.1em'></div>";
+		print "  <div id='qhtl-upgrade-version' style='font-weight:700;color:#16a34a;min-height:1.1em'></div>";
+		print "</div>";
 		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
 	print "<div style='display:flex;gap:15px;flex-wrap:wrap;margin-bottom:0;justify-content:center'>";
 	# Force each word on its own line by inserting <br> between words
@@ -3783,6 +3799,9 @@ QHTL_UPGRADE_PROGRESS_JS
 		if (!manualBtn) return;
 		var tri = manualBtn.querySelector('.qhtl-tri-btn');
 		var label = manualBtn.querySelector('.qhtl-tri-btn > span:last-child');
+		var sbox = document.getElementById('qhtl-upgrade-status-box');
+		var sTop = document.getElementById('qhtl-upgrade-status');
+		var sVer = document.getElementById('qhtl-upgrade-version');
 		function setBlueCheck(){ if(!tri||!label) return; tri.classList.remove('installing'); tri.classList.add('secondary'); tri.style.setProperty('--halo','#a9d7ff'); label.innerHTML = 'Check<br>Manually'; }
 		function setGreenUpgrade(){ if(!tri||!label) return; tri.classList.remove('secondary'); tri.classList.add('green'); label.innerHTML = 'Upgrade'; try { var svg = tri.querySelector('svg polygon'); if(svg){ svg.setAttribute('stroke', '#66e08a'); } } catch(_){}
 		}
@@ -3794,21 +3813,56 @@ QHTL_UPGRADE_PROGRESS_JS
 			xhr.onreadystatechange=function(){ if(xhr.readyState===4){ setTimeout(function(){ try{ location.reload(); }catch(e){} }, 1200); } };
 			try{ xhr.send('start=1'); } catch(e){ setTimeout(function(){ try{ location.reload(); }catch(_){ } }, 800); }
 		}
-		function doManualCheck(){
+		function applyResult(data, fromCountdown){
+			try{
+				if (!data || !data.ok) { if (fromCountdown && sTop){ sTop.textContent='Fail'; sTop.style.color='#dc2626'; sTop.style.fontWeight='800'; } if(sVer){ sVer.textContent=''; } return; }
+				var avail = (data.available||'').trim();
+				var cur = (data.current||'').trim();
+				var up = !!data.upgrade;
+				if (fromCountdown){
+					if (!avail){ if(sTop){ sTop.textContent='Fail'; sTop.style.color='#dc2626'; sTop.style.fontWeight='800'; } if(sVer){ sVer.textContent=''; } }
+					else {
+						if (sVer){ sVer.textContent = avail; sVer.style.color='#16a34a'; sVer.style.fontWeight='700'; }
+						if (avail===cur){ if(sTop){ sTop.textContent='OK'; sTop.style.color='#16a34a'; sTop.style.fontWeight='800'; setTimeout(function(){ try{ sTop.textContent=''; }catch(_){ } }, 5000); } }
+						else { if(sTop){ sTop.textContent=''; } }
+					}
+				}
+				if (up){ setGreenUpgrade(); manualBtn.onclick=function(e){ e.preventDefault(); startUpgrade(); return false; }; }
+				else { setBlueCheck(); }
+			} catch(e){}
+		}
+
+		function doManualCheckAuto(){ // no countdown; used on load
 			var xhr = new XMLHttpRequest();
 			xhr.open('GET', base + '?action=api_manual_check&_=' + String(Date.now()), true);
 			try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){ }
-			xhr.onreadystatechange=function(){ if(xhr.readyState===4){ try{
-					var ok=false, up=false, data=null; try{ data=JSON.parse(xhr.responseText||'{}'); }catch(__){}
-					if (data && data.ok){ ok=true; up = !!data.upgrade; }
-					if (ok && up){ setGreenUpgrade(); manualBtn.onclick=function(e){ e.preventDefault(); startUpgrade(); return false; }; }
-					else { setBlueCheck(); }
-			}catch(__){} } };
+			xhr.onreadystatechange=function(){ if(xhr.readyState===4){ var data=null; try{ data=JSON.parse(xhr.responseText||'{}'); }catch(__){} applyResult(data, false); } };
 			try { xhr.send(null); } catch(e) { }
+		}
+
+		function doManualCheckWithCountdown(){
+			if (sTop){ sTop.style.color='#16a34a'; sTop.style.fontWeight='800'; }
+			var n = 5; if (sTop) { sTop.textContent = String(n); }
+			if (sVer) { sVer.textContent = ''; }
+			var dataResp = null, haveResp = false, finished = false;
+			// fire request immediately
+			try{
+				var xhr = new XMLHttpRequest();
+				xhr.open('GET', base + '?action=api_manual_check&_=' + String(Date.now()), true);
+				try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){ }
+				xhr.onreadystatechange=function(){ if(xhr.readyState===4){ try{ dataResp = JSON.parse(xhr.responseText||'{}'); haveResp = true; if (finished) { applyResult(dataResp, true); } }catch(__){ haveResp = true; if (finished) { applyResult(null, true); } } } };
+				xhr.send(null);
+			} catch(_){ }
+			// countdown
+			var iv = setInterval(function(){
+				try { n--; if (n<=1) { n=1; } if (sTop) { sTop.textContent = String(n); } } catch(_){ }
+				if (n===1) { clearInterval(iv); finished = true; if (haveResp) { applyResult(dataResp, true); } }
+			}, 1000);
 		}
 		manualBtn.addEventListener('click', function(e){ e.preventDefault(); doManualCheck(); return false; });
 		// On load, check and update state so the button reflects reality
-		setTimeout(doManualCheck, 200);
+		manualBtn.onclick = function(e){ e.preventDefault(); doManualCheckWithCountdown(); return false; };
+		setTimeout(doManualCheckAuto, 200);
 	}catch(e){}
 })();
 </script>
