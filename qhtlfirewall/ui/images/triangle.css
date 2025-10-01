@@ -3,8 +3,8 @@
 .qhtl-tri-btn{
 	--w: 120px;               /* default width (50% larger than 80px) */
 	--h: calc(var(--w) * 0.8660254);
-	/* maintain ~10px gap regardless of size; provide fallback if calc unsupported */
-	--k: calc(1 - (30px / var(--h)));
+	/* fixed inner gap (imprint) */
+	--d: 10px;
 	position:relative;
 	display:inline-block;
 	width:var(--w);
@@ -35,13 +35,10 @@
 .qhtl-tri-btn::after{
 	content:"";
 	position:absolute;
-	inset:0;
+	inset:var(--d);
 	clip-path:inherit;
 	/* Waterfall (green inner) linear gradient */
 	background:linear-gradient(180deg, #66e08a 0%, #34a853 100%);
-	/* Use bottom origin + centroid compensation so inner centers perfectly inside outer */
-	transform-origin:bottom center;
-	transform:translateY(calc(-33.333% * (1 - var(--k, 0.72)))) scale(var(--k, 0.72));
 	/* Add a subtle inner edge to emphasize the imprint gap */
 	box-shadow: inset 0 0 0 1.5px rgba(0,0,0,0.08);
 	/* Bold outer ring akin to Waterfall's circular edge */
@@ -51,21 +48,21 @@
 /* Fill overlay - scales from bottom within the same inner triangle */
 .qhtl-tri-btn .tri{
 	position:absolute;
-	inset:0;
+	inset:var(--d);
 	clip-path:inherit;
 	/* Match green inner face so fill looks like the Waterfall bubble */
 	background:linear-gradient(180deg, #66e08a 0%, #34a853 100%);
-	/* Keep bottom-up fill but align inner using the same centroid compensation */
+	/* Keep bottom-up fill within inner triangle */
 	transform-origin:bottom center;
-	transform:translateY(calc(-33.333% * (1 - var(--k, 0.72)))) scale(var(--k, 0.72)) scaleY(0);   /* JS sets final scaleY */
+	transform:scaleY(0);   /* JS sets final scaleY when used */
 	z-index:2;
 }
 /* Caption inside the triangle, bold black */
 .qhtl-tri-btn > span:last-child{
 	position:absolute;
 	left:50%;
-	top:56%;
-	transform:translate(-50%,-50%);
+	top:calc(100% - (var(--d) + 14px));
+	transform:translateX(-50%);
 	color:#111;
 	font-size:13px;
 	font-weight:800;
