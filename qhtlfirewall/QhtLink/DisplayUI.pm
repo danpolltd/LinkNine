@@ -7,6 +7,16 @@ BEGIN {
 	eval { require QhtLink::Slurp;       QhtLink::Slurp->import();       1 } or do { };
 	eval { require QhtLink::GetEthDev;   QhtLink::GetEthDev->import();   1 } or do { };
 	eval { require IPC::Open3;           IPC::Open3->import(qw(open3));  1 } or do { };
+	eval { require QhtLink::CheckIP;     QhtLink::CheckIP->import(qw(checkip)); 1 } or do { };
+}
+
+# Local wrappers to avoid undefined subroutines when called without fully qualified names
+sub slurp { return QhtLink::Slurp::slurp(@_); }
+
+sub resize {
+	my ($pos, $auto_scroll) = @_;
+	# Historically this adjusts the output container size; keep as no-op in this UI
+	return;
 }
 ## Version comparison helper (returns 1 if a > b, -1 if a < b, 0 if equal)
 sub ver_cmp {
