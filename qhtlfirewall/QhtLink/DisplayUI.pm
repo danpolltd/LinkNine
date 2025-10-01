@@ -3679,11 +3679,12 @@ QHTL_TAB_GUARD
 	print "<div style='margin-bottom:0'>";
 	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Check Manually</span></span></button>";
 	print "  <script src='$script?action=widget_js&name=uupdate.js'></script>";
+	print "  <script src='$script?action=widget_js&name=uchange.js'></script>";
 	print "</div>";
 	# Inline area under the triangles on Upgrade tab
 	print "<div id='qhtl-upgrade-inline-area' style='min-height:180px;border-top:1px solid #ddd;margin-top:0;padding-top:0;background:transparent'></div>";
 		print "</div>";
-		print "<button name='action' value='changelog' type='submit' class='btn btn-default' data-bubble-color='blue'>View ChangeLog</button>";
+	print "<button id='qhtl-upgrade-changelog-plain' type='button' class='btn btn-default' data-bubble-color='blue' onclick='return false;'>View ChangeLog</button>";
 		print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div></div></td></tr>\n";
 				# Client logic: start upgrade via API and animate progress based on log milestones
 				print <<'QHTL_UPGRADE_PROGRESS_JS';
