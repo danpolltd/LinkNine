@@ -759,7 +759,8 @@ if (defined $FORM{action} && $FORM{action} eq 'upgrade_log') {
 		print ";\n";
 		exit 0;
 	}
-	print "Content-type: text/plain; charset=UTF-8\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	# Emit a verification header so clients can verify this is truly the log stream
+	print "Content-type: text/plain; charset=UTF-8\r\nX-QHTL-ULOG: 1\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 	if (open(my $UIN, '<', $ulog)) {
 		local $/ = undef; my $data = <$UIN> // '';
 		close $UIN;

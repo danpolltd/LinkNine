@@ -2828,7 +2828,8 @@ EOD
 		var attempts = 0, maxAttempts = 30; // ~60s @ 2s interval
 		function fetchLog(){
 			attempts++;
-			var url = (window.QHTL_SCRIPT || '') + '?action=upgrade_log&_=' + String(Date.now());
+			var base = (window.QHTL_SCRIPT || '') || '$script';
+			var url = base + '?action=upgrade_log&_=' + String(Date.now());
 			try {
 				var xhr = new XMLHttpRequest();
 				xhr.open('GET', url, true);
@@ -2836,16 +2837,22 @@ EOD
 				xhr.onreadystatechange = function(){
 					if (xhr.readyState === 4) {
 						if (xhr.status >= 200 && xhr.status < 300) {
+							var ct = (xhr.getResponseHeader && xhr.getResponseHeader('Content-Type')) || '';
+							var marker = (xhr.getResponseHeader && xhr.getResponseHeader('X-QHTL-ULOG')) || '';
 							var text = xhr.responseText || '';
-							if (text) {
-								// Escape minimal HTML
-								text = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-								box.innerHTML = text;
-								// Keep scrolled to bottom
-								try { box.scrollTop = box.scrollHeight; } catch(e){}
-							} else {
-								if (attempts <= 1) {
+							// Only render when server indicates plain text log via header or content-type
+							if ((marker === '1') || (/^text\/plain/i.test(ct))) {
+								if (text) {
+									text = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+									box.innerHTML = text;
+									try { box.scrollTop = box.scrollHeight; } catch(e){}
+								} else if (attempts <= 1) {
 									box.innerHTML = '<span class="text-muted">(no output yet)</span>';
+								}
+							} else {
+								// Ignore unexpected HTML responses (e.g., full UI) to avoid dumping markup
+								if (attempts <= 1) {
+									box.innerHTML = '<span class="text-muted">(waiting for log output)</span>';
 								}
 							}
 						}
@@ -3654,7 +3661,7 @@ QHTL_TAB_GUARD
 	print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' data-url='$script?action=viewlist&which=allow' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='allowip' value='' size='36' style='background-color: #BDECB6; width:100%;'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qallow\\\").submit();\\\" class='btn btn-default' data-bubble-color='green'>Quick Allow</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qallow').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='green'>Quick Allow</button></div>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
 		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Allow:</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
@@ -3670,7 +3677,7 @@ QHTL_TAB_GUARD
 	print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' data-url='$script?action=viewlist&which=deny' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='denyip' value='' size='36' style='background-color: #FFD1DC; width:100%;'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qdeny\\\").submit();\\\" class='btn btn-default' data-bubble-color='red'>Quick Deny</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qdeny').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='red'>Quick Deny</button></div>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
 		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Block:</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
@@ -3686,7 +3693,7 @@ QHTL_TAB_GUARD
 	print "    <div style='flex:0 0 30%; max-width:30%'>Ignore IP address <a class='quickview-link' data-which='ignore' data-url='$script?action=viewlist&which=ignore' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='ignoreip' value='' size='36' style='background-color: #D9EDF7; width:100%;'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qignore\\\").submit();\\\" class='btn btn-default' data-bubble-color='orange'>Quick Ignore</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qignore').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='orange'>Quick Ignore</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
@@ -3698,7 +3705,7 @@ QHTL_TAB_GUARD
 		print "    <div style='flex:0 0 30%; max-width:30%'>Search IP address</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#grep\\\").submit();\\\" class='btn btn-default' data-bubble-color='blue'>Search for IP</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('grep').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='blue'>Search for IP</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
@@ -3710,7 +3717,7 @@ QHTL_TAB_GUARD
 		print "    <div style='flex:0 0 30%; max-width:30%'>Remove IP address</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='killip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qkill\\\").submit();\\\" class='btn btn-default' data-bubble-color='gray'>Quick Unblock</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qkill').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='gray'>Quick Unblock</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
@@ -3739,8 +3746,8 @@ QHTL_TAB_GUARD
 		print "    <div style='flex:0 0 20%; max-width:20%'>Comment</div>";
 		print "    <div style='flex:1 1 auto'><input type='text' name='comment' value='' size='30' class='form-control' style='max-width:520px'></div>";
 		print "  </div>";
-		print "  <div class='text-muted' style='font-size:12px; margin-bottom:8px'>(ports can be either * for all ports, a single port, or a comma separated list of ports)</div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#tempdeny\\\").submit();\\\" class='btn btn-default' data-bubble-color='purple'>Apply Temporary Rule</button></div>";
+	print "  <div class='text-muted' style='font-size:12px; margin-bottom:8px'>(ports can be either * for all ports, a single port, or a comma separated list of ports)</div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('tempdeny').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='purple'>Apply Temporary Rule</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
