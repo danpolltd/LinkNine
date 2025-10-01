@@ -91,12 +91,17 @@ sub manualversion {
 				my $url = "$scheme://$host/qhtlfirewall/version.txt";
 				my ($rc, $data) = $urlget->urlget($url);
 				if (!$rc && defined $data) {
-					# Be tolerant: strip BOM/whitespace and accept optional 'v' prefix
-					$data =~ s/^\xEF\xBB\xBF//;   # UTF-8 BOM
-					$data =~ s/^\s+//;              # leading whitespace
-					if ($data =~ /^v?(\d+\.\d+(?:\.\d+)?)/i) {
-						$actv = $1; $src = $host;
+					# Be tolerant: strip BOM, then scan lines for a clean version token
+					$data =~ s/^\xEF\xBB\xBF//;   # UTF-8 BOM (at very start)
+					my $found = '';
+					for my $line (split /\r?\n/, $data){
+						$line =~ s/^\s+|\s+$//g; next unless length $line;
+						# Accept: v1.2[.3[.4]][-suffix]
+						if ($line =~ /^v?(\d+(?:\.\d+){1,3})\b/i) { $found = $1; last; }
 					}
+					# As a last resort, try a multi-line anchored search for a single-token version line
+					if (!$found && $data =~ /^\s*v?(\d+(?:\.\d+){1,3})\s*$/m) { $found = $1; }
+					if ($found) { $actv = $found; $src = $host; }
 				}
 				if ($actv) {
 					$upgrade = 1 if ver_cmp($actv, $curv) == 1;
