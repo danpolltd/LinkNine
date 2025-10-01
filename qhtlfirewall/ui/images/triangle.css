@@ -70,7 +70,8 @@
 .qhtl-tri-btn .tri-status{
 	position:absolute;
 	left:50%;
-	bottom: calc(var(--labelPad) + 60px);
+	/* place ~one line above label, safely inside triangle */
+	bottom: calc(var(--labelPad) + 22px);
 	transform: translateX(-50%);
 	width:72%;
 	text-align:center;

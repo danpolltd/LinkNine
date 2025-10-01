@@ -3789,7 +3789,7 @@ QHTL_UPGRADE_PROGRESS_JS
 		print "  <button id='qhtl-upgrade-mshield' type='button' title='Mail Shiled' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Mail<br>Shiled</span></span></button>";
 				print "</div>";
 				# Upgrade tab inline area below triangles
-				print "<div id='qhtl-upgrade-inline-area' style='min-height:180px;border-top:1px solid #ddd;margin-top:0;padding-top:0;background:transparent'></div>";
+						print "<div id='qhtl-upgrade-inline-area' style='min-height:180px;border-top:1px solid #ddd;margin-top:0;padding-top:0;background:transparent; transition: opacity 5s ease;'></div>";
 				# Wire manual check/upgrade button behavior
 				print <<'QHTL_UPGRADE_WIRE_JS';
 <script>
@@ -4107,6 +4107,20 @@ QHTL_UPGRADE_WIRE_JS
 				."})();</script>\n";
 		# Inline content area for widget actions (load results below bubbles)
 	print "<tr style='background:transparent!important'><td style='background:transparent!important'><div id='qhtl-inline-area' style='padding-top:10px;min-height:180px;background:transparent'></div></td></tr>\n";
+	print "<script>\n";
+	print "(function(){\n";
+	print "  function makeAutoClear(id){ var el=document.getElementById(id); if(!el) return; el.style.transition = el.style.transition || 'opacity 5s ease'; var t=null, fading=false;\n";
+	print "    function clearNow(){ try{ el.innerHTML=''; el.style.opacity=''; el.style.pointerEvents=''; }catch(_){ } }\n";
+	print "    function beginFade(){ if(fading) return; fading=true; el.style.opacity='0'; el.style.pointerEvents='none'; setTimeout(clearNow, 5000); }\n";
+	print "    function arm(){ if(t){ clearTimeout(t); } fading=false; el.style.opacity=''; el.style.pointerEvents=''; t=setTimeout(beginFade, 10000); }\n";
+	print "    // Arm on interactions and when content changes\n";
+	print "    ['click','input','mousemove','wheel','keydown','touchstart'].forEach(function(evt){ el.addEventListener(evt, arm, {passive:true}); });\n";
+	print "    var mo = new MutationObserver(arm); mo.observe(el, { childList:true, subtree:true }); arm();\n";
+	print "  }\n";
+	print "  makeAutoClear('qhtl-inline-area');\n";
+	print "  makeAutoClear('qhtl-upgrade-inline-area');\n";
+	print "})();\n";
+	print "</script>\n";
 		# Delegate clicks and form submits inside the Waterfall tab to load into inline area
 		print "<script>(function(){\n";
 	print "  if (window.__QHTL_INLINE_LOADER_ACTIVE) { return; } window.__QHTL_INLINE_LOADER_ACTIVE = true;\n";
@@ -4186,8 +4200,8 @@ QHTL_UPGRADE_WIRE_JS
 	# Enforce Quick View modal sizing (500x400) with scrollable body
 	print "<style>\n";
 	print "#quickViewModal { position: absolute !important; inset: 0 !important; z-index: 1000 !important; touch-action: auto !important; }\n";
-	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 95% !important; position: absolute !important; top: 12px !important; left: 50% !important; transform: translateX(-50%) !important; margin: 0 !important; }\n";
-	print "#quickViewModal .modal-content { height: auto !important; max-height:480px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
+	print "#quickViewModal .modal-dialog { width: calc(100% - 40px) !important; max-width: 1200px !important; position: absolute !important; top: 20px !important; left: 20px !important; right: 20px !important; transform: none !important; margin: 0 !important; }\n";
+	print "#quickViewModal .modal-content { height: 400px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
 	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow:auto !important; min-height:0 !important; padding:10px !important; }\n";
 		print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; display:flex !important; justify-content: space-between !important; align-items: center !important; gap:8px !important; }\n";
 	print "#quickViewModal #quickViewTitle { margin:0 0 8px 0 !important; }\n";
