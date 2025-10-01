@@ -6,7 +6,9 @@
 	width:80px;               /* across */
 	height:69.28px;           /* equilateral height */
 	clip-path:polygon(50% 0,100% 100%,0 100%);
-	background:#16a34a;       /* outer border color */
+	/* Waterfall (green bubble) style outer shading */
+	background: radial-gradient(circle at 30% 30%, #e3f9e7 0%, #b4f2c1 50%, #7fdc95 85%);
+	box-shadow: 0 6px 18px rgba(0,0,0,0.25);
 	cursor:pointer;
 	overflow:visible;         /* allow caption outside */
 }
@@ -16,9 +18,11 @@
 	position:absolute;
 	inset:0;
 	clip-path:inherit;
-	background:#0b0b0b;       /* button face */
-	transform-origin:center;
-	transform:scale(var(--k));
+	/* Waterfall (green inner) linear gradient */
+	background:linear-gradient(180deg, #66e08a 0%, #34a853 100%);
+	/* Use bottom origin + centroid compensation so inner centers perfectly inside outer */
+	transform-origin:bottom center;
+	transform:translateY(calc(-33.333% * (1 - var(--k)))) scale(var(--k));
 	z-index:1;
 }
 /* Fill overlay - scales from bottom within the same inner triangle */
@@ -26,9 +30,11 @@
 	position:absolute;
 	inset:0;
 	clip-path:inherit;
-	background:linear-gradient(180deg,#22c55e,#10b981);
+	/* Match green inner face so fill looks like the Waterfall bubble */
+	background:linear-gradient(180deg, #66e08a 0%, #34a853 100%);
+	/* Keep bottom-up fill but align inner using the same centroid compensation */
 	transform-origin:bottom center;
-	transform:scale(var(--k)) scaleY(0);   /* JS sets final scaleY */
+	transform:translateY(calc(-33.333% * (1 - var(--k)))) scale(var(--k)) scaleY(0);   /* JS sets final scaleY */
 	z-index:2;
 }
 /* Caption (use the last child span as label) */
@@ -51,6 +57,15 @@
 @keyframes boom{0%{opacity:1;transform:translate(-50%,-50%) scale(.7)}100%{opacity:0;transform:translate(-50%,-50%) scale(2.2)}}
 
 /* Secondary (blue) variant */
-.qhtl-tri-btn.secondary{ background:#2563eb; }
-.qhtl-tri-btn.secondary::after{ background:#0b0f1a; }
-.qhtl-tri-btn.secondary .tri{ background:linear-gradient(180deg,#60a5fa,#3b82f6); }
+.qhtl-tri-btn.secondary{ 
+	/* Waterfall (blue bubble) outer shading */
+	background: radial-gradient(circle at 30% 30%, #9fd3ff 0%, #4aa3ff 45%, #1976d2 80%);
+}
+.qhtl-tri-btn.secondary::after{ 
+	/* Blue inner face */
+	background:linear-gradient(180deg, #5bb0ff 0%, #237ad6 100%);
+}
+.qhtl-tri-btn.secondary .tri{ 
+	/* Blue fill */
+	background:linear-gradient(180deg,#5bb0ff 0%, #237ad6 100%);
+}
