@@ -3590,7 +3590,6 @@ QHTL_TAB_GUARD
 		print "  <button id='qhtl-upgrade-manual' type='button' title='Manual Check' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn'><span class='tri'></span><span>Manual Check</span></span></button>";
 		print "  <script src='$script?action=widget_js&name=uupdate.js'></script>";
 		print "</div>";
-				print "  <style>#qhtl-upgrade-btn .qhtl-fill{position:absolute; left:0; top:0; bottom:0; width:0%; background: linear-gradient(90deg, rgba(34,197,94,0.9) 0%, rgba(16,185,129,0.95) 100%); z-index:0; transition:width .35s ease} #qhtl-upgrade-btn .qhtl-content{position:relative; z-index:1} #qhtl-upgrade-btn.installing{color:#fff; border-color:#16a34a}</style>";
 				print "</div>";
 				print "<button name='action' value='changelog' type='submit' class='btn btn-default' data-bubble-color='blue'>View ChangeLog</button>";
 				print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div></div></td></tr>\n";
@@ -3681,7 +3680,7 @@ QHTL_UPGRADE_PROGRESS_JS
 		} else {
 		# Replace with triangle-styled buttons and JS
 			print "<tr><td colspan='2'>";
-		print "<style>\n.qhtl-tri-btn{position:relative;display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid #16a34a;color:#16a34a;background:#0b0b0b;border-radius:8px;cursor:pointer;overflow:hidden}\n.qhtl-tri-btn .tri{--p:0;width:22px;height:22px;position:relative;transform:rotate(90deg)}\n.qhtl-tri-btn .tri:before{content:'';position:absolute;inset:0;clip-path:polygon(50% 0,100% 100%,0 100%);background:rgba(22,163,74,.15)}\n.qhtl-tri-btn .tri:after{content:'';position:absolute;left:0;right:0;bottom:0;height:calc(var(--p)*1%);clip-path:polygon(50% 0,100% 100%,0 100%);background:linear-gradient(180deg,#22c55e,#10b981);}\n.qhtl-tri-btn.running{color:#fff;background:#052e16;border-color:#16a34a}\n.qhtl-tri-btn.expl::after{content:'';position:absolute;left:50%;top:50%;width:2px;height:2px;background:#22c55e;border-radius:50%;box-shadow:0 0 0 6px rgba(34,197,94,.35),0 0 0 12px rgba(34,197,94,.2);opacity:0;animation:boom .6s ease-out;}\n@keyframes boom{0%{opacity:1;transform:translate(-50%,-50%) scale(.7)}100%{opacity:0;transform:translate(-50%,-50%) scale(2.2)}}\n.qhtl-tri-btn.secondary{border-color:#2563eb;color:#60a5fa}.qhtl-tri-btn.secondary.running{background:#0a1a33;color:#dbeafe}\n</style>";
+		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css' />";
 		print "<div style='display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px'>";
 		print "  <button id='qhtl-upgrade-manual' type='button' title='Manual Check' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn'><span class='tri'></span><span>Manual Check</span></span></button>";
 		print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>View ChangeLog</span></span></button>";
