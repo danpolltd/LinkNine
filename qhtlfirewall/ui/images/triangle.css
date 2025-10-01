@@ -103,9 +103,12 @@
 /* Secondary (blue) variant */
 .qhtl-tri-btn.secondary{ 
 	/* Waterfall (blue bubble) outer shading */
-	background: radial-gradient(circle at 30% 30%, #cae7ff 0%, #9fd3ff 45%, #4aa3ff 80%);
+	background: radial-gradient(circle at 30% 30%, #cfe7ff 0%, #a9d7ff 45%, #55a9ff 80%);
 }
-.qhtl-tri-btn.secondary::before{ background: radial-gradient(circle at 30% 30%, #ffffff 0%, #f4f9ff 45%, #d6e9ff 80%); }
+/* Make base halo 60% of the button color (avoid white-looking highlights) */
+.qhtl-tri-btn.secondary::before{ 
+	background: radial-gradient(circle at 30% 30%, rgba(78,168,255,0.60) 0%, rgba(78,168,255,0.45) 45%, rgba(30,111,209,0.35) 80%);
+}
 .qhtl-tri-btn.secondary::after{ 
 	/* Blue inner face */
 	background:linear-gradient(180deg, #4ea8ff 0%, #1e6fd1 100%);
