@@ -3664,13 +3664,13 @@ QHTL_TAB_GUARD
 					print "<tr><td colspan='2'><div style='display:flex;gap:15px;flex-wrap:wrap;align-items:center'>";
 		# Show only Manual Check (triangle) when no upgrade available
 			print "<tr><td colspan='2'>";
-		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
-		print "<div style='margin-bottom:6px'>";
+	print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
+	print "<div style='margin-bottom:0'>";
 	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Check Manually</span></span></button>";
 	print "  <script src='$script?action=widget_js&name=uupdate.js'></script>";
 	print "</div>";
-		# Inline area under the triangles on Upgrade tab
-		print "<div id='qhtl-upgrade-inline-area' style='padding-top:10px;min-height:180px'></div>";
+	# Inline area under the triangles on Upgrade tab
+	print "<div id='qhtl-upgrade-inline-area' style='min-height:180px;border-top:1px solid #ddd;margin-top:0;padding-top:0'></div>";
 		print "</div>";
 		print "<button name='action' value='changelog' type='submit' class='btn btn-default' data-bubble-color='blue'>View ChangeLog</button>";
 		print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div></div></td></tr>\n";
@@ -3762,7 +3762,7 @@ QHTL_UPGRADE_PROGRESS_JS
 		# Replace with triangle-styled buttons and JS
 			print "<tr><td colspan='2'>";
 		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
-	print "<div style='display:flex;gap:15px;flex-wrap:wrap;margin-bottom:6px;justify-content:center'>";
+	print "<div style='display:flex;gap:15px;flex-wrap:wrap;margin-bottom:0;justify-content:center'>";
 	# Force each word on its own line by inserting <br> between words
 	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary' data-mode='check'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Check<br>Manually</span></span></button>";
 	print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>View<br>ChangeLog</span></span></button>";
@@ -3772,7 +3772,7 @@ QHTL_UPGRADE_PROGRESS_JS
 		print "  <button id='qhtl-upgrade-mshield' type='button' title='Mail Shiled' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Mail<br>Shiled</span></span></button>";
 				print "</div>";
 				# Upgrade tab inline area below triangles
-				print "<div id='qhtl-upgrade-inline-area' style='padding-top:10px;min-height:180px'></div>";
+				print "<div id='qhtl-upgrade-inline-area' style='min-height:180px;border-top:1px solid #ddd;margin-top:0;padding-top:0'></div>";
 				# Wire manual check/upgrade button behavior
 				print <<'QHTL_UPGRADE_WIRE_JS';
 <script>
