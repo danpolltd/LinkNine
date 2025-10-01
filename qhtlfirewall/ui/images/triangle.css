@@ -4,6 +4,7 @@
 	--w: 140px;               /* slightly larger */
 	--h: calc(var(--w) * 0.8660254);
 	--d: 0px;                 /* remove imprint gap */
+	--halo: 10px;             /* ring thickness used to pad label */
 	--k: calc(1 - (3 * var(--d) / var(--h))); /* scales to 1 when gap is 0 */
 	position:relative;
 	display:inline-block;
@@ -68,9 +69,9 @@
 .qhtl-tri-btn > span:last-child{
 	position:absolute;
 	left:50%;
-	bottom:calc(var(--d) + 6px);
+	bottom:calc(var(--halo) + 4px);  /* keep text inside triangle above halo */
 	transform:translateX(-50%);
-	width:calc(100% - (2 * var(--d)) - 6px);
+	width:calc(100% - (2 * var(--halo)) - 6px); /* avoid touching halo at sides */
 	text-align:center;
 	color:#fff;
 	font-size:13px;
