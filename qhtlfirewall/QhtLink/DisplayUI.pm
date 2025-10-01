@@ -3624,11 +3624,56 @@ QHTL_TAB_GUARD
 		}
 		function startUpgrade(){
 			try{ tri.classList.add('installing'); }catch(_){ }
+			// visually start a fill animation and pulse
+			try{ var fill = tri.querySelector('.tri'); if (fill){ fill.style.transition = 'transform 0.6s ease'; fill.style.transform = fill.style.transform.replace(/scaleY\([^)]*\)/,'scaleY(0.05)'); } }catch(_){ }
 			var xhr = new XMLHttpRequest();
 			xhr.open('POST', base + '?action=api_start_upgrade&_=' + String(Date.now()), true);
 			try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); }catch(_){ }
-			xhr.onreadystatechange=function(){ if(xhr.readyState===4){ setTimeout(function(){ try{ location.reload(); }catch(e){} }, 1200); } };
-			try{ xhr.send('start=1'); } catch(e){ setTimeout(function(){ try{ location.reload(); }catch(_){ } }, 800); }
+			xhr.onreadystatechange=function(){ if(xhr.readyState===4){
+				// Begin polling progress and reload when done
+				try { pollUpgradeProgress(); } catch(__){}
+			} };
+			try{ xhr.send('start=1'); } catch(e){ try { pollUpgradeProgress(); } catch(__){} }
+		}
+
+		function pollUpgradeProgress(){
+			var attempts = 0, maxAttempts = 180; // up to ~3 minutes @ 1s
+			var lastPct = -1;
+			var fill = null; try { fill = tri.querySelector('.tri'); } catch(_){ }
+			function step(){
+				attempts++;
+				var req = new XMLHttpRequest();
+				req.open('GET', base + '?action=upgrade_progress&_=' + String(Date.now()), true);
+				try{ req.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){ }
+				req.onreadystatechange = function(){
+					if (req.readyState === 4) {
+						var data = null; try { data = JSON.parse(req.responseText||'{}'); } catch(__){}
+						if (data && data.ok){
+							var pct = (typeof data.pct === 'number' ? data.pct : -1);
+							var done = !!data.done;
+							if (fill){
+								var y = 0.08; // minimum visible fill
+								if (pct >= 0){ y = Math.max(0.08, Math.min(1.0, pct/100)); }
+								try { var t = getComputedStyle(fill).transform; } catch(_){ }
+								try {
+									var current = fill.style.transform || '';
+									if (current.indexOf('scaleY(') >= 0){ fill.style.transform = current.replace(/scaleY\([^)]*\)/, 'scaleY(' + y + ')'); }
+									else { fill.style.transform += ' scaleY(' + y + ')'; }
+								} catch(_){ }
+							}
+							if (done){
+								// Finalize fill and reload to pick up new version
+								try { if (fill){ fill.style.transform = fill.style.transform.replace(/scaleY\([^)]*\)/,'scaleY(1)'); } } catch(_){ }
+								setTimeout(function(){ try{ location.reload(); }catch(e){} }, 800);
+								return;
+							}
+						}
+						if (attempts < maxAttempts){ setTimeout(step, 1000); }
+					}
+				};
+				try { req.send(null); } catch(_){ if (attempts < maxAttempts) { setTimeout(step, 1200); } }
+			}
+			setTimeout(step, 900);
 		}
 		function applyResult(data, fromCountdown){
 			try{

@@ -782,6 +782,7 @@ if (defined $FORM{action} && $FORM{action} eq 'upgrade_log') {
 # API endpoint to start the upgrade in the background (no navigation)
 if (defined $FORM{action} && $FORM{action} eq 'api_start_upgrade') {
 	my $ulog = "/var/log/qhtlfirewall-ui-upgrade.log";
+	my $pfile = "/var/lib/qhtlfirewall/ui-postinstall.txt";
 	# If accidentally loaded as a <script>, emit a JS no-op
 	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
 	if ($sec_dest eq 'script') {
@@ -798,19 +799,68 @@ if (defined $FORM{action} && $FORM{action} eq 'api_start_upgrade') {
 		}
 		1;
 	};
+	# Ensure progress file directory exists and mark starting
+	eval {
+		my $dir = '/var/lib/qhtlfirewall';
+		if (!-d $dir) { mkdir $dir, 0755; }
+		if (open(my $PF, '>', $pfile)) {
+			my $now = scalar localtime();
+			print $PF "status:starting time=$now\n";
+			close $PF;
+		}
+		1;
+	} or do { };
 	# Launch upgrade in background
 	my $nohup = (-x '/usr/bin/nohup') ? '/usr/bin/nohup' : ((-x '/bin/nohup') ? '/bin/nohup' : '');
 	my $shell = (-x '/bin/sh') ? '/bin/sh' : '/usr/bin/sh';
 	my $cmd;
+	my $inner = "echo status:running time=\$(date -Is) > $pfile; /usr/sbin/qhtlfirewall -uf >> $ulog 2>&1; ec=\$?; echo status:done exit=\$ec time=\$(date -Is) > $pfile";
 	if ($nohup ne '') {
-		$cmd = "$nohup $shell -c '/usr/sbin/qhtlfirewall -uf' >> $ulog 2>&1 &";
+		$cmd = "$nohup $shell -c '$inner' >> $ulog 2>&1 &";
 	} else {
-		$cmd = "(/usr/sbin/qhtlfirewall -uf) >> $ulog 2>&1 &";
+		$cmd = "($inner) >> $ulog 2>&1 &";
 	}
 	system($cmd);
 	# Respond JSON
 	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 	print '{"ok":1}';
+	exit 0;
+}
+
+# API endpoint to report upgrade progress using the progress file and log
+if (defined $FORM{action} && $FORM{action} eq 'upgrade_progress') {
+	my $pfile = "/var/lib/qhtlfirewall/ui-postinstall.txt";
+	my $ulog  = "/var/log/qhtlfirewall-ui-upgrade.log";
+	my ($status, $exit, $time, $pct) = ('unknown', -1, '', -1);
+	if (-r $pfile) {
+		if (open(my $PF, '<', $pfile)) {
+			my @lines = <$PF>; close $PF;
+			my $last = pop @lines; $last = '' unless defined $last; chomp $last;
+			if ($last =~ /status:(\w+)/) { $status = $1; }
+			if ($last =~ /exit=(\-?\d+)/) { $exit = $1+0; }
+			if ($last =~ /time=([^\s]+)/) { $time = $1; }
+			if ($last =~ /pct=(\d{1,3})/) { $pct = $1+0; $pct = 100 if $pct>100; }
+		}
+	}
+	my $done = 0;
+	if ($status eq 'done') { $done = 1; }
+	else {
+		# Fallback to log marker if progress file missing
+		if (open(my $UL, '<', $ulog)) {
+			local $/ = undef; my $data = <$UL>; close $UL; $done = ($data =~ /\bAll done\b|\.\.\.All done/i) ? 1 : 0;
+		}
+	}
+	# Emit JSON
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my $json = '{'
+	  . '"ok":1,'
+	  . '"status":"'.$status.'",'
+	  . '"done":'.($done?1:0).','
+	  . '"exit":'.$exit.','
+	  . '"time":"'.$time.'",'
+	  . '"pct":'.$pct
+	  . '}';
+	print $json;
 	exit 0;
 }
 
