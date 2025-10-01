@@ -51,21 +51,27 @@ eval {
 ## Postpone config and regex setup until after lightweight endpoints
 # Avoid calling cPanel Rlimit before we ensure cPanel deps are available
 
-# Defensive: if this CGI is requested in a script-like context without an action, return a JS no-op.
-# Simple rule: only consider it script-like when Sec-Fetch-Dest=script or Accept indicates JavaScript.
+# Defensive: If this CGI is fetched as a <script> (or otherwise JS-like) without an action,
+# emit a tiny JS no-op. Otherwise, fall through and render the HTML UI. Some environments
+# omit Sec-Fetch headers, so default to HTML unless we have strong evidence it's a script.
 my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
 my $sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
 my $sec_user = lc($ENV{HTTP_SEC_FETCH_USER} // ''); # '?1' for user navigations
 my $accept   = lc($ENV{HTTP_ACCEPT} // '');
 if (!defined $FORM{action} || $FORM{action} eq '') {
-	# If this CGI is fetched in any non-navigation context without an explicit action,
-	# return a JS no-op to prevent browsers parsing full HTML as JavaScript.
-	my $is_nav = ($sec_mode eq 'navigate' || $sec_dest eq 'document' || $sec_dest eq 'frame' || $sec_dest eq 'iframe' || $sec_user eq '?1');
-	if (!$is_nav) {
+	# Consider it script-like only if explicitly requested as a script or Accept prefers JS
+	my $is_script_like = (
+		$sec_dest eq 'script' ||
+		$accept =~ /\b(?:application|text)\/(?:x-)?javascript\b/ ||
+		$accept =~ /\btext\/ecmascript\b/ ||
+		$accept =~ /\bapplication\/ecmascript\b/
+	);
+	if ($is_script_like) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
 		exit 0;
 	}
+	# Otherwise, proceed to render HTML normally (no early exit)
 }
 
 # Serve wstatus.js via controlled endpoint to guarantee correct MIME and avoid nosniff issues on static paths
