@@ -8,6 +8,8 @@ BEGIN {
 	eval { require QhtLink::GetEthDev;   QhtLink::GetEthDev->import();   1 } or do { };
 	eval { require IPC::Open3;           IPC::Open3->import(qw(open3));  1 } or do { };
 	eval { require QhtLink::CheckIP;     QhtLink::CheckIP->import(qw(checkip)); 1 } or do { };
+	# Needed for fileparse() usages around profiles/backups
+	eval { require File::Basename;        File::Basename->import(qw(fileparse)); 1 } or do { };
 }
 
 # Local wrappers to avoid undefined subroutines when called without fully qualified names
@@ -3597,7 +3599,7 @@ QHTL_TAB_GUARD
 			print "<tr><td colspan='2'>";
 		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css' />";
 		print "<div style='margin-bottom:6px'>";
-		print "  <button id='qhtl-upgrade-manual' type='button' title='Manual Check' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>Manual Check</span></span></button>";
+	print "  <button id='qhtl-upgrade-manual' type='button' title='Manual Check' style='all:unset;margin:0 18px' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>Manual Check</span></span></button>";
 		print "  <script src='$script?action=widget_js&name=uupdate.js'></script>";
 		print "</div>";
 				print "</div>";
@@ -3693,11 +3695,11 @@ QHTL_UPGRADE_PROGRESS_JS
 		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css' />";
 		print "<div style='display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px;justify-content:center'>";
 		print "  <button id='qhtl-upgrade-manual' type='button' title='Manual Check' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>Manual Check</span></span></button>";
-		print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>View ChangeLog</span></span></button>";
+	print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset;margin:0 18px' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>View ChangeLog</span></span></button>";
 		# New independent triangles (placeholders)
-	print "  <button id='qhtl-upgrade-rex' type='button' title='Rex' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>Rex</span></span></button>";
-		print "  <button id='qhtl-upgrade-mpass' type='button' title='Mpass' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>Mpass</span></span></button>";
-	print "  <button id='qhtl-upgrade-mshield' type='button' title='Mshield' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>Mshield</span></span></button>";
+	print "  <button id='qhtl-upgrade-rex' type='button' title='Rex' style='all:unset;margin:0 18px' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>Rex</span></span></button>";
+	print "  <button id='qhtl-upgrade-mpass' type='button' title='Mpass' style='all:unset;margin:0 18px' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>Mpass</span></span></button>";
+	print "  <button id='qhtl-upgrade-mshield' type='button' title='Mshield' style='all:unset;margin:0 18px' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>Mshield</span></span></button>";
 		print "</div>";
 		print "<script src='$script?action=widget_js&name=uupdate.js'></script>";
 		print "<script src='$script?action=widget_js&name=uchange.js'></script>";
