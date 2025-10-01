@@ -3717,8 +3717,8 @@ QHTL_UPGRADE_PROGRESS_JS
 		print "<script src='$script?action=widget_js&name=qhtlmshield.js'></script>";
 			if ($actv ne "" && ver_cmp($actv, $myv) == 1) {
 					print "<div class='text-muted small' style='margin-top:6px'>Latest available version is v$actv. Your version is v$myv. Please upgrade.</div></td></tr>\n";
-		} elsif ($actv ne "") {
-				print "<div class='text-muted small' style='margin-top:6px'>(qhtlfirewallget cron check) $actv</div></td></tr>\n";
+	} elsif ($actv ne "") {
+		print "</td></tr>\n";
 		} else {
 				print "<div class='text-muted small' style='margin-top:6px'>You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (qhtlfirewallget)</div></td></tr>\n";
 		}
