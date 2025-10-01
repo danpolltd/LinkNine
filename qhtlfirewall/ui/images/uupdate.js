@@ -2,10 +2,10 @@
   try{
     var manual = document.getElementById('qhtl-upgrade-manual');
     var install = document.getElementById('qhtl-upgrade-install');
-    function wire(btn, mode){ if(!btn) return; var tri = btn.querySelector('.tri'); var pct=0, t;
-      function setFill(p){ if(!tri) return; p=Math.max(0,Math.min(100,p)); tri.style.transform = 'scaleY(' + (p/100) + ')'; }
-      function explode(){ try{ btn.querySelector('.qhtl-tri-btn').classList.add('expl'); setTimeout(function(){ btn.querySelector('.qhtl-tri-btn').classList.remove('expl'); }, 700); }catch(_){ } }
-  btn.addEventListener('click', function(e){ e.preventDefault(); btn.disabled=true; var shell = btn.querySelector('.qhtl-tri-btn') || btn; if(shell) shell.classList.add('running');
+    function wire(btn, mode){ if(!btn) return; var tri = btn.querySelector('.tri'); var shell = btn.querySelector('.qhtl-tri-btn') || btn; var pct=0, t;
+      function setFill(p){ if(!tri) return; p=Math.max(0,Math.min(100,p)); tri.style.transform = 'scale(var(--k)) scaleY(' + (p/100) + ')'; }
+      function explode(){ try{ shell.classList.add('expl'); setTimeout(function(){ shell.classList.remove('expl'); }, 700); }catch(_){ } }
+  btn.addEventListener('click', function(e){ e.preventDefault(); btn.disabled=true; if(shell) shell.classList.add('running');
         pct=0; setFill(0);
         if(mode==='install'){
           // install: start api_start_upgrade then 10s animation and reload

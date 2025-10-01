@@ -1,30 +1,35 @@
-/* Triangle buttons: the entire control is a triangle (80px across) with a 10px inset inner face */
+/* Triangle buttons: 80px wide, equilateral height ~69.28px; inner face scaled for ~10px uniform border */
 .qhtl-tri-btn{
+	--k: 0.57;                /* inner scale factor for ~10px border at 80x69.28 */
 	position:relative;
 	display:inline-block;
 	width:80px;               /* across */
-	height:70px;              /* ~equilateral height */
+	height:69.28px;           /* equilateral height */
 	clip-path:polygon(50% 0,100% 100%,0 100%);
 	background:#16a34a;       /* outer border color */
 	cursor:pointer;
 	overflow:visible;         /* allow caption outside */
 }
-/* Inner face (base) inset by 10px to create surrounding border */
+/* Inner face (base) via scale for uniform gap */
 .qhtl-tri-btn::after{
 	content:"";
 	position:absolute;
-	inset:10px;               /* 10px surrounding border effect */
+	inset:0;
 	clip-path:inherit;
 	background:#0b0b0b;       /* button face */
+	transform-origin:center;
+	transform:scale(var(--k));
+	z-index:1;
 }
-/* Fill overlay - we scale from bottom using transform */
+/* Fill overlay - scales from bottom within the same inner triangle */
 .qhtl-tri-btn .tri{
 	position:absolute;
-	inset:10px;
+	inset:0;
 	clip-path:inherit;
 	background:linear-gradient(180deg,#22c55e,#10b981);
 	transform-origin:bottom center;
-	transform:scaleY(0);      /* JS sets to p/100 */
+	transform:scale(var(--k)) scaleY(0);   /* JS sets final scaleY */
+	z-index:2;
 }
 /* Caption (use the last child span as label) */
 .qhtl-tri-btn > span:last-child{
