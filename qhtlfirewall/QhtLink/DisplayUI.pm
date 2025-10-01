@@ -6,6 +6,7 @@ BEGIN {
 	eval { require QhtLink::Config;      QhtLink::Config->import();      1 } or do { };
 	eval { require QhtLink::Slurp;       QhtLink::Slurp->import();       1 } or do { };
 	eval { require QhtLink::GetEthDev;   QhtLink::GetEthDev->import();   1 } or do { };
+	eval { require IPC::Open3;           IPC::Open3->import(qw(open3));  1 } or do { };
 }
 ## Version comparison helper (returns 1 if a > b, -1 if a < b, 0 if equal)
 sub ver_cmp {
