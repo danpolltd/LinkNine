@@ -2626,7 +2626,10 @@ EOD
 		close ($OUT);
 		QhtLink::Config::resetconfig();
 		my $newconfig = QhtLink::Config->loadconfig();
-		my %newconfig = $config->config;
+		my %newconfig = ();
+		if (defined $newconfig && eval { $newconfig->can('config') }) {
+			%newconfig = $newconfig->config();
+		}
 		foreach my $key (keys %newconfig) {
 			my ($insane,$range,$default) = sanity($key,$newconfig{$key});
 			if ($insane) {print "<br>WARNING: $key sanity check. $key = \"$newconfig{$key}\". Recommended range: $range (Default: $default)\n"}
