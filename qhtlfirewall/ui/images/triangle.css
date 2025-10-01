@@ -16,17 +16,16 @@
 	cursor:pointer;
 	overflow:visible;         /* allow caption outside */
 	margin-bottom: 18px;      /* space for label below */
-/* Inline SVG ring (halo + edge) */
+
+}
+/* Inline SVG ring (halo + edge) sits above inner faces for visibility */
 .qhtl-tri-btn .tri-svg{
 	position:absolute;
 	inset:0;
 	width:100%; height:100%;
-	z-index:1; /* below .tri overlay, above host */
+	z-index:3; /* above ::after inner and .tri fill, below label */
 	pointer-events:none;
 	clip-path:inherit;
-}
-	/* ring color picked up by ::before SVG stroke */
-	color:#c9f3d9;
 }
 /* Imprint ring (10px gap area) - brighter shades */
 .qhtl-tri-btn::before{
@@ -91,7 +90,7 @@
 	-webkit-box-orient:vertical;
 	line-height:1.05;
 	max-height:calc(1.05em * 2);
-	z-index:3;
+	z-index:4; /* above SVG ring */
 	pointer-events:none;
 	text-shadow: 0 1px 1px rgba(0,0,0,.45);
 }
