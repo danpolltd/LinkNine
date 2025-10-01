@@ -1,19 +1,18 @@
 package QhtLink::DisplayUI;
-		if ($upgrade) {
-				print "<tr><td colspan='2'><div style='display:flex;gap:10px;flex-wrap:wrap;align-items:center'>";
-				# Triangle-styled Install and ChangeLog; hide Manual Check when upgrade available
-				print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css' />";
-				print "  <button id='qhtl-upgrade-install' type='button' title='Install Update' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn'><span class='tri'></span><span>Install Update</span></span></button>";
-				print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset' onclick='return false;'><span class='qhtl-tri-btn secondary'><span class='tri'></span><span>View ChangeLog</span></span></button>";
-				print "</div>";
-				# Load triangle handlers (uupdate handles both manual and install modes)
-				print "<script src='$script?action=widget_js&name=uupdate.js'></script>";
-				print "<script src='$script?action=widget_js&name=uchange.js'></script>";
-				print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div></div></td></tr>\n";
+## Version comparison helper (returns 1 if a > b, -1 if a < b, 0 if equal)
+sub ver_cmp {
+	my ($a, $b) = @_;
+	my @a = split /\./, $a;
+	my @b = split /\./, $b;
+	for (my $i = 0; $i < @a || $i < @b; $i++) {
+		my $ai = $i < @a ? $a[$i] : 0;
+		my $bi = $i < @b ? $b[$i] : 0;
+		return 1 if $ai > $bi;
 		return -1 if $ai < $bi;
 	}
 	return 0;
 }
+
 
 # Lightweight version retrieval helpers (placed before main for early use)
 sub manualversion {
