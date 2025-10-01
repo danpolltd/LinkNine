@@ -472,8 +472,11 @@ QHTL_JQ_TAIL
 			}
 			if ($hit) {last}
 		}
+		my $wrap_pre = ($FORM{ajax} ? 1 : 0);
 		if (-z $logfile) {
+			if ($wrap_pre) { print "<pre class='comment' style=\"overflow:auto; max-height:500px; white-space: pre-wrap; line-height: 1.5;\">"; }
 			print "<---- $logfile is currently empty ---->";
+			if ($wrap_pre) { print "</pre>"; }
 		} else {
 			if (-x $config{TAIL}) {
 				my $timeout = 30;
@@ -483,6 +486,7 @@ QHTL_JQ_TAIL
 					alarm($timeout);
 					my ($childin, $childout);
 					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					if ($wrap_pre) { print "<pre class='comment' style=\"overflow:auto; max-height:500px; white-space: pre-wrap; line-height: 1.5;\">"; }
 					while (<$childout>) {
 						my $line = $_;
 						$line =~ s/&/&amp;/g;
@@ -492,6 +496,7 @@ QHTL_JQ_TAIL
 					}
 					waitpid ($pid, 0);
 					alarm(0);
+					if ($wrap_pre) { print "</pre>"; }
 				};
 				alarm(0);
 			} else {
@@ -673,8 +678,11 @@ QHTL_JQ_GREP
 			}
 			if ($hit) {last}
 		}
+		my $wrap_pre = ($FORM{ajax} ? 1 : 0);
 		if (-z $logfile) {
+			if ($wrap_pre) { print "<pre class='comment' style=\"overflow:auto; max-height:500px; white-space: pre-wrap; line-height: 1.5;\">"; }
 			print "<---- $logfile is currently empty ---->";
+			if ($wrap_pre) { print "</pre>"; }
 		} else {
 			if (-x $config{TAIL}) {
 				my $timeout = 30;
@@ -684,6 +692,7 @@ QHTL_JQ_GREP
 					alarm($timeout);
 					my ($childin, $childout);
 					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					if ($wrap_pre) { print "<pre class='comment' style=\"overflow:auto; max-height:500px; white-space: pre-wrap; line-height: 1.5;\">"; }
 					while (<$childout>) {
 						my $line = $_;
 						$line =~ s/&/&amp;/g;
@@ -693,6 +702,7 @@ QHTL_JQ_GREP
 					}
 					waitpid ($pid, 0);
 					alarm(0);
+					if ($wrap_pre) { print "</pre>"; }
 				};
 				alarm(0);
 			} else {
