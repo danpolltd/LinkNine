@@ -2795,7 +2795,24 @@ EOD
 			# Run upgrade in the background to avoid blocking/tearing down the current HTTP session immediately.
 			# The UI daemon will restart during the upgrade; inform the user and provide a log snapshot if available.
 			my $ulog = "/var/log/qhtlfirewall-ui-upgrade.log";
-			my $cmd  = "(/bin/sleep 2; /usr/sbin/qhtlfirewall -u) > $ulog 2>&1 &";
+			# Pre-create the log file with a header so the UI shows immediate content
+			eval {
+				if (open(my $LF, '>', $ulog)) {
+					my $now = scalar localtime();
+					print $LF "=== QhtLink Firewall upgrade started at $now ===\n";
+					close $LF;
+				}
+				1;
+			};
+			# Use nohup if available to ensure the background process survives the CGI/session ending
+			my $nohup = (-x '/usr/bin/nohup') ? '/usr/bin/nohup' : ((-x '/bin/nohup') ? '/bin/nohup' : '');
+			my $shell = (-x '/bin/sh') ? '/bin/sh' : '/usr/bin/sh';
+			my $cmd;
+			if ($nohup ne '') {
+				$cmd = "$nohup $shell -c '/usr/sbin/qhtlfirewall -u' >> $ulog 2>&1 &";
+			} else {
+				$cmd = "(/usr/sbin/qhtlfirewall -u) >> $ulog 2>&1 &";
+			}
 			system($cmd);
 			print "<div><p>Upgrade started in the background. This UI may restart during the process and disconnect your session.</p>";
 			print "<p>The log below will update automatically for a short time. If it remains empty, try refreshing after 30–60 seconds.</p>";
