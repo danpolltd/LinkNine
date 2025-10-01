@@ -5,17 +5,22 @@
     function wire(btn, mode){ if(!btn) return; var tri = btn.querySelector('.tri'); var shell = btn.querySelector('.qhtl-tri-btn') || btn; var pct=0, t;
       function setFill(p){ if(!tri) return; p=Math.max(0,Math.min(100,p)); tri.style.transform = 'scale(var(--k)) scaleY(' + (p/100) + ')'; }
       function explode(){ try{ shell.classList.add('expl'); setTimeout(function(){ shell.classList.remove('expl'); }, 700); }catch(_){ } }
-  btn.addEventListener('click', function(e){ e.preventDefault(); btn.disabled=true; if(shell) shell.classList.add('running');
-        pct=0; setFill(0);
+  btn.addEventListener('click', function(e){ e.preventDefault();
         if(mode==='install'){
+          // Upgrade: show timed rising fill + reload
+          btn.disabled=true; if(shell) shell.classList.add('running');
+          pct=0; setFill(0);
           // install: start api_start_upgrade then 10s animation and reload
           var base=(window.QHTL_SCRIPT||'')|| '';
           try{ fetch(base+'?action=api_start_upgrade&_=' + String(Date.now()), { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'}, body:'start=1' }); }catch(_){ }
           t=setInterval(function(){ pct+=2; if(pct>=100){ pct=100; clearInterval(t); explode(); setTimeout(function(){ try{ location.reload(); }catch(_){} }, 800); } setFill(pct); }, 200);
         } else {
-          // manual check: post manualcheck and animate only
+          // Manual check: post without rising/fill animation (no scaleY changes)
+          btn.disabled=true; if(shell) shell.classList.add('running');
           try{ fetch((window.QHTL_SCRIPT||'')||'', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded','X-Requested-With':'XMLHttpRequest'}, body:'action=manualcheck' }); }catch(_){ }
-          t=setInterval(function(){ pct+=2; if(pct>=100){ pct=100; clearInterval(t); explode(); if(shell) shell.classList.remove('running'); btn.disabled=false; } setFill(pct); }, 200);
+          // brief pulse feedback only, then re-enable
+          explode();
+          setTimeout(function(){ try{ if(shell) shell.classList.remove('running'); }catch(_){ } btn.disabled=false; }, 700);
         }
       });
     }
