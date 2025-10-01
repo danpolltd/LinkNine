@@ -3,7 +3,7 @@
 
 .qhtl-tri-btn{
 	--w: 132px;               /* slightly larger */
-	--h: calc(var(--w) * 0.8660254);
+	--h: calc(var(--w) * 0.8660254 - 10px); /* reduce height by 10px */
 	--d: 0px;                 /* remove imprint gap */
 	--labelPad: 12px;         /* fixed padding to keep text inside triangle (not halo) */
 	--k: calc(1 - (3 * var(--d) / var(--h))); /* scales to 1 when gap is 0 */
@@ -70,9 +70,10 @@
 .qhtl-tri-btn > span:last-child{
 	position:absolute;
 	left:50%;
-	bottom:var(--labelPad);
+	bottom:calc(var(--labelPad) + 8px); /* keep text above halo */
 	transform:translateX(-50%);
-	width:calc(100% - (2 * var(--labelPad)));
+	/* Keep label inside triangle without curved clip: use a narrower center block */
+	width:66%;
 	text-align:center;
 	color:#fff;
 	font-size:13px;
@@ -81,7 +82,10 @@
 	white-space:normal;
 	overflow-wrap:anywhere;
 	word-break:break-word;
-	line-height:1.05;
+	line-height:1.1;
+	/* Allow up to 2 lines without clipping over the halo */
+	max-height:calc(1.1em * 2);
+	overflow:hidden;
 	z-index:4; /* above SVG ring */
 	pointer-events:none;
 	text-shadow: 0 1px 1px rgba(0,0,0,.45);
