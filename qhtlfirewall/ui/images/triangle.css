@@ -121,3 +121,14 @@
 	background:#3b82f6;
 	box-shadow:0 0 0 6px rgba(59,130,246,.35), 0 0 0 12px rgba(59,130,246,.2);
 }
+
+/* Green upgrade variant */
+.qhtl-tri-btn.green::after{
+	background:linear-gradient(180deg, #66e08a 0%, #34a853 100%);
+}
+.qhtl-tri-btn.green .tri{
+	background:linear-gradient(180deg, #66e08a 0%, #34a853 100%);
+}
+.qhtl-tri-btn.green .tri-svg polygon{
+	stroke:#66e08a !important; /* bright green halo */
+}

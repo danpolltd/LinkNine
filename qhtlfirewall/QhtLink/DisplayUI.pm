@@ -184,6 +184,64 @@ sub main {
 		}
 		&printreturn;
 	}
+	elsif ($FORM{action} eq "api_manual_check") {
+		# JSON API: check for available upgrade
+		my ($upgrade, $actv, $src, $err) = &manualversion($myv);
+		my $ok = 1;
+		print "Content-Type: application/json\n\n";
+		$actv //= '';
+		$src  //= '';
+		$err  //= '';
+		$upgrade = $upgrade ? 1 : 0;
+		$actv =~ s/"/\\"/g; $src =~ s/"/\\"/g; $err =~ s/"/\\"/g;
+		print '{'
+			. '"ok":' . $ok . ','
+			. '"upgrade":' . $upgrade . ','
+			. '"current":"' . $myv . '",' 
+			. '"available":"' . $actv . '",' 
+			. '"source":"' . $src . '",' 
+			. '"error":"' . $err . '"'
+			. "}";
+		return;
+	}
+	elsif ($FORM{action} eq "api_current_version") {
+		# JSON API: return current installed version
+		my $cur = '';
+		eval {
+			open(my $IN, '<', '/etc/qhtlfirewall/version.txt') or die $!;
+			flock($IN, LOCK_SH);
+			$cur = <$IN> // '';
+			close $IN;
+			chomp $cur;
+			1;
+		} or do { $cur = $myv; };
+		$cur //= $myv;
+		$cur =~ s/"/\\"/g;
+		print "Content-Type: application/json\n\n";
+		print '{' . '"ok":1,' . '"current":"' . $cur . '"' . '}';
+		return;
+	}
+	elsif ($FORM{action} eq "api_start_upgrade") {
+		# JSON API: start background upgrade, return immediately
+		my $ulog = "/var/log/qhtlfirewall-ui-upgrade.log";
+		eval {
+			if (open(my $LF, '>>', $ulog)) {
+				my $now = scalar localtime();
+				print $LF "=== QhtLink Firewall upgrade requested at $now ===\n";
+				close $LF;
+			}
+			1;
+		};
+		my $nohup = (-x '/usr/bin/nohup') ? '/usr/bin/nohup' : ((-x '/bin/nohup') ? '/bin/nohup' : '');
+		my $shell = (-x '/bin/sh') ? '/bin/sh' : '/usr/bin/sh';
+		my $cmd = ($nohup ne '')
+			? "$nohup $shell -c '/usr/sbin/qhtlfirewall -uf' >> $ulog 2>&1 &"
+			: "(/usr/sbin/qhtlfirewall -uf) >> $ulog 2>&1 &";
+		system($cmd);
+		print "Content-Type: application/json\n\n";
+		print '{"ok":1,"started":1}';
+		return;
+	}
 	elsif ($FORM{action} eq "restartq") {
 		print "<div><p>Restarting qhtlfirewall via qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
 		&printcmd("/usr/sbin/qhtlfirewall","-q");
@@ -3603,17 +3661,19 @@ QHTL_TAB_GUARD
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
 	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
 		if ($upgrade) {
-				print "<tr><td colspan='2'><div style='display:flex;gap:15px;flex-wrap:wrap;align-items:center'>";
+					print "<tr><td colspan='2'><div style='display:flex;gap:15px;flex-wrap:wrap;align-items:center'>";
 		# Show only Manual Check (triangle) when no upgrade available
 			print "<tr><td colspan='2'>";
 		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
 		print "<div style='margin-bottom:6px'>";
 	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Check Manually</span></span></button>";
-		print "  <script src='$script?action=widget_js&name=uupdate.js'></script>";
+	print "  <script src='$script?action=widget_js&name=uupdate.js'></script>";
+	print "</div>";
+		# Inline area under the triangles on Upgrade tab
+		print "<div id='qhtl-upgrade-inline-area' style='padding-top:10px;min-height:180px'></div>";
 		print "</div>";
-				print "</div>";
-				print "<button name='action' value='changelog' type='submit' class='btn btn-default' data-bubble-color='blue'>View ChangeLog</button>";
-				print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div></div></td></tr>\n";
+		print "<button name='action' value='changelog' type='submit' class='btn btn-default' data-bubble-color='blue'>View ChangeLog</button>";
+		print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div></div></td></tr>\n";
 				# Client logic: start upgrade via API and animate progress based on log milestones
 				print <<'QHTL_UPGRADE_PROGRESS_JS';
 <script>
@@ -3703,13 +3763,56 @@ QHTL_UPGRADE_PROGRESS_JS
 			print "<tr><td colspan='2'>";
 		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
 	print "<div style='display:flex;gap:15px;flex-wrap:wrap;margin-bottom:6px;justify-content:center'>";
-	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Check Manually</span></span></button>";
-	print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>View ChangeLog</span></span></button>";
+	# Force each word on its own line by inserting <br> between words
+	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary' data-mode='check'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Check<br>Manually</span></span></button>";
+	print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>View<br>ChangeLog</span></span></button>";
 	# New independent triangles (placeholders)
-	print "  <button id='qhtl-upgrade-rex' type='button' title='eXploit Scanner' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>eXploit Scanner</span></span></button>";
-	print "  <button id='qhtl-upgrade-mpass' type='button' title='Mail Moderator' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Mail Moderator</span></span></button>";
-	print "  <button id='qhtl-upgrade-mshield' type='button' title='Mail Shiled' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Mail Shiled</span></span></button>";
-		print "</div>";
+		print "  <button id='qhtl-upgrade-rex' type='button' title='eXploit Scanner' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>eXploit<br>Scanner</span></span></button>";
+		print "  <button id='qhtl-upgrade-mpass' type='button' title='Mail Moderator' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Mail<br>Moderator</span></span></button>";
+		print "  <button id='qhtl-upgrade-mshield' type='button' title='Mail Shiled' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Mail<br>Shiled</span></span></button>";
+				print "</div>";
+				# Upgrade tab inline area below triangles
+				print "<div id='qhtl-upgrade-inline-area' style='padding-top:10px;min-height:180px'></div>";
+				# Wire manual check/upgrade button behavior
+				print <<'QHTL_UPGRADE_WIRE_JS';
+<script>
+(function(){
+	try{
+		var base = (window.QHTL_SCRIPT||'') || '$script';
+		var manualBtn = document.getElementById('qhtl-upgrade-manual');
+		if (!manualBtn) return;
+		var tri = manualBtn.querySelector('.qhtl-tri-btn');
+		var label = manualBtn.querySelector('.qhtl-tri-btn > span:last-child');
+		function setBlueCheck(){ if(!tri||!label) return; tri.classList.remove('installing'); tri.classList.add('secondary'); tri.style.setProperty('--halo','#a9d7ff'); label.innerHTML = 'Check<br>Manually'; }
+		function setGreenUpgrade(){ if(!tri||!label) return; tri.classList.remove('secondary'); tri.classList.add('green'); label.innerHTML = 'Upgrade'; try { var svg = tri.querySelector('svg polygon'); if(svg){ svg.setAttribute('stroke', '#66e08a'); } } catch(_){}
+		}
+		function startUpgrade(){
+			try{ tri.classList.add('installing'); }catch(_){ }
+			var xhr = new XMLHttpRequest();
+			xhr.open('POST', base + '?action=api_start_upgrade&_=' + String(Date.now()), true);
+			try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); }catch(_){ }
+			xhr.onreadystatechange=function(){ if(xhr.readyState===4){ setTimeout(function(){ try{ location.reload(); }catch(e){} }, 1200); } };
+			try{ xhr.send('start=1'); } catch(e){ setTimeout(function(){ try{ location.reload(); }catch(_){ } }, 800); }
+		}
+		function doManualCheck(){
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', base + '?action=api_manual_check&_=' + String(Date.now()), true);
+			try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){ }
+			xhr.onreadystatechange=function(){ if(xhr.readyState===4){ try{
+					var ok=false, up=false, data=null; try{ data=JSON.parse(xhr.responseText||'{}'); }catch(__){}
+					if (data && data.ok){ ok=true; up = !!data.upgrade; }
+					if (ok && up){ setGreenUpgrade(); manualBtn.onclick=function(e){ e.preventDefault(); startUpgrade(); return false; }; }
+					else { setBlueCheck(); }
+			}catch(__){} } };
+			try { xhr.send(null); } catch(e) { }
+		}
+		manualBtn.addEventListener('click', function(e){ e.preventDefault(); doManualCheck(); return false; });
+		// On load, check and update state so the button reflects reality
+		setTimeout(doManualCheck, 200);
+	}catch(e){}
+})();
+</script>
+QHTL_UPGRADE_WIRE_JS
 		print "<script src='$script?action=widget_js&name=uupdate.js'></script>";
 		print "<script src='$script?action=widget_js&name=uchange.js'></script>";
 		print "<script src='$script?action=widget_js&name=qhtlrex.js'></script>";
@@ -3948,7 +4051,7 @@ QHTL_UPGRADE_PROGRESS_JS
 				."  // Do not auto-remove fallback; leave it as a persistent control if WStatus fails\n"
 				."})();</script>\n";
 		# Inline content area for widget actions (load results below bubbles)
-		print "<tr><td><div id='qhtl-inline-area' style='padding-top:10px;min-height:200px'></div></td></tr>\n";
+		print "<tr><td><div id='qhtl-inline-area' style='padding-top:10px;min-height:180px'></div></td></tr>\n";
 		# Delegate clicks and form submits inside the Waterfall tab to load into inline area
 		print "<script>(function(){\n";
 	print "  if (window.__QHTL_INLINE_LOADER_ACTIVE) { return; } window.__QHTL_INLINE_LOADER_ACTIVE = true;\n";
