@@ -141,9 +141,14 @@ sub main {
 	$myv         = shift; # version string
 	$panel       = shift; # optional panel name
 
-	# Load config for this module's scope
-	my $cfg = QhtLink::Config->loadconfig();
-	%config = $cfg->config();
+	# Load config for this module's scope (guard against undef)
+	my $cfg;
+	eval { $cfg = QhtLink::Config->loadconfig(); 1 } or do { $cfg = undef };
+	if (defined $cfg && eval { $cfg->can('config') }) {
+		%config = $cfg->config();
+	} else {
+		%config = ();
+	}
 
 	# Honor explicit panel context (e.g., 'cpanel') passed from caller
 	if (defined $panel && $panel ne '') {
@@ -187,113 +192,7 @@ sub main {
 	}
 	elsif ($FORM{action} eq "manualcheck") {
 		print "<div><p>Checking version...</p>\n\n";
-		my ($upgrade, $actv, $src, $err) = &manualversion($myv);
-		if ($upgrade) {
-			print "<form action='$script' method='post' style='display:inline-block;margin-right:8px'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button></form>";
-			print "<form action='$script' method='post' style='display:inline-block'><button name='action' value='changelog' type='submit' class='btn btn-default'>View ChangeLog</button></form>";
-			print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div>\n";
-		} else {
-			if (defined $err and $err ne "") {
-				print "<div class='bs-callout bs-callout-danger'>$err</div>\n";
-			} else {
-				my $src_text = ($src ne '' ? " (from $src)" : "");
-				print "<div class='text-muted small' style='margin-top:6px'>You're up to date$src_text.</div>\n";
-			}
-		}
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "api_manual_check") {
-		# JSON API: check for available upgrade
-		my ($upgrade, $actv, $src, $err) = &manualversion($myv);
-		my $ok = 1;
-		print "Content-Type: application/json\n\n";
-		$actv //= '';
-		$src  //= '';
-		$err  //= '';
-		$upgrade = $upgrade ? 1 : 0;
-		$actv =~ s/"/\\"/g; $src =~ s/"/\\"/g; $err =~ s/"/\\"/g;
-		print '{'
-			. '"ok":' . $ok . ','
-			. '"upgrade":' . $upgrade . ','
-			. '"current":"' . $myv . '",' 
-			. '"available":"' . $actv . '",' 
-			. '"source":"' . $src . '",' 
-			. '"error":"' . $err . '"'
-			. "}";
-		return;
-	}
-	elsif ($FORM{action} eq "api_current_version") {
-		# JSON API: return current installed version
-		my $cur = '';
-		eval {
-			open(my $IN, '<', '/etc/qhtlfirewall/version.txt') or die $!;
-			flock($IN, LOCK_SH);
-			$cur = <$IN> // '';
-			close $IN;
-			chomp $cur;
-			1;
-		} or do { $cur = $myv; };
-		$cur //= $myv;
-		$cur =~ s/"/\\"/g;
-		print "Content-Type: application/json\n\n";
-		print '{' . '"ok":1,' . '"current":"' . $cur . '"' . '}';
-		return;
-	}
-	elsif ($FORM{action} eq "api_start_upgrade") {
-		# JSON API: start background upgrade, return immediately
-		my $ulog = "/var/log/qhtlfirewall-ui-upgrade.log";
-		eval {
-			if (open(my $LF, '>>', $ulog)) {
-				my $now = scalar localtime();
-				print $LF "=== QhtLink Firewall upgrade requested at $now ===\n";
-				close $LF;
-			}
-			1;
-		};
-		my $nohup = (-x '/usr/bin/nohup') ? '/usr/bin/nohup' : ((-x '/bin/nohup') ? '/bin/nohup' : '');
-		my $shell = (-x '/bin/sh') ? '/bin/sh' : '/usr/bin/sh';
-		my $cmd = ($nohup ne '')
-			? "$nohup $shell -c '/usr/sbin/qhtlfirewall -uf' >> $ulog 2>&1 &"
-			: "(/usr/sbin/qhtlfirewall -uf) >> $ulog 2>&1 &";
-		system($cmd);
-		print "Content-Type: application/json\n\n";
-		print '{"ok":1,"started":1}';
-		return;
-	}
-	elsif ($FORM{action} eq "restartq") {
-		print "<div><p>Restarting qhtlfirewall via qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/qhtlfirewall","-q");
-		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "temp") {
-		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th>&nbsp;</th><th>A/D</th><th>IP address</th><th>Port</th><th>Dir</th><th>Time To Live</th><th>Comment</th></tr></thead>\n";
-		my @deny;
-		if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempban") {
-			open (my $IN, "<", "/var/lib/qhtlfirewall/qhtlfirewall.tempban") or die $!;
-			flock ($IN, LOCK_SH);
-			@deny = <$IN>;
-			chomp @deny;
-			close ($IN);
-		}
-		foreach my $line (reverse @deny) {
-			if ($line eq "") {next}
-			my ($time,$ip,$port,$inout,$timeout,$message) = split(/\|/,$line);
-			$time = $timeout - (time - $time);
-			if ($port eq "") {$port = "*"}
-			if ($inout eq "") {$inout = " *"}
-			if ($time < 1) {
-				$time = "<1";
-			}
-		}
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "stop") {
-		print "<div><p>Stopping qhtlfirewall...</p>\n";
-		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:none; clear:both' id='output'>\n";
-		&printcmd("/usr/sbin/qhtlfirewall","-f");
+		my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&resize("bot",1);
 		&printreturn;
@@ -3688,111 +3587,7 @@ QHTL_TAB_GUARD
 		print "<table class='table table-bordered table-striped' id='upgradetable'>\n";
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
 	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
-		if ($upgrade) {
-					print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
-					# Status box above the manual check button
-					# Removed external status box (status shows inside triangle now)
-					print "<div style='display:flex;gap:15px;flex-wrap:wrap;align-items:center;margin-top:4px'>";
-		# Show only Manual Check (triangle) when no upgrade available
-	    print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
-	# Removed external status box (status shows inside triangle now)
-	print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
-	print "<div style='margin:4px 0 0 0'>";
-	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Check Manually</span></span></button>";
-	print "  <script src='$script?action=widget_js&name=uupdate.js'></script>";
-	print "  <script src='$script?action=widget_js&name=uchange.js'></script>";
-	print "</div>";
-	# Inline area under the triangles on Upgrade tab
-	print "<div id='qhtl-upgrade-inline-area' style='min-height:180px;border-top:1px solid #ddd;margin-top:0;padding-top:0;background:transparent'></div>";
-		print "</div>";
-	print "<button id='qhtl-upgrade-changelog-plain' type='button' class='btn btn-default' data-bubble-color='blue' onclick='return false;'>View ChangeLog</button>";
-		print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div></div></td></tr>\n";
-				# Client logic: start upgrade via API and animate progress based on log milestones
-				print <<'QHTL_UPGRADE_PROGRESS_JS';
-<script>
-(function(){
-	try{
-		var btn = document.getElementById('qhtl-upgrade-btn');
-		if (!btn) return;
-		var pct = document.getElementById('qhtl-upgrade-pct');
-		// Build inner content layers
-		var fill = document.createElement('div'); fill.className='qhtl-fill';
-		var content = document.createElement('div'); content.className='qhtl-content';
-		// Move existing label into content
-		var label = btn.querySelector('.qhtl-upgrade-label'); if (!label){ label=document.createElement('span'); label.className='qhtl-upgrade-label'; label.textContent='Install'; btn.appendChild(label); }
-		btn.textContent=''; btn.appendChild(fill); content.appendChild(label); btn.appendChild(content);
-		var state = { running:false, phase:'idle', lastPct:0, timer:null, polls:0, prevLen:0, lastChange:Date.now(), sawRestart:false };
-		function setPct(v){ v=Math.max(0,Math.min(100,Math.round(v))); state.lastPct=v; fill.style.width=v+'%'; if(pct){ pct.style.display='inline-block'; pct.textContent=v+'%'; } }
-			function smoothTo(target, step){ var cur=state.lastPct; var inc=step||3; if (target<=cur) { setPct(target); return; }
-				var i=setInterval(function(){ cur+=inc; if(cur>=target){ clearInterval(i); cur=target; } setPct(cur); }, 140);
-				// Safety: if nothing new arrives for a while but we're between 10..40, gently creep to 40
-				try { clearTimeout(state._idleKick); } catch(_){}
-				state._idleKick = setTimeout(function(){ if (state.lastPct>=10 && state.lastPct<40) { setPct(Math.min(40, state.lastPct+1)); } }, 2500);
-			}
-		function guessPctFromLog(t){
-			// Heuristic mapping of known milestones
-			if (!t) return 5; var s=t.toLowerCase();
-			if (s.indexOf('downloading')>-1 || s.indexOf('retriev')>-1) return 10;
-			if (s.indexOf('unpacking')>-1 || s.indexOf('extract')>-1 || s.indexOf('tar -xzf')>-1) return 40;
-			if (s.indexOf('install.sh')>-1 || s.indexOf('installing')>-1) return 70;
-			if (s.indexOf('restarting qhtlfirewall')>-1) return 85;
-			if (s.indexOf('restarting qhtlwaterfall')>-1 || s.indexOf('qhtlwaterfall')>-1) return 92;
-			if (s.indexOf('all done')>-1 || s.indexOf('...all done')>-1) return 100;
-			return Math.min(98, Math.max(12, state.lastPct + 2));
-		}
-			function fetchLog(){
-				state.polls++; var base=(window.QHTL_SCRIPT||'')|| '$script';
-				var url = base + '?action=upgrade_log&_=' + String(Date.now());
-				var xhr=new XMLHttpRequest(); xhr.open('GET', url, true); try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){}
-				xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){
-						var ct=(xhr.getResponseHeader&&xhr.getResponseHeader('Content-Type'))||'';
-						var marker=(xhr.getResponseHeader&&xhr.getResponseHeader('X-QHTL-ULOG'))||'';
-						var hLen=(xhr.getResponseHeader&&xhr.getResponseHeader('X-QHTL-ULOG-LEN'))||'';
-						var hDone=(xhr.getResponseHeader&&xhr.getResponseHeader('X-QHTL-ULOG-DONE'))||'';
-						if(marker==='1' || /^text\/plain/i.test(ct)){
-							var txt=xhr.responseText||''; var lines=txt.split(/\r?\n/).filter(Boolean);
-							var last=lines.length?lines[lines.length-1]:txt; var target=guessPctFromLog(last);
-							// If server says DONE, override to 100 immediately
-							if (String(hDone)==='1') { target = 100; }
-							// If log length is non-zero but lastPct is very low, nudge forward to avoid stalling visuals
-							var nLen = parseInt(hLen||'0',10) || txt.length;
-							if (nLen > (state.prevLen||0)) { state.prevLen = nLen; state.lastChange = Date.now(); }
-							if (nLen>0 && state.lastPct < 12) { target = Math.max(target, 14); }
-							// Detect restart for stronger completion fallback
-							try{ var low = (txt||'').toLowerCase(); if (low.indexOf('restarting qhtlfirewall')>-1 || low.indexOf('restarting qhtlwaterfall')>-1 || low.indexOf('qhtlwaterfall')>-1) { state.sawRestart = true; } }catch(_){ }
-							if (target>state.lastPct) { smoothTo(target, (target>95)?1:3); }
-							if (target>=100){ finish(true); return; }
-							// Idle fallback: if no growth >20s and we are past heavy work, finish visually
-							var idleMs = Date.now() - (state.lastChange||Date.now());
-							if (idleMs > 20000 && (state.lastPct >= 70 || state.sawRestart)) { finish(true); return; }
-						}
-					}
-				};
-				try{ xhr.send(null); }catch(_e){}
-				// Extend polling to ~5 minutes to bridge any UI reloads or file replacement delays
-				if (state.polls < 200) { state.timer=setTimeout(fetchLog, 1500); }
-			}
-		function start(){ if(state.running) return; state.running=true; btn.classList.add('installing'); btn.disabled=true; try{ label.textContent='Installing...'; }catch(_){ } setPct(0);
-			// Fire API
-			var base=(window.QHTL_SCRIPT||'')|| '$script';
-			var url = base + '?action=api_start_upgrade&_=' + String(Date.now());
-			var xhr=new XMLHttpRequest(); xhr.open('POST', url, true); try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); }catch(_){}
-			xhr.onreadystatechange=function(){ if(xhr.readyState===4){ // animate ~10s then reload
-					var cur=0; var i=setInterval(function(){ cur+=2; if(cur>=100){ cur=100; clearInterval(i); finish(true); setTimeout(function(){ try{ location.reload(); }catch(_){} }, 800); } setPct(cur); }, 200);
-			} };
-			try{ xhr.send('start=1'); }catch(_e){ var cur=0; var i=setInterval(function(){ cur+=2; if(cur>=100){ cur=100; clearInterval(i); finish(true); setTimeout(function(){ try{ location.reload(); }catch(_){} }, 800); } setPct(cur); }, 200); }
-		}
-		function finish(ok){ setPct(100); btn.disabled=false; btn.classList.remove('installing'); btn.classList.add('btn-success'); label.textContent='Finished';
-			// brief pulse effect
-			try{ btn.style.transition='box-shadow .4s ease'; btn.style.boxShadow='0 0 0 0 rgba(16,185,129,0.0)'; setTimeout(function(){ btn.style.boxShadow='0 0 0 8px rgba(16,185,129,0.25)'; }, 30); setTimeout(function(){ btn.style.boxShadow=''; }, 800); }catch(_){ }
-		}
-		btn.addEventListener('click', function(e){ e.preventDefault(); start(); });
-	}catch(e){}
-})();
-</script>
-QHTL_UPGRADE_PROGRESS_JS
-		} else {
-		# Replace with triangle-styled buttons and JS
+		# Unified layout: always render the triangle row and flip via JS when upgrade is available
 			print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
 		# Status box above the manual check button
 		# Removed external status box (status shows inside triangle now)
@@ -3805,10 +3600,10 @@ QHTL_UPGRADE_PROGRESS_JS
 		print "  <button id='qhtl-upgrade-rex' type='button' title='eXploit Scanner' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>eXploit<br>Scanner</span></span></button>";
 		print "  <button id='qhtl-upgrade-mpass' type='button' title='Mail Moderator' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Mail<br>Moderator</span></span></button>";
 		print "  <button id='qhtl-upgrade-mshield' type='button' title='Mail Shiled' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Mail<br>Shiled</span></span></button>";
-				print "</div>";
-				# Upgrade tab inline area below triangles
-						print "<div id='qhtl-upgrade-inline-area' style='min-height:180px;border-top:1px solid #ddd;margin-top:0;padding-top:0;background:transparent; transition: opacity 5s ease;'></div>";
-				# Wire manual check/upgrade button behavior
+		print "</div>";
+		# Upgrade tab inline area below triangles
+			print "<div id='qhtl-upgrade-inline-area' style='min-height:180px;border-top:1px solid #ddd;margin-top:0;padding-top:0;background:transparent; transition: opacity 5s ease;'></div>";
+		# Wire manual check/upgrade button behavior
 				print <<'QHTL_UPGRADE_WIRE_JS';
 <script>
 (function(){
@@ -3821,8 +3616,8 @@ QHTL_UPGRADE_PROGRESS_JS
 	var sbox = document.getElementById('qhtl-upgrade-status-box');
 	var sTop = document.getElementById('qhtl-upgrade-status-inline'); // inline inside triangle
 	var sVer = document.getElementById('qhtl-upgrade-version');
-		function setBlueCheck(){ if(!tri||!label) return; tri.classList.remove('installing'); tri.classList.add('secondary'); tri.style.setProperty('--halo','#a9d7ff'); label.innerHTML = 'Check<br>Manually'; }
-		function setGreenUpgrade(){ if(!tri||!label) return; tri.classList.remove('secondary'); tri.classList.add('green'); label.innerHTML = 'Upgrade'; try { var svg = tri.querySelector('svg polygon'); if(svg){ svg.setAttribute('stroke', '#66e08a'); } } catch(_){}
+		function setBlueCheck(){ if(!tri||!label) return; tri.classList.remove('installing','upgrade'); tri.classList.add('secondary'); try{ var svg = tri.querySelector('svg polygon'); if(svg){ svg.setAttribute('stroke', '#a9d7ff'); } }catch(_){ } label.innerHTML = 'Check<br>Manually'; }
+		function setOrangeUpgrade(){ if(!tri||!label) return; tri.classList.remove('secondary'); tri.classList.add('upgrade'); label.innerHTML = 'Upgrade'; try { var svg = tri.querySelector('svg polygon'); if(svg){ svg.setAttribute('stroke', '#f59e0b'); } } catch(_){ }
 		}
 		function startUpgrade(){
 			try{ tri.classList.add('installing'); }catch(_){ }
@@ -3846,7 +3641,7 @@ QHTL_UPGRADE_PROGRESS_JS
 						else { if(sTop){ sTop.textContent=''; } }
 					}
 				}
-				if (up){ setGreenUpgrade(); manualBtn.onclick=function(e){ e.preventDefault(); startUpgrade(); return false; }; }
+				if (up){ setOrangeUpgrade(); manualBtn.onclick=function(e){ e.preventDefault(); startUpgrade(); return false; }; }
 				else { setBlueCheck(); }
 			} catch(e){}
 		}
@@ -3890,14 +3685,12 @@ QHTL_UPGRADE_WIRE_JS
 		print "<script src='$script?action=widget_js&name=qhtlrex.js'></script>";
 		print "<script src='$script?action=widget_js&name=qhtlmpass.js'></script>";
 		print "<script src='$script?action=widget_js&name=qhtlmshield.js'></script>";
-			if ($actv ne "" && ver_cmp($actv, $myv) == 1) {
-					print "<div class='text-muted small' style='margin-top:6px'>Latest available version is v$actv. Your version is v$myv. Please upgrade.</div></td></tr>\n";
-	} elsif ($actv ne "") {
-		print "</td></tr>\n";
+		if ($actv ne "" && ver_cmp($actv, $myv) == 1) {
+			print "<div class='text-muted small' style='margin-top:6px'>Latest available version is v$actv. Your version is v$myv. Please upgrade.</div></td></tr>\n";
 		} else {
-				print "<div class='text-muted small' style='margin-top:6px'>You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (qhtlfirewallget)</div></td></tr>\n";
+			print "<div class='text-muted small' style='margin-top:6px'>You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (qhtlfirewallget)</div></td></tr>\n";
 		}
-	}
+    
 		print "</table>\n";
 		print "</form>\n";
 		if ($upgrade) {print "<script>\$('\#upgradebs').show();</script>\n"}

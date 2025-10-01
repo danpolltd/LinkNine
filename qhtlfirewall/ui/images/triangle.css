@@ -141,12 +141,13 @@
 }
 
 /* Green upgrade variant */
-.qhtl-tri-btn.green::after{
-	background:linear-gradient(180deg, #66e08a 0%, #34a853 100%);
+/* Orange upgrade variant */
+.qhtl-tri-btn.upgrade::after{
+	background:linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
 }
-.qhtl-tri-btn.green .tri{
-	background:linear-gradient(180deg, #66e08a 0%, #34a853 100%);
+.qhtl-tri-btn.upgrade .tri{
+	background:linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
 }
-.qhtl-tri-btn.green .tri-svg polygon{
-	stroke:#66e08a !important; /* bright green halo */
+.qhtl-tri-btn.upgrade .tri-svg polygon{
+	stroke:#f59e0b !important; /* amber halo */
 }
