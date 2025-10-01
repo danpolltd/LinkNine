@@ -73,7 +73,6 @@
 	bottom:var(--labelPad);
 	transform:translateX(-50%);
 	width:calc(100% - (2 * var(--labelPad)));
-	clip-path:inherit; /* ensure text stays within triangle shape */
 	text-align:center;
 	color:#fff;
 	font-size:13px;
@@ -82,12 +81,7 @@
 	white-space:normal;
 	overflow-wrap:anywhere;
 	word-break:break-word;
-	display:-webkit-box;
-	line-clamp:2;
-	-webkit-line-clamp:2;
-	-webkit-box-orient:vertical;
 	line-height:1.05;
-	max-height:calc(1.05em * 2);
 	z-index:4; /* above SVG ring */
 	pointer-events:none;
 	text-shadow: 0 1px 1px rgba(0,0,0,.45);
