@@ -771,6 +771,41 @@ if (defined $FORM{action} && $FORM{action} eq 'upgrade_log') {
 	exit 0;
 }
 
+# API endpoint to start the upgrade in the background (no navigation)
+if (defined $FORM{action} && $FORM{action} eq 'api_start_upgrade') {
+	my $ulog = "/var/log/qhtlfirewall-ui-upgrade.log";
+	# If accidentally loaded as a <script>, emit a JS no-op
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	if ($sec_dest eq 'script') {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	# Pre-create/clear the log with a header
+	eval {
+		if (open(my $LF, '>', $ulog)) {
+			my $now = scalar localtime();
+			print $LF "=== QhtLink Firewall upgrade started at $now ===\n";
+			close $LF;
+		}
+		1;
+	};
+	# Launch upgrade in background
+	my $nohup = (-x '/usr/bin/nohup') ? '/usr/bin/nohup' : ((-x '/bin/nohup') ? '/bin/nohup' : '');
+	my $shell = (-x '/bin/sh') ? '/bin/sh' : '/usr/bin/sh';
+	my $cmd;
+	if ($nohup ne '') {
+		$cmd = "$nohup $shell -c '/usr/sbin/qhtlfirewall -uf' >> $ulog 2>&1 &";
+	} else {
+		$cmd = "(/usr/sbin/qhtlfirewall -uf) >> $ulog 2>&1 &";
+	}
+	system($cmd);
+	# Respond JSON
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	print '{"ok":1}';
+	exit 0;
+}
+
 	# Minimal HTML banner for iframe embedding (no JS required in parent)
 	if (defined $FORM{action} && $FORM{action} eq 'banner_frame') {
 		# If loaded as a <script>, emit a JS no-op instead of HTML to prevent parse errors

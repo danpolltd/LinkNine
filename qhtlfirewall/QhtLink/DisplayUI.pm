@@ -3606,12 +3606,73 @@ QHTL_TAB_GUARD
 		print "<table class='table table-bordered table-striped' id='upgradetable'>\n";
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
 	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
-	if ($upgrade) {
-		print "<tr><td colspan='2'><div style='display:flex;gap:8px;flex-wrap:wrap'>";
-		print "<button name='action' value='upgrade' type='submit' class='btn btn-default' data-bubble-color='green'>Upgrade qhtlfirewall</button>";
-		print "<button name='action' value='changelog' type='submit' class='btn btn-default' data-bubble-color='blue'>View ChangeLog</button>";
-		print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div></td></tr>\n";
-	} else {
+		if ($upgrade) {
+				print "<tr><td colspan='2'><div style='display:flex;gap:8px;flex-wrap:wrap;align-items:center'>";
+				# Progress-capable button wrapper
+				print "<div id='qhtl-upgrade-wrap' style='position:relative; display:inline-block;'>";
+				print "  <button id='qhtl-upgrade-btn' type='button' class='btn btn-default' data-bubble-color='green' style='position:relative; overflow:hidden;'><span class='qhtl-upgrade-label'>Install</span></button>";
+				print "  <span id='qhtl-upgrade-pct' class='small text-muted' style='margin-left:6px; display:none'>0%</span>";
+				print "  <style>#qhtl-upgrade-btn .qhtl-fill{position:absolute; left:0; top:0; bottom:0; width:0%; background: linear-gradient(90deg, rgba(34,197,94,0.9) 0%, rgba(16,185,129,0.95) 100%); z-index:0; transition:width .35s ease} #qhtl-upgrade-btn .qhtl-content{position:relative; z-index:1} #qhtl-upgrade-btn.installing{color:#fff; border-color:#16a34a} #qhtl-upgrade-btn.installing .qhtl-upgrade-label::before{content:'Installing';} </style>";
+				print "</div>";
+				print "<button name='action' value='changelog' type='submit' class='btn btn-default' data-bubble-color='blue'>View ChangeLog</button>";
+				print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div></div></td></tr>\n";
+				# Client logic: start upgrade via API and animate progress based on log milestones
+				print <<'QHTL_UPGRADE_PROGRESS_JS';
+<script>
+(function(){
+	try{
+		var btn = document.getElementById('qhtl-upgrade-btn');
+		if (!btn) return;
+		var pct = document.getElementById('qhtl-upgrade-pct');
+		// Build inner content layers
+		var fill = document.createElement('div'); fill.className='qhtl-fill';
+		var content = document.createElement('div'); content.className='qhtl-content';
+		// Move existing label into content
+		var label = btn.querySelector('.qhtl-upgrade-label'); if (!label){ label=document.createElement('span'); label.className='qhtl-upgrade-label'; label.textContent='Install'; btn.appendChild(label); }
+		btn.textContent=''; btn.appendChild(fill); content.appendChild(label); btn.appendChild(content);
+		var state = { running:false, phase:'idle', lastPct:0, timer:null, polls:0 };
+		function setPct(v){ v=Math.max(0,Math.min(100,Math.round(v))); state.lastPct=v; fill.style.width=v+'%'; if(pct){ pct.style.display='inline-block'; pct.textContent=v+'%'; } }
+		function smoothTo(target, step){ var cur=state.lastPct; var inc=step||3; if (target<=cur) { setPct(target); return; } var i=setInterval(function(){ cur+=inc; if(cur>=target){ clearInterval(i); cur=target; } setPct(cur); }, 140); }
+		function guessPctFromLog(t){
+			// Heuristic mapping of known milestones
+			if (!t) return 5; var s=t.toLowerCase();
+			if (s.indexOf('downloading')>-1 || s.indexOf('retriev')>-1) return 10;
+			if (s.indexOf('unpacking')>-1 || s.indexOf('extract')>-1 || s.indexOf('tar -xzf')>-1) return 40;
+			if (s.indexOf('install.sh')>-1 || s.indexOf('installing')>-1) return 70;
+			if (s.indexOf('restarting qhtlfirewall')>-1) return 85;
+			if (s.indexOf('restarting qhtlwaterfall')>-1 || s.indexOf('qhtlwaterfall')>-1) return 92;
+			if (s.indexOf('all done')>-1 || s.indexOf('...all done')>-1) return 100;
+			return Math.min(98, Math.max(12, state.lastPct + 2));
+		}
+		function fetchLog(){
+			state.polls++; var base=(window.QHTL_SCRIPT||'')|| '$script';
+			var url = base + '?action=upgrade_log&_=' + String(Date.now());
+			var xhr=new XMLHttpRequest(); xhr.open('GET', url, true); try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){}
+			xhr.onreadystatechange=function(){ if(xhr.readyState===4 && xhr.status>=200 && xhr.status<300){ var ct=(xhr.getResponseHeader&&xhr.getResponseHeader('Content-Type'))||''; var marker=(xhr.getResponseHeader&&xhr.getResponseHeader('X-QHTL-ULOG'))||''; if(marker==='1' || /^text\/plain/i.test(ct)){ var txt=xhr.responseText||''; var lines=txt.split(/\r?\n/).filter(Boolean); var last=lines.length?lines[lines.length-1]:txt; var target=guessPctFromLog(last); if (target>state.lastPct) { smoothTo(target, (target>95)?1:3); } if (target>=100){ finish(true); return; } } } };
+			try{ xhr.send(null); }catch(_e){}
+			if (state.polls < 90) { state.timer=setTimeout(fetchLog, 1500); } // ~2+ minutes
+		}
+		function start(){ if(state.running) return; state.running=true; btn.classList.add('installing'); btn.disabled=true; setPct(2);
+			// Fire API
+			var base=(window.QHTL_SCRIPT||'')|| '$script';
+			var url = base + '?action=api_start_upgrade&_=' + String(Date.now());
+			var xhr=new XMLHttpRequest(); xhr.open('POST', url, true); try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); }catch(_){}
+			xhr.onreadystatechange=function(){ if(xhr.readyState===4){ // regardless of status, begin polling log
+					setTimeout(fetchLog, 600);
+			} };
+			try{ xhr.send('start=1'); }catch(_e){ setTimeout(fetchLog, 600); }
+		}
+		function finish(ok){ try{ clearTimeout(state.timer); }catch(_){}
+			setPct(100); btn.disabled=false; btn.classList.remove('installing'); btn.classList.add('btn-success'); label.textContent='Finished';
+			// brief pulse effect
+			try{ btn.style.transition='box-shadow .4s ease'; btn.style.boxShadow='0 0 0 0 rgba(16,185,129,0.0)'; setTimeout(function(){ btn.style.boxShadow='0 0 0 8px rgba(16,185,129,0.25)'; }, 30); setTimeout(function(){ btn.style.boxShadow=''; }, 800); }catch(_){ }
+		}
+		btn.addEventListener('click', function(e){ e.preventDefault(); start(); });
+	}catch(e){}
+})();
+</script>
+QHTL_UPGRADE_PROGRESS_JS
+		} else {
 		# Show ChangeLog button above the Manual Check button
 			print "<tr><td colspan='2'>";
 		print "<div style='margin-bottom:6px'><form action='$script' method='post'><button name='action' value='changelog' type='submit' class='btn btn-default'>View ChangeLog</button></form></div>";
