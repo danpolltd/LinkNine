@@ -3661,16 +3661,16 @@ QHTL_TAB_GUARD
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
 	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
 		if ($upgrade) {
-					print "<tr><td colspan='2'><div style='display:flex;gap:15px;flex-wrap:wrap;align-items:center'>";
+					print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'><div style='display:flex;gap:15px;flex-wrap:wrap;align-items:center'>";
 		# Show only Manual Check (triangle) when no upgrade available
-			print "<tr><td colspan='2'>";
+			print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
 	print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
 	print "<div style='margin-bottom:0'>";
 	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Check Manually</span></span></button>";
 	print "  <script src='$script?action=widget_js&name=uupdate.js'></script>";
 	print "</div>";
 	# Inline area under the triangles on Upgrade tab
-	print "<div id='qhtl-upgrade-inline-area' style='min-height:180px;border-top:1px solid #ddd;margin-top:0;padding-top:0'></div>";
+	print "<div id='qhtl-upgrade-inline-area' style='min-height:180px;border-top:1px solid #ddd;margin-top:0;padding-top:0;background:transparent'></div>";
 		print "</div>";
 		print "<button name='action' value='changelog' type='submit' class='btn btn-default' data-bubble-color='blue'>View ChangeLog</button>";
 		print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div></div></td></tr>\n";
@@ -3760,7 +3760,7 @@ QHTL_TAB_GUARD
 QHTL_UPGRADE_PROGRESS_JS
 		} else {
 		# Replace with triangle-styled buttons and JS
-			print "<tr><td colspan='2'>";
+			print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
 		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
 	print "<div style='display:flex;gap:15px;flex-wrap:wrap;margin-bottom:0;justify-content:center'>";
 	# Force each word on its own line by inserting <br> between words
@@ -3772,7 +3772,7 @@ QHTL_UPGRADE_PROGRESS_JS
 		print "  <button id='qhtl-upgrade-mshield' type='button' title='Mail Shiled' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Mail<br>Shiled</span></span></button>";
 				print "</div>";
 				# Upgrade tab inline area below triangles
-				print "<div id='qhtl-upgrade-inline-area' style='min-height:180px;border-top:1px solid #ddd;margin-top:0;padding-top:0'></div>";
+				print "<div id='qhtl-upgrade-inline-area' style='min-height:180px;border-top:1px solid #ddd;margin-top:0;padding-top:0;background:transparent'></div>";
 				# Wire manual check/upgrade button behavior
 				print <<'QHTL_UPGRADE_WIRE_JS';
 <script>
@@ -3985,10 +3985,10 @@ QHTL_UPGRADE_WIRE_JS
 		print "</div>\n";
 
 		# New Waterfall tab (duplicate of QhtLink Waterfall content) placed before QhtLink Firewall
-		  print "<div id='waterfall' class='tab-pane'>\n";
+					print "<div id='waterfall' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
-		  print "<tr><td>".
+					print "<tr style='background:transparent!important'><td style='background:transparent!important'>".
 				  "<div style='display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;justify-content:center'>".
 						"<div id='wstatus-anchor' style='position:relative;display:inline-block;width:100px;height:100px'>".
 							"<div id='wstatus-fallback' class='wcircle' style='position:relative;width:100px;height:100px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;vertical-align:top;'>".
@@ -4051,7 +4051,7 @@ QHTL_UPGRADE_WIRE_JS
 				."  // Do not auto-remove fallback; leave it as a persistent control if WStatus fails\n"
 				."})();</script>\n";
 		# Inline content area for widget actions (load results below bubbles)
-		print "<tr><td><div id='qhtl-inline-area' style='padding-top:10px;min-height:180px'></div></td></tr>\n";
+	print "<tr style='background:transparent!important'><td style='background:transparent!important'><div id='qhtl-inline-area' style='padding-top:10px;min-height:180px;background:transparent'></div></td></tr>\n";
 		# Delegate clicks and form submits inside the Waterfall tab to load into inline area
 		print "<script>(function(){\n";
 	print "  if (window.__QHTL_INLINE_LOADER_ACTIVE) { return; } window.__QHTL_INLINE_LOADER_ACTIVE = true;\n";
