@@ -1,13 +1,10 @@
 package QhtLink::DisplayUI;
 BEGIN {
-	# Try to load ServerStats if available; ignore if missing
-	eval {
-		require QhtLink::ServerStats;
-		QhtLink::ServerStats->import();
-		1;
-	} or do {
-		# Module not available; charts will be disabled gracefully
-	};
+	# Try to load optional/required modules; ignore failures where safe
+	eval { require QhtLink::ServerStats; QhtLink::ServerStats->import(); 1 } or do { };
+	eval { require QhtLink::URLGet;      QhtLink::URLGet->import();      1 } or do { };
+	eval { require QhtLink::Config;      QhtLink::Config->import();      1 } or do { };
+	eval { require QhtLink::Slurp;       QhtLink::Slurp->import();       1 } or do { };
 }
 ## Version comparison helper (returns 1 if a > b, -1 if a < b, 0 if equal)
 sub ver_cmp {
