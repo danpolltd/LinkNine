@@ -3673,20 +3673,13 @@ QHTL_TAB_GUARD
 		if ($upgrade) {
 					print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
 					# Status box above the manual check button
-					print "<div id='qhtl-upgrade-status-box' style='display:block;text-align:center;margin:2px 0 6px 0;line-height:1.15'>";
-					print "  <div id='qhtl-upgrade-status' style='font-weight:800;color:#16a34a;min-height:1.1em'></div>";
-					print "  <div id='qhtl-upgrade-version' style='font-weight:700;color:#16a34a;min-height:1.1em'></div>";
-					print "</div>";
-					print "<div style='display:flex;gap:15px;flex-wrap:wrap;align-items:center'>";
+					# Removed external status box (status shows inside triangle now)
+					print "<div style='display:flex;gap:15px;flex-wrap:wrap;align-items:center;margin-top:4px'>";
 		# Show only Manual Check (triangle) when no upgrade available
 	    print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
-    # Status box above the manual check button
-    print "<div id='qhtl-upgrade-status-box' style='display:block;text-align:center;margin:2px 0 6px 0;line-height:1.15'>";
-    print "  <div id='qhtl-upgrade-status' style='font-weight:800;color:#16a34a;min-height:1.1em'></div>";
-    print "  <div id='qhtl-upgrade-version' style='font-weight:700;color:#16a34a;min-height:1.1em'></div>";
-    print "</div>";
+	# Removed external status box (status shows inside triangle now)
 	print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
-	print "<div style='margin-bottom:0'>";
+	print "<div style='margin:4px 0 0 0'>";
 	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Check Manually</span></span></button>";
 	print "  <script src='$script?action=widget_js&name=uupdate.js'></script>";
 	print "  <script src='$script?action=widget_js&name=uchange.js'></script>";
@@ -3784,12 +3777,9 @@ QHTL_UPGRADE_PROGRESS_JS
 		# Replace with triangle-styled buttons and JS
 			print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
 		# Status box above the manual check button
-		print "<div id='qhtl-upgrade-status-box' style='display:block;text-align:center;margin:2px 0 6px 0;line-height:1.15'>";
-		print "  <div id='qhtl-upgrade-status' style='font-weight:800;color:#16a34a;min-height:1.1em'></div>";
-		print "  <div id='qhtl-upgrade-version' style='font-weight:700;color:#16a34a;min-height:1.1em'></div>";
-		print "</div>";
+		# Removed external status box (status shows inside triangle now)
 		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
-	print "<div style='display:flex;gap:15px;flex-wrap:wrap;margin-bottom:0;justify-content:center'>";
+	print "<div style='display:flex;gap:15px;flex-wrap:wrap;margin:4px 0 0 0;justify-content:center'>";
 	# Force each word on its own line by inserting <br> between words
 	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary' data-mode='check'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span class='tri-status' id='qhtl-upgrade-status-inline'></span><span>Check<br>Manually</span></span></button>";
 	print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>View<br>ChangeLog</span></span></button>";

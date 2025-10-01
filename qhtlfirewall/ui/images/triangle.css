@@ -70,12 +70,12 @@
 .qhtl-tri-btn .tri-status{
 	position:absolute;
 	left:50%;
-	bottom: calc(var(--labelPad) + 18px);
+	bottom: calc(var(--labelPad) + 60px);
 	transform: translateX(-50%);
 	width:72%;
 	text-align:center;
 	color:#16a34a;          /* default green */
-	font-size:12px;
+	font-size:11.5px;
 	font-weight:800;
 	line-height:1;
 	min-height:1.2em;       /* reserve space so label doesn’t jump */
