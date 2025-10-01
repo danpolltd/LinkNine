@@ -3658,7 +3658,7 @@ QHTL_TAB_GUARD
 		}catch(e){}
 	})();
 	</script>
-	QHTL_UPGRADE_GLOBAL_RESUME
+QHTL_UPGRADE_GLOBAL_RESUME
 	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
 		if ($upgrade) {
 				print "<tr><td colspan='2'><div style='display:flex;gap:8px;flex-wrap:wrap;align-items:center'>";
