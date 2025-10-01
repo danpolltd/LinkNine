@@ -3878,8 +3878,7 @@ QHTL_UPGRADE_PROGRESS_JS
 				if (n===1) { clearInterval(iv); finished = true; if (haveResp) { applyResult(dataResp, true); } }
 			}, 1000);
 		}
-		manualBtn.addEventListener('click', function(e){ e.preventDefault(); doManualCheck(); return false; });
-		// On load, check and update state so the button reflects reality
+		// Wire click to countdown-based manual check
 		manualBtn.onclick = function(e){ e.preventDefault(); doManualCheckWithCountdown(); return false; };
 		setTimeout(doManualCheckAuto, 200);
 	}catch(e){}
