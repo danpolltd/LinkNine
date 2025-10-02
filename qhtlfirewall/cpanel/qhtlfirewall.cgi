@@ -197,6 +197,35 @@ if (defined $FORM{action} && $FORM{action} eq 'holiday_asset') {
 }
 
 
+# Serve generic fallback assets (currently the idle content GIF)
+if (defined $FORM{action} && $FORM{action} eq 'fallback_asset') {
+	my $name = $FORM{name} // '';
+	$name =~ s/[^a-zA-Z0-9_.-]//g; # sanitize
+	# Allowlist of files
+	my %ok = map { $_ => 1 } qw(idle_fallback.gif);
+	if (!$ok{$name}) {
+		print "Content-type: application/octet-stream\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ""; exit 0;
+	}
+	my $ctype = 'application/octet-stream';
+	$ctype = 'image/gif' if $name =~ /\.gif$/i;
+	print "Content-type: $ctype\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my @paths = (
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/qhtlfirewall/$name",
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/$name",
+		"/etc/qhtlfirewall/qhtlfirewall/$name",
+		"/usr/local/qhtlfirewall/qhtlfirewall/$name",
+	);
+	my $done = 0;
+	for my $p (@paths) {
+		next unless -e $p;
+		if (open(my $FH, '<', $p)) { binmode $FH; local $/ = undef; my $data = <$FH> // ''; close $FH; print $data; $done = 1; last; }
+	}
+	if (!$done) { print ""; }
+	exit 0;
+}
+
+
 if (-e "/usr/local/cpanel/bin/register_appconfig") {
 	$script = "qhtlfirewall.cgi";
 	$images = "qhtlfirewall";
