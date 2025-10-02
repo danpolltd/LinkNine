@@ -3790,7 +3790,7 @@ QHTL_UPGRADE_WIRE_JS
 		print "<thead><tr><th colspan='2'>Quick Actions</th></tr></thead>";
 
 		# Quick Allow (inputs above/below the button)
-		print "<tr><td colspan='2'>";
+		print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
 		print "<form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>";
 		print "<div style='width:100%'>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
