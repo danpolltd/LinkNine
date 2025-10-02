@@ -4039,8 +4039,8 @@ QHTL_TEMP_MODAL_JS_B
 			my $label  = $b->{label};
 			my $action = $b->{action};
 			my $aria   = $label;
-			my $label_html = join('<br>', map { "<span style=\"display:block; line-height:1.06;\">$_</span>" } split(/\s+/, $label));
-			print "<button name='action' value='$action' type='button' aria-label='$aria' title='$label' onmouseover=\"this.style.transform='scale(1.05)'\" onmouseout=\"this.style.transform='scale(1)'\" style=\"all:unset; cursor:pointer; width:70px; height:70px; display:flex; align-items:center; justify-content:center; text-align:center; padding:6px; background: linear-gradient(180deg, #ffd27a 0%, #ffad33 50%, #ff9800 70%, #e67e00 100%); border:2px solid #e68900; box-shadow: 0 0 0 10px rgba(255,165,0,0.65), 0 10px 18px rgba(255,140,0,0.35); transition: transform .15s ease; transform: translateZ(0);\"><span style=\"display:block; color:#fff; font-weight:800; font-size:16.5px; line-height:1.06; text-shadow:0 1px 0 rgba(0,0,0,0.25); width:100%; text-align:center;\">$label_html</span></button>";
+			my $label_html = join('<br>', map { "<span style=\"display:block; line-height:1.02;\">$_</span>" } split(/\s+/, $label));
+			print "<button name='action' value='$action' type='button' aria-label='$aria' title='$label' onmouseover=\"this.style.transform='scale(1.05)'\" onmouseout=\"this.style.transform='scale(1)'\" style=\"all:unset; cursor:pointer; width:70px; height:70px; display:flex; align-items:center; justify-content:center; text-align:center; padding:6px; background: linear-gradient(180deg, #ffd27a 0%, #ffad33 50%, #ff9800 70%, #e67e00 100%); border:2px solid #e68900; box-shadow: 0 0 0 10px rgba(255,165,0,0.65), 0 10px 18px rgba(255,140,0,0.35); transition: transform .15s ease; transform: translateZ(0);\"><span style=\"display:block; color:#fff; font-weight:800; font-size:15px; line-height:1.02; text-shadow:0 1px 0 rgba(0,0,0,0.25); width:100%; text-align:center;\">$label_html</span></button>";
 		}
         # Load an optional, per-button JS file named as 'o' + label without non-alphanumerics + '.js' (e.g., Active Ports => oActivePorts.js)
         foreach my $b (@orangeBtns) {
