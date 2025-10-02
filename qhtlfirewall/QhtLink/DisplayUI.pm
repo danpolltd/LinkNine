@@ -3800,27 +3800,44 @@ QHTL_UPGRADE_WIRE_JS
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Quick Actions</th></tr></thead>";
 
-		# First cell: six violet star buttons (100x100) with a 10px bright-violet halo, 15px apart, centered
+		# First cell: six violet star buttons (120x70) with a 10px bright-violet halo, 15px apart, centered, labeled left-to-right
 		print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
 		print "<div style=\"width:100%; display:flex; justify-content:center;\">";
 		# Scoped styles for star layout and shape
 		print "<style>\n".
-			".qhtl-star-wrap{position:relative;width:120px;height:120px;display:inline-flex;align-items:center;justify-content:center;}\n".
+			".qhtl-star-item{width:140px;display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-start;}\n".
+			".qhtl-star-wrap{position:relative;width:140px;height:90px;display:inline-flex;align-items:center;justify-content:center;}\n".
 			".qhtl-star-halo{position:absolute;inset:0;clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);background:#ee82ee;border:none;}\n".
-			".qhtl-star{position:relative;width:100px;height:100px;clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);background:#8a2be2;border:none;cursor:pointer;display:inline-block;}\n".
+			".qhtl-star{position:relative;width:120px;height:70px;clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);background:#8a2be2;border:none;cursor:pointer;display:inline-block;}\n".
 			".qhtl-star:focus{outline:2px solid #fff;outline-offset:2px;}\n".
+			".qhtl-star-label{margin-top:6px;font-size:13px;line-height:1.1;color:#eee;text-shadow:0 1px 0 rgba(0,0,0,0.35);}\n".
 		"</style>";
 		# Button group with 15px gap between halos (wrappers)
 		print "<div style=\"display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:15px;\">";
-		for my $i (1..6) {
-			my $label = "Star $i"; # visual buttons only; actions can be wired later
-			print "<div class=\"qhtl-star-wrap\" aria-hidden=\"false\">".
-				"<div class=\"qhtl-star-halo\" aria-hidden=\"true\"></div>".
-				"<button type=\"button\" class=\"qhtl-star\" title=\"$label\" aria-label=\"$label\"></button>".
+		my @qstars = (
+			{ label => 'Allow',   form => 'qallow',  file => 'qAllow.js',   key => 'allow'   },
+			{ label => 'Deny',    form => 'qdeny',   file => 'qDeny.js',    key => 'deny'    },
+			{ label => 'Ignore',  form => 'qignore', file => 'qIgnore.js',  key => 'ignore'  },
+			{ label => 'Search',  form => 'grep',    file => 'qSearch.js',  key => 'search'  },
+			{ label => 'Unblock', form => 'qkill',   file => 'qUnblock.js', key => 'unblock' },
+			{ label => 'Temp',    form => 'tempdeny',file => 'qTemp.js',    key => 'temp'    },
+		);
+		foreach my $q (@qstars) {
+			my $label = $q->{label};
+			my $form  = $q->{form};
+			my $title = $label;
+			print "<div class=\"qhtl-star-item\">".
+				"<div class=\"qhtl-star-wrap\" aria-hidden=\"false\">".
+					"<div class=\"qhtl-star-halo\" aria-hidden=\"true\"></div>".
+					"<button type=\"button\" class=\"qhtl-star\" data-qaction=\"$q->{key}\" title=\"$title\" aria-label=\"$title\" onclick=\"try{document.getElementById('$form').submit();}catch(e){}\"></button>".
+				"</div>".
+				"<div class=\"qhtl-star-label\">$label</div>".
 			"</div>";
 		}
 		print "</div>"; # end group
 		print "</div>"; # end centering container
+		# Load per-button JS files (qAllow.js, qDeny.js, qIgnore.js, qSearch.js, qUnblock.js, qTemp.js)
+		foreach my $q (@qstars) { my $f = $q->{file}; print "<script src='$script?action=widget_js&name=$f&v=$myv'></script>"; }
 		print "</td></tr>\n";
 
 		# Quick Allow (inputs above/below the button)
