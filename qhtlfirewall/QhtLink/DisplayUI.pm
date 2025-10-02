@@ -3143,6 +3143,15 @@ QHTL_UPGRADE_POLL
 			print "<br><strong>Note: LF_SPI is already disabled</strong>";
 		}
 		print "</td></tr>\n";
+		# Inline content area for Quick Actions (results from star button actions)
+		print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'><div id='qhtl-quick-inline-area' style='padding-top:10px;min-height:160px;background:transparent'></div></td></tr>\n";
+		# Intercept hidden form submits (qallow,qdeny,qignore,grep,qkill) to load into the Quick Actions inline area
+		print "<script>(function(){try{ var area=document.getElementById('qhtl-quick-inline-area'); if(!area) return;\n".
+			"  function setLoading(msg){ try{ if(area.qhtlCancelFade) area.qhtlCancelFade(); area.innerHTML = '<div class=\\'text-muted\\'>'+(msg||'Loading...')+'</div>'; }catch(_){ } }\n".
+			"  function onLoaded(html){ try{ area.innerHTML = html; if(area.qhtlArmAuto) area.qhtlArmAuto(); }catch(_){ } }\n".
+			"  function handleForm(f){ try{ var fd=new FormData(f); try{ fd.append('ajax','1'); }catch(__){} var u=f.getAttribute('action')||''; setLoading(); if(window.jQuery){ jQuery.ajax({ url:u, method:(f.method||'POST'), data:fd, processData:false, contentType:false }).done(function(d){ onLoaded(d); }).fail(function(){ onLoaded('<div class=\\'text-danger\\'>Failed to load content.</div>'); }); } else { var x=new XMLHttpRequest(); x.open((f.method||'POST'), u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ onLoaded(x.responseText); } else { onLoaded('<div class=\\'text-danger\\'>Failed to load content.</div>'); } } }; x.send(fd); } }catch(e){} }\n".
+			"  document.addEventListener('submit', function(ev){ try{ var f=ev.target; if(!f || f.tagName!=='FORM') return; var id=f.id||''; if(id==='qallow'||id==='qdeny'||id==='qignore'||id==='grep'||id==='qkill'){ ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation && ev.stopImmediatePropagation(); handleForm(f); } }catch(_){ } }, true);\n".
+			"}catch(e){} })();</script>\n";
 
 		if ($config{TCP_IN} =~ /30000:35000/) {
 			print "<tr><td><button class='btn btn-default' disabled>Open PASV FTP Hole</button>\n";
@@ -4094,6 +4103,7 @@ QHTL_UPGRADE_WIRE_JS
 	print "  makeAutoClear('qhtl-inline-area');\n";
 	print "  makeAutoClear('qhtl-upgrade-inline-area');\n";
 	print "  makeAutoClear('qhtl-options-inline-area');\n";
+	print "  makeAutoClear('qhtl-quick-inline-area');\n";
 	print "})();\n";
 	print "</script>\n";
 	# Re-click active tab name to clear its own inline area and cancel dimming
