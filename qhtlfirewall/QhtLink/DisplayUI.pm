@@ -3900,9 +3900,21 @@ QHTL_UPGRADE_WIRE_JS
 		print "<div style='display:flex; justify-content:center; margin:10px 0;'>";
 		# Use 30px gap between items so the 10px halos have ~10px space between them (gap - 20px halo overlap = 10px)
 		print "  <div style='display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:30px;'>";
-		for (my $i=1; $i<=8; $i++) {
-	my $aria = "Water bubble button $i";
-	print "<button type='button' aria-label='$aria' onmouseover=\"this.style.transform='scale(1.05)'\" onmouseout=\"this.style.transform='scale(1)'\" style=\"all:unset; cursor:pointer; width:80px; height:80px; display:inline-block; background: linear-gradient(180deg, #ffd27a 0%, #ffad33 50%, #ff9800 70%, #e67e00 100%); border:2px solid #e68900; box-shadow: 0 0 0 10px rgba(255,165,0,0.65), 0 10px 18px rgba(255,140,0,0.35); transition: transform .15s ease; transform: translateZ(0);\"></button>";
+		my @orangeBtns = (
+			{ label => 'Test Security',   action => 'servercheck' },
+			{ label => 'Qht Link Info',   action => 'readme'      },
+			{ label => 'Search Logs',     action => 'loggrep'     },
+			{ label => 'Active Ports',    action => 'viewports'   },
+			{ label => 'Check in RBLs',   action => 'rblcheck'    },
+			{ label => 'View ipt Log',    action => 'viewlogs'    },
+			{ label => 'QhtL Stats',      action => 'chart'       },
+			{ label => 'View Sys Stats',  action => 'systemstats' },
+		);
+		foreach my $b (@orangeBtns) {
+			my $label  = $b->{label};
+			my $action = $b->{action};
+			my $aria   = $label;
+			print "<button name='action' value='$action' type='submit' aria-label='$aria' title='$label' onmouseover=\"this.style.transform='scale(1.05)'\" onmouseout=\"this.style.transform='scale(1)'\" style=\"all:unset; cursor:pointer; width:80px; height:80px; display:flex; align-items:center; justify-content:center; text-align:center; padding:6px; background: linear-gradient(180deg, #ffd27a 0%, #ffad33 50%, #ff9800 70%, #e67e00 100%); border:2px solid #e68900; box-shadow: 0 0 0 10px rgba(255,165,0,0.65), 0 10px 18px rgba(255,140,0,0.35); transition: transform .15s ease; transform: translateZ(0);\"><span style=\"display:block; color:#fff; font-weight:800; font-size:11px; line-height:1.1; text-shadow:0 1px 0 rgba(0,0,0,0.25)\">$label</span></button>";
 		}
 		print "  </div>";
 		print "</div>";
