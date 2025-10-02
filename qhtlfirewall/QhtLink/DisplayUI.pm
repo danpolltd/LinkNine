@@ -1973,8 +1973,8 @@ HTML_TABS_CSS
 			# Emit CSS rules to style the selected label and reveal the selected panel per radio
 			print "<style>\n";
 			for (my $i=0; $i<scalar(@labels); $i++) {
-				print "#${container_id}-tab-$i:checked ~ .qhtl-tab-list label[for='${container_id}-tab-$i']{ background:#EDEBFF; border-color:#BBB; font-weight:600; }\n";
-				print "#${container_id}-tab-$i:checked ~ .qhtl-panels .panel-$i{ display:block !important; }\n";
+				printf "#%s-tab-%d:checked ~ .qhtl-tab-list label[for='%s-tab-%d']{ background:#EDEBFF; border-color:#BBB; font-weight:600; }\n", $container_id, $i, $container_id, $i;
+				printf "#%s-tab-%d:checked ~ .qhtl-panels .panel-%d{ display:block !important; }\n", $container_id, $i, $i;
 			}
 			print "</style>\n";
 
