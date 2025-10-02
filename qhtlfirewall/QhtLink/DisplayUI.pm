@@ -5011,8 +5011,15 @@ sub chart {
 	my $imgdir = "";
 	my $imghddir = "";
 	if (-e "/usr/local/cpanel/version") {
-		$imgdir = "/";
-		$imghddir = "";
+		# When installed via cPanel register_appconfig, serve images from WHM cgi path
+		if (-e "/usr/local/cpanel/bin/register_appconfig") {
+			$imgdir = "/cgi/qhtlink/qhtlfirewall/";
+			$imghddir = "/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/";
+			umask(0133);
+		} else {
+			$imgdir = "/";
+			$imghddir = "";
+		}
 	}
 	elsif (-e "/usr/local/directadmin/conf/directadmin.conf") {
 		$imgdir = "/CMD_PLUGINS_ADMIN/qhtlfirewall/images/";
@@ -5093,8 +5100,10 @@ sub systemstats {
 	my $imghddir = "";
 	if (-e "/usr/local/cpanel/version") {
 		if (-e "/usr/local/cpanel/bin/register_appconfig") {
-			$imgdir = "qhtlfirewall/";
-			$imghddir = "cgi/qhtlink/qhtlfirewall/";
+			# Serve via WHM cgi path and write to its docroot
+			$imgdir = "/cgi/qhtlink/qhtlfirewall/";
+			$imghddir = "/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/";
+			umask(0133);
 		} else {
 			$imgdir = "/";
 			$imghddir = "";
