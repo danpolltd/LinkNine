@@ -2014,7 +2014,12 @@ HTML_TABS_CSS
 			}
 
 			# Embed score (if found) and controls into the first tab
-			$panels[0] = ($score_html // '') . ($controls_html // '') . ($panels[0] // '');
+			my $score_block = '';
+			if (defined $score_html && $score_html ne '') {
+				# Place the Server Score above the controls with some breathing room
+				$score_block = "<div class='qhtl-score-block' style='margin: 0 0 14px 0;'>$score_html</div>";
+			}
+			$panels[0] = ($score_block) . ($controls_html // '') . ($panels[0] // '');
 
 			# Default selected tab: first tab (index 0)
 			my $default_idx = 0;
