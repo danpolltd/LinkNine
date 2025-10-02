@@ -4106,7 +4106,8 @@ QHTL_UPGRADE_WIRE_JS
 	# Enforce Quick View modal sizing (500x400) with scrollable body
 	print "<style>\n";
 	print "#quickViewModal { position: absolute !important; inset: 0 !important; z-index: 1000 !important; touch-action: auto !important; }\n";
-	print "#quickViewModal .modal-dialog { width: calc(100% - 40px) !important; max-width: 1200px !important; position: absolute !important; top: 20px !important; left: 20px !important; right: 20px !important; transform: none !important; margin: 0 !important; }\n";
+	# Quick View modal dialog spans nearly full width with 20px gutters; no max-width cap
+	print "#quickViewModal .modal-dialog { width: calc(100% - 40px) !important; max-width: none !important; position: absolute !important; top: 20px !important; left: 20px !important; right: 20px !important; transform: none !important; margin: 0 !important; }\n";
 	print "#quickViewModal .modal-content { height: 400px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
 	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow:auto !important; min-height:0 !important; padding:10px !important; }\n";
 		print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; display:flex !important; justify-content: space-between !important; align-items: center !important; gap:8px !important; }\n";
@@ -4361,7 +4362,8 @@ function openQuickView(url, which) {
 		} else {
 			$modal.css({ position:'fixed', left: 0, top: 0, right: 0, bottom: 0, width:'auto', height:'auto', margin:0, background:'rgba(0,0,0,0.5)' });
 		}
-	$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, width: Math.min(660, Math.floor(w*0.95)) + 'px', maxWidth: Math.min(660, Math.floor(w*0.95)) + 'px' });
+	// Use 20px gutters and full available width; no max-width cap
+	$dlg.css({ position:'absolute', left:'20px', right:'20px', top:'12px', transform:'none', margin:0, width:'auto', maxWidth:'none' });
 	var maxH = 480; // enforce global cap
 	$mc.css({ height:'auto', maxHeight: maxH+'px', display:'flex', flexDirection:'column', overflow:'hidden' });
 		$modal.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });
