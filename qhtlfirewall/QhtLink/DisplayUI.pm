@@ -2153,7 +2153,7 @@ QHTL_JQ_GREP
 			} elsif ($which eq 'deny') {
 				$bgstyle = 'background: linear-gradient(180deg, rgba(248,215,218,0.5) 0%, rgba(245,198,203,0.5) 100%);';
 			}
-			print "<div style='display:flex; flex-direction:column; height:100%'>";
+			print "<div style='display:flex; flex-direction:column; flex:1 1 auto; min-height:0'>";
 			print "<div class='small text-muted' style='margin-bottom:6px; flex:0 0 auto'>Editing: $path</div>";
 			print "<textarea id='quickEditArea' style='width:100%; flex:1 1 auto; border:1px solid #000; font-family: \"Courier New\", Courier; font-size: 13px; line-height: 1.15; box-sizing:border-box; overflow:auto; resize:none; $bgstyle' wrap='off'>";
 			foreach my $line (@lines) {
@@ -4004,15 +4004,16 @@ QHTL_UPGRADE_WIRE_JS
 	print "<script>\n";
 	print "(function(){\n";
 	print "  function makeAutoClear(id){ var el=document.getElementById(id); if(!el) return; el.style.transition = el.style.transition || 'opacity 5s ease'; var t=null, fading=false, fadeTimer=null;\n";
-	print "    function clearNow(){ try{ el.innerHTML=''; el.style.opacity=''; el.style.pointerEvents=''; fading=false; if(fadeTimer){ clearTimeout(fadeTimer); fadeTimer=null; } }catch(_){ } }\n";
+	print "    function clearNow(){ try{ el.innerHTML=''; el.style.opacity=''; el.style.pointerEvents=''; fading=false; if(fadeTimer){ clearTimeout(fadeTimer); fadeTimer=null; } showFallback(); }catch(_){ } }\n";
 	print "    function beginFade(){ if(fading) return; fading=true; el.style.opacity='0'; el.style.pointerEvents='none'; fadeTimer=setTimeout(clearNow, 5000); }\n";
 	print "    function cancelFade(){ if(!fading) return; try{ el.style.opacity=''; el.style.pointerEvents=''; }catch(_){ } fading=false; if(fadeTimer){ clearTimeout(fadeTimer); fadeTimer=null; } }\n";
+	print "    function showFallback(){ try{ if(!el) return; if (el.children.length>0) return; var url=(window.QHTL_SCRIPT||'$script')+'?action=fallback_asset&name=idle_fallback.gif&v=$myv'; el.innerHTML = \"<div class=\\\"qhtl-fallback-holder\\\" style=\\\"min-height:160px;display:flex;align-items:center;justify-content:center;\\\"><img alt=\\\"\\\" src=\\\"\"+url+\"\\\" style=\\\"max-width:100%;height:auto;opacity:.9\\\"></div>\"; }catch(_){ } }\n";
 	print "    function arm(){ if(t){ clearTimeout(t); } cancelFade(); t=setTimeout(beginFade, 10000); }\n";
 	print "    // Arm on interactions and when content changes; also cancel any active dimming to keep content visible\n";
 	print "    ['click','input','mousemove','wheel','keydown','touchstart','pointermove','pointerdown'].forEach(function(evt){ el.addEventListener(evt, arm, {passive:true}); });\n";
-	print "    var mo = new MutationObserver(arm); mo.observe(el, { childList:true, subtree:true }); arm();\n";
+	print "    var mo = new MutationObserver(function(){ arm(); try{ var fh=el.querySelector('.qhtl-fallback-holder'); if (el.children.length===0){ showFallback(); } else if (fh && el.children.length>1){ if(fh.parentNode) fh.parentNode.removeChild(fh); } }catch(_){ } }); mo.observe(el, { childList:true, subtree:true }); arm(); if (el.children.length===0) showFallback();\n";
 	print "    // Expose small helpers for external use (e.g., tab re-click toggles)\n";
-	print "    el.qhtlClearNow = clearNow; el.qhtlCancelFade = cancelFade; el.qhtlArmAuto = arm;\n";
+	print "    el.qhtlClearNow = clearNow; el.qhtlCancelFade = cancelFade; el.qhtlArmAuto = arm; el.qhtlShowFallback = showFallback;\n";
 	print "  }\n";
 	print "  makeAutoClear('qhtl-inline-area');\n";
 	print "  makeAutoClear('qhtl-upgrade-inline-area');\n";
@@ -4022,7 +4023,7 @@ QHTL_UPGRADE_WIRE_JS
 	print "<script>(function(){\n";
 	print "  try{ var tabs=document.getElementById('myTabs'); if(!tabs) return; var lastClick=0;\n";
 	print "    tabs.addEventListener('click', function(ev){ var a=ev.target && ev.target.closest ? ev.target.closest('a[data-toggle=\\'tab\\']') : null; if(!a) return; var href=a.getAttribute('href')||''; if(!href) return; var li=a.parentNode; var isActive = li && li.classList && li.classList.contains('active');\n";
-	print "      if(isActive){ ev.preventDefault(); var now=Date.now(); if(now - lastClick < 350){ return; } lastClick=now; var areaId = (href==='#upgrade') ? 'qhtl-upgrade-inline-area' : (href==='#waterfall' ? 'qhtl-inline-area' : null); if(!areaId) return; var area=document.getElementById(areaId); if(!area) return; try{ if(area.qhtlCancelFade) area.qhtlCancelFade(); area.innerHTML=''; if(area.qhtlArmAuto) area.qhtlArmAuto(); }catch(_){} }\n";
+	print "      if(isActive){ ev.preventDefault(); var now=Date.now(); if(now - lastClick < 350){ return; } lastClick=now; var areaId = (href==='#upgrade') ? 'qhtl-upgrade-inline-area' : (href==='#waterfall' ? 'qhtl-inline-area' : null); if(!areaId) return; var area=document.getElementById(areaId); if(!area) return; try{ if(area.qhtlCancelFade) area.qhtlCancelFade(); area.innerHTML=''; if(area.qhtlArmAuto) area.qhtlArmAuto(); if (area.qhtlShowFallback) area.qhtlShowFallback(); }catch(_){} }\n";
 	print "    }, true);\n";
 	print "  }catch(e){}\n";
 	print "})();</script>\n";
@@ -4105,15 +4106,19 @@ QHTL_UPGRADE_WIRE_JS
 	# Enforce Quick View modal sizing (500x400) with scrollable body
 	print "<style>\n";
 	print "#quickViewModal { position: absolute !important; inset: 0 !important; z-index: 1000 !important; touch-action: auto !important; }\n";
-	print "#quickViewModal .modal-dialog { width: calc(100% - 40px) !important; max-width: 1200px !important; position: absolute !important; top: 20px !important; left: 20px !important; right: 20px !important; transform: none !important; margin: 0 !important; }\n";
+	# Quick View modal dialog spans nearly full width with 20px gutters; no max-width cap
+	print "#quickViewModal .modal-dialog { width: calc(100% - 40px) !important; max-width: none !important; position: absolute !important; top: 20px !important; left: 20px !important; right: 20px !important; transform: none !important; margin: 0 !important; }\n";
 	print "#quickViewModal .modal-content { height: 400px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
 	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow:auto !important; min-height:0 !important; padding:10px !important; }\n";
 		print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; display:flex !important; justify-content: space-between !important; align-items: center !important; gap:8px !important; }\n";
 	print "#quickViewModal #quickViewTitle { margin:0 0 8px 0 !important; }\n";
-	print "#quickViewBody { flex:1 1 auto !important; min-height:0 !important; overflow:hidden !important; }\n";
-	print "#quickViewModal #quickViewBody { display:block; width:100%; height:100%; max-height:100%; overflow:auto; }\n";
-	print "#quickViewModal #quickViewBody pre { height: 100%; max-height: 100%; white-space: pre; overflow: auto; overflow-wrap: normal; word-break: normal; }\n";
-	print "#quickEditArea { height: 100% !important; max-height: 100% !important; }\n";
+	# Make Quick View body a flex column that can grow and scroll, without forcing 100% height
+	print "#quickViewBody { flex:1 1 auto !important; min-height:0 !important; display:flex !important; flex-direction:column !important; overflow:auto !important; }\n";
+	print "#quickViewModal #quickViewBody { display:flex !important; flex-direction:column !important; width:100% !important; height:auto !important; max-height:none !important; overflow:auto !important; }\n";
+	# Ensure <pre> in view mode expands within the modal and scrolls if needed
+	print "#quickViewModal #quickViewBody pre { flex:1 1 auto !important; min-height:0 !important; height:auto !important; max-height:none !important; white-space: pre; overflow: auto; overflow-wrap: normal; word-break: normal; }\n";
+	# Textarea in edit mode should fill available space via flex, not absolute 100% height
+	print "#quickEditArea { flex: 1 1 auto !important; min-height: 220px !important; height: auto !important; max-height: none !important; }\n";
 	print "#quickViewModal #quickEditArea { resize: none !important; }\n";
 	print ".btn-close-red { background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%); color: #721c24 !important; border-color: #f1b0b7 !important; }\n";
 	print ".btn-close-red:hover { background: #dc3545 !important; color: #fff !important; border-color: #dc3545 !important; }\n";
@@ -4357,7 +4362,8 @@ function openQuickView(url, which) {
 		} else {
 			$modal.css({ position:'fixed', left: 0, top: 0, right: 0, bottom: 0, width:'auto', height:'auto', margin:0, background:'rgba(0,0,0,0.5)' });
 		}
-	$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, width: Math.min(660, Math.floor(w*0.95)) + 'px', maxWidth: Math.min(660, Math.floor(w*0.95)) + 'px' });
+	// Use 20px gutters and full available width; no max-width cap
+	$dlg.css({ position:'absolute', left:'20px', right:'20px', top:'12px', transform:'none', margin:0, width:'auto', maxWidth:'none' });
 	var maxH = 480; // enforce global cap
 	$mc.css({ height:'auto', maxHeight: maxH+'px', display:'flex', flexDirection:'column', overflow:'hidden' });
 		$modal.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });

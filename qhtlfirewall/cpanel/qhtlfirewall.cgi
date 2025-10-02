@@ -197,6 +197,35 @@ if (defined $FORM{action} && $FORM{action} eq 'holiday_asset') {
 }
 
 
+# Serve generic fallback assets (currently the idle content GIF)
+if (defined $FORM{action} && $FORM{action} eq 'fallback_asset') {
+	my $name = $FORM{name} // '';
+	$name =~ s/[^a-zA-Z0-9_.-]//g; # sanitize
+	# Allowlist of files
+	my %ok = map { $_ => 1 } qw(idle_fallback.gif);
+	if (!$ok{$name}) {
+		print "Content-type: application/octet-stream\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ""; exit 0;
+	}
+	my $ctype = 'application/octet-stream';
+	$ctype = 'image/gif' if $name =~ /\.gif$/i;
+	print "Content-type: $ctype\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my @paths = (
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/qhtlfirewall/$name",
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/$name",
+		"/etc/qhtlfirewall/qhtlfirewall/$name",
+		"/usr/local/qhtlfirewall/qhtlfirewall/$name",
+	);
+	my $done = 0;
+	for my $p (@paths) {
+		next unless -e $p;
+		if (open(my $FH, '<', $p)) { binmode $FH; local $/ = undef; my $data = <$FH> // ''; close $FH; print $data; $done = 1; last; }
+	}
+	if (!$done) { print ""; }
+	exit 0;
+}
+
+
 if (-e "/usr/local/cpanel/bin/register_appconfig") {
 	$script = "qhtlfirewall.cgi";
 	$images = "qhtlfirewall";
@@ -1293,7 +1322,7 @@ print <<HTML_SMART_WRAPPER;
 			}
 			modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='none'; modal.style.zIndex='9999';
 			var dialog = document.createElement('div');
-			dialog.style.width='660px'; dialog.style.maxWidth='calc(100% - 40px)'; dialog.style.height='500px'; dialog.style.background='linear-gradient(180deg, #f7fafc 0%, #ffffff 40%, #f7fafc 100%)'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='absolute'; dialog.style.top='20px'; dialog.style.left='50%'; dialog.style.transform='translate(-50%, 0)'; dialog.style.margin='0';
+			dialog.style.width='auto'; dialog.style.maxWidth='none'; dialog.style.left='20px'; dialog.style.right='20px'; dialog.style.height='500px'; dialog.style.background='linear-gradient(180deg, #f7fafc 0%, #ffffff 40%, #f7fafc 100%)'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='absolute'; dialog.style.top='20px'; dialog.style.transform='none'; dialog.style.margin='0';
 			var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflowX='hidden'; body.style.overflowY='auto'; body.style.padding='10px'; body.style.minHeight='0';
 			var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';
 			// Header-right container for countdown next to title
@@ -1474,7 +1503,7 @@ print <<HTML_SMART_WRAPPER;
 			// Enforce global modal max height 480px
 			h = Math.min(480, Math.floor(h * 0.9));
 			d.style.width = w + 'px'; d.style.height = h + 'px';
-			d.style.maxWidth='calc(100% - 40px)'; d.style.maxHeight='480px';
+			d.style.maxWidth='none'; d.style.left='20px'; d.style.right='20px'; d.style.maxHeight='480px';
 			d.style.position='absolute'; d.style.top='20px'; d.style.left='50%'; d.style.transform='translateX(-50%)'; d.style.margin='0';
 		}
 				// Ensure blue pulsating glow CSS exists and apply class
