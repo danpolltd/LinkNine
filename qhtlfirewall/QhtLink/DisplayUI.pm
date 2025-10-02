@@ -1930,100 +1930,19 @@ QHTL_JQ_GREP
 				}
 			}
 
-			# Render minimal CSS/JS for tabs (no external deps). Use single-quoted heredocs to avoid interpolation.
+			# Render minimal CSS-only tabs (no JS) using radio inputs and labels; CSP-safe. Use single-quoted heredocs.
 			if ($note_html ne '') { print $note_html; }
-			print <<'HTML_TABS_CSS_JS';
+			print <<'HTML_TABS_CSS';
 <style>
 .qhtl-tabs { margin: 10px 0; }
+.qhtl-tabs input.qhtl-tab-radio { display: none !important; }
 .qhtl-tab-list { display: flex !important; flex-wrap: wrap; gap: 6px; margin: 0 0 10px 0; padding: 0; list-style: none; }
-.qhtl-tab { display: inline-block !important; padding: 6px 10px; border: 1px solid #DDD; border-radius: 4px; background: #F9F9F9; cursor: pointer; user-select: none; }
-.qhtl-tab[aria-selected="true"] { background: #EDEBFF; border-color: #BBB; font-weight: 600; }
-.qhtl-tab-panel { display: none !important; border: 1px solid #DDD; border-radius: 4px; padding: 10px; background: #FFF; }
-.qhtl-tab-panel.active { display: block !important; }
+.qhtl-tab-list .qhtl-tab { display: inline-block !important; padding: 6px 10px; border: 1px solid #DDD; border-radius: 4px; background: #F9F9F9; cursor: pointer; user-select: none; }
+.qhtl-tab-list .qhtl-tab.selected { background: #EDEBFF; border-color: #BBB; font-weight: 600; }
+.qhtl-panels .qhtl-tab-panel { display: none !important; border: 1px solid #DDD; border-radius: 4px; padding: 10px; background: #FFF; }
+/* Per-tab rules added below to show selected panel and style selected label */
 </style>
-<script>
-(function(){
-  function selectTab(container, idx){
-    var tabs = container.querySelectorAll('[role="tab"]');
-    var panels = container.querySelectorAll('[role="tabpanel"]');
-    for (var i=0;i<tabs.length;i++){
-      var sel = (i===idx);
-      tabs[i].setAttribute('aria-selected', sel ? 'true' : 'false');
-      if (panels[i]) {
-        if (sel) { panels[i].classList.add('active'); }
-        else { panels[i].classList.remove('active'); }
-      }
-    }
-  }
-	window.initQhtlTabs = function(id){
-    var root = document.getElementById(id);
-    if (!root) return;
-    var tabs = root.querySelectorAll('[role="tab"]');
-    tabs.forEach(function(tab, idx){
-      tab.addEventListener('click', function(e){ e.preventDefault(); selectTab(root, idx); });
-    });
-    // Default to first tab (empty)
-		if (document.readyState === 'loading') {
-			document.addEventListener('DOMContentLoaded', function(){ selectTab(root, 0); });
-		} else {
-			selectTab(root, 0);
-		}
-  };
-
-	// Fallback: If server-side parsing yielded no panels, try to transform stacked sections
-	window.qhtlTabsFallback = function(containerId){
-		var container = document.getElementById(containerId);
-		if (!container) return;
-		var hasPanels = container.querySelectorAll('.qhtl-tab-panel').length > 0;
-		if (hasPanels) return;
-		// Find known section headers: div > strong title blocks
-		var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT, null);
-		var sections = [];
-		var current = null;
-		while (walker.nextNode()){
-			var node = walker.currentNode;
-			if (node.tagName === 'DIV'){
-				var strong = node.querySelector(':scope > strong');
-				if (strong && /Check$|Firewall Check|Server Check|SSH\/Telnet Check|Mail Check|Apache Check|PHP Check|WHM Settings Check|DirectAdmin Settings Check|Server Services Check/i.test(strong.textContent)){
-					if (current) sections.push(current);
-					current = {title: strong.textContent, contentNodes: []};
-					continue;
-				}
-			}
-			if (current) current.contentNodes.push(node.cloneNode(true));
-		}
-		if (current) sections.push(current);
-		if (!sections.length) return;
-
-		// Build tabs structure
-		var ul = document.createElement('ul');
-		ul.className = 'qhtl-tab-list'; ul.setAttribute('role','tablist');
-		var panelsFrag = document.createDocumentFragment();
-		var labels = ['Empty'];
-		var contents = [''];
-		for (var i=0;i<8;i++){
-			if (sections[i]){ labels.push(sections[i].title); }
-			else { labels.push('Tab '+(i+2)); }
-			if (sections[i]){
-				var wrap = document.createElement('div');
-				sections[i].contentNodes.forEach(function(n){ wrap.appendChild(n); });
-				contents.push(wrap.innerHTML);
-			} else { contents.push(''); }
-		}
-		labels.forEach(function(lab){
-			var li = document.createElement('li');
-			li.className = 'qhtl-tab'; li.setAttribute('role','tab'); li.setAttribute('aria-selected','false'); li.textContent = lab;
-			ul.appendChild(li);
-		});
-		container.appendChild(ul);
-		contents.forEach(function(html){
-			var p = document.createElement('div'); p.className = 'qhtl-tab-panel'; p.setAttribute('role','tabpanel'); p.innerHTML = html; container.appendChild(p);
-		});
-		if (typeof window.initQhtlTabs === 'function') window.initQhtlTabs(containerId);
-	};
-})();
-</script>
-HTML_TABS_CSS_JS
+HTML_TABS_CSS
 
 			# Build up to 9 tabs: first empty, next from detected sections (up to 8). Fill remainder with placeholders if needed.
 			my $container_id = 'qhtl-servercheck-tabs';
@@ -2041,21 +1960,44 @@ HTML_TABS_CSS_JS
 				}
 			}
 
-			print "<div id='$container_id' class='qhtl-tabs' role='tablist-container'>\n";
-			print "<ul class='qhtl-tab-list' role='tablist'>\n";
+			# If no sections parsed (unexpected), provide a fallback: put full HTML into Tab 2 (index 1)
+			if (!scalar(grep { defined $_ && $_ ne '' } @panels)) {
+				$panels[1] = $full_html;
+				$labels[1] = 'All Checks';
+			}
+
+			# Determine default selected tab: first non-empty panel if available, else 0
+			my $default_idx = 0;
+			for (my $i=0; $i<scalar(@panels); $i++) { if (defined $panels[$i] and $panels[$i] ne '') { $default_idx = $i; last; } }
+
+			# Emit CSS rules to style the selected label and reveal the selected panel per radio
+			print "<style>\n";
+			for (my $i=0; $i<scalar(@labels); $i++) {
+				print "#${container_id}-tab-$i:checked ~ .qhtl-tab-list label[for='${container_id}-tab-$i']{ background:#EDEBFF; border-color:#BBB; font-weight:600; }\n";
+				print "#${container_id}-tab-$i:checked ~ .qhtl-panels .panel-$i{ display:block !important; }\n";
+			}
+			print "</style>\n";
+
+			# Render radios, labels, and panels (pure CSS tabs)
+			print "<div id='$container_id' class='qhtl-tabs'>\n";
 			for (my $i = 0; $i < scalar(@labels); $i++) {
-				my $safe = $labels[$i];
-				$safe =~ s/</&lt;/g; $safe =~ s/>/&gt;/g;
-				print "  <li class='qhtl-tab' role='tab' aria-selected='false' tabindex='0'>".$safe."</li>\n";
+				my $checked = ($i == $default_idx) ? " checked" : "";
+				print "  <input type='radio' class='qhtl-tab-radio' name='${container_id}-name' id='${container_id}-tab-$i'$checked>\n";
 			}
-			print "</ul>\n";
+			print "  <div class='qhtl-tab-list' role='tablist'>\n";
+			for (my $i = 0; $i < scalar(@labels); $i++) {
+				my $safe = $labels[$i]; $safe =~ s/</&lt;/g; $safe =~ s/>/&gt;/g;
+				print "    <label class='qhtl-tab' for='${container_id}-tab-$i'>".$safe."</label>\n";
+			}
+			print "  </div>\n";
+			print "  <div class='qhtl-panels'>\n";
 			for (my $i = 0; $i < scalar(@panels); $i++) {
-				print "<div class='qhtl-tab-panel' role='tabpanel'>\n";
+				print "    <div class='qhtl-tab-panel panel-$i'>\n";
 				print $panels[$i];
-				print "\n</div>\n";
+				print "\n    </div>\n";
 			}
+			print "  </div>\n";
 			print "</div>\n";
-			print "<script>initQhtlTabs('$container_id'); if (typeof qhtlTabsFallback==='function'){ qhtlTabsFallback('$container_id'); }</script>\n";
 		} else {
 			print "<div class='alert alert-warning'>ServerCheck module not available in this environment. Skipping report.</div>\n";
 		}
