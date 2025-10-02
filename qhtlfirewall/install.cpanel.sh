@@ -400,7 +400,8 @@ cp -af qhtlfirewall/* da/images/
 cp -af qhtlfirewall/* interworx/images/
 
 # Ensure WHM CGI docroot for generated charts exists
-mkdir -p -m 0755 /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall
+# Ensure WHM docroot for generated charts exists (static path)
+mkdir -p -m 0755 /usr/local/cpanel/whostmgr/docroot/qhtlink/qhtlfirewall
 
 cp -avf messenger/*.php /etc/qhtlfirewall/messenger/
 # Install WHM addon icon (use GIF)
