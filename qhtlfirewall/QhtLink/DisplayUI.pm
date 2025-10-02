@@ -3903,10 +3903,12 @@ QHTL_UPGRADE_WIRE_JS
 
 		print "<div id='home' class='tab-pane'>\n";
 		print "<form id='qhtl-options-form' action='$script' method='post'>\n";
-		print "<table class='table table-bordered table-striped' style='background:transparent!important'>\n";
+		# Ensure Options table and all cells are transparent so the gradient shows through
+		print "<style>#qhtl-options-table, #qhtl-options-table thead th, #qhtl-options-table tbody td, #qhtl-options-table tbody tr { background: transparent !important; } #qhtl-options-table.table-striped > tbody > tr:nth-of-type(odd){ background: transparent !important; } #qhtl-options-table td, #qhtl-options-table th{ background-color: transparent !important; }</style>\n";
+		print "<table id='qhtl-options-table' class='table table-bordered table-striped' style='background:transparent!important'>\n";
 		print "<thead style='background:transparent!important'><tr><th colspan='2' style='background:transparent!important'>Server Information</th></tr></thead>";
 		# Eight orange square buttons (80x80) with a 10px bright-orange halo, centered, each word on its own line
-		print "<tr><td colspan='2'>";
+		print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
 		print "<div style='display:flex; justify-content:center; margin:10px 0;'>";
 		print "  <div style='display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:30px;'>";
 		my @orangeBtns = (
