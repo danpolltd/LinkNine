@@ -1973,11 +1973,15 @@ QHTL_JQ_GREP
 .qhtl-tabs { margin: 10px 0; }
 .qhtl-tabs input.qhtl-tab-radio { display: none !important; }
 .qhtl-tab-list { display: flex !important; flex-wrap: wrap; gap: 6px; margin: 0 0 10px 0; padding: 0; list-style: none; }
-.qhtl-tab-list { position: relative; z-index: 5; }
+.qhtl-tab-list { position: relative; z-index: 20; }
 .qhtl-tab-list .qhtl-tab { display: inline-block !important; padding: 6px 10px; border: 1px solid #DDD; border-radius: 4px; background: #F9F9F9; cursor: pointer; user-select: none; pointer-events: auto !important; position: relative; z-index: 6; }
+.qhtl-tab-list .qhtl-tab { -webkit-tap-highlight-color: transparent; }
 .qhtl-tab-list .qhtl-tab.selected { background: #EDEBFF; border-color: #BBB; font-weight: 600; }
-.qhtl-panels { position: relative; z-index: 1; }
-.qhtl-panels .qhtl-tab-panel { display: none !important; border: 1px solid #DDD; border-radius: 4px; padding: 10px; background: #FFF; min-height: 120px; }
+.qhtl-panels { position: relative; z-index: 15; }
+.qhtl-panels .qhtl-tab-panel { display: none !important; border: 1px solid #DDD; border-radius: 4px; padding: 10px; background: #FFF; min-height: 160px; }
+/* Defensive: ensure tab container and panels sit above any theme gradients/overlays */
+.qhtl-tabs, .qhtl-panels, .qhtl-tab-panel { position: relative; }
+.qhtl-panels .qhtl-tab-panel { z-index: 21; }
 /* Per-tab rules added below to show selected panel and style selected label */
 </style>
 HTML_TABS_CSS
