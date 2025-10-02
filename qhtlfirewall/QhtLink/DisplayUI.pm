@@ -177,7 +177,7 @@ sub main {
 	}
 
 	if ($config{RESTRICT_UI} == 2) {
-		print "<table class='table table-bordered table-striped'>\n";
+		print "<table class='table table-bordered table-striped' style='background:transparent!important'>\n";
 		print "<tr><td><font color='red'>qhtlfirewall UI Disabled via the RESTRICT_UI option in /etc/qhtlfirewall/qhtlfirewall.conf</font></td></tr>\n";
 		print "</tr></table>\n";
 		return;
@@ -3903,8 +3903,8 @@ QHTL_UPGRADE_WIRE_JS
 
 		print "<div id='home' class='tab-pane'>\n";
 		print "<form id='qhtl-options-form' action='$script' method='post'>\n";
-		print "<table class='table table-bordered table-striped'>\n";
-	print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
+		print "<table class='table table-bordered table-striped' style='background:transparent!important'>\n";
+		print "<thead style='background:transparent!important'><tr><th colspan='2' style='background:transparent!important'>Server Information</th></tr></thead>";
 		# Eight orange square buttons (80x80) with a 10px bright-orange halo, centered, each word on its own line
 		print "<tr><td colspan='2'>";
 		print "<div style='display:flex; justify-content:center; margin:10px 0;'>";
@@ -3958,8 +3958,8 @@ QHTL_UPGRADE_WIRE_JS
 		print "  }catch(e){}\n";
 		print "})();</script>\n";
 		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
-			print "<table class='table table-bordered table-striped'>\n";
-			print "<thead><tr><th>Legacy Firewalls</th></tr></thead>";
+			print "<table class='table table-bordered table-striped' style='background:transparent!important'>\n";
+			print "<thead style='background:transparent!important'><tr><th style='background:transparent!important'>Legacy Firewalls</th></tr></thead>";
 			print "<tr><td><form action='$script' method='post'><button name='action' value='remapf' type='submit' class='btn btn-default'>Remove APF/BFD</button></form><div class='text-muted small' style='margin-top:6px'>Remove APF/BFD from the server. You must not run both APF or BFD with qhtlfirewall on the same server</div></td></tr>\n";
 			print "</table>\n";
 		}
@@ -3988,8 +3988,8 @@ QHTL_UPGRADE_WIRE_JS
 
 		# New Waterfall tab (duplicate of QhtLink Waterfall content) placed before QhtLink Firewall
 					print "<div id='waterfall' class='tab-pane'>\n";
-		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
+		print "<table class='table table-bordered table-striped' style='background:transparent!important'>\n";
+		print "<thead style='background:transparent!important'><tr><th style='background:transparent!important'>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
 					print "<tr style='background:transparent!important'><td style='background:transparent!important'>".
 				  "<div style='display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;justify-content:center'>".
 						"<div id='wstatus-anchor' style='position:relative;display:inline-block;width:100px;height:100px'>".
