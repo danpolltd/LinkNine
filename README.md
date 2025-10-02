@@ -1,6 +1,6 @@
 # qhtlfirewall — Danpol QhtLink Firewall
 
-Latest release: 0.1.9 “Snow Castle”. See `qhtlfirewall/changelog.txt` for full history.
+Latest release: 0.1.11 “Curse Blade”. See `qhtlfirewall/changelog.txt` for full history.
 
 ## All files within this repository are subject to the [GPL license](LICENSE.txt) as outlined in [COPYING.md](COPYING.md)
 
@@ -59,6 +59,13 @@ Dynamic version in WHM header/footer:
   - `qhtlfirewall_version` → e.g. `0.1.6`
 
 ## Release history
+
+- v.0.1.11 “Curse Blade” (2025-10-02)
+  - Upgrade UI: Manual Check morphs to an orange Upgrade triangle with the countdown inside; inline ChangeLog viewer.
+  - Upgrade flow simplified: timed auto-refresh every 10s up to 60s; stops when the Upgrade button disappears.
+  - Watcher: newest-first display, auto-scroll to top when not live; modal pinned 20px from top with 20px side margins.
+  - Robust manual version check with mirror normalization and tolerant parsing; clearer errors if HTTP client missing.
+  - Stability: treat ServerCheck/RBLCheck/Ports as optional; guarded calls avoid undefined method crashes.
 
 - v.0.1.9 “Snow Castle” (2025-09-29)
   - Added dialog-based Terminal UI (TUI) with status/control, config editor by section, lists editor, ports, temp rules, logs viewer, updater, and mc explorer.
