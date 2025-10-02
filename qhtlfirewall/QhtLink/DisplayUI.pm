@@ -1939,15 +1939,21 @@ QHTL_JQ_GREP
 			# Build schedule/run controls HTML to embed inside first tab instead of below tabs
 			my $controls_html = '';
 			{
-				open (my $IN, "<", "/etc/cron.d/qhtlfirewall-cron");
-				flock ($IN, LOCK_SH);
-				my @data = <$IN>;
-				close ($IN);
-				chomp @data;
+				my @data = ();
+				if (-e "/etc/cron.d/qhtlfirewall-cron") {
+					if (open (my $IN, "<", "/etc/cron.d/qhtlfirewall-cron")) {
+						flock ($IN, LOCK_SH);
+						@data = <$IN>;
+						close ($IN);
+					}
+				}
+				chomp @data if @data;
 				my $optionselected = "never";
 				my $email;
-				if (my @ls = grep {$_ =~ /qhtlfirewall \-m/} @data) {
-					if ($ls[0] =~ /\@(\w+)\s+root\s+\/usr\/sbin\/qhtlfirewall \-m (.*)/) {$optionselected = $1; $email = $2}
+				if (@data) {
+					if (my @ls = grep {$_ =~ /qhtlfirewall \-m/} @data) {
+						if ($ls[0] =~ /\@(\w+)\s+root\s+\/usr\/sbin\/qhtlfirewall \-m (.*)/) {$optionselected = $1; $email = $2}
+					}
 				}
 				$controls_html .= "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='serverchecksave'>\n";
 				$controls_html .= "Generate and email this report <select name='freq'>\n";
@@ -2044,8 +2050,17 @@ HTML_TABS_CSS
 			if ($controls_block ne '') { $controls_block = "<div style='margin-top:10px;'>$controls_block</div>"; }
 			$panels[0] = ($score_block) . $controls_block . ($panels[0] // '');
 
-			# Default selected tab: first tab (index 0)
+			# Default selected tab: choose the first non-empty panel; if we fell back to All Checks, prefer Tab 2
 			my $default_idx = 0;
+			if ($nonempty_sections == 0) { $default_idx = 1; }
+			else {
+				# Scan panels from 0..end and pick the first with visible content
+				for (my $i=0; $i<scalar(@panels); $i++) {
+					my $p = $panels[$i] // '';
+					my $t = $p; $t =~ s/<[^>]+>//g; $t =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $t =~ s/\s+//g;
+					if ($t ne '') { $default_idx = $i; last; }
+				}
+			}
 
 			# Emit CSS rules to style the selected label and reveal the selected panel per radio
 			print "<style>\n";
@@ -2079,9 +2094,9 @@ HTML_TABS_CSS
 			print "  </div>\n";
 			print "</div>\n";
 
-			# Client-side safety net: if all secondary panels are effectively empty, show full HTML in Tab 2
+			# Client-side safety net: if all secondary panels are effectively empty, show full HTML in Tab 2 and select it
 			my $escaped_full = $full_html; $escaped_full =~ s/\\/\\\\/g; $escaped_full =~ s/'/\\'/g; $escaped_full =~ s/\r?\n/\n/g;
-			print "<script>(function(){try{var c=document.getElementById('$container_id');if(!c)return;var panels=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel');var nonempty=0;for(var i=1;i<panels.length;i++){var t=(panels[i].textContent||'').replace(/\s+/g,'');if(t!==''){nonempty++;break;}}if(nonempty===0&&panels.length>1){panels[1].innerHTML='".$escaped_full."';var labels=c.querySelectorAll('.qhtl-tab-list label');if(labels[1]){labels[1].textContent='All Checks';}}}catch(_){}})();</script>\n";
+			print "<script>(function(){try{var c=document.getElementById('$container_id');if(!c)return;var panels=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel');var nonempty=0;for(var i=1;i<panels.length;i++){var t=(panels[i].textContent||'').replace(/\s+/g,'');if(t!==''){nonempty++;break;}}if(nonempty===0&&panels.length>1){panels[1].innerHTML='".$escaped_full."';var labels=c.querySelectorAll('.qhtl-tab-list label');if(labels[1]){labels[1].textContent='All Checks';}var r=document.getElementById('".$container_id."-tab-1'); if(r&&r.type==='radio'){ r.checked=true; }}}catch(_){}})();</script>\n";
 		} else {
 			print "<div class='alert alert-warning'>ServerCheck module not available in this environment. Skipping report.</div>\n";
 		}
