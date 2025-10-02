@@ -1930,6 +1930,30 @@ QHTL_JQ_GREP
 				}
 			}
 
+			# Build schedule/run controls HTML to embed inside first tab instead of below tabs
+			my $controls_html = '';
+			{
+				open (my $IN, "<", "/etc/cron.d/qhtlfirewall-cron");
+				flock ($IN, LOCK_SH);
+				my @data = <$IN>;
+				close ($IN);
+				chomp @data;
+				my $optionselected = "never";
+				my $email;
+				if (my @ls = grep {$_ =~ /qhtlfirewall \-m/} @data) {
+					if ($ls[0] =~ /\@(\w+)\s+root\s+\/usr\/sbin\/qhtlfirewall \-m (.*)/) {$optionselected = $1; $email = $2}
+				}
+				$controls_html .= "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='serverchecksave'>\n";
+				$controls_html .= "Generate and email this report <select name='freq'>\n";
+				foreach my $option ("never","hourly","daily","weekly","monthly") {
+					if ($option eq $optionselected) {$controls_html .= "<option selected>$option</option>\n"} else {$controls_html .= "<option>$option</option>\n"}
+				}
+				$controls_html .= "</select> to the email address <input type='text' name='email' value='".($email//'')."'> <input type='submit' class='btn btn-default' value='Schedule'></form></div>\n";
+
+				$controls_html .= "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='servercheck'><input type='submit' class='btn btn-default' value='Run Again'></form></div>\n";
+				$controls_html .= "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='servercheck'><input type='hidden' name='verbose' value='1'><input type='submit' class='btn btn-default' value='Run Again and Display All Checks'></form></div>\n";
+			}
+
 			# Render minimal CSS-only tabs (no JS) using radio inputs and labels; CSP-safe. Use single-quoted heredocs.
 			if ($note_html ne '') { print $note_html; }
 			print <<'HTML_TABS_CSS';
@@ -1966,9 +1990,11 @@ HTML_TABS_CSS
 				$labels[1] = 'All Checks';
 			}
 
-			# Determine default selected tab: first non-empty panel if available, else 0
+			# Embed controls into the first tab
+			$panels[0] = ($panels[0] // '') . $controls_html;
+
+			# Default selected tab: first tab (index 0)
 			my $default_idx = 0;
-			for (my $i=0; $i<scalar(@panels); $i++) { if (defined $panels[$i] and $panels[$i] ne '') { $default_idx = $i; last; } }
 
 			# Emit CSS rules to style the selected label and reveal the selected panel per radio
 			print "<style>\n";
@@ -2002,25 +2028,6 @@ HTML_TABS_CSS
 			print "<div class='alert alert-warning'>ServerCheck module not available in this environment. Skipping report.</div>\n";
 		}
 
-		open (my $IN, "<", "/etc/cron.d/qhtlfirewall-cron");
-		flock ($IN, LOCK_SH);
-		my @data = <$IN>;
-		close ($IN);
-		chomp @data;
-		my $optionselected = "never";
-		my $email;
-		if (my @ls = grep {$_ =~ /qhtlfirewall \-m/} @data) {
-			if ($ls[0] =~ /\@(\w+)\s+root\s+\/usr\/sbin\/qhtlfirewall \-m (.*)/) {$optionselected = $1; $email = $2}
-		}
-		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='serverchecksave'>\n";
-		print "Generate and email this report <select name='freq'>\n";
-		foreach my $option ("never","hourly","daily","weekly","monthly") {
-			if ($option eq $optionselected) {print "<option selected>$option</option>\n"} else {print "<option>$option</option>\n"}
-		}
-		print "</select> to the email address <input type='text' name='email' value='$email'> <input type='submit' class='btn btn-default' value='Schedule'></form></div>\n";
-
-		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='servercheck'><input type='submit' class='btn btn-default' value='Run Again'></form></div>\n";
-		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='servercheck'><input type='hidden' name='verbose' value='1'><input type='submit' class='btn btn-default' value='Run Again and Display All Checks'></form></div>\n";
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "serverchecksave") {
