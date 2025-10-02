@@ -1938,8 +1938,8 @@ QHTL_JQ_GREP
 .qhtl-tab-list { display: flex !important; flex-wrap: wrap; gap: 6px; margin: 0 0 10px 0; padding: 0; list-style: none; }
 .qhtl-tab { display: inline-block !important; padding: 6px 10px; border: 1px solid #DDD; border-radius: 4px; background: #F9F9F9; cursor: pointer; user-select: none; }
 .qhtl-tab[aria-selected="true"] { background: #EDEBFF; border-color: #BBB; font-weight: 600; }
-.qhtl-tab-panel { display: none; border: 1px solid #DDD; border-radius: 4px; padding: 10px; background: #FFF; }
-.qhtl-tab-panel.active { display: block; }
+.qhtl-tab-panel { display: none !important; border: 1px solid #DDD; border-radius: 4px; padding: 10px; background: #FFF; }
+.qhtl-tab-panel.active { display: block !important; }
 </style>
 <script>
 (function(){
@@ -1955,7 +1955,7 @@ QHTL_JQ_GREP
       }
     }
   }
-  window.initQhtlTabs = function(id){
+	window.initQhtlTabs = function(id){
     var root = document.getElementById(id);
     if (!root) return;
     var tabs = root.querySelectorAll('[role="tab"]');
@@ -1963,7 +1963,11 @@ QHTL_JQ_GREP
       tab.addEventListener('click', function(e){ e.preventDefault(); selectTab(root, idx); });
     });
     // Default to first tab (empty)
-    selectTab(root, 0);
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', function(){ selectTab(root, 0); });
+		} else {
+			selectTab(root, 0);
+		}
   };
 
 	// Fallback: If server-side parsing yielded no panels, try to transform stacked sections
