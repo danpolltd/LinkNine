@@ -1967,8 +1967,10 @@ QHTL_JQ_GREP
 .qhtl-tabs { margin: 10px 0; }
 .qhtl-tabs input.qhtl-tab-radio { display: none !important; }
 .qhtl-tab-list { display: flex !important; flex-wrap: wrap; gap: 6px; margin: 0 0 10px 0; padding: 0; list-style: none; }
-.qhtl-tab-list .qhtl-tab { display: inline-block !important; padding: 6px 10px; border: 1px solid #DDD; border-radius: 4px; background: #F9F9F9; cursor: pointer; user-select: none; pointer-events: auto !important; }
+.qhtl-tab-list { position: relative; z-index: 5; }
+.qhtl-tab-list .qhtl-tab { display: inline-block !important; padding: 6px 10px; border: 1px solid #DDD; border-radius: 4px; background: #F9F9F9; cursor: pointer; user-select: none; pointer-events: auto !important; position: relative; z-index: 6; }
 .qhtl-tab-list .qhtl-tab.selected { background: #EDEBFF; border-color: #BBB; font-weight: 600; }
+.qhtl-panels { position: relative; z-index: 1; }
 .qhtl-panels .qhtl-tab-panel { display: none !important; border: 1px solid #DDD; border-radius: 4px; padding: 10px; background: #FFF; min-height: 120px; }
 /* Per-tab rules added below to show selected panel and style selected label */
 </style>
@@ -1995,7 +1997,7 @@ HTML_TABS_CSS
 			for (my $i=1; $i<scalar(@panels); $i++) {
 				my $p = $panels[$i] // '';
 				# Strip tags and whitespace to detect real content
-				my $t = $p; $t =~ s/<[^>]+>//g; $t =~ s/\s+//g;
+				my $t = $p; $t =~ s/<[^>]+>//g; $t =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $t =~ s/\s+//g;
 				if ($t ne '') { $nonempty_sections++; }
 			}
 			if ($nonempty_sections == 0) {
@@ -2076,6 +2078,10 @@ HTML_TABS_CSS
 			}
 			print "  </div>\n";
 			print "</div>\n";
+
+			# Client-side safety net: if all secondary panels are effectively empty, show full HTML in Tab 2
+			my $escaped_full = $full_html; $escaped_full =~ s/\\/\\\\/g; $escaped_full =~ s/'/\\'/g; $escaped_full =~ s/\r?\n/\n/g;
+			print "<script>(function(){try{var c=document.getElementById('$container_id');if(!c)return;var panels=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel');var nonempty=0;for(var i=1;i<panels.length;i++){var t=(panels[i].textContent||'').replace(/\s+/g,'');if(t!==''){nonempty++;break;}}if(nonempty===0&&panels.length>1){panels[1].innerHTML='".$escaped_full."';var labels=c.querySelectorAll('.qhtl-tab-list label');if(labels[1]){labels[1].textContent='All Checks';}}}catch(_){}})();</script>\n";
 		} else {
 			print "<div class='alert alert-warning'>ServerCheck module not available in this environment. Skipping report.</div>\n";
 		}
