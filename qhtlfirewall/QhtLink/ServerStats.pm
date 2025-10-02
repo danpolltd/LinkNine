@@ -38,6 +38,7 @@ sub graphs {
 	my $imghddir = shift;
 	my $img;
 	$| = 1;
+	if (defined $imghddir && $imghddir ne '' && $imghddir !~ /\/$/) { $imghddir .= '/'; }
 
 	# Ensure output directory exists so images can be written
 	if (defined $imghddir && $imghddir ne "") {
@@ -3170,6 +3171,7 @@ sub charts {
 	my $imghddir = shift;
 	my $img;
 	$| = 1;
+	if (defined $imghddir && $imghddir ne '' && $imghddir !~ /\/$/) { $imghddir .= '/'; }
 
 	# Ensure output directory exists so images can be written
 	if (defined $imghddir && $imghddir ne "") {

@@ -262,6 +262,7 @@ if (defined $FORM{action} && $FORM{action} eq 'serve_stat_image') {
 	# If not found, attempt to generate via ServerStats (best-effort)
 	if (!$done) {
 		my $outdir = $dirs[0];
+		$outdir .= '/' unless $outdir =~ /\/$/;
 		eval {
 			require File::Path; File::Path::make_path($outdir, { mode => 0755 });
 			# Parse ST_SYSTEM_MAXDAYS from config (fallback 7)
