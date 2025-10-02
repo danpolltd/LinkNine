@@ -3876,6 +3876,69 @@ QHTL_UPGRADE_WIRE_JS
 			"  }\n".
 			"  document.querySelectorAll('.qhtl-star[data-qaction]').forEach(attach);\n".
 			"}catch(e){} })();</script>";
+		# New: Temporary Rule Popup modal (same sizing behaviour as Quick View), yellow glow, scrolls with page and closes on outside click
+		print "<style>\n".
+		      ".qhtl-temp-modal{ position:absolute !important; inset:0 !important; z-index:1000 !important; background: rgba(0,0,0,0.5); }\n".
+		      ".qhtl-temp-modal .modal-dialog{ width: calc(100% - 40px) !important; max-width:none !important; position:absolute !important; top:12px !important; left:20px !important; right:20px !important; transform:none !important; margin:0 !important; }\n".
+		      ".qhtl-temp-modal .modal-content{ height:auto !important; max-height:480px !important; display:flex !important; flex-direction:column !important; overflow:hidden !important; }\n".
+		      ".qhtl-temp-modal .modal-body{ flex:1 1 auto !important; min-height:0 !important; overflow:auto !important; padding:10px !important; }\n".
+		      ".qhtl-temp-modal .modal-footer{ flex:0 0 auto !important; padding:10px !important; display:flex !important; justify-content:flex-end !important; gap:8px !important; }\n".
+		      ".qhtl-yellow-glow{ box-shadow: 0 0 14px 6px rgba(255,215,0,0.6), 0 0 26px 14px rgba(255,215,0,0.32); animation: qhtl-yellow 2.4s infinite ease-in-out; }\n".
+		      "@keyframes qhtl-yellow { 0%,100%{ box-shadow: 0 0 14px 6px rgba(255,215,0,0.55), 0 0 26px 12px rgba(255,215,0,0.28);} 50%{ box-shadow: 0 0 28px 14px rgba(255,215,0,0.95), 0 0 46px 20px rgba(255,215,0,0.55);} }\n".
+		      "</style>\n";
+		print "<div class='modal fade qhtl-temp-modal' id='qhtlTempRuleModal' tabindex='-1' role='dialog' aria-hidden='true' data-backdrop='false' style='display:none'>\n".
+		      "  <div class='modal-dialog'>\n".
+		      "    <div class='modal-content qhtl-yellow-glow'>\n".
+		      "      <div class='modal-body'>\n".
+		      "        <h4 id='qhtlTempRuleTitle' style='margin:0 0 8px 0;'>Temporary Allow/Deny</h4>\n".
+		      "        <div id='qhtlTempRuleBody'>\n".
+		      "          <form action='$script' method='post' id='qhtlTempRuleForm'>\n".
+		      "            <input type='hidden' name='action' value='applytemp'>\n".
+		      "            <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>\n".
+		      "              <div style='flex:0 0 20%; max-width:20%'>Action</div>\n".
+		      "              <div style='flex:1 1 auto'><select name='do' class='form-control' style='width:auto; display:inline-block; min-width:140px'><option>block</option><option>allow</option></select></div>\n".
+		      "            </div>\n".
+		      "            <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>\n".
+		      "              <div style='flex:0 0 20%; max-width:20%'>IP address</div>\n".
+		      "              <div style='flex:1 1 auto'><input type='text' name='ip' value='' size='18' class='form-control' style='max-width:340px'></div>\n".
+		      "            </div>\n".
+		      "            <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>\n".
+		      "              <div style='flex:0 0 20%; max-width:20%'>Ports</div>\n".
+		      "              <div style='flex:1 1 auto'><input type='text' name='ports' value='*' size='5' class='form-control' style='max-width:200px'></div>\n".
+		      "            </div>\n".
+		      "            <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>\n".
+		      "              <div style='flex:0 0 20%; max-width:20%'>Duration for</div>\n".
+		      "              <div style='flex:1 1 auto'><input type='text' name='timeout' value='' size='4' class='form-control' style='display:inline-block; width:90px; margin-right:8px;'> <select name='dur' class='form-control' style='display:inline-block; width:auto; min-width:120px'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select></div>\n".
+		      "            </div>\n".
+		      "            <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>\n".
+		      "              <div style='flex:0 0 20%; max-width:20%'>Comment</div>\n".
+		      "              <div style='flex:1 1 auto'><input type='text' name='comment' value='' size='30' class='form-control' style='max-width:520px'></div>\n".
+		      "            </div>\n".
+		      "            <div class='text-muted' style='font-size:12px; margin-bottom:8px'>(ports can be either * for all ports, a single port, or a comma separated list of ports)</div>\n".
+		      "            <div style='display:flex; justify-content:center; margin:6px 0;'><button id='qhtlTempRuleApplyBtn' type='submit' class='btn btn-default' data-bubble-color='purple'>Apply Temporary Rule</button></div>\n".
+		      "          </form>\n".
+		      "        </div>\n".
+		      "      </div>\n".
+		      "      <div class='modal-footer'>\n".
+		      "        <button type='button' class='btn btn-default' id='qhtlTempRuleCloseBtn' data-dismiss='modal'>Close</button>\n".
+		      "      </div>\n".
+		      "    </div>\n".
+		      "  </div>\n".
+		      "</div>\n";
+		# Script to wire the Temporary Rule modal: open, close on outside click, scroll with page, AJAX submit
+		print "<script>(function(){ try{\n".
+		      "  var $modal = $('#qhtlTempRuleModal');\n".
+		      "  function appendToScope(){ try{ var $w=$('.qhtl-bubble-bg').first(); if($w.length){ $modal.appendTo($w); $modal.css({position:'absolute'}); } else { $modal.appendTo('body'); $modal.css({position:'fixed'}); } }catch(_){ } }\n".
+		      "  window.openTempRule = function(prefill){ try{ appendToScope(); var $w=$('.qhtl-bubble-bg').first(); if($w.length){ $modal.css({ left:0, top:0, right:0, bottom:0, width:'auto', height:'auto', margin:0, background:'rgba(0,0,0,0.5)' }); } else { $modal.css({ left:0, top:0, right:0, bottom:0, width:'auto', height:'auto', margin:0, background:'rgba(0,0,0,0.5)' }); } try{ if(prefill && prefill.ip){ var ipI = document.querySelector('#qhtlTempRuleForm input[name=ip]'); if(ipI) ipI.value = prefill.ip; } }catch(__){} $modal.modal({ show:true, backdrop:false, keyboard:true }); try{ $('body').removeClass('modal-open').css({ overflow: '' }); }catch(__){} } catch(e){} };\n".
+		      "  // Close modal when clicking outside dialog\n".
+		      "  $modal.off('mousedown.qhtlOutside'); $modal.on('mousedown.qhtlOutside', function(ev){ try{ var dlg = $(this).find('.modal-dialog')[0]; if(!dlg) return; var t = ev.target; if (t === this || (dlg && !dlg.contains(t))){ $(this).modal('hide'); } }catch(_){ } });\n".
+		      "  // AJAX-submit the form and render results inside body, keep header/button visible\n".
+		      "  $(document).on('submit', '#qhtlTempRuleForm', function(ev){ try{ ev.preventDefault(); var f=this; var area = document.getElementById('qhtlTempRuleBody'); if(!area) return; if(area.qhtlCancelFade) area.qhtlCancelFade(); area.innerHTML = '<div class=\'text-muted\'>Applying…</div>'; var fd=new FormData(f); try{ fd.append('ajax','1'); }catch(__){} var u=f.getAttribute('action')||''; if(window.jQuery){ jQuery.ajax({ url:u, method:(f.method||'POST'), data:fd, processData:false, contentType:false }).done(function(d){ try{ area.innerHTML=d; if(area.qhtlArmAuto) area.qhtlArmAuto(); }catch(__){} }).fail(function(){ try{ area.innerHTML='<div class=\'text-danger\'>Failed to apply temporary rule.</div>'; }catch(__){} }); } else { var x=new XMLHttpRequest(); x.open((f.method||'POST'), u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200 && x.status<300){ area.innerHTML=x.responseText; if(area.qhtlArmAuto) area.qhtlArmAuto(); } else { area.innerHTML='<div class=\'text-danger\'>Failed to apply temporary rule.</div>'; } }catch(__){} } }; x.send(fd); } }catch(_){ } });\n".
+		      "  // Wire the Temp star long-press to open this modal too (3s), similar overlay/countdown as others\n".
+		      "  (function(){ try{ var btn = document.querySelector('.qhtl-star[data-qaction=\'temp\']'); if(!btn) return; var secs=3, down=false, t=null, remain=secs, overlay=null; function clearOv(){ try{ if(overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }catch(_){ } overlay=null; } function cancel(){ down=false; if(t){ clearInterval(t); t=null; } clearOv(); btn.dataset.lpHandled='0'; btn.classList.remove('counting'); } function done(){ if(t){ clearInterval(t); t=null; } btn.dataset.lpHandled='1'; clearOv(); btn.classList.remove('counting'); try{ var ip=(document.getElementById('starip-temp')||{}).value||''; openTempRule({ ip: ip }); }catch(__){} } function start(){ down=true; remain=secs; clearOv(); btn.classList.add('counting'); overlay=document.createElement('div'); overlay.className='qhtl-star-countdown'; overlay.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#ffff00;text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none;'; overlay.textContent=remain; btn.appendChild(overlay); t=setInterval(function(){ if(!down){ cancel(); return; } remain--; if(remain>0){ overlay.textContent=remain; } else { done(); } }, 1000); } btn.addEventListener('mousedown', start); btn.addEventListener('touchstart', start, {passive:true}); ['mouseup','mouseleave','touchend','touchcancel','blur'].forEach(function(ev){ btn.addEventListener(ev, cancel, {passive:true}); }); btn.addEventListener('click', function(e){ if(btn.dataset.lpHandled==='1'){ e.preventDefault(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); btn.dataset.lpHandled='0'; } }, true); }catch(_){ } })();\n".
+		      "  // Load optional external behavior file for the Temp Rule modal\n".
+		      "  var s=document.createElement('script'); s.src='$script?action=widget_js&name=qTempRule.js&v=$myv'; s.async=true; try{ document.body.appendChild(s); }catch(__){}\n".
+		      "}catch(e){} })();</script>";
 		# Hidden helpers: quickview links and minimal forms for star submissions
 		print "<div id='qhtl-quick-hidden' style='display:none'>";
 		print "<a class='quickview-link' data-which='allow' data-url='$script?action=viewlist&which=allow' href='javascript:void(0)'></a>";
