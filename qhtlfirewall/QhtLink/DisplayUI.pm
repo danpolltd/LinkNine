@@ -4062,6 +4062,8 @@ QHTL_UPGRADE_WIRE_JS
 	print "    function arm(){ if(t){ clearTimeout(t); } cancelFade(); t=setTimeout(beginFade, 10000); }\n";
 	print "    // Arm on interactions and when content changes; also cancel any active dimming to keep content visible\n";
 	print "    ['click','input','mousemove','wheel','keydown','touchstart','pointermove','pointerdown'].forEach(function(evt){ el.addEventListener(evt, arm, {passive:true}); });\n";
+	print "    // Also listen globally so activity outside the area cancels dimming and resets the timer\n";
+	print "    try { if (!el.qhtlDocArmBound) { el.qhtlDocArmBound = true; ['click','input','mousemove','wheel','keydown','touchstart','pointermove','pointerdown','scroll'].forEach(function(evt){ document.addEventListener(evt, arm, {passive:true, capture:true}); }); } } catch(_) { }\n";
 	print "    var mo = new MutationObserver(function(){ arm(); try{ var fh=el.querySelector('.qhtl-fallback-holder'); if (el.children.length===0){ showFallback(); } else if (fh && el.children.length>1){ if(fh.parentNode) fh.parentNode.removeChild(fh); } }catch(_){ } }); mo.observe(el, { childList:true, subtree:true }); arm(); if (el.children.length===0) showFallback();\n";
 	print "    // Expose small helpers for external use (e.g., tab re-click toggles)\n";
 	print "    el.qhtlClearNow = clearNow; el.qhtlCancelFade = cancelFade; el.qhtlArmAuto = arm; el.qhtlShowFallback = showFallback;\n";
