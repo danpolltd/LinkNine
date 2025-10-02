@@ -3991,36 +3991,6 @@ QHTL_TEMP_MODAL_JS_B
 			"}catch(e){} })();</script>\n";
 
 
-	# Temporary Allow/Deny (merged into a single full-width row)
-		print "<tr><td colspan='2'>";
-		print "<form action='$script' method='post' id='tempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='applytemp'>";
-		print "<div style='width:100%'>";
-		print "  <div class='h4' style='margin:0 0 8px 0;'>Temporary Allow/Deny</div>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-		print "    <div style='flex:0 0 20%; max-width:20%'>Action</div>";
-		print "    <div style='flex:1 1 auto'><select name='do' class='form-control' style='width:auto; display:inline-block; min-width:140px'><option>block</option><option>allow</option></select></div>";
-		print "  </div>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-		print "    <div style='flex:0 0 20%; max-width:20%'>IP address</div>";
-		print "    <div style='flex:1 1 auto'><input type='text' name='ip' value='' size='18' class='form-control' style='max-width:340px'></div>";
-		print "  </div>";
-	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-	print "    <div style='flex:0 0 20%; max-width:20%'>Ports</div>";
-	print "    <div style='flex:1 1 auto'><input type='text' name='ports' value='*' size='5' class='form-control' style='max-width:200px'></div>";
-	print "  </div>";
-	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-	print "    <div style='flex:0 0 20%; max-width:20%'>Duration for</div>";
-	print "    <div style='flex:1 1 auto'><input type='text' name='timeout' value='' size='4' class='form-control' style='display:inline-block; width:90px; margin-right:8px;'> <select name='dur' class='form-control' style='display:inline-block; width:auto; min-width:120px'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select></div>";
-	print "  </div>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-		print "    <div style='flex:0 0 20%; max-width:20%'>Comment</div>";
-		print "    <div style='flex:1 1 auto'><input type='text' name='comment' value='' size='30' class='form-control' style='max-width:520px'></div>";
-		print "  </div>";
-	print "  <div class='text-muted' style='font-size:12px; margin-bottom:8px'>(ports can be either * for all ports, a single port, or a comma separated list of ports)</div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button id='btn-tempdeny' type='button' onclick=\"try{document.getElementById('tempdeny').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='purple'>Apply Temporary Rule</button></div>";
-		print "</div></form>";
-		print "</td></tr>\n";
-
 		print "</table>\n";
 		print "</div>\n";
 
