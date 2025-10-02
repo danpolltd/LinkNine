@@ -3806,7 +3806,7 @@ QHTL_UPGRADE_WIRE_JS
 		print "</td></tr>\n";
 
 		# Quick Deny
-		print "<tr><td colspan='2'>";
+		print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
 		print "<form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>";
 		print "<div style='width:100%'>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
