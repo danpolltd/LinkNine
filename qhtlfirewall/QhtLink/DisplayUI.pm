@@ -1993,12 +1993,21 @@ HTML_TABS_CSS
 			# Extract Server Score card from any section and move it to the first tab
 			my $score_html = '';
 			for (my $i = scalar(@panels)-1; $i >= 1; $i--) {
-				if (defined $panels[$i] and $panels[$i] ne '' and $panels[$i] =~ /Server Score:/) {
-					if ($panels[$i] =~ m{((?:<br>\s*)*<table[^>]*>.*?Server Score:.*?</table>)}s) {
-						$score_html = $1;
-						$panels[$i] =~ s/\Q$score_html\E//s;
-						last;
-					}
+				my $p = $panels[$i];
+				next unless defined $p and $p ne '' and $p =~ /Server Score:/;
+				# Prefer capturing the outer centered table that contains the score H4 and inner charts, ending with </td></tr></table>
+				if ($p =~ m{((?:<br>\s*)*<table[^>]*align=['\"]?center['\"]?[^>]*>.*?Server Score:.*?</td>\s*</tr>\s*</table>)}is) {
+					$score_html = $1;
+					$panels[$i] =~ s/\Q$score_html\E//is;
+					$panels[$i] =~ s/^(?:\s*<br>\s*)+//s; # tidy leading breaks if any
+					last;
+				}
+				# Fallback: capture from the H4 heading to the outer closing
+				elsif ($p =~ m{(<h4[^>]*>\s*Server\s+Score:.*?</table>\s*</div>\s*</td>\s*</tr>\s*</table>)}is) {
+					$score_html = $1;
+					$panels[$i] =~ s/\Q$score_html\E//is;
+					$panels[$i] =~ s/^(?:\s*<br>\s*)+//s;
+					last;
 				}
 			}
 
