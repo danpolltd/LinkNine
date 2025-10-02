@@ -3886,12 +3886,14 @@ QHTL_UPGRADE_WIRE_JS
 		print "<style>\n".
 			  ".qhtl-temp-modal{ position:absolute !important; inset:0 !important; z-index:1100 !important; background: rgba(0,0,0,0.5); opacity:0; transition: opacity .2s ease; }\n".
 			  ".qhtl-temp-modal.in, .qhtl-temp-modal.show{ opacity:1 !important; }\n".
-		      ".qhtl-temp-modal .modal-dialog{ width: calc(100% - 40px) !important; max-width:none !important; position:absolute !important; top:12px !important; left:20px !important; right:20px !important; transform:none !important; margin:0 !important; }\n".
+			  ".qhtl-temp-modal .modal-dialog{ width: calc(100% - 40px) !important; max-width:none !important; position:absolute !important; top:20px !important; left:20px !important; right:20px !important; transform:none !important; margin:0 !important; }\n".
 		      ".qhtl-temp-modal .modal-content{ height:auto !important; max-height:480px !important; display:flex !important; flex-direction:column !important; overflow:hidden !important; }\n".
 		      ".qhtl-temp-modal .modal-body{ flex:1 1 auto !important; min-height:0 !important; overflow:auto !important; padding:10px !important; }\n".
 		      ".qhtl-temp-modal .modal-footer{ flex:0 0 auto !important; padding:10px !important; display:flex !important; justify-content:flex-end !important; gap:8px !important; }\n".
 		      ".qhtl-yellow-glow{ box-shadow: 0 0 14px 6px rgba(255,215,0,0.6), 0 0 26px 14px rgba(255,215,0,0.32); animation: qhtl-yellow 2.4s infinite ease-in-out; }\n".
 		      "@keyframes qhtl-yellow { 0%,100%{ box-shadow: 0 0 14px 6px rgba(255,215,0,0.55), 0 0 26px 12px rgba(255,215,0,0.28);} 50%{ box-shadow: 0 0 28px 14px rgba(255,215,0,0.95), 0 0 46px 20px rgba(255,215,0,0.55);} }\n".
+			  "/* Constrain input fields inside the Temp modal to 150px */\n".
+			  ".qhtl-temp-modal input.form-control, .qhtl-temp-modal input[type=text]{ max-width:150px !important; width:150px !important; }\n".
 		      "</style>\n";
 		print "<div class='modal fade qhtl-temp-modal' id='qhtlTempRuleModal' tabindex='-1' role='dialog' aria-hidden='true' data-backdrop='false' style='display:none'>\n".
 		      "  <div class='modal-dialog'>\n".
@@ -3933,10 +3935,10 @@ QHTL_UPGRADE_WIRE_JS
 		      "  </div>\n".
 		      "</div>\n";
 	  # Script to wire the Temporary Rule modal: open, close on outside click, scroll with page, AJAX submit (robust w/ or w/o jQuery)
-	  print "<script>(function(){ try\n".
+	  print "<script>(function(){ try{\n".
 		  "  function getJQ(){ try{ return window.jQuery || window.$ || null; }catch(_){ return null; } }\n".
 		  "  var $modal = $('#qhtlTempRuleModal');\n".
-		  "  function appendToScope(){ try{ var $w=$('.qhtl-bubble-bg').first(); if($w.length){ $modal.appendTo($w); $modal.css({position:'absolute'}); } else { $modal.appendTo('body'); $modal.css({position:'fixed'}); } }catch(_){ } }\n".
+			  "  function appendToScope(){ try{ var $w=$('.qhtl-bubble-bg').first(); if($w.length){ $modal.appendTo($w); $modal.css({position:'absolute'}); try{ var el=$w.get(0); var cs=window.getComputedStyle(el); if(cs && cs.position==='static'){ el.style.position='relative'; } }catch(__){} } else { $modal.appendTo('body'); $modal.css({position:'fixed'}); } }catch(_){ } }\n".
 		  "  window.openTempRule = function(prefill){ try{ appendToScope(); var jq=getJQ(); var $m=$modal; var mEl=document.getElementById('qhtlTempRuleModal'); try{ if(prefill && prefill.ip){ var ipI=document.querySelector('#qhtlTempRuleForm input[name=ip]'); if(ipI) ipI.value=prefill.ip; } }catch(__){} var canJQ = !!(jq && $m && typeof $m.modal==='function'); if (canJQ) { $m.css({ left:0, top:0, right:0, bottom:0, width:'auto', height:'auto', margin:0, background:'rgba(0,0,0,0.5)' }); $m.modal({ show:true, backdrop:false, keyboard:true }); try{ jq('body').removeClass('modal-open').css({ overflow: '' }); }catch(__){} } else if (mEl) { mEl.style.left='0'; mEl.style.top='0'; mEl.style.right='0'; mEl.style.bottom='0'; mEl.style.width='auto'; mEl.style.height='auto'; mEl.style.margin='0'; mEl.style.background='rgba(0,0,0,0.5)'; mEl.style.display='block'; mEl.style.opacity='1'; try{ mEl.classList.add('in'); mEl.classList.add('show'); }catch(_c){} mEl.setAttribute('aria-hidden','false'); } } catch(e){} };\n".
 		  "  // Close modal when clicking outside dialog (works with or without jQuery)\n".
 			  "  (function(){ try{ var jq=getJQ(); var $m=$modal; var mEl=document.getElementById('qhtlTempRuleModal'); if(jq && $m){ $m.off('mousedown.qhtlOutside'); $m.on('mousedown.qhtlOutside', function(ev){ try{ var dlg = $(this).find('.modal-dialog')[0]; if(!dlg) return; var t = ev.target; if (t === this || (dlg && !dlg.contains(t))){ $(this).modal('hide'); } }catch(_){ } }); } if(mEl){ mEl.addEventListener('mousedown', function(ev){ try{ var dlg=mEl.querySelector('.modal-dialog'); var t=ev.target; if (t===mEl || (dlg && !dlg.contains(t))){ try{ if(jq && $m && typeof $m.modal==='function'){ $m.modal('hide'); } }catch(__){} mEl.style.display='none'; mEl.style.opacity=''; try{ mEl.classList.remove('in'); mEl.classList.remove('show'); }catch(_r){} mEl.setAttribute('aria-hidden','true'); } }catch(__){} }); var cb=document.getElementById('qhtlTempRuleCloseBtn'); if(cb){ cb.addEventListener('click', function(){ try{ if(jq && $m && typeof $m.modal==='function'){ $m.modal('hide'); } else { mEl.style.display='none'; mEl.style.opacity=''; try{ mEl.classList.remove('in'); mEl.classList.remove('show'); }catch(_r){} mEl.setAttribute('aria-hidden','true'); } }catch(__){} }); } } }catch(_){ } })();\n".
