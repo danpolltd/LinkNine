@@ -3842,7 +3842,7 @@ QHTL_UPGRADE_WIRE_JS
 			if ($q->{key} eq 'temp') {
 				$onclick = "try{ openTempRule({}); }catch(e){}";
 			} else {
-				$onclick = "try{var siv=document.getElementById('$sid'); var tf=document.querySelector('#$form input[name=ip]'); if(tf && siv){ tf.value=siv.value; } var b=document.getElementById('$btnid'); if(b){ b.click(); } else { document.getElementById('$form').submit(); }}catch(e){}";
+				$onclick = "try{var siv=document.getElementById('$sid'); var tf=document.querySelector('#$form input[name=ip]'); if(tf && siv){ tf.value=siv.value; } var f=document.getElementById('$form'); if(!f){ return false; } var ev; try{ ev=new Event('submit', {bubbles:true, cancelable:true}); }catch(__){ try{ ev=document.createEvent('Event'); ev.initEvent('submit', true, true); }catch(___){ ev=null; } } if(ev){ var notCancelled = f.dispatchEvent(ev); if(notCancelled){ try{ f.submit(); }catch(____){} } } else { try{ f.submit(); }catch(_____){} } }catch(e){}";
 			}
 			my $bg    = ($q->{key} eq 'allow') ? '#BDECB6' :
 			           ($q->{key} eq 'deny') ? '#FFD1DC' :
