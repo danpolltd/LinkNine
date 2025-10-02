@@ -4643,7 +4643,7 @@ function openQuickView(url, which) {
 
     try { if (window.__qhtlCurrentXHR && window.__qhtlCurrentXHR.abort) { window.__qhtlCurrentXHR.abort(); } } catch(__ax){}
     if (window.console && console.info) { try { console.info('[QHTL] QuickView GET', url); } catch(__c){} }
-    window.__qhtlCurrentXHR = $.ajax({ url: url, method: 'GET', dataType: 'html', timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+	window.__qhtlCurrentXHR = jQuery.ajax({ url: url, method: 'GET', dataType: 'html', timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
 		.done(function(data){
 			try { window.clearTimeout(window.__qhtlLoadHintTimer); } catch(__h){}
 			var body = data;
@@ -4735,7 +4735,7 @@ $(document).on('click', '#quickViewEditBtn', function(){
 	$('#quickViewBody').html('Loading...');
     try { if (window.__qhtlEditXHR && window.__qhtlEditXHR.abort) { window.__qhtlEditXHR.abort(); } } catch(__ax){}
     if (window.console && console.info) { try { console.info('[QHTL] QuickView EDIT GET', url); } catch(__c){} }
-    window.__qhtlEditXHR = $.ajax({ url: url, method: 'GET', dataType: 'html', timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+	window.__qhtlEditXHR = jQuery.ajax({ url: url, method: 'GET', dataType: 'html', timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
 		.done(function(data){
 			$('#quickViewBody').html(data);
 			$('#quickViewEditBtn').hide();
@@ -4768,7 +4768,7 @@ $(document).on('click', '#quickViewSaveBtn', function(){
 	$('#quickViewBody').html('Saving...');
     try { if (window.__qhtlSaveXHR && window.__qhtlSaveXHR.abort) { window.__qhtlSaveXHR.abort(); } } catch(__ax){}
     if (window.console && console.info) { try { console.info('[QHTL] QuickView SAVE POST', currentQuickWhich); } catch(__c){} }
-    window.__qhtlSaveXHR = $.ajax({ url: QHTL_SCRIPT + '?action=savelist&which=' + encodeURIComponent(currentQuickWhich), method: 'POST', data: { formdata: content }, timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+	window.__qhtlSaveXHR = jQuery.ajax({ url: QHTL_SCRIPT + '?action=savelist&which=' + encodeURIComponent(currentQuickWhich), method: 'POST', data: { formdata: content }, timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
 		.done(function(){
 			showQuickView(currentQuickWhich);
 			$('#quickViewEditBtn').show();
