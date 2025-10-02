@@ -3900,13 +3900,13 @@ QHTL_UPGRADE_WIRE_JS
 		print "  <div style='display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:30px;'>";
 		my @orangeBtns = (
 			{ label => 'Test Security',   action => 'servercheck' },
-			{ label => 'Qht Link Info',   action => 'readme'      },
+			{ label => 'QhtLink Info',    action => 'readme'      },
 			{ label => 'Search Logs',     action => 'loggrep'     },
 			{ label => 'Active Ports',    action => 'viewports'   },
-			{ label => 'Check in RBLs',   action => 'rblcheck'    },
-			{ label => 'View ipt Log',    action => 'viewlogs'    },
+			{ label => 'Check RBLs',      action => 'rblcheck'    },
+			{ label => 'View ipt-Log',    action => 'viewlogs'    },
 			{ label => 'QhtL Stats',      action => 'chart'       },
-			{ label => 'View Sys Stats',  action => 'systemstats' },
+			{ label => 'System Stats',    action => 'systemstats' },
 		);
 		foreach my $b (@orangeBtns) {
 			my $label  = $b->{label};
