@@ -2012,6 +2012,10 @@ HTML_TABS_CSS
 				if ($p =~ m{((?:<br>\s*)*<table[^>]*align=['\"]?center['\"]?[^>]*>.*?Server Score:.*?</td>\s*</tr>\s*</table>)}is) {
 					$score_html = $1;
 					$panels[$i] =~ s/\Q$score_html\E//is;
+					# If the disclaimer line exists, append it to the score block and remove from source
+					if ($p =~ m{(<br>\s*<div>\*\s*This\s+scoring\s+does\s+not\s+necessarily.*?</div>)}is) {
+						my $disc = $1; $score_html .= $disc; $panels[$i] =~ s/\Q$disc\E//is;
+					}
 					$panels[$i] =~ s/^(?:\s*<br>\s*)+//s; # tidy leading breaks if any
 					last;
 				}
@@ -2019,6 +2023,9 @@ HTML_TABS_CSS
 				elsif ($p =~ m{(<h4[^>]*>\s*Server\s+Score:.*?</table>\s*</div>\s*</td>\s*</tr>\s*</table>)}is) {
 					$score_html = $1;
 					$panels[$i] =~ s/\Q$score_html\E//is;
+					if ($p =~ m{(<br>\s*<div>\*\s*This\s+scoring\s+does\s+not\s+necessarily.*?</div>)}is) {
+						my $disc = $1; $score_html .= $disc; $panels[$i] =~ s/\Q$disc\E//is;
+					}
 					$panels[$i] =~ s/^(?:\s*<br>\s*)+//s;
 					last;
 				}
@@ -2030,7 +2037,10 @@ HTML_TABS_CSS
 				# Place the Server Score above the controls with some breathing room
 				$score_block = "<div class='qhtl-score-block' style='margin: 0 0 14px 0;'>$score_html</div>";
 			}
-			$panels[0] = ($score_block) . ($controls_html // '') . ($panels[0] // '');
+			# Controls appear below the disclaimer/score block
+			my $controls_block = ($controls_html // '');
+			if ($controls_block ne '') { $controls_block = "<div style='margin-top:10px;'>$controls_block</div>"; }
+			$panels[0] = ($score_block) . $controls_block . ($panels[0] // '');
 
 			# Default selected tab: first tab (index 0)
 			my $default_idx = 0;
