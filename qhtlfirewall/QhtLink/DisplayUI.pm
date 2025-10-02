@@ -3811,6 +3811,7 @@ QHTL_UPGRADE_WIRE_JS
 			".qhtl-star svg{display:block;width:140px;height:90px;}\n".
 			".qhtl-star:focus{outline:2px solid #fff;outline-offset:2px;}\n".
 			".qhtl-star-label{margin-top:6px;font-size:13px;line-height:1.1;color:#eee;text-shadow:0 1px 0 rgba(0,0,0,0.35);}\n".
+			".qhtl-star-field{margin-top:6px;width:120px;max-width:120px;}\n".
 		"</style>";
 		# Button group with 15px gap between halos (wrappers)
 		print "<div style=\"display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:15px;\">";
@@ -3826,10 +3827,16 @@ QHTL_UPGRADE_WIRE_JS
 			my $label = $q->{label};
 			my $form  = $q->{form};
 			my $btnid = $q->{btn};
+			my $sid   = "starip-".$q->{key};
+			my $bg    = ($q->{key} eq 'allow') ? '#BDECB6' :
+			           ($q->{key} eq 'deny') ? '#FFD1DC' :
+			           ($q->{key} eq 'ignore') ? '#D9EDF7' :
+			           ($q->{key} eq 'search') ? '#F5F5F5' :
+			           ($q->{key} eq 'unblock') ? '#F5F5F5' : '#FFFFFF';
 			my $title = $label;
 			print "<div class=\"qhtl-star-item\">".
 				"<div class=\"qhtl-star-wrap\" aria-hidden=\"false\">".
-					"<button type=\"button\" class=\"qhtl-star\" data-qaction=\"$q->{key}\" title=\"$title\" aria-label=\"$title\" onclick=\"try{var b=document.getElementById('$btnid'); if(b){ b.click(); } else { document.getElementById('$form').submit(); }}catch(e){}\">".
+					"<button type=\"button\" class=\"qhtl-star\" data-qaction=\"$q->{key}\" title=\"$title\" aria-label=\"$title\" onclick=\"try{var siv=document.getElementById('$sid'); var tf=document.querySelector('#$form input[name=ip]'); if(tf && siv){ tf.value=siv.value; } var b=document.getElementById('$btnid'); if(b){ b.click(); } else { document.getElementById('$form').submit(); }}catch(e){}\">".
 						"<svg width=\"140\" height=\"90\" viewBox=\"-10 -10 140 90\" xmlns=\"http://www.w3.org/2000/svg\" aria-hidden=\"true\">".
 							"<path d=\"M60,0 L73.2,24.5 L117.6,24.5 L81.6,39.9 L94.8,63.7 L60,49 L25.2,63.7 L38.4,39.9 L2.4,24.5 L46.8,24.5 Z\" fill=\"none\" stroke=\"#ee82ee\" stroke-width=\"20\" stroke-linejoin=\"round\" vector-effect=\"non-scaling-stroke\"/>".
 							"<path d=\"M60,0 L73.2,24.5 L117.6,24.5 L81.6,39.9 L94.8,63.7 L60,49 L25.2,63.7 L38.4,39.9 L2.4,24.5 L46.8,24.5 Z\" fill=\"#8a2be2\"/>".
@@ -3837,6 +3844,7 @@ QHTL_UPGRADE_WIRE_JS
 						"</svg>".
 					"</button>".
 				"</div>".
+				(($q->{key} ne 'temp') ? ("<input id=\"$sid\" class=\"qhtl-star-field form-control\" type=\"text\" placeholder=\"IP\" style=\"background:$bg;width:120px;\">") : ('')).
 			"</div>";
 		}
 		print "</div>"; # end group
