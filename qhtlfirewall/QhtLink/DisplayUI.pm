@@ -1972,7 +1972,7 @@ HTML_TABS_CSS
 			my $container_id = 'qhtl-servercheck-tabs';
 			my @labels;
 			my @panels;
-			push @labels, 'Empty';
+			push @labels, 'General';
 			push @panels, '';
 			for my $i (0 .. 7) { # up to 8 sections
 				if (defined $sections[$i]) {
@@ -1990,8 +1990,20 @@ HTML_TABS_CSS
 				$labels[1] = 'All Checks';
 			}
 
-			# Embed controls into the first tab
-			$panels[0] = ($panels[0] // '') . $controls_html;
+			# Extract Server Score card from any section and move it to the first tab
+			my $score_html = '';
+			for (my $i = scalar(@panels)-1; $i >= 1; $i--) {
+				if (defined $panels[$i] and $panels[$i] ne '' and $panels[$i] =~ /Server Score:/) {
+					if ($panels[$i] =~ m{((?:<br>\s*)*<table[^>]*>.*?Server Score:.*?</table>)}s) {
+						$score_html = $1;
+						$panels[$i] =~ s/\Q$score_html\E//s;
+						last;
+					}
+				}
+			}
+
+			# Embed score (if found) and controls into the first tab
+			$panels[0] = ($score_html // '') . ($controls_html // '') . ($panels[0] // '');
 
 			# Default selected tab: first tab (index 0)
 			my $default_idx = 0;
