@@ -1910,7 +1910,96 @@ QHTL_JQ_GREP
 			1;
 		} or do { $ok = 0; };
 		if ($ok) {
-			print $out;
+			# Transform ServerCheck output into a 9-tab layout with the first tab empty
+			my $full_html = $out;
+			my $note_html = '';
+			# Extract an initial note paragraph if present (from startoutput), keep it above tabs
+			if ($full_html =~ s{^\s*(<p[^>]*>.*?<\/p>)\s*}{}s) {
+				$note_html = $1;
+			}
+
+			# Split the HTML into sections by titles added via addtitle()
+			# Pattern matches: <br><div ...><strong>Title</strong></div>
+			my @parts = split(/<br>\s*<div[^>]*>\s*<strong>([^<]+)<\/strong><\/div>\s*/i, $full_html);
+			my @sections;
+			if (@parts >= 3) {
+				for (my $i = 1; $i < scalar(@parts); $i += 2) {
+					my $title = $parts[$i] // '';
+					my $content = $parts[$i+1] // '';
+					push @sections, { title => $title, content => $content };
+				}
+			}
+
+			# Render minimal CSS/JS for tabs (no external deps). Use single-quoted heredocs to avoid interpolation.
+			if ($note_html ne '') { print $note_html; }
+			print <<'HTML_TABS_CSS_JS';
+<style>
+.qhtl-tabs { margin: 10px 0; }
+.qhtl-tab-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px 0; padding: 0; list-style: none; }
+.qhtl-tab { padding: 6px 10px; border: 1px solid #DDD; border-radius: 4px; background: #F9F9F9; cursor: pointer; user-select: none; }
+.qhtl-tab[aria-selected="true"] { background: #EDEBFF; border-color: #BBB; font-weight: 600; }
+.qhtl-tab-panel { display: none; border: 1px solid #DDD; border-radius: 4px; padding: 10px; background: #FFF; }
+.qhtl-tab-panel.active { display: block; }
+</style>
+<script>
+(function(){
+  function selectTab(container, idx){
+    var tabs = container.querySelectorAll('[role="tab"]');
+    var panels = container.querySelectorAll('[role="tabpanel"]');
+    for (var i=0;i<tabs.length;i++){
+      var sel = (i===idx);
+      tabs[i].setAttribute('aria-selected', sel ? 'true' : 'false');
+      if (panels[i]) {
+        if (sel) { panels[i].classList.add('active'); }
+        else { panels[i].classList.remove('active'); }
+      }
+    }
+  }
+  window.initQhtlTabs = function(id){
+    var root = document.getElementById(id);
+    if (!root) return;
+    var tabs = root.querySelectorAll('[role="tab"]');
+    tabs.forEach(function(tab, idx){
+      tab.addEventListener('click', function(e){ e.preventDefault(); selectTab(root, idx); });
+    });
+    // Default to first tab (empty)
+    selectTab(root, 0);
+  };
+})();
+</script>
+HTML_TABS_CSS_JS
+
+			# Build up to 9 tabs: first empty, next from detected sections (up to 8). Fill remainder with placeholders if needed.
+			my $container_id = 'qhtl-servercheck-tabs';
+			my @labels;
+			my @panels;
+			push @labels, 'Empty';
+			push @panels, '';
+			for my $i (0 .. 7) { # up to 8 sections
+				if (defined $sections[$i]) {
+					push @labels, $sections[$i]{title} // ('Section '.($i+1));
+					push @panels, $sections[$i]{content} // '';
+				} else {
+					push @labels, 'Tab '.($i+2);
+					push @panels, '';
+				}
+			}
+
+			print "<div id='$container_id' class='qhtl-tabs' role='tablist-container'>\n";
+			print "<ul class='qhtl-tab-list' role='tablist'>\n";
+			for (my $i = 0; $i < scalar(@labels); $i++) {
+				my $safe = $labels[$i];
+				$safe =~ s/</&lt;/g; $safe =~ s/>/&gt;/g;
+				print "  <li class='qhtl-tab' role='tab' aria-selected='false' tabindex='0'>".$safe."</li>\n";
+			}
+			print "</ul>\n";
+			for (my $i = 0; $i < scalar(@panels); $i++) {
+				print "<div class='qhtl-tab-panel' role='tabpanel'>\n";
+				print $panels[$i];
+				print "\n</div>\n";
+			}
+			print "</div>\n";
+			print "<script>initQhtlTabs('$container_id');</script>\n";
 		} else {
 			print "<div class='alert alert-warning'>ServerCheck module not available in this environment. Skipping report.</div>\n";
 		}
