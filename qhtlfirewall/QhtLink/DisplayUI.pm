@@ -3898,10 +3898,11 @@ QHTL_UPGRADE_WIRE_JS
 		# Eight orange square buttons (80x80) with a 10px bright-orange halo, centered above Qht Link Info
 		print "<tr><td colspan='2'>";
 		print "<div style='display:flex; justify-content:center; margin:10px 0;'>";
-		print "  <div style='display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:12px;'>";
+		# Use 30px gap between items so the 10px halos have ~10px space between them (gap - 20px halo overlap = 10px)
+		print "  <div style='display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:30px;'>";
 		for (my $i=1; $i<=8; $i++) {
-			my $aria = "Orange button $i";
-			print "<button type='button' aria-label='$aria' style=\"all:unset; cursor:pointer; width:80px; height:80px; display:inline-block; background:#ff9800; border:2px solid #e68900; box-shadow: 0 0 0 10px rgba(255,165,0,0.75), 0 0 22px 10px rgba(255,140,0,0.45);\"></button>";
+		my $aria = "Water bubble button $i";
+		print "<button type='button' aria-label='$aria' onmouseover=\"this.style.transform='scale(1.05)'\" onmouseout=\"this.style.transform='scale(1)'\" style=\"all:unset; cursor:pointer; width:80px; height:80px; display:inline-block; border-radius:50%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.40) 28%, rgba(120,210,255,0.85) 30%, rgba(0,153,255,0.95) 100%); border:2px solid #54b8ff; box-shadow: 0 0 0 10px rgba(120,210,255,0.45), 0 10px 18px rgba(0,153,255,0.30), inset 0 6px 12px rgba(255,255,255,0.55), inset 0 -8px 12px rgba(0,0,0,0.12); transition: transform .15s ease; transform: translateZ(0);\"></button>";
 		}
 		print "  </div>";
 		print "</div>";
