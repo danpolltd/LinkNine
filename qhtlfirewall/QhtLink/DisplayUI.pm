@@ -3800,6 +3800,29 @@ QHTL_UPGRADE_WIRE_JS
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Quick Actions</th></tr></thead>";
 
+		# First cell: six violet star buttons (70x70) with a 10px bright-violet halo, 15px apart, centered
+		print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
+		print "<div style=\"width:100%; display:flex; justify-content:center;\">";
+		# Scoped styles for star layout and shape
+		print "<style>\n".
+			".qhtl-star-wrap{position:relative;width:90px;height:90px;display:inline-flex;align-items:center;justify-content:center;}\n".
+			".qhtl-star-halo{position:absolute;inset:0;clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);background:#ee82ee;border:none;}\n".
+			".qhtl-star{position:relative;width:70px;height:70px;clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);background:#8a2be2;border:none;cursor:pointer;display:inline-block;}\n".
+			".qhtl-star:focus{outline:2px solid #fff;outline-offset:2px;}\n".
+		"</style>";
+		# Button group with 15px gap between halos (wrappers)
+		print "<div style=\"display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:15px;\">";
+		for my $i (1..6) {
+			my $label = "Star $i"; # visual buttons only; actions can be wired later
+			print "<div class=\"qhtl-star-wrap\" aria-hidden=\"false\">".
+				"<div class=\"qhtl-star-halo\" aria-hidden=\"true\"></div>".
+				"<button type=\"button\" class=\"qhtl-star\" title=\"$label\" aria-label=\"$label\"></button>".
+			"</div>";
+		}
+		print "</div>"; # end group
+		print "</div>"; # end centering container
+		print "</td></tr>\n";
+
 		# Quick Allow (inputs above/below the button)
 		print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
 		print "<form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>";
