@@ -1961,7 +1961,7 @@ QHTL_JQ_GREP
 .qhtl-tabs { margin: 10px 0; }
 .qhtl-tabs input.qhtl-tab-radio { display: none !important; }
 .qhtl-tab-list { display: flex !important; flex-wrap: wrap; gap: 6px; margin: 0 0 10px 0; padding: 0; list-style: none; }
-.qhtl-tab-list .qhtl-tab { display: inline-block !important; padding: 6px 10px; border: 1px solid #DDD; border-radius: 4px; background: #F9F9F9; cursor: pointer; user-select: none; }
+.qhtl-tab-list .qhtl-tab { display: inline-block !important; padding: 6px 10px; border: 1px solid #DDD; border-radius: 4px; background: #F9F9F9; cursor: pointer; user-select: none; pointer-events: auto !important; }
 .qhtl-tab-list .qhtl-tab.selected { background: #EDEBFF; border-color: #BBB; font-weight: 600; }
 .qhtl-panels .qhtl-tab-panel { display: none !important; border: 1px solid #DDD; border-radius: 4px; padding: 10px; background: #FFF; }
 /* Per-tab rules added below to show selected panel and style selected label */
@@ -1984,8 +1984,10 @@ HTML_TABS_CSS
 				}
 			}
 
-			# If no sections parsed (unexpected), provide a fallback: put full HTML into Tab 2 (index 1)
-			if (!scalar(grep { defined $_ && $_ ne '' } @panels)) {
+			# If no sections parsed into tabs 2..9, provide a fallback: put full HTML into Tab 2 (index 1)
+			my $nonempty_sections = 0;
+			for (my $i=1; $i<scalar(@panels); $i++) { if (defined $panels[$i] and $panels[$i] ne '') { $nonempty_sections++; } }
+			if ($nonempty_sections == 0) {
 				$panels[1] = $full_html;
 				$labels[1] = 'All Checks';
 			}
