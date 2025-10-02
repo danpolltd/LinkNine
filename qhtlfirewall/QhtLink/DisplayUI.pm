@@ -2153,7 +2153,7 @@ QHTL_JQ_GREP
 			} elsif ($which eq 'deny') {
 				$bgstyle = 'background: linear-gradient(180deg, rgba(248,215,218,0.5) 0%, rgba(245,198,203,0.5) 100%);';
 			}
-			print "<div style='display:flex; flex-direction:column; height:100%'>";
+			print "<div style='display:flex; flex-direction:column; flex:1 1 auto; min-height:0'>";
 			print "<div class='small text-muted' style='margin-bottom:6px; flex:0 0 auto'>Editing: $path</div>";
 			print "<textarea id='quickEditArea' style='width:100%; flex:1 1 auto; border:1px solid #000; font-family: \"Courier New\", Courier; font-size: 13px; line-height: 1.15; box-sizing:border-box; overflow:auto; resize:none; $bgstyle' wrap='off'>";
 			foreach my $line (@lines) {
@@ -4118,7 +4118,7 @@ QHTL_UPGRADE_WIRE_JS
 	# Ensure <pre> in view mode expands within the modal and scrolls if needed
 	print "#quickViewModal #quickViewBody pre { flex:1 1 auto !important; min-height:0 !important; height:auto !important; max-height:none !important; white-space: pre; overflow: auto; overflow-wrap: normal; word-break: normal; }\n";
 	# Textarea in edit mode should fill available space via flex, not absolute 100% height
-	print "#quickEditArea { flex: 1 1 auto !important; min-height: 0 !important; height: auto !important; max-height: none !important; }\n";
+	print "#quickEditArea { flex: 1 1 auto !important; min-height: 220px !important; height: auto !important; max-height: none !important; }\n";
 	print "#quickViewModal #quickEditArea { resize: none !important; }\n";
 	print ".btn-close-red { background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%); color: #721c24 !important; border-color: #f1b0b7 !important; }\n";
 	print ".btn-close-red:hover { background: #dc3545 !important; color: #fff !important; border-color: #dc3545 !important; }\n";
