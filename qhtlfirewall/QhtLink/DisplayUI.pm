@@ -1982,6 +1982,31 @@ QHTL_JQ_GREP
 </style>
 HTML_TABS_CSS
 
+			# Extra CSS for the requested plus button
+			print <<'QHTL_PLUS_BTN_CSS';
+<style>
+.qhtl-plus-btn {
+	width: 70px;
+	height: 70px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 30px; /* bold on 30 pixel */
+	font-weight: 800;
+	color: #ffffff;
+	background: linear-gradient(180deg, #e53935 0%, #b71c1c 100%); /* red shades */
+	border: 1px solid #8e0000;
+	border-radius: 12px;
+	text-decoration: none;
+	cursor: pointer;
+	box-shadow: 0 0 0 10px #ff5252; /* 10px halo with brighter red */
+}
+.qhtl-plus-btn:focus { outline: none; }
+.qhtl-plus-btn:hover { filter: brightness(1.05); }
+.qhtl-plus-wrap { margin: 6px 0 12px 0; }
+</style>
+QHTL_PLUS_BTN_CSS
+
 			# Build up to 9 tabs: first empty, next from detected sections (up to 8). Fill remainder with placeholders if needed.
 			my $container_id = 'qhtl-servercheck-tabs';
 			my @labels;
@@ -1995,6 +2020,15 @@ HTML_TABS_CSS
 				} else {
 					push @labels, 'Tab '.($i+2);
 					push @panels, '';
+				}
+			}
+
+			# Prepend the 70x70 "+" button to the "Firewall Check" tab content if present
+			for (my $i=0; $i<@labels; $i++) {
+				if (defined $labels[$i] && $labels[$i] eq 'Firewall Check') {
+					my $btn = "<div class='qhtl-plus-wrap'><button type='button' class='qhtl-plus-btn' aria-label='Add'>+</button></div>";
+					$panels[$i] = $btn . ($panels[$i] // '');
+					last;
 				}
 			}
 
