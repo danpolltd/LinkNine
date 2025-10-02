@@ -224,6 +224,17 @@ sub main {
 		print "<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
 	}
+	elsif ($FORM{action} eq "chart") {
+		# QhtL Stats: render charts inline (AJAX-safe)
+		&chart();
+		return;
+	}
+	elsif ($FORM{action} eq "systemstats") {
+		# System Stats: render selectable graphs inline (AJAX-safe)
+		my $type = $FORM{graph} // '';
+		&systemstats($type);
+		return;
+	}
 	elsif ($FORM{action} eq "logtail") {
 		$FORM{lines} =~ s/\D//g;
 		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
