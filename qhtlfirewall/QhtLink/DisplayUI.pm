@@ -1988,9 +1988,9 @@ QHTL_JQ_GREP
 		}
 
 		print "<div><b>These options can take a long time to run</b> (several minutes) depending on the number of IP addresses to check and the response speed of the DNS requests:</div>\n";
-		print "<br><div><form action='$script' method='post'><input type='hidden' name='ajax' value='1'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='1'><input type='submit' class='btn btn-default' value='Update All Checks (standard)'> Generates the normal report showing exceptions only</form></div>\n";
-		print "<br><div><form action='$script' method='post'><input type='hidden' name='ajax' value='1'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='2'><input type='submit' class='btn btn-default' value='Update All Checks (verbose)'> Generates the normal report but shows successes and failures</form></div>\n";
-		print "<br><div><form action='$script' method='post'><input type='hidden' name='ajax' value='1'><input type='hidden' name='action' value='rblcheckedit'><input type='submit' class='btn btn-default' value='Edit RBL Options'> Edit qhtlfirewall.rblconf to enable and disable IPs and RBLs</form></div>\n";
+		print "<br><div><form action='${script}?ajax=1' method='post'><input type='hidden' name='ajax' value='1'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='1'><input type='submit' class='btn btn-default' value='Update All Checks (standard)'> Generates the normal report showing exceptions only</form></div>\n";
+		print "<br><div><form action='${script}?ajax=1' method='post'><input type='hidden' name='ajax' value='1'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='2'><input type='submit' class='btn btn-default' value='Update All Checks (verbose)'> Generates the normal report but shows successes and failures</form></div>\n";
+		print "<br><div><form action='${script}?ajax=1' method='post'><input type='hidden' name='ajax' value='1'><input type='hidden' name='action' value='rblcheckedit'><input type='submit' class='btn btn-default' value='Edit RBL Options'> Edit qhtlfirewall.rblconf to enable and disable IPs and RBLs</form></div>\n";
 
 		open (my $IN, "<", "/etc/cron.d/qhtlfirewall-cron");
 		flock ($IN, LOCK_SH);
@@ -2002,7 +2002,7 @@ QHTL_JQ_GREP
 		if (my @ls = grep {$_ =~ /qhtlfirewall \-\-rbl/} @data) {
 			if ($ls[0] =~ /\@(\w+)\s+root\s+\/usr\/sbin\/qhtlfirewall \-\-rbl (.*)/) {$optionselected = $1; $email = $2}
 		}
-		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='rblchecksave'>\n";
+		print "<br><div><form action='${script}?ajax=1' method='post'><input type='hidden' name='action' value='rblchecksave'>\n";
 		print "<input type='hidden' name='ajax' value='1'>Generate and email this report <select name='freq'>\n";
 		foreach my $option ("never","hourly","daily","weekly","monthly") {
 			if ($option eq $optionselected) {print "<option selected>$option</option>\n"} else {print "<option>$option</option>\n"}
@@ -5014,7 +5014,7 @@ sub systemstats {
 	if (@stats > 1) {
 		QhtLink::ServerStats::graphs($type,$config{ST_SYSTEM_MAXDAYS},$imghddir);
 
-		print "<div class='text-center'><form action='$script' method='post'><input type='hidden' name='action' value='systemstats'><select name='graph'>\n";
+		print "<div class='text-center'><form action='${script}?ajax=1' method='post'><input type='hidden' name='action' value='systemstats'><select name='graph'>\n";
 		my $selected;
 		if ($type eq "" or $type eq "load") {$selected = "selected"} else {$selected = ""}
 		print "<option value='load' $selected>Load Average Statistics</option>\n";
