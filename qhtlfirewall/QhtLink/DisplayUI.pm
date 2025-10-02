@@ -5013,7 +5013,9 @@ sub chart {
 	if (-e "/usr/local/cpanel/version") {
 		# When installed via cPanel register_appconfig, serve images from WHM static docroot (not /cgi)
 		if (-e "/usr/local/cpanel/bin/register_appconfig") {
-			$imgdir = "/qhtlink/qhtlfirewall/";
+			my $token = $ENV{cp_security_token} // ""; # e.g. /cpsess1590026883
+			if ($token ne "" && $token !~ m{^/}) { $token = "/".$token }
+			$imgdir = ($token ne "" ? $token : "")."/qhtlink/qhtlfirewall/";
 			$imghddir = "/usr/local/cpanel/whostmgr/docroot/qhtlink/qhtlfirewall/";
 			umask(0133);
 		} else {
@@ -5101,7 +5103,9 @@ sub systemstats {
 	if (-e "/usr/local/cpanel/version") {
 		if (-e "/usr/local/cpanel/bin/register_appconfig") {
 			# Serve via WHM static docroot and write to the same place
-			$imgdir = "/qhtlink/qhtlfirewall/";
+			my $token = $ENV{cp_security_token} // ""; # e.g. /cpsess1590026883
+			if ($token ne "" && $token !~ m{^/}) { $token = "/".$token }
+			$imgdir = ($token ne "" ? $token : "")."/qhtlink/qhtlfirewall/";
 			$imghddir = "/usr/local/cpanel/whostmgr/docroot/qhtlink/qhtlfirewall/";
 			umask(0133);
 		} else {

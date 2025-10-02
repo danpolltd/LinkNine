@@ -39,6 +39,14 @@ sub graphs {
 	my $img;
 	$| = 1;
 
+	# Ensure output directory exists so images can be written
+	if (defined $imghddir && $imghddir ne "") {
+		eval {
+			require File::Path;
+			File::Path::make_path($imghddir, { mode => 0755 });
+		};
+	}
+
 	require GD::Graph::bars;
 	import GD::Graph::bars;
 	require GD::Graph::pie;
@@ -3162,6 +3170,14 @@ sub charts {
 	my $imghddir = shift;
 	my $img;
 	$| = 1;
+
+	# Ensure output directory exists so images can be written
+	if (defined $imghddir && $imghddir ne "") {
+		eval {
+			require File::Path;
+			File::Path::make_path($imghddir, { mode => 0755 });
+		};
+	}
 
 	require GD::Graph::bars;
 	import GD::Graph::bars;
