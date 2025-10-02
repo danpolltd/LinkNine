@@ -3913,7 +3913,7 @@ QHTL_UPGRADE_WIRE_JS
 			my $action = $b->{action};
 			my $aria   = $label;
 			my $label_html = join('<br>', map { "<span style=\"display:block;\">$_</span>" } split(/\s+/, $label));
-			print "<button name='action' value='$action' type='submit' aria-label='$aria' title='$label' onmouseover=\"this.style.transform='scale(1.05)'\" onmouseout=\"this.style.transform='scale(1)'\" style=\"all:unset; cursor:pointer; width:70px; height:70px; display:flex; align-items:center; justify-content:center; text-align:center; padding:6px; background: linear-gradient(180deg, #ffd27a 0%, #ffad33 50%, #ff9800 70%, #e67e00 100%); border:2px solid #e68900; box-shadow: 0 0 0 10px rgba(255,165,0,0.65), 0 10px 18px rgba(255,140,0,0.35); transition: transform .15s ease; transform: translateZ(0);\"><span style=\"display:block; color:#fff; font-weight:800; font-size:11px; line-height:1.15; text-shadow:0 1px 0 rgba(0,0,0,0.25); width:100%; text-align:center;\">$label_html</span></button>";
+			print "<button name='action' value='$action' type='button' aria-label='$aria' title='$label' onmouseover=\"this.style.transform='scale(1.05)'\" onmouseout=\"this.style.transform='scale(1)'\" style=\"all:unset; cursor:pointer; width:70px; height:70px; display:flex; align-items:center; justify-content:center; text-align:center; padding:6px; background: linear-gradient(180deg, #ffd27a 0%, #ffad33 50%, #ff9800 70%, #e67e00 100%); border:2px solid #e68900; box-shadow: 0 0 0 10px rgba(255,165,0,0.65), 0 10px 18px rgba(255,140,0,0.35); transition: transform .15s ease; transform: translateZ(0);\"><span style=\"display:block; color:#fff; font-weight:800; font-size:11px; line-height:1.15; text-shadow:0 1px 0 rgba(0,0,0,0.25); width:100%; text-align:center;\">$label_html</span></button>";
 		}
 		print "  </div>";
 		print "</div>";
@@ -3932,8 +3932,9 @@ QHTL_UPGRADE_WIRE_JS
 		print "      if (window.jQuery) { jQuery.ajax({ url: u, method: 'POST', data: fd, processData: false, contentType: false }).done(function(d){ onLoaded(d); }).fail(function(){ onLoaded('<div class=\\\'text-danger\\\'>Failed to load content.</div>'); }); }\n";
 		print "      else { var x=new XMLHttpRequest(); x.open('POST', u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ onLoaded(x.responseText); } else { onLoaded('<div class=\\\'text-danger\\\'>Failed to load content.</div>'); } } }; x.send(fd); } }catch(e){} }\n";
 		print "    of.addEventListener('submit', function(ev){ try{ ev.preventDefault(); sendAjax(ev.submitter || null); }catch(_){ } }, true);\n";
-		print "    // Also intercept direct clicks on square buttons to avoid navigation and include their name/value\n";
+		print "    // Also intercept direct clicks/keys on square buttons to send AJAX and include their name/value\n";
 		print "    of.addEventListener('click', function(ev){ try{ var btn = ev.target && ev.target.closest ? ev.target.closest('button[name=action]') : null; if(!btn) return; ev.preventDefault(); sendAjax(btn); }catch(_){ } }, true);\n";
+		print "    of.addEventListener('keydown', function(ev){ try{ var key=ev.key||''; if(key!=='Enter' && key!==' ') return; var btn = ev.target && ev.target.closest ? ev.target.closest('button[name=action]') : null; if(!btn) return; ev.preventDefault(); sendAjax(btn); }catch(_){ } }, true);\n";
 		print "  }catch(e){}\n";
 		print "})();</script>\n";
 		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
