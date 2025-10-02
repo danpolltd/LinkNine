@@ -2508,7 +2508,7 @@ EOF
 		close ($DIV);
 		print @divdata;
 		print "<div id='paginatediv2' class='text-center'></div>\n";
-		print "<form action='$script' method='post'>\n";
+		print "<form action='$script' method='post' id='qhtl-options-form'>\n";
 		print "<input type='hidden' name='action' value='saveconf'>\n";
 		my $first = 1;
 		my @divnames;
@@ -3918,8 +3918,22 @@ QHTL_UPGRADE_WIRE_JS
 		print "  </div>";
 		print "</div>";
 		print "</td></tr>\n";
+		# Inline content area for Options actions (load results below squares)
+		print "<tr style='background:transparent!important'><td style='background:transparent!important'><div id='qhtl-options-inline-area' style='padding-top:10px;min-height:180px;background:transparent'></div></td></tr>\n";
 		print "</table>\n";
 		print "</form>\n";
+
+		# Delegate the Options form submit to load into inline area instead of navigating
+		print "<script>(function(){\n";
+		print "  try{ var of=document.getElementById('qhtl-options-form'); if(!of) return; var area=document.getElementById('qhtl-options-inline-area'); if(!area) return;\n";
+		print "    function setLoading(){ try{ if(area.qhtlCancelFade) area.qhtlCancelFade(); if(window.jQuery){ jQuery(area).html('<div class=\\\'text-muted\\\'>Loading...</div>'); } else { area.innerHTML='<div class=\\\'text-muted\\\'>Loading...</div>'; } }catch(_){ } }\n";
+		print "    function onLoaded(html){ try{ area.innerHTML = html; if(area.qhtlArmAuto) area.qhtlArmAuto(); }catch(_){ } }\n";
+		print "    of.addEventListener('submit', function(ev){ ev.preventDefault(); try{ setLoading(); var u = of.getAttribute('action') || ''; var fd = new FormData(of); try{ fd.append('ajax','1'); }catch(__){}\n";
+		print "      if (window.jQuery) { jQuery.ajax({ url: u, method: 'POST', data: fd, processData: false, contentType: false }).done(function(d){ onLoaded(d); }).fail(function(){ onLoaded('<div class=\\\'text-danger\\\'>Failed to load content.</div>'); }); }\n";
+		print "      else { var x=new XMLHttpRequest(); x.open('POST', u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ onLoaded(x.responseText); } else { onLoaded('<div class=\\\'text-danger\\\'>Failed to load content.</div>'); } } }; x.send(fd); }\n";
+		print "    } catch(e){ } }, true);\n";
+		print "  }catch(e){}\n";
+		print "})();</script>\n";
 		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
 			print "<table class='table table-bordered table-striped'>\n";
 			print "<thead><tr><th>Legacy Firewalls</th></tr></thead>";
@@ -4020,10 +4034,10 @@ QHTL_UPGRADE_WIRE_JS
 	print "<script>\n";
 	print "(function(){\n";
 	print "  function makeAutoClear(id){ var el=document.getElementById(id); if(!el) return; el.style.transition = el.style.transition || 'opacity 5s ease'; var t=null, fading=false, fadeTimer=null;\n";
-	print "    function clearNow(){ try{ el.innerHTML=''; el.style.opacity=''; el.style.pointerEvents=''; fading=false; if(fadeTimer){ clearTimeout(fadeTimer); fadeTimer=null; } showFallback(); }catch(_){ } }\n";
-	print "    function beginFade(){ if(fading) return; fading=true; el.style.opacity='0'; el.style.pointerEvents='none'; fadeTimer=setTimeout(clearNow, 5000); }\n";
+	print "    function clearNow(){ try{ el.innerHTML=''; el.style.opacity=''; el.style.pointerEvents=''; fading=false; if(fadeTimer){ clearTimeout(fadeTimer); fadeTimer=null; } showFallback(true); }catch(_){ } }\n";
+	print "    function beginFade(){ if(fading) return; try{ var onlyFallback = (el.children && el.children.length===1 && el.querySelector('.qhtl-fallback-holder')); if(onlyFallback){ return; } }catch(__){} fading=true; el.style.opacity='0'; el.style.pointerEvents='none'; fadeTimer=setTimeout(clearNow, 5000); }\n";
 	print "    function cancelFade(){ if(!fading) return; try{ el.style.opacity=''; el.style.pointerEvents=''; }catch(_){ } fading=false; if(fadeTimer){ clearTimeout(fadeTimer); fadeTimer=null; } }\n";
-	print "    function showFallback(){ try{ if(!el) return; if (el.children.length>0) return; var url=(window.QHTL_SCRIPT||'$script')+'?action=fallback_asset&name=idle_fallback.gif&v=$myv'; el.innerHTML = \"<div class=\\\"qhtl-fallback-holder\\\" style=\\\"min-height:160px;display:flex;align-items:center;justify-content:center;\\\"><img alt=\\\"\\\" src=\\\"\"+url+\"\\\" style=\\\"max-width:100%;height:auto;opacity:.9\\\"></div>\"; }catch(_){ } }\n";
+	print "    function showFallback(force){ try{ if(!el) return; if (!force && el.children.length>0) return; var url=(window.QHTL_SCRIPT||'$script')+'?action=fallback_asset&name=idle_fallback.gif&v=$myv'; el.innerHTML = \"<div class=\\\"qhtl-fallback-holder\\\" style=\\\"min-height:160px;display:flex;align-items:center;justify-content:center;\\\"><img alt=\\\"\\\" src=\\\"\"+url+\"\\\" style=\\\"max-width:100%;height:auto;opacity:.9\\\"></div>\"; el.style.opacity=''; el.style.pointerEvents=''; }catch(_){ } }\n";
 	print "    function arm(){ if(t){ clearTimeout(t); } cancelFade(); t=setTimeout(beginFade, 10000); }\n";
 	print "    // Arm on interactions and when content changes; also cancel any active dimming to keep content visible\n";
 	print "    ['click','input','mousemove','wheel','keydown','touchstart','pointermove','pointerdown'].forEach(function(evt){ el.addEventListener(evt, arm, {passive:true}); });\n";
@@ -4033,6 +4047,7 @@ QHTL_UPGRADE_WIRE_JS
 	print "  }\n";
 	print "  makeAutoClear('qhtl-inline-area');\n";
 	print "  makeAutoClear('qhtl-upgrade-inline-area');\n";
+	print "  makeAutoClear('qhtl-options-inline-area');\n";
 	print "})();\n";
 	print "</script>\n";
 	# Re-click active tab name to clear its own inline area and cancel dimming
