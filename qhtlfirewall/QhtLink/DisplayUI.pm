@@ -3867,75 +3867,19 @@ QHTL_UPGRADE_WIRE_JS
 			"  }\n".
 			"  document.querySelectorAll('.qhtl-star[data-qaction]').forEach(attach);\n".
 			"}catch(e){} })();</script>";
+		# Hidden helpers: quickview links and minimal forms for star submissions
+		print "<div id='qhtl-quick-hidden' style='display:none'>";
+		print "<a class='quickview-link' data-which='allow' data-url='$script?action=viewlist&which=allow' href='javascript:void(0)'></a>";
+		print "<a class='quickview-link' data-which='deny' data-url='$script?action=viewlist&which=deny' href='javascript:void(0)'></a>";
+		print "<a class='quickview-link' data-which='ignore' data-url='$script?action=viewlist&which=ignore' href='javascript:void(0)'></a>";
+		print "<form id='qallow' action='$script' method='post'><input type='hidden' name='action' value='qallow'><input type='text' name='ip' value=''></form>";
+		print "<form id='qdeny' action='$script' method='post'><input type='hidden' name='action' value='qdeny'><input type='text' name='ip' value=''></form>";
+		print "<form id='qignore' action='$script' method='post'><input type='hidden' name='action' value='qignore'><input type='text' name='ip' value=''></form>";
+		print "<form id='grep' action='$script' method='post'><input type='hidden' name='action' value='grep'><input type='text' name='ip' value=''></form>";
+		print "<form id='qkill' action='$script' method='post'><input type='hidden' name='action' value='kill'><input type='text' name='ip' value=''></form>";
+		print "</div>";
 		print "</td></tr>\n";
 
-		# Quick Allow (inputs above/below the button)
-		print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
-		print "<form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>";
-		print "<div style='width:100%'>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' data-url='$script?action=viewlist&which=allow' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
-		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='allowip' value='' size='36' style='background-color: #BDECB6; width:100%;'></div>";
-		print "  </div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button id='btn-qallow' type='button' onclick=\"try{document.getElementById('qallow').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='green'>Quick Allow</button></div>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
-		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Allow:</div>";
-		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
-		print "  </div>";
-		print "</div></form>";
-		print "</td></tr>\n";
-
-		# Quick Deny
-		print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
-		print "<form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>";
-		print "<div style='width:100%'>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' data-url='$script?action=viewlist&which=deny' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
-		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='denyip' value='' size='36' style='background-color: #FFD1DC; width:100%;'></div>";
-		print "  </div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button id='btn-qdeny' type='button' onclick=\"try{document.getElementById('qdeny').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='red'>Quick Deny</button></div>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
-		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Block:</div>";
-		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
-		print "  </div>";
-		print "</div></form>";
-		print "</td></tr>\n";
-
-		# Quick Ignore
-		print "<tr><td colspan='2'>";
-		print "<form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>";
-		print "<div style='width:100%'>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Ignore IP address <a class='quickview-link' data-which='ignore' data-url='$script?action=viewlist&which=ignore' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
-		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='ignoreip' value='' size='36' style='background-color: #D9EDF7; width:100%;'></div>";
-		print "  </div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button id='btn-qignore' type='button' onclick=\"try{document.getElementById('qignore').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='orange'>Quick Ignore</button></div>";
-		print "</div></form>";
-		print "</td></tr>\n";
-
-		# Search for IP
-		print "<tr><td colspan='2'>";
-		print "<form action='$script' method='post' id='grep'><input type='submit' class='hide'><input type='hidden' name='action' value='grep'>";
-		print "<div style='width:100%'>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-		print "    <div style='flex:0 0 30%; max-width:30%'>Search IP address</div>";
-		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
-		print "  </div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button id='btn-grep' type='button' onclick=\"try{document.getElementById('grep').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='blue'>Search for IP</button></div>";
-		print "</div></form>";
-		print "</td></tr>\n";
-
-		# Quick Unblock
-		print "<tr><td colspan='2'>";
-		print "<form action='$script' method='post' id='qkill'><input type='submit' class='hide'><input type='hidden' name='action' value='kill'>";
-		print "<div style='width:100%'>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-		print "    <div style='flex:0 0 30%; max-width:30%'>Remove IP address</div>";
-		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='killip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
-		print "  </div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button id='btn-qkill' type='button' onclick=\"try{document.getElementById('qkill').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='gray'>Quick Unblock</button></div>";
-		print "</div></form>";
-		print "</td></tr>\n";
 
 		# Temporary Allow/Deny (merged into a single full-width row)
 		print "<tr><td colspan='2'>";
