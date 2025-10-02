@@ -1,54 +1,44 @@
 package QhtLink::DisplayUI;
-
-# Lightweight module wiring and shared state used across handlers in this package
-# Avoid enabling strict here due to legacy globals; keep changes minimal and targeted
-use lib '/usr/local/qhtlfirewall/lib';
-use Fcntl qw(:DEFAULT :flock);
-use Carp;
-use IPC::Open3;
-use File::Basename qw(fileparse);
-use QhtLink::Config;
-use QhtLink::Slurp qw(slurp);
-use QhtLink::Sanity qw(sanity);
-use QhtLink::URLGet;
-use QhtLink::ServerStats;
-use QhtLink::GetEthDev;
-use QhtLink::Ports;
-use QhtLink::ServerCheck;
-use QhtLink::RBLCheck;
-use QhtLink::Service;
-use QhtLink::CloudFlare;
-
-# Shared state used across handlers in this package
-our ($chart, $ipscidr6, $ipv6reg, $ipv4reg, %config, %ips, $mobile,
-	 %FORM, $script, $script_da, $images, $myv, $hostname,
-	 $hostshort, $panel, $urlget, $cleanreg);
-
-# ---------------------------------------------------------------------------
-# Utility helpers (must appear before main() so calls work during early actions)
-# ---------------------------------------------------------------------------
-
-# Safe no-op resize stub retained for legacy template compatibility
-sub resize {
-	# Expected legacy signatures: resize("top"); resize("bot", optionalFlag)
-	# We intentionally do nothing to avoid layout side-effects in modern UI.
-	return;
+BEGIN {
+	# Try to load optional/required modules; ignore failures where safe
+	eval { require QhtLink::ServerStats; QhtLink::ServerStats->import(); 1 } or do { };
+	eval { require QhtLink::URLGet;      QhtLink::URLGet->import();      1 } or do { };
+	eval { require QhtLink::Config;      QhtLink::Config->import();      1 } or do { };
+	eval { require QhtLink::Slurp;       QhtLink::Slurp->import();       1 } or do { };
+	eval { require QhtLink::GetEthDev;   QhtLink::GetEthDev->import();   1 } or do { };
+	eval { require IPC::Open3;           IPC::Open3->import(qw(open3));  1 } or do { };
+	eval { require QhtLink::CheckIP;     QhtLink::CheckIP->import(qw(checkip)); 1 } or do { };
+	eval { require QhtLink::Sanity;      QhtLink::Sanity->import(qw(sanity)); 1 } or do { };
+	# Also try to load feature modules used in sections below; keep optional
+	eval { require QhtLink::ServerCheck;  QhtLink::ServerCheck->import(); 1 } or do { };
+	eval { require QhtLink::RBLCheck;     QhtLink::RBLCheck->import();     1 } or do { };
+	eval { require QhtLink::Ports;        QhtLink::Ports->import();        1 } or do { };
+	# Needed for fileparse() usages around profiles/backups
+	eval { require File::Basename;        File::Basename->import(qw(fileparse)); 1 } or do { };
 }
 
-# Version compare: returns 1 if a > b, -1 if a < b, 0 if equal
+# Local wrappers to avoid undefined subroutines when called without fully qualified names
+sub slurp { return QhtLink::Slurp::slurp(@_); }
+
+sub resize {
+	my ($pos, $auto_scroll) = @_;
+	# Historically this adjusts the output container size; keep as no-op in this UI
+	return;
+}
+## Version comparison helper (returns 1 if a > b, -1 if a < b, 0 if equal)
 sub ver_cmp {
-	my ($a,$b) = @_;
-	return 0 if !defined $a || !defined $b;
+	my ($a, $b) = @_;
 	my @a = split /\./, $a;
 	my @b = split /\./, $b;
-	for (my $i=0; $i < @a || $i < @b; $i++) {
-		my $ai = $a[$i] // 0; $ai =~ s/\D//g; # strip non-numeric safety
-		my $bi = $b[$i] // 0; $bi =~ s/\D//g;
+	for (my $i = 0; $i < @a || $i < @b; $i++) {
+		my $ai = $i < @a ? $a[$i] : 0;
+		my $bi = $i < @b ? $b[$i] : 0;
 		return 1 if $ai > $bi;
 		return -1 if $ai < $bi;
 	}
 	return 0;
 }
+
 
 # Lightweight version retrieval helpers (placed before main for early use)
 sub manualversion {
@@ -64,9 +54,10 @@ sub manualversion {
 				$line =~ s/$cleanreg//g if defined $cleanreg;
 				$line =~ s/#.*$//; $line =~ s/^\s+|\s+$//g;
 				next unless length $line;
-				# accept bare hostnames or scheme+host
+				# accept bare hostnames or scheme+host (strip any path portion)
 				$line =~ s{^https?://}{}i;   # strip any scheme
-				$line =~ s{/+\z}{};         # trim trailing slash
+				$line =~ s{/.*$}{};          # drop any path after host[:port]
+				$line =~ s{/+\z}{};         # trim stray trailing slash
 				next if $seen{lc $line}++;
 				push @servers, $line;
 			}
@@ -74,7 +65,7 @@ sub manualversion {
 		# Prefer the chosen server (if available in config) at the front
 		if (defined $config{DOWNLOADSERVER} && $config{DOWNLOADSERVER} ne '') {
 			my $c = $config{DOWNLOADSERVER};
-			$c =~ s{^https?://}{}i; $c =~ s{/+\z}{};
+			$c =~ s{^https?://}{}i; $c =~ s{/.*$}{}; $c =~ s{/+\z}{};
 			if (!$seen{lc $c}++) { unshift @servers, $c; }
 		}
 		# Shuffle for resilience
@@ -86,8 +77,13 @@ sub manualversion {
 		return @servers;
 	};
 
+	# Ensure HTTP client is available; provide a clear error if not
+	if (!defined $urlget) {
+		$err = 'HTTP client not initialized';
+		return ($upgrade, $actv, $src, $err);
+	}
+
 	eval {
-		return unless defined $urlget; # cannot proceed without HTTP client
 
 		my @mirrors = $load_mirrors->();
 		# Fallback legacy host only if no mirrors defined
@@ -98,8 +94,20 @@ sub manualversion {
 			for my $scheme ('https','http') {
 				my $url = "$scheme://$host/qhtlfirewall/version.txt";
 				my ($rc, $data) = $urlget->urlget($url);
-				if (!$rc && defined $data && $data =~ /^(\d+\.\d+(?:\.\d+)?)/) {
-					$actv = $1; $src = $host;
+				if (!$rc && defined $data) {
+					# Be tolerant: strip BOM, then scan lines for a clean version token
+					$data =~ s/^\xEF\xBB\xBF//;   # UTF-8 BOM (at very start)
+					my $found = '';
+					for my $line (split /\r?\n/, $data){
+						$line =~ s/^\s+|\s+$//g; next unless length $line;
+						# Accept: v1.2[.3[.4]][-suffix]
+						if ($line =~ /^v?(\d+(?:\.\d+){1,3})\b/i) { $found = $1; last; }
+					}
+					# As a last resort, try a multi-line anchored search for a single-token version line
+					if (!$found && $data =~ /^\s*v?(\d+(?:\.\d+){1,3})\s*$/m) { $found = $1; }
+					if ($found) { $actv = $found; $src = $host; }
+				}
+				if ($actv) {
 					$upgrade = 1 if ver_cmp($actv, $curv) == 1;
 					$err = '';
 					last MIRROR;
@@ -137,9 +145,14 @@ sub main {
 	$myv         = shift; # version string
 	$panel       = shift; # optional panel name
 
-	# Load config for this module's scope
-	my $cfg = QhtLink::Config->loadconfig();
-	%config = $cfg->config();
+	# Load config for this module's scope (guard against undef)
+	my $cfg;
+	eval { $cfg = QhtLink::Config->loadconfig(); 1 } or do { $cfg = undef };
+	if (defined $cfg && eval { $cfg->can('config') }) {
+		%config = $cfg->config();
+	} else {
+		%config = ();
+	}
 
 	# Honor explicit panel context (e.g., 'cpanel') passed from caller
 	if (defined $panel && $panel ne '') {
@@ -149,8 +162,10 @@ sub main {
 	$cleanreg   = QhtLink::Slurp->cleanreg;
 
 	# Optional charts: initialize stats backend when enabled
+	my $chart = 1;
 	if ($config{ST_ENABLE}) {
-		if (!defined QhtLink::ServerStats::init()) { $chart = 0 }
+		my $init_ok = eval { QhtLink::ServerStats::init() };
+		if (!defined $init_ok) { $chart = 0 }
 	}
 
 	# HTTP client used for version/changelog fetches
@@ -181,55 +196,7 @@ sub main {
 	}
 	elsif ($FORM{action} eq "manualcheck") {
 		print "<div><p>Checking version...</p>\n\n";
-		my ($upgrade, $actv, $src, $err) = &manualversion($myv);
-		if ($upgrade) {
-			print "<form action='$script' method='post' style='display:inline-block;margin-right:8px'><button name='action' value='upgrade' type='submit' class='btn btn-default'>Upgrade qhtlfirewall</button></form>";
-			print "<form action='$script' method='post' style='display:inline-block'><button name='action' value='changelog' type='submit' class='btn btn-default'>View ChangeLog</button></form>";
-			print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div>\n";
-		} else {
-			if (defined $err and $err ne "") {
-				print "<div class='bs-callout bs-callout-danger'>$err</div>\n";
-			} else {
-				my $src_text = ($src ne '' ? " (from $src)" : "");
-				print "<div class='text-muted small' style='margin-top:6px'>You're up to date$src_text.</div>\n";
-			}
-		}
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "restartq") {
-		print "<div><p>Restarting qhtlfirewall via qhtlwaterfall...</p>\n<pre class='comment' style='white-space: pre-wrap;'>\n";
-		&printcmd("/usr/sbin/qhtlfirewall","-q");
-		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "temp") {
-		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th>&nbsp;</th><th>A/D</th><th>IP address</th><th>Port</th><th>Dir</th><th>Time To Live</th><th>Comment</th></tr></thead>\n";
-		my @deny;
-		if (! -z "/var/lib/qhtlfirewall/qhtlfirewall.tempban") {
-			open (my $IN, "<", "/var/lib/qhtlfirewall/qhtlfirewall.tempban") or die $!;
-			flock ($IN, LOCK_SH);
-			@deny = <$IN>;
-			chomp @deny;
-			close ($IN);
-		}
-		foreach my $line (reverse @deny) {
-			if ($line eq "") {next}
-			my ($time,$ip,$port,$inout,$timeout,$message) = split(/\|/,$line);
-			$time = $timeout - (time - $time);
-			if ($port eq "") {$port = "*"}
-			if ($inout eq "") {$inout = " *"}
-			if ($time < 1) {
-				$time = "<1";
-			}
-		}
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "stop") {
-		print "<div><p>Stopping qhtlfirewall...</p>\n";
-		&resize("top");
-		print "<pre class='comment' style='white-space: pre-wrap; height: 500px; overflow: auto; resize:none; clear:both' id='output'>\n";
-		&printcmd("/usr/sbin/qhtlfirewall","-f");
+		my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
 		print "</pre>\n<p>...<b>Done</b>.</p></div>\n";
 		&resize("bot",1);
 		&printreturn;
@@ -311,7 +278,7 @@ sub main {
 <div>Refresh in <span id="QHTLFIREWALLtimer">0</span> <button class='btn btn-default' id="QHTLFIREWALLpauseID" onclick="QHTLFIREWALLpausetimer()" style="width:80px;">Pause</button> <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both"> &nbsp; </pre>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap; line-height: 1.5; clear:both"> &nbsp; </pre>
 
 		<script>
 			QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
@@ -320,19 +287,27 @@ sub main {
 			QHTLFIREWALLtimer();
 		</script>
 EOF
-		print <<'QHTL_JQ_TAIL';
+	# Triangle buttons under logtail UI
+	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span class='tri-status' id='qhtl-upgrade-status-inline'></span><span>Check Manually</span></span></button>";
+	print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>View ChangeLog</span></span></button>";
+	print "  <button id='qhtl-upgrade-rex' type='button' title='eXploit Scanner' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>eXploit Scanner</span></span></button>";
+	print "  <button id='qhtl-upgrade-mpass' type='button' title='Mail Moderator' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Mail Moderator</span></span></button>";
+	print "  <button id='qhtl-upgrade-mshield' type='button' title='Mail Shiled' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Mail Shiled</span></span></button>";
+    
+	# JS to control logtail font sizing
+	print <<'QHTL_JQ_TAIL';
 <script>
-// Clean jQuery handlers for font size controls
 var myFont = 14;
-$("#fontplus-btn").on('click', function () {
-    myFont++;
-    if (myFont > 20) { myFont = 20 }
-    $('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
-});
+$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
 $("#fontminus-btn").on('click', function () {
-    myFont--;
-    if (myFont < 12) { myFont = 12 }
-    $('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontplus-btn").on('click', function () {
+	myFont++;
+	if (myFont > 40) { myFont = 40 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
 });
 </script>
 <!-- Quick View modal handlers are defined once in the main UI script below -->
@@ -418,8 +393,11 @@ QHTL_JQ_TAIL
 			}
 			if ($hit) {last}
 		}
+		my $wrap_pre = ($FORM{ajax} ? 1 : 0);
 		if (-z $logfile) {
+			if ($wrap_pre) { print "<pre class='comment' style=\"overflow:auto; max-height:500px; white-space: pre-wrap; line-height: 1.5;\">"; }
 			print "<---- $logfile is currently empty ---->";
+			if ($wrap_pre) { print "</pre>"; }
 		} else {
 			if (-x $config{TAIL}) {
 				my $timeout = 30;
@@ -429,8 +407,12 @@ QHTL_JQ_TAIL
 					alarm($timeout);
 					my ($childin, $childout);
 					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
-					while (<$childout>) {
-						my $line = $_;
+					if ($wrap_pre) { print "<pre class='comment' style=\"overflow:auto; max-height:500px; white-space: pre-wrap; line-height: 1.5;\">"; }
+					# Read all lines, then optionally reverse for AJAX watcher (newest-first)
+					my @buf = <$childout>;
+					if ($wrap_pre) { @buf = reverse @buf; }
+					foreach my $raw (@buf) {
+						my $line = $raw;
 						$line =~ s/&/&amp;/g;
 						$line =~ s/</&lt;/g;
 						$line =~ s/>/&gt;/g;
@@ -438,6 +420,7 @@ QHTL_JQ_TAIL
 					}
 					waitpid ($pid, 0);
 					alarm(0);
+					if ($wrap_pre) { print "</pre>"; }
 				};
 				alarm(0);
 			} else {
@@ -504,7 +487,213 @@ QHTL_JQ_TAIL
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap; line-height: 1.5; clear:both">
+Please Note:
+
+ 1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
+ 2. Use the "-i" option to ignore case
+ 3. Use the "-E" option to perform an extended regular expression search
+ 4. Searching large log files can take a long time. This feature has a 30 second timeout
+ 5. The searched for text will usually be <mark>highlighted</mark> but may not always be successful
+ 6. Only log files listed in /etc/qhtlfirewall/qhtlfirewall.syslogs can be searched. You can add to this file
+ 7. The wildcard option will use $config{ZGREP} and search logs with a wildcard suffix, e.g. /var/log/qhtlwaterfall.log*
+</pre>
+
+<script>
+	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
+	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
+	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+</script>
+EOF
+		print <<'QHTL_JQ_GREP';
+<script>
+// Clean jQuery handlers for grep view
+var myFont = 14;
+$("#fontplus-btn").on('click', function () {
+	myFont++;
+	if (myFont > 20) { myFont = 20 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+$("#fontminus-btn").on('click', function () {
+	myFont--;
+	if (myFont < 12) { myFont = 12 }
+	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
+});
+</script>
+QHTL_JQ_GREP
+		if ($config{DIRECTADMIN}) {$script = $script_safe}
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "loggrepcmd") {
+		# meta mode: return JSON list of logs for watcher selector
+		if ($FORM{meta}) {
+			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+			foreach my $line (@data) {
+				if ($line =~ /^Include\s*(.*)$/) {
+					my @incfile = slurp($1);
+					push @data,@incfile;
+				}
+			}
+			@data = sort @data;
+			my $cnt = 0;
+			my @opts = ();
+			foreach my $file (@data) {
+				$file =~ s/$cleanreg//g;
+				if ($file eq "") {next}
+				if ($file =~ /^\s*\#|Include/) {next}
+				my @globfiles;
+				if ($file =~ /\*|\?|\[/) {
+					foreach my $log (glob $file) {push @globfiles, $log}
+				} else {push @globfiles, $file}
+
+				foreach my $globfile (@globfiles) {
+					if (-f $globfile) {
+						my $size = int((stat($globfile))[7]/1024);
+						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
+						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
+						$cnt++;
+					}
+				}
+			}
+			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
+			my @parts;
+			foreach my $o (@opts) {
+				my $v = $o->{value};
+				my $l = $o->{label};
+				$l =~ s/"/\\"/g; # escape quotes
+				my $s = $o->{selected} ? 1 : 0;
+				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
+			}
+			print '[' . join(',', @parts) . ']';
+			return;
+		}
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $cnt = 0;
+		my $logfile = "/var/log/qhtlwaterfall.log";
+		my $hit = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					if ($FORM{lognum} == $cnt) {
+						$logfile = $globfile;
+						$hit = 1;
+						last;
+					}
+					$cnt++;
+				}
+			}
+			if ($hit) {last}
+		}
+		my $wrap_pre = ($FORM{ajax} ? 1 : 0);
+		if (-z $logfile) {
+			if ($wrap_pre) { print "<pre class='comment' style=\"overflow:auto; max-height:500px; white-space: pre-wrap; line-height: 1.5;\">"; }
+			print "<---- $logfile is currently empty ---->";
+			if ($wrap_pre) { print "</pre>"; }
+		} else {
+			if (-x $config{TAIL}) {
+				my $timeout = 30;
+				eval {
+					local $SIG{__DIE__} = undef;
+					local $SIG{'ALRM'} = sub {die};
+					alarm($timeout);
+					my ($childin, $childout);
+					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
+					if ($wrap_pre) { print "<pre class='comment' style=\"overflow:auto; max-height:500px; white-space: pre-wrap; line-height: 1.5;\">"; }
+					while (<$childout>) {
+						my $line = $_;
+						$line =~ s/&/&amp;/g;
+						$line =~ s/</&lt;/g;
+						$line =~ s/>/&gt;/g;
+						print $line;
+					}
+					waitpid ($pid, 0);
+					alarm(0);
+					if ($wrap_pre) { print "</pre>"; }
+				};
+				alarm(0);
+			} else {
+				print "Executable [$config{TAIL}] invalid";
+			}
+		}
+	}
+	elsif ($FORM{action} eq "loggrep") {
+		$FORM{lines} =~ s/\D//g;
+		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
+		my $script_safe = $script;
+		my $QHTLFIREWALLfrombot = 120;
+		my $QHTLFIREWALLfromright = 10;
+		if ($config{DIRECTADMIN}) {
+			$script = $script_da;
+			$QHTLFIREWALLfrombot = 400;
+			$QHTLFIREWALLfromright = 150;
+		}
+		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
+		foreach my $line (@data) {
+			if ($line =~ /^Include\s*(.*)$/) {
+				my @incfile = slurp($1);
+				push @data,@incfile;
+			}
+		}
+		@data = sort @data;
+		my $options = "<select id='QHTLFIREWALLlognum'>\n";
+		my $cnt = 0;
+		foreach my $file (@data) {
+			$file =~ s/$cleanreg//g;
+			if ($file eq "") {next}
+			if ($file =~ /^\s*\#|Include/) {next}
+			my @globfiles;
+			if ($file =~ /\*|\?|\[/) {
+				foreach my $log (glob $file) {push @globfiles, $log}
+			} else {push @globfiles, $file}
+
+			foreach my $globfile (@globfiles) {
+				if (-f $globfile) {
+					my $size = int((stat($globfile))[7]/1024);
+					$options .= "<option value='$cnt'";
+					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
+					$options .= ">$globfile ($size kb)</option>\n";
+					$cnt++;
+				}
+			}
+		}
+		$options .= "</select>\n";
+		
+		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/qhtlfirewallajaxtail.js");
+		flock ($AJAX, LOCK_SH);
+		my @jsdata = <$AJAX>;
+		close ($AJAX);
+		print "<script>\n";
+		print @jsdata;
+		print "</script>\n";
+		print <<EOF;
+<div>Log: $options</div>
+<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="QHTLFIREWALLgrep" onClick="this.select()">&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
+<input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
+<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
+<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
+<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap; line-height: 1.5; clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -705,7 +894,7 @@ QHTL_JQ_GREP
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap; line-height: 1.5; clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -906,7 +1095,7 @@ QHTL_JQ_GREP
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap; line-height: 1.5; clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -1107,7 +1296,7 @@ QHTL_JQ_GREP
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap; line-height: 1.5; clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -1308,7 +1497,7 @@ QHTL_JQ_GREP
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap; line-height: 1.5; clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -1509,208 +1698,7 @@ QHTL_JQ_GREP
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
-Please Note:
-
- 1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
- 2. Use the "-i" option to ignore case
- 3. Use the "-E" option to perform an extended regular expression search
- 4. Searching large log files can take a long time. This feature has a 30 second timeout
- 5. The searched for text will usually be <mark>highlighted</mark> but may not always be successful
- 6. Only log files listed in /etc/qhtlfirewall/qhtlfirewall.syslogs can be searched. You can add to this file
- 7. The wildcard option will use $config{ZGREP} and search logs with a wildcard suffix, e.g. /var/log/qhtlwaterfall.log*
-</pre>
-
-<script>
-	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
-	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
-	QHTLFIREWALLscript = '$script?action=loggrepcmd';
-</script>
-EOF
-		print <<'QHTL_JQ_GREP';
-<script>
-// Clean jQuery handlers for grep view
-var myFont = 14;
-$("#fontplus-btn").on('click', function () {
-	myFont++;
-	if (myFont > 20) { myFont = 20 }
-	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
-});
-$("#fontminus-btn").on('click', function () {
-	myFont--;
-	if (myFont < 12) { myFont = 12 }
-	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
-});
-</script>
-QHTL_JQ_GREP
-		if ($config{DIRECTADMIN}) {$script = $script_safe}
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "loggrepcmd") {
-		# meta mode: return JSON list of logs for watcher selector
-		if ($FORM{meta}) {
-			my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
-			foreach my $line (@data) {
-				if ($line =~ /^Include\s*(.*)$/) {
-					my @incfile = slurp($1);
-					push @data,@incfile;
-				}
-			}
-			@data = sort @data;
-			my $cnt = 0;
-			my @opts = ();
-			foreach my $file (@data) {
-				$file =~ s/$cleanreg//g;
-				if ($file eq "") {next}
-				if ($file =~ /^\s*\#|Include/) {next}
-				my @globfiles;
-				if ($file =~ /\*|\?|\[/) {
-					foreach my $log (glob $file) {push @globfiles, $log}
-				} else {push @globfiles, $file}
-
-				foreach my $globfile (@globfiles) {
-					if (-f $globfile) {
-						my $size = int((stat($globfile))[7]/1024);
-						my $sel = ($globfile eq "/var/log/qhtlwaterfall.log") ? 1 : 0;
-						push @opts, { value => $cnt, label => "$globfile ($size kb)", selected => $sel };
-						$cnt++;
-					}
-				}
-			}
-			# Manual JSON: [{"value":N,"label":"...","selected":0/1},...]
-			my @parts;
-			foreach my $o (@opts) {
-				my $v = $o->{value};
-				my $l = $o->{label};
-				$l =~ s/"/\\"/g; # escape quotes
-				my $s = $o->{selected} ? 1 : 0;
-				push @parts, '{"value":'.$v.',"label":"'.$l.'","selected":'.$s.'}';
-			}
-			print '[' . join(',', @parts) . ']';
-			return;
-		}
-		$FORM{lines} =~ s/\D//g;
-		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
-
-		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
-		foreach my $line (@data) {
-			if ($line =~ /^Include\s*(.*)$/) {
-				my @incfile = slurp($1);
-				push @data,@incfile;
-			}
-		}
-		@data = sort @data;
-		my $cnt = 0;
-		my $logfile = "/var/log/qhtlwaterfall.log";
-		my $hit = 0;
-		foreach my $file (@data) {
-			$file =~ s/$cleanreg//g;
-			if ($file eq "") {next}
-			if ($file =~ /^\s*\#|Include/) {next}
-			my @globfiles;
-			if ($file =~ /\*|\?|\[/) {
-				foreach my $log (glob $file) {push @globfiles, $log}
-			} else {push @globfiles, $file}
-
-			foreach my $globfile (@globfiles) {
-				if (-f $globfile) {
-					if ($FORM{lognum} == $cnt) {
-						$logfile = $globfile;
-						$hit = 1;
-						last;
-					}
-					$cnt++;
-				}
-			}
-			if ($hit) {last}
-		}
-		if (-z $logfile) {
-			print "<---- $logfile is currently empty ---->";
-		} else {
-			if (-x $config{TAIL}) {
-				my $timeout = 30;
-				eval {
-					local $SIG{__DIE__} = undef;
-					local $SIG{'ALRM'} = sub {die};
-					alarm($timeout);
-					my ($childin, $childout);
-					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
-					while (<$childout>) {
-						my $line = $_;
-						$line =~ s/&/&amp;/g;
-						$line =~ s/</&lt;/g;
-						$line =~ s/>/&gt;/g;
-						print $line;
-					}
-					waitpid ($pid, 0);
-					alarm(0);
-				};
-				alarm(0);
-			} else {
-				print "Executable [$config{TAIL}] invalid";
-			}
-		}
-	}
-	elsif ($FORM{action} eq "loggrep") {
-		$FORM{lines} =~ s/\D//g;
-		if ($FORM{lines} eq "" or $FORM{lines} == 0) {$FORM{lines} = 30}
-		my $script_safe = $script;
-		my $QHTLFIREWALLfrombot = 120;
-		my $QHTLFIREWALLfromright = 10;
-		if ($config{DIRECTADMIN}) {
-			$script = $script_da;
-			$QHTLFIREWALLfrombot = 400;
-			$QHTLFIREWALLfromright = 150;
-		}
-		my @data = slurp("/etc/qhtlfirewall/qhtlfirewall.syslogs");
-		foreach my $line (@data) {
-			if ($line =~ /^Include\s*(.*)$/) {
-				my @incfile = slurp($1);
-				push @data,@incfile;
-			}
-		}
-		@data = sort @data;
-		my $options = "<select id='QHTLFIREWALLlognum'>\n";
-		my $cnt = 0;
-		foreach my $file (@data) {
-			$file =~ s/$cleanreg//g;
-			if ($file eq "") {next}
-			if ($file =~ /^\s*\#|Include/) {next}
-			my @globfiles;
-			if ($file =~ /\*|\?|\[/) {
-				foreach my $log (glob $file) {push @globfiles, $log}
-			} else {push @globfiles, $file}
-
-			foreach my $globfile (@globfiles) {
-				if (-f $globfile) {
-					my $size = int((stat($globfile))[7]/1024);
-					$options .= "<option value='$cnt'";
-					if ($globfile eq "/var/log/qhtlwaterfall.log") {$options .= " selected"}
-					$options .= ">$globfile ($size kb)</option>\n";
-					$cnt++;
-				}
-			}
-		}
-		$options .= "</select>\n";
-		
-		open (my $AJAX, "<", "/usr/local/qhtlfirewall/lib/qhtlfirewallajaxtail.js");
-		flock ($AJAX, LOCK_SH);
-		my @jsdata = <$AJAX>;
-		close ($AJAX);
-		print "<script>\n";
-		print @jsdata;
-		print "</script>\n";
-		print <<EOF;
-<div>Log: $options</div>
-<div style='white-space: nowrap;'>Text: <input type='text' size="30" id="QHTLFIREWALLgrep" onClick="this.select()">&nbsp;
-<input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
-<input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
-<input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
-<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
-<img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
-<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
-<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
-<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap;clear:both">
+<pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap; line-height: 1.5; clear:both">
 Please Note:
 
  1. Searches use $config{GREP}/$config{ZGREP} if wildcard is used), so the search text/regex must be syntactically correct
@@ -1901,7 +1889,20 @@ QHTL_JQ_GREP
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "servercheck") {
-		print QhtLink::ServerCheck::report($FORM{verbose});
+		my $out = '';
+		my $ok = 0;
+		eval {
+			if (defined &QhtLink::ServerCheck::report) {
+				$out = QhtLink::ServerCheck::report($FORM{verbose});
+				$ok = 1;
+			}
+			1;
+		} or do { $ok = 0; };
+		if ($ok) {
+			print $out;
+		} else {
+			print "<div class='alert alert-warning'>ServerCheck module not available in this environment. Skipping report.</div>\n";
+		}
 
 		open (my $IN, "<", "/etc/cron.d/qhtlfirewall-cron");
 		flock ($IN, LOCK_SH);
@@ -1962,7 +1963,18 @@ QHTL_JQ_GREP
 		# Return button removed (legacy); users can navigate via tabs or browser back
 	}
 	elsif ($FORM{action} eq "rblcheck") {
-		my ($status, undef) = QhtLink::RBLCheck::report($FORM{verbose},$images,1);
+		my $status = 0;
+		my $ok = 0;
+		eval {
+			if (defined &QhtLink::RBLCheck::report) {
+				($status, undef) = QhtLink::RBLCheck::report($FORM{verbose},$images,1);
+				$ok = 1;
+			}
+			1;
+		} or do { $ok = 0; };
+		unless ($ok) {
+			print "<div class='alert alert-warning'>RBLCheck module not available in this environment. Skipping report.</div>\n";
+		}
 
 		print "<div><b>These options can take a long time to run</b> (several minutes) depending on the number of IP addresses to check and the response speed of the DNS requests:</div>\n";
 		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='1'><input type='submit' class='btn btn-default' value='Update All Checks (standard)'> Generates the normal report showing exceptions only</form></div>\n";
@@ -2645,7 +2657,10 @@ EOD
 		close ($OUT);
 		QhtLink::Config::resetconfig();
 		my $newconfig = QhtLink::Config->loadconfig();
-		my %newconfig = $config->config;
+		my %newconfig = ();
+		if (defined $newconfig && eval { $newconfig->can('config') }) {
+			%newconfig = $newconfig->config();
+		}
 		foreach my $key (keys %newconfig) {
 			my ($insane,$range,$default) = sanity($key,$newconfig{$key});
 			if ($insane) {print "<br>WARNING: $key sanity check. $key = \"$newconfig{$key}\". Recommended range: $range (Default: $default)\n"}
@@ -2795,17 +2810,78 @@ EOD
 			# Run upgrade in the background to avoid blocking/tearing down the current HTTP session immediately.
 			# The UI daemon will restart during the upgrade; inform the user and provide a log snapshot if available.
 			my $ulog = "/var/log/qhtlfirewall-ui-upgrade.log";
-			my $cmd  = "(/bin/sleep 2; /usr/sbin/qhtlfirewall -u) > $ulog 2>&1 &";
+			# Pre-create the log file with a header so the UI shows immediate content
+			eval {
+				if (open(my $LF, '>', $ulog)) {
+					my $now = scalar localtime();
+					print $LF "=== QhtLink Firewall upgrade started at $now ===\n";
+					close $LF;
+				}
+				1;
+			};
+			# Use nohup if available to ensure the background process survives the CGI/session ending
+			my $nohup = (-x '/usr/bin/nohup') ? '/usr/bin/nohup' : ((-x '/bin/nohup') ? '/bin/nohup' : '');
+			my $shell = (-x '/bin/sh') ? '/bin/sh' : '/usr/bin/sh';
+			my $cmd;
+			if ($nohup ne '') {
+				$cmd = "$nohup $shell -c '/usr/sbin/qhtlfirewall -uf' >> $ulog 2>&1 &";
+			} else {
+				$cmd = "(/usr/sbin/qhtlfirewall -uf) >> $ulog 2>&1 &";
+			}
 			system($cmd);
 			print "<div><p>Upgrade started in the background. This UI may restart during the process and disconnect your session.</p>";
-			print "<p>Please reconnect or refresh this page in about 30–60 seconds.</p>";
-			if (open(my $UIN, '<', $ulog)) {
-				print "<p>Current upgrade log snapshot:</p>\n";
-				print "<pre class='comment' style='white-space: pre-wrap; height: 400px; overflow: auto; resize:none; clear:both'>\n";
-				while (my $L = <$UIN>) { $L =~ s/</&lt;/g; $L =~ s/>/&gt;/g; print $L; }
-				close($UIN);
-				print "</pre>\n";
-			}
+			print "<p>The log below will update automatically for a short time. If it remains empty, try refreshing after 30–60 seconds.</p>";
+			print "<p>Current upgrade log snapshot:</p>\n";
+			print "<pre id='qhtl-upgrade-log' class='comment' style='white-space: pre-wrap; height: 400px; overflow: auto; resize:none; clear:both'><span class=\"text-muted\">(no output yet)</span></pre>\n";
+			# Client-side poller to fetch the log content periodically
+			print <<'QHTL_UPGRADE_POLL';
+<script>
+(function(){
+	try {
+		var box = document.getElementById('qhtl-upgrade-log');
+		if (!box) return;
+		var attempts = 0, maxAttempts = 30; // ~60s @ 2s interval
+		function fetchLog(){
+			attempts++;
+			var base = (window.QHTL_SCRIPT || '') || '$script';
+			var url = base + '?action=upgrade_log&_=' + String(Date.now());
+			try {
+				var xhr = new XMLHttpRequest();
+				xhr.open('GET', url, true);
+				try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){ }
+				xhr.onreadystatechange = function(){
+					if (xhr.readyState === 4) {
+						if (xhr.status >= 200 && xhr.status < 300) {
+							var ct = (xhr.getResponseHeader && xhr.getResponseHeader('Content-Type')) || '';
+							var marker = (xhr.getResponseHeader && xhr.getResponseHeader('X-QHTL-ULOG')) || '';
+							var text = xhr.responseText || '';
+							// Only render when server indicates plain text log via header or content-type
+							if ((marker === '1') || (/^text\/plain/i.test(ct))) {
+								if (text) {
+									text = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+									box.innerHTML = text;
+									try { box.scrollTop = box.scrollHeight; } catch(e){}
+								} else if (attempts <= 1) {
+									box.innerHTML = '<span class="text-muted">(no output yet)</span>';
+								}
+							} else {
+								// Ignore unexpected HTML responses (e.g., full UI) to avoid dumping markup
+								if (attempts <= 1) {
+									box.innerHTML = '<span class="text-muted">(waiting for log output)</span>';
+								}
+							}
+						}
+					}
+				};
+				xhr.send(null);
+			} catch(e){}
+			if (attempts < maxAttempts) { setTimeout(fetchLog, 2000); }
+		}
+		setTimeout(fetchLog, 500);
+	} catch(e){}
+})();
+</script>
+QHTL_UPGRADE_POLL
 			print "</div>\n";
 			&printreturn;
 		} else {
@@ -2994,8 +3070,20 @@ EOD
 		print "<div><h4>Ports listening for external connections and the executables running behind them:</h4></div>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th>Port</th><th>Proto</th><th>Open</th><th>Conns</th><th>PID</th><th>User</th><th>Command Line</th><th>Executable</th></tr></thead>\n";
-		my %listen = QhtLink::Ports->listening;
-		my %ports = QhtLink::Ports->openports;
+		my (%listen, %ports);
+		my $ports_ok = 0;
+		eval {
+			# Ensure methods exist before calling
+			if (QhtLink::Ports->can('listening') && QhtLink::Ports->can('openports')) {
+				%listen = QhtLink::Ports->listening;
+				%ports  = QhtLink::Ports->openports;
+				$ports_ok = 1;
+			}
+			1;
+		} or do { $ports_ok = 0; };
+		unless ($ports_ok) {
+			print "<tr><td colspan='8'><div class='alert alert-warning' style='margin:0'>Ports module not available; unable to enumerate listening ports in this environment.</div></td></tr>\n";
+		}
 		foreach my $protocol (sort keys %listen) {
 			foreach my $port (sort {$a <=> $b} keys %{$listen{$protocol}}) {
 				foreach my $pid (sort {$a <=> $b} keys %{$listen{$protocol}{$port}}) {
@@ -3405,7 +3493,7 @@ EOF
 		print "<div class='normalcontainer'>\n";
 		# Enforce tab-pane visibility regardless of host theme CSS and disable tab clicks while Quick View is open
 		print "<style>.tab-content>.tab-pane{display:none!important}.tab-content>.tab-pane.active{display:block!important}.qhtl-tabs-locked #myTabs a[data-toggle='tab']{pointer-events:none;cursor:not-allowed;opacity:.6;filter:grayscale(.25)}</style>\n";
-		print "<div class='bs-callout bs-callout-info text-center collapse' id='upgradebs'><h4>A new version of qhtlfirewall is <a href='#upgradetable'>available</a></h4></div>";
+	# Removed upgrade-available ribbon above tabs per request
 
 		print "<ul class='nav nav-tabs' id='myTabs' style='font-weight:bold'>\n";
 		print "<li><a data-toggle='tab' href='#upgrade'>Upgrade</a></li>\n";
@@ -3545,44 +3633,153 @@ QHTL_TAB_GUARD
 		print "<table class='table table-bordered table-striped' id='upgradetable'>\n";
 		print "<thead><tr><th colspan='2'>Upgrade</th></tr></thead>";
 	my ($upgrade, $actv) = &qhtlfirewallgetversion("qhtlfirewall",$myv);
-	if ($upgrade) {
-		print "<tr><td colspan='2'><div style='display:flex;gap:8px;flex-wrap:wrap'>";
-		print "<button name='action' value='upgrade' type='submit' class='btn btn-default' data-bubble-color='green'>Upgrade qhtlfirewall</button>";
-		print "<button name='action' value='changelog' type='submit' class='btn btn-default' data-bubble-color='blue'>View ChangeLog</button>";
-		print "<div class='text-muted small' style='margin-top:6px'>A new version of qhtlfirewall (v$actv) is available. Upgrading will retain your settings.</div></td></tr>\n";
-	} else {
-		# Show ChangeLog button above the Manual Check button
-			print "<tr><td colspan='2'>";
-		print "<div style='margin-bottom:6px'><form action='$script' method='post'><button name='action' value='changelog' type='submit' class='btn btn-default'>View ChangeLog</button></form></div>";
-			print "<button name='action' value='manualcheck' type='submit' class='btn btn-default'>Manual Check</button>";
-			if ($actv ne "" && ver_cmp($actv, $myv) == 1) {
-					print "<div class='text-muted small' style='margin-top:6px'>Latest available version is v$actv. Your version is v$myv. Please upgrade.</div></td></tr>\n";
-		} elsif ($actv ne "") {
-				print "<div class='text-muted small' style='margin-top:6px'>(qhtlfirewallget cron check) $actv</div></td></tr>\n";
-		} else {
-				print "<div class='text-muted small' style='margin-top:6px'>You are running the latest version of qhtlfirewall. An Upgrade button will appear here if a new version becomes available. New version checking is performed automatically by a daily cron job (qhtlfirewallget)</div></td></tr>\n";
+		# Unified layout: always render the triangle row and flip via JS when upgrade is available
+			print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
+		# Status box above the manual check button
+		# Removed external status box (status shows inside triangle now)
+		print "<link rel='stylesheet' href='$script?action=widget_js&name=triangle.css&_=" . time() . "' />";
+	print "<div style='display:flex;gap:15px;flex-wrap:wrap;margin:4px 0 0 0;justify-content:center'>";
+	# Force each word on its own line by inserting <br> between words
+	print "  <button id='qhtl-upgrade-manual' type='button' title='Check Manually' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary' data-mode='check'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span class='tri-status' id='qhtl-upgrade-status-inline'></span><span>Check<br>Manually</span></span></button>";
+	print "  <button id='qhtl-upgrade-changelog' type='button' title='View ChangeLog' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>View<br>ChangeLog</span></span></button>";
+	# New independent triangles (placeholders)
+		print "  <button id='qhtl-upgrade-rex' type='button' title='eXploit Scanner' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>eXploit<br>Scanner</span></span></button>";
+		print "  <button id='qhtl-upgrade-mpass' type='button' title='Mail Moderator' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Mail<br>Moderator</span></span></button>";
+		print "  <button id='qhtl-upgrade-mshield' type='button' title='Mail Shiled' style='all:unset;margin:0' onclick='return false;'><span class='qhtl-tri-btn secondary'><svg class='tri-svg' viewBox='0 0 100 86.6' preserveAspectRatio='none' aria-hidden='true'><polygon points='50,3 96,83.6 4,83.6' fill='none' stroke='#a9d7ff' stroke-width='10' stroke-linejoin='round' stroke-linecap='round'/></svg><span class='tri'></span><span>Mail<br>Shiled</span></span></button>";
+		print "</div>";
+		# Upgrade tab inline area below triangles
+			print "<div id='qhtl-upgrade-inline-area' style='min-height:180px;border-top:1px solid #ddd;margin-top:0;padding-top:0;background:transparent; transition: opacity 5s ease;'></div>";
+		# Wire manual check/upgrade button behavior
+				print <<'QHTL_UPGRADE_WIRE_JS';
+<script>
+(function(){
+	try{
+		var base = (window.QHTL_SCRIPT||'') || '$script';
+		var manualBtn = document.getElementById('qhtl-upgrade-manual');
+		if (!manualBtn) return;
+		var tri = manualBtn.querySelector('.qhtl-tri-btn');
+		var label = manualBtn.querySelector('.qhtl-tri-btn > span:last-child');
+	var sbox = document.getElementById('qhtl-upgrade-status-box');
+	var sTop = document.getElementById('qhtl-upgrade-status-inline'); // inline inside triangle
+	var sVer = document.getElementById('qhtl-upgrade-version');
+		function setBlueCheck(){ if(!tri||!label) return; tri.classList.remove('installing','upgrade'); tri.classList.add('secondary'); try{ var svg = tri.querySelector('svg polygon'); if(svg){ svg.setAttribute('stroke', '#a9d7ff'); } }catch(_){ } label.innerHTML = 'Check<br>Manually'; }
+		function setOrangeUpgrade(){ if(!tri||!label) return; tri.classList.remove('secondary'); tri.classList.add('upgrade'); label.innerHTML = 'Upgrade'; try { var svg = tri.querySelector('svg polygon'); if(svg){ svg.setAttribute('stroke', '#f59e0b'); } } catch(_){ }
 		}
-	}
+		function startUpgrade(){
+			try{ tri.classList.add('installing'); }catch(_){ }
+			// visually start a minimal fill animation and pulse
+			try{ var fill = tri.querySelector('.tri'); if (fill){ fill.style.transition = 'transform 0.6s ease'; fill.style.transform = fill.style.transform.replace(/scaleY\([^)]*\)/,'scaleY(0.05)'); } }catch(_){ }
+			var xhr = new XMLHttpRequest();
+			xhr.open('POST', base + '?action=api_start_upgrade&_=' + String(Date.now()), true);
+			try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); xhr.setRequestHeader('Content-Type','application/x-www-form-urlencoded'); }catch(_){ }
+			xhr.onreadystatechange=function(){ if(xhr.readyState===4){
+				// Start timed auto refreshes (every 10s for up to 60s) and stop when upgrade button disappears
+				try { beginTimedAutoRefresh(); } catch(__){}
+			} };
+			try{ xhr.send('start=1'); } catch(e){ try { beginTimedAutoRefresh(); } catch(__){} }
+		}
+
+		// Persist a short-lived auto-refresh schedule in sessionStorage so it survives reloads
+		function beginTimedAutoRefresh(){
+			try{
+				var until = Date.now() + 60000; // 1 minute
+				sessionStorage.setItem('qhtlAutoRefreshUntil', String(until));
+				sessionStorage.setItem('qhtlAutoRefreshEvery', '10000'); // 10 seconds
+				scheduleAutoRefresh();
+			}catch(_){ }
+		}
+
+		function scheduleAutoRefresh(){
+			try{
+				if (window.QHTL_AUTO_REFRESH_RUNNING) { return; }
+				var untilS = sessionStorage.getItem('qhtlAutoRefreshUntil');
+				if (!untilS) { return; }
+				var until = parseInt(untilS, 10) || 0;
+				if (!until || Date.now() > until) { try{ sessionStorage.removeItem('qhtlAutoRefreshUntil'); sessionStorage.removeItem('qhtlAutoRefreshEvery'); }catch(__){} return; }
+				var every = parseInt(sessionStorage.getItem('qhtlAutoRefreshEvery')||'10000',10);
+				if (!(every > 0)) { every = 10000; }
+				window.QHTL_AUTO_REFRESH_RUNNING = setInterval(function(){
+					try{
+						var triBtn = document.querySelector('#qhtl-upgrade-manual .qhtl-tri-btn');
+						var isUpgrade = !!(triBtn && triBtn.classList.contains('upgrade'));
+						var expired = Date.now() > (parseInt(sessionStorage.getItem('qhtlAutoRefreshUntil')||'0',10) || 0);
+						if (!isUpgrade || expired){
+							clearInterval(window.QHTL_AUTO_REFRESH_RUNNING);
+							window.QHTL_AUTO_REFRESH_RUNNING = null;
+							try{ sessionStorage.removeItem('qhtlAutoRefreshUntil'); sessionStorage.removeItem('qhtlAutoRefreshEvery'); }catch(__){}
+							return;
+						}
+						location.reload();
+					}catch(__){}
+				}, every);
+			}catch(__){}
+		}
+		function applyResult(data, fromCountdown){
+			try{
+				if (!data || !data.ok) { if (fromCountdown && sTop){ sTop.textContent='Fail'; sTop.style.color='#dc2626'; sTop.style.fontWeight='800'; } if(sVer){ sVer.textContent=''; } return; }
+				var avail = (data.available||'').trim();
+				var cur = (data.current||'').trim();
+				var up = !!data.upgrade;
+				if (fromCountdown){
+					if (!avail){ if(sTop){ sTop.textContent='Fail'; sTop.style.color='#dc2626'; sTop.style.fontWeight='800'; } if(sVer){ sVer.textContent=''; } }
+					else {
+						if (sVer){ sVer.textContent = avail; sVer.style.color='#16a34a'; sVer.style.fontWeight='700'; }
+						if (avail===cur){ if(sTop){ sTop.textContent='OK'; sTop.style.color='#16a34a'; sTop.style.fontWeight='800'; setTimeout(function(){ try{ sTop.textContent=''; }catch(_){ } }, 5000); } }
+						else { if(sTop){ sTop.textContent=''; } }
+					}
+				}
+				if (up){ setOrangeUpgrade(); manualBtn.onclick=function(e){ e.preventDefault(); startUpgrade(); return false; }; }
+				else { setBlueCheck(); }
+			} catch(e){}
+		}
+
+		function doManualCheckAuto(){ // no countdown; used on load
+			var xhr = new XMLHttpRequest();
+			xhr.open('GET', base + '?action=api_manual_check&_=' + String(Date.now()), true);
+			try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){ }
+			xhr.onreadystatechange=function(){ if(xhr.readyState===4){ var data=null; try{ data=JSON.parse(xhr.responseText||'{}'); }catch(__){} applyResult(data, false); } };
+			try { xhr.send(null); } catch(e) { }
+		}
+
+		function doManualCheckWithCountdown(){
+			if (sTop){ sTop.style.color='#16a34a'; sTop.style.fontWeight='800'; }
+			var n = 5; if (sTop) { sTop.textContent = String(n); }
+			if (sVer) { sVer.textContent = ''; }
+			var dataResp = null, haveResp = false, finished = false;
+			// fire request immediately
+			try{
+				var xhr = new XMLHttpRequest();
+				xhr.open('GET', base + '?action=api_manual_check&_=' + String(Date.now()), true);
+				try{ xhr.setRequestHeader('X-Requested-With','XMLHttpRequest'); }catch(_){ }
+				xhr.onreadystatechange=function(){ if(xhr.readyState===4){ try{ dataResp = JSON.parse(xhr.responseText||'{}'); haveResp = true; if (finished) { applyResult(dataResp, true); } }catch(__){ haveResp = true; if (finished) { applyResult(null, true); } } } };
+				xhr.send(null);
+			} catch(_){ }
+			// countdown
+			var iv = setInterval(function(){
+				try { n--; if (n<=1) { n=1; } if (sTop) { sTop.textContent = String(n); } } catch(_){ }
+				if (n===1) { clearInterval(iv); finished = true; if (haveResp) { applyResult(dataResp, true); } }
+			}, 1000);
+		}
+		// Wire click to countdown-based manual check
+		manualBtn.onclick = function(e){ e.preventDefault(); doManualCheckWithCountdown(); return false; };
+		setTimeout(doManualCheckAuto, 200);
+	}catch(e){}
+})();
+</script>
+QHTL_UPGRADE_WIRE_JS
+		print "<script src='$script?action=widget_js&name=uupdate.js'></script>";
+		print "<script src='$script?action=widget_js&name=uchange.js'></script>";
+		print "<script src='$script?action=widget_js&name=qhtlrex.js'></script>";
+		print "<script src='$script?action=widget_js&name=qhtlmpass.js'></script>";
+		print "<script src='$script?action=widget_js&name=qhtlmshield.js'></script>";
+		# Removed version status/info line to reduce height
+		print "</td></tr>\n";
+    
 		print "</table>\n";
 		print "</form>\n";
 		if ($upgrade) {print "<script>\$('\#upgradebs').show();</script>\n"}
 
-		# Moved informational callouts from General Options to Upgrade tab
-		unless (-e "/etc/qhtlwatcher/qhtlwatcher.pl") {
-			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN} or $config{INTERWORX} or $config{VESTA} or $config{CWP} or $config{CYBERPANEL}) {
-				print "<div class='bs-callout bs-callout-info h4'>Add server and user data protection against exploits using <a href='#' onclick=\"if(window.openPromoModal){openPromoModal(); return false;} return false;\">QHTL eXploit Scanner (qhtlscanner)</a></div>\n";
-			}
-		}
-		unless (-e "/etc/qhtlmoderator/qhtlmoderator.pl") {
-			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
-				print "<div class='bs-callout bs-callout-info h4'>Add outgoing spam monitoring and prevention using <a href='#' onclick=\"if(window.openPromoModal){openPromoModal(); return false;} return false;\">QHTL Outgoing Mail Moderator (qhtlmoderator)</a></div>\n";
-			}
-		}
-		unless (-e "/usr/msfe/mschange.pl") {
-			if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN}) {
-				print "<div class='bs-callout bs-callout-info h4'>Add effective incoming virus and spam detection and user level processing using <a href='#' onclick=\"if(window.openPromoModal){openPromoModal(); return false;} return false;\">QHTL MailScanner Front-End (qhtlscanner)</a></div>\n";
-			}
-		}
+		# Remove informational callouts (buttons now cover these functions)
 
 		# Removed legacy Mobile View panel/button; tabs are now mobile-friendly by default
 		print "</div>\n";
@@ -3600,7 +3797,7 @@ QHTL_TAB_GUARD
 	print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' data-url='$script?action=viewlist&which=allow' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='allowip' value='' size='36' style='background-color: #BDECB6; width:100%;'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qallow\\\").submit();\\\" class='btn btn-default' data-bubble-color='green'>Quick Allow</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qallow').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='green'>Quick Allow</button></div>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
 		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Allow:</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
@@ -3616,7 +3813,7 @@ QHTL_TAB_GUARD
 	print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' data-url='$script?action=viewlist&which=deny' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='denyip' value='' size='36' style='background-color: #FFD1DC; width:100%;'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qdeny\\\").submit();\\\" class='btn btn-default' data-bubble-color='red'>Quick Deny</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qdeny').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='red'>Quick Deny</button></div>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
 		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Block:</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
@@ -3632,7 +3829,7 @@ QHTL_TAB_GUARD
 	print "    <div style='flex:0 0 30%; max-width:30%'>Ignore IP address <a class='quickview-link' data-which='ignore' data-url='$script?action=viewlist&which=ignore' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='ignoreip' value='' size='36' style='background-color: #D9EDF7; width:100%;'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qignore\\\").submit();\\\" class='btn btn-default' data-bubble-color='orange'>Quick Ignore</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qignore').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='orange'>Quick Ignore</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
@@ -3644,7 +3841,7 @@ QHTL_TAB_GUARD
 		print "    <div style='flex:0 0 30%; max-width:30%'>Search IP address</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#grep\\\").submit();\\\" class='btn btn-default' data-bubble-color='blue'>Search for IP</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('grep').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='blue'>Search for IP</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
@@ -3656,7 +3853,7 @@ QHTL_TAB_GUARD
 		print "    <div style='flex:0 0 30%; max-width:30%'>Remove IP address</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='killip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
 		print "  </div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#qkill\\\").submit();\\\" class='btn btn-default' data-bubble-color='gray'>Quick Unblock</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qkill').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='gray'>Quick Unblock</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
@@ -3685,8 +3882,8 @@ QHTL_TAB_GUARD
 		print "    <div style='flex:0 0 20%; max-width:20%'>Comment</div>";
 		print "    <div style='flex:1 1 auto'><input type='text' name='comment' value='' size='30' class='form-control' style='max-width:520px'></div>";
 		print "  </div>";
-		print "  <div class='text-muted' style='font-size:12px; margin-bottom:8px'>(ports can be either * for all ports, a single port, or a comma separated list of ports)</div>";
-		print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onClick=\\\"\\$(\\\"#tempdeny\\\").submit();\\\" class='btn btn-default' data-bubble-color='purple'>Apply Temporary Rule</button></div>";
+	print "  <div class='text-muted' style='font-size:12px; margin-bottom:8px'>(ports can be either * for all ports, a single port, or a comma separated list of ports)</div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('tempdeny').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='purple'>Apply Temporary Rule</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
@@ -3737,10 +3934,10 @@ QHTL_TAB_GUARD
 		print "</div>\n";
 
 		# New Waterfall tab (duplicate of QhtLink Waterfall content) placed before QhtLink Firewall
-		  print "<div id='waterfall' class='tab-pane'>\n";
+					print "<div id='waterfall' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
-		  print "<tr><td>".
+					print "<tr style='background:transparent!important'><td style='background:transparent!important'>".
 				  "<div style='display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;justify-content:center'>".
 						"<div id='wstatus-anchor' style='position:relative;display:inline-block;width:100px;height:100px'>".
 							"<div id='wstatus-fallback' class='wcircle' style='position:relative;width:100px;height:100px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;vertical-align:top;'>".
@@ -3803,7 +4000,32 @@ QHTL_TAB_GUARD
 				."  // Do not auto-remove fallback; leave it as a persistent control if WStatus fails\n"
 				."})();</script>\n";
 		# Inline content area for widget actions (load results below bubbles)
-		print "<tr><td><div id='qhtl-inline-area' style='padding-top:10px;min-height:200px'></div></td></tr>\n";
+	print "<tr style='background:transparent!important'><td style='background:transparent!important'><div id='qhtl-inline-area' style='padding-top:10px;min-height:180px;background:transparent'></div></td></tr>\n";
+	print "<script>\n";
+	print "(function(){\n";
+	print "  function makeAutoClear(id){ var el=document.getElementById(id); if(!el) return; el.style.transition = el.style.transition || 'opacity 5s ease'; var t=null, fading=false, fadeTimer=null;\n";
+	print "    function clearNow(){ try{ el.innerHTML=''; el.style.opacity=''; el.style.pointerEvents=''; fading=false; if(fadeTimer){ clearTimeout(fadeTimer); fadeTimer=null; } }catch(_){ } }\n";
+	print "    function beginFade(){ if(fading) return; fading=true; el.style.opacity='0'; el.style.pointerEvents='none'; fadeTimer=setTimeout(clearNow, 5000); }\n";
+	print "    function cancelFade(){ if(!fading) return; try{ el.style.opacity=''; el.style.pointerEvents=''; }catch(_){ } fading=false; if(fadeTimer){ clearTimeout(fadeTimer); fadeTimer=null; } }\n";
+	print "    function arm(){ if(t){ clearTimeout(t); } cancelFade(); t=setTimeout(beginFade, 10000); }\n";
+	print "    // Arm on interactions and when content changes; also cancel any active dimming to keep content visible\n";
+	print "    ['click','input','mousemove','wheel','keydown','touchstart','pointermove','pointerdown'].forEach(function(evt){ el.addEventListener(evt, arm, {passive:true}); });\n";
+	print "    var mo = new MutationObserver(arm); mo.observe(el, { childList:true, subtree:true }); arm();\n";
+	print "    // Expose small helpers for external use (e.g., tab re-click toggles)\n";
+	print "    el.qhtlClearNow = clearNow; el.qhtlCancelFade = cancelFade; el.qhtlArmAuto = arm;\n";
+	print "  }\n";
+	print "  makeAutoClear('qhtl-inline-area');\n";
+	print "  makeAutoClear('qhtl-upgrade-inline-area');\n";
+	print "})();\n";
+	print "</script>\n";
+	# Re-click active tab name to clear its own inline area and cancel dimming
+	print "<script>(function(){\n";
+	print "  try{ var tabs=document.getElementById('myTabs'); if(!tabs) return; var lastClick=0;\n";
+	print "    tabs.addEventListener('click', function(ev){ var a=ev.target && ev.target.closest ? ev.target.closest('a[data-toggle=\\'tab\\']') : null; if(!a) return; var href=a.getAttribute('href')||''; if(!href) return; var li=a.parentNode; var isActive = li && li.classList && li.classList.contains('active');\n";
+	print "      if(isActive){ ev.preventDefault(); var now=Date.now(); if(now - lastClick < 350){ return; } lastClick=now; var areaId = (href==='#upgrade') ? 'qhtl-upgrade-inline-area' : (href==='#waterfall' ? 'qhtl-inline-area' : null); if(!areaId) return; var area=document.getElementById(areaId); if(!area) return; try{ if(area.qhtlCancelFade) area.qhtlCancelFade(); area.innerHTML=''; if(area.qhtlArmAuto) area.qhtlArmAuto(); }catch(_){} }\n";
+	print "    }, true);\n";
+	print "  }catch(e){}\n";
+	print "})();</script>\n";
 		# Delegate clicks and form submits inside the Waterfall tab to load into inline area
 		print "<script>(function(){\n";
 	print "  if (window.__QHTL_INLINE_LOADER_ACTIVE) { return; } window.__QHTL_INLINE_LOADER_ACTIVE = true;\n";
@@ -3883,8 +4105,8 @@ QHTL_TAB_GUARD
 	# Enforce Quick View modal sizing (500x400) with scrollable body
 	print "<style>\n";
 	print "#quickViewModal { position: absolute !important; inset: 0 !important; z-index: 1000 !important; touch-action: auto !important; }\n";
-	print "#quickViewModal .modal-dialog { width: 660px !important; max-width: 95% !important; position: absolute !important; top: 12px !important; left: 50% !important; transform: translateX(-50%) !important; margin: 0 !important; }\n";
-	print "#quickViewModal .modal-content { height: auto !important; max-height:480px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
+	print "#quickViewModal .modal-dialog { width: calc(100% - 40px) !important; max-width: 1200px !important; position: absolute !important; top: 20px !important; left: 20px !important; right: 20px !important; transform: none !important; margin: 0 !important; }\n";
+	print "#quickViewModal .modal-content { height: 400px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; box-sizing: border-box !important; }\n";
 	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow:auto !important; min-height:0 !important; padding:10px !important; }\n";
 		print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; display:flex !important; justify-content: space-between !important; align-items: center !important; gap:8px !important; }\n";
 	print "#quickViewModal #quickViewTitle { margin:0 0 8px 0 !important; }\n";

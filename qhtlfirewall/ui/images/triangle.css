@@ -1,0 +1,153 @@
+/* Triangle buttons: default width 120px (50% larger than 80px). Height is equilateral ~0.866*w.
+   Keep a fixed ~10px imprint (gap) using dynamic scale: k = 1 - 3*d/h, here d=10px, h=w*0.866. */
+
+.qhtl-tri-btn{
+	--w: 132px;               /* slightly larger */
+	--h: calc(var(--w) * 0.8660254 - 10px); /* reduce height by 10px */
+	--d: 0px;                 /* remove imprint gap */
+	--labelPad: 12px;         /* fixed padding to keep text inside triangle (not halo) */
+	--k: calc(1 - (3 * var(--d) / var(--h))); /* scales to 1 when gap is 0 */
+	position:relative;
+	display:inline-block;
+	width:var(--w);
+	height:var(--h);
+	clip-path:polygon(50% 0,100% 100%,0 100%);
+	/* Flat background; keep only soft drop shadow (no white ring) */
+	background: transparent;
+	box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+	cursor:pointer;
+	overflow:visible;         /* allow caption outside */
+	margin-bottom: 18px;      /* space for label below */
+
+}
+/* Inline SVG ring (halo + edge) sits above inner faces for visibility */
+.qhtl-tri-btn .tri-svg{
+	position:absolute;
+	inset:0;
+	width:100%; height:100%;
+	z-index:3; /* above ::after inner and .tri fill, below label */
+	pointer-events:none;
+	clip-path:inherit;
+}
+/* Imprint ring (10px gap area) - flat tint */
+.qhtl-tri-btn::before{
+	content:"";
+	position:absolute;
+	inset:0;
+	clip-path:inherit;
+	/* No background tint; avoid extra triangular background */
+	background: transparent;
+	z-index:0; /* sits below ::after inner face */
+}
+/* Inner face (base) via scale for uniform gap */
+.qhtl-tri-btn::after{
+	content:"";
+	position:absolute;
+	inset:0;
+	clip-path:inherit;
+	/* Waterfall (green inner) linear gradient */
+	background:linear-gradient(180deg, #66e08a 0%, #34a853 100%);
+	/* Use bottom origin + centroid compensation so inner centers perfectly inside outer */
+	transform-origin:bottom center;
+	transform:translateY(calc(-33.333% * (1 - var(--k)))) scale(var(--k));
+	/* No inner edge when gap is removed */
+	box-shadow: none;
+	z-index:1;
+}
+/* Fill overlay - scales from bottom within the same inner triangle */
+.qhtl-tri-btn .tri{
+	position:absolute;
+	inset:0;
+	clip-path:inherit;
+	/* Match green inner face so fill looks like the Waterfall bubble */
+	background:linear-gradient(180deg, #66e08a 0%, #34a853 100%);
+	/* Keep bottom-up fill but align inner using the same centroid compensation */
+	transform-origin:bottom center;
+	transform:translateY(calc(-33.333% * (1 - var(--k)))) scale(var(--k)) scaleY(0);   /* JS may set final scaleY */
+	z-index:2;
+}
+/* Inline status text inside triangle (above label) */
+.qhtl-tri-btn .tri-status{
+	position:absolute;
+	left:50%;
+	/* place ~one line above label, safely inside triangle */
+	bottom: calc(var(--labelPad) + 32px);
+	transform: translateX(-50%);
+	width:72%;
+	text-align:center;
+	color:#16a34a;          /* default green */
+	font-size:11.5px;
+	font-weight:800;
+	line-height:1;
+	min-height:1.2em;       /* reserve space so label doesn’t jump */
+	z-index:4;
+	pointer-events:none;
+	text-shadow: 0 1px 1px rgba(0,0,0,.35);
+}
+/* Caption inside the triangle, bold black */
+.qhtl-tri-btn > span:last-child{
+	position:absolute;
+	left:50%;
+	bottom:var(--labelPad); /* align text baseline to triangle bottom edge, not halo */
+	transform:translateX(-50%);
+	/* Keep label inside triangle without curved clip: use a narrower center block */
+	width:66%;
+	text-align:center;
+	color:#fff;
+	font-size:13px;
+	font-weight:800;
+	letter-spacing:.1px;
+	white-space:normal;
+	overflow-wrap:anywhere;
+	word-break:break-word;
+	line-height:1.1;
+	/* Allow up to 2 lines without clipping over the halo */
+	max-height:calc(1.1em * 2);
+	overflow:hidden;
+	z-index:4; /* above SVG ring */
+	pointer-events:none;
+	text-shadow: 0 1px 1px rgba(0,0,0,.45);
+}
+/* Running pulse */
+.qhtl-tri-btn.running::before{
+	content:""; position:absolute; left:50%; top:50%; width:2px; height:2px; background:#22c55e; border-radius:50%;
+	box-shadow:0 0 0 6px rgba(34,197,94,.35),0 0 0 12px rgba(34,197,94,.2);
+	opacity:0; animation:boom .6s ease-out;
+}
+@keyframes boom{0%{opacity:1;transform:translate(-50%,-50%) scale(.7)}100%{opacity:0;transform:translate(-50%,-50%) scale(2.2)}}
+/* Subtle flash on click to make action visible even without fill */
+.qhtl-tri-btn.running{ animation:triFlash .45s ease-out; }
+@keyframes triFlash{ 0%{ filter:brightness(1.1) } 100%{ filter:brightness(1) } }
+
+/* Secondary (blue) variant */
+.qhtl-tri-btn.secondary{ 
+	/* No separate blue background */
+	background: transparent;
+}
+/* No blue base tint to avoid background triangle */
+.qhtl-tri-btn.secondary::before{ background: transparent; }
+.qhtl-tri-btn.secondary::after{ 
+	/* Blue inner face */
+	background:linear-gradient(180deg, #4ea8ff 0%, #1e6fd1 100%);
+}
+.qhtl-tri-btn.secondary .tri{ 
+	/* Blue fill */
+	background:linear-gradient(180deg,#4ea8ff 0%, #1e6fd1 100%);
+}
+/* Blue running pulse override */
+.qhtl-tri-btn.secondary.running::before{
+	background:#3b82f6;
+	box-shadow:0 0 0 6px rgba(59,130,246,.35), 0 0 0 12px rgba(59,130,246,.2);
+}
+
+/* Green upgrade variant */
+/* Orange upgrade variant */
+.qhtl-tri-btn.upgrade::after{
+	background:linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+}
+.qhtl-tri-btn.upgrade .tri{
+	background:linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+}
+.qhtl-tri-btn.upgrade .tri-svg polygon{
+	stroke:#f59e0b !important; /* amber halo */
+}

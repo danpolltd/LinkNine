@@ -1,5 +1,29 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
+Date: 2025-10-02
+Version: 0.1.11 “Curse Blade”
+
+Upgrade UI/Flow
+- “Check Manually” now morphs into a prominent orange “Upgrade” triangle when a newer version is available. The text and the short countdown render inside the triangle for clarity.
+- Inline ChangeLog viewer added next to the manual check for quick review before upgrading.
+- Post-upgrade behavior simplified: the UI now auto-refreshes every 10s (up to 60s) and stops when the Upgrade button disappears. This replaces the previous progress polling loop.
+- Reduced the Upgrade tab’s height by removing the bottom info row while preserving all triangle buttons.
+
+Version Check & Mirrors
+- Robust manual version check endpoint: normalizes configured mirrors, tolerates minor formatting drifts in version.txt, and gives clearer error details.
+- Explicit error handling when no HTTP client is available; resilient parsing with UTF-8 BOM stripping and multi-line token scanning.
+
+Watcher UX
+- Newest-first log display for AJAX tail output, with non-live auto-scroll targeting the newest entries (scroll to top).
+- Modal pinned near the top of the viewport (20px) and constrained to keep 20px margins on both the left and right sides for better readability.
+
+Stability & Optional Modules
+- UI no longer errors if ServerCheck, RBLCheck, or Ports modules are missing. Optional requires and guarded calls prevent undefined subroutine/method crashes and surface a compact notice instead.
+
+General
+- Layout fix: all triangle buttons render normally; only the first morphs to the Upgrade state when applicable.
+- Light CSS/JS polish around the triangle components and modal sizing.
+
 Date: 2025-09-30
 Version: 0.1.10 “Sharp Scratch”
 

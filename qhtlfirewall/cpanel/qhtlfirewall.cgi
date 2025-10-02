@@ -51,26 +51,27 @@ eval {
 ## Postpone config and regex setup until after lightweight endpoints
 # Avoid calling cPanel Rlimit before we ensure cPanel deps are available
 
-# Defensive: if this CGI is requested in a script-like context without an action, return a JS no-op.
-# Simple rule: only consider it script-like when Sec-Fetch-Dest=script or Accept indicates JavaScript.
+# Defensive: If this CGI is fetched as a <script> (or otherwise JS-like) without an action,
+# emit a tiny JS no-op. Otherwise, fall through and render the HTML UI. Some environments
+# omit Sec-Fetch headers, so default to HTML unless we have strong evidence it's a script.
 my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
 my $sec_mode = lc($ENV{HTTP_SEC_FETCH_MODE} // '');
 my $sec_user = lc($ENV{HTTP_SEC_FETCH_USER} // ''); # '?1' for user navigations
 my $accept   = lc($ENV{HTTP_ACCEPT} // '');
 if (!defined $FORM{action} || $FORM{action} eq '') {
-	my $is_script_dest = ($sec_dest eq 'script');
-	my $accept_js      = ($accept =~ /\b(?:application|text)\/(?:javascript|ecmascript)\b/);
-	# Consider it a normal navigation if Sec-Fetch indicates navigation/document/frame or a user gesture is present
-	my $is_nav = ($sec_mode eq 'navigate' || $sec_dest eq 'document' || $sec_dest eq 'frame' || $sec_dest eq 'iframe' || $sec_user eq '?1');
-	my $accepts_html = ($accept =~ /\btext\/html\b/);
-	# Treat as script-like when destination is script, OR when not a nav and the Accept header does NOT include text/html
-	# This catches Firefox script fetches that often use Accept: */* and do not send Sec-Fetch headers.
-	my $scriptish = $is_script_dest || (!$is_nav && !$accepts_html) || (!$is_nav && $accept_js);
-	if ($scriptish) {
+	# Consider it script-like only if explicitly requested as a script or Accept prefers JS
+	my $is_script_like = (
+		$sec_dest eq 'script' ||
+		$accept =~ /\b(?:application|text)\/(?:x-)?javascript\b/ ||
+		$accept =~ /\btext\/ecmascript\b/ ||
+		$accept =~ /\bapplication\/ecmascript\b/
+	);
+	if ($is_script_like) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
 		exit 0;
 	}
+	# Otherwise, proceed to render HTML normally (no early exit)
 }
 
 # Serve wstatus.js via controlled endpoint to guarantee correct MIME and avoid nosniff issues on static paths
@@ -118,16 +119,17 @@ if (defined $FORM{action} && $FORM{action} eq 'diag') {
 }
 if (defined $FORM{action} && $FORM{action} eq 'widget_js') {
 	my %allowed = map { $_ => 1 } qw(
-		wignore.js wdirwatch.js wddns.js walerts.js wscanner.js wblocklist.js wusers.js
+		wignore.js wdirwatch.js wddns.js walerts.js wscanner.js wblocklist.js wusers.js uupdate.js uchange.js triangle.css qhtlrex.js qhtlmpass.js qhtlmshield.js
 	);
-	my $name = $FORM{name} // '';
+	my $name = $FORM{name} // ''; 
 	$name =~ s/[^a-zA-Z0-9_.-]//g; # sanitize
 	if (!$allowed{$name}) {
 		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 		print ";\n";
 		exit 0;
 	}
-	print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my $ctype = ($name =~ /\.css\z/i) ? 'text/css' : 'application/javascript';
+	print "Content-type: $ctype\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 	my @paths = (
 		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/ui/images/$name",
 		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/$name",
@@ -193,6 +195,7 @@ if (defined $FORM{action} && $FORM{action} eq 'holiday_asset') {
 	if (!$done) { print ""; }
 	exit 0;
 }
+
 
 if (-e "/usr/local/cpanel/bin/register_appconfig") {
 	$script = "qhtlfirewall.cgi";
@@ -748,6 +751,268 @@ if (defined $FORM{action} && $FORM{action} eq 'watcher_meta_logs') {
 	exit 0;
 }
 
+# Lightweight endpoint to expose the upgrade log for AJAX polling
+if (defined $FORM{action} && $FORM{action} eq 'upgrade_log') {
+	my $ulog = "/var/log/qhtlfirewall-ui-upgrade.log";
+	# If this endpoint is accidentally loaded as a <script>, emit a JS no-op
+	my $ul_sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	if ($ul_sec_dest eq 'script') {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	my ($data, $len, $done) = ('', 0, 0);
+	if (open(my $UIN, '<', $ulog)) {
+		local $/ = undef; $data = <$UIN> // '';
+		close $UIN;
+		$len = length($data);
+		# Consider upgrade finished if the log contains an "All done" marker
+		$done = ($data =~ /\bAll done\b|\.\.\.All done/i) ? 1 : 0;
+	} else {
+		$data = '';
+		$len = 0;
+		$done = 0;
+	}
+	# Emit verification and progress hint headers
+	print "Content-type: text/plain; charset=UTF-8\r\nX-QHTL-ULOG: 1\r\nX-QHTL-ULOG-LEN: $len\r\nX-QHTL-ULOG-DONE: $done\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	print $data;
+	exit 0;
+}
+
+# API endpoint to start the upgrade in the background (no navigation)
+if (defined $FORM{action} && $FORM{action} eq 'api_start_upgrade') {
+	my $ulog = "/var/log/qhtlfirewall-ui-upgrade.log";
+	my $pfile = "/var/lib/qhtlfirewall/ui-postinstall.txt";
+	# If accidentally loaded as a <script>, emit a JS no-op
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	if ($sec_dest eq 'script') {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+	# Pre-create/clear the log with a header
+	eval {
+		if (open(my $LF, '>', $ulog)) {
+			my $now = scalar localtime();
+			print $LF "=== QhtLink Firewall upgrade started at $now ===\n";
+			close $LF;
+		}
+		1;
+	};
+	# Ensure progress file directory exists and mark starting
+	eval {
+		my $dir = '/var/lib/qhtlfirewall';
+		if (!-d $dir) { mkdir $dir, 0755; }
+		if (open(my $PF, '>', $pfile)) {
+			my $now = scalar localtime();
+			print $PF "status:starting time=$now\n";
+			close $PF;
+		}
+		1;
+	} or do { };
+	# Launch upgrade in background
+	my $nohup = (-x '/usr/bin/nohup') ? '/usr/bin/nohup' : ((-x '/bin/nohup') ? '/bin/nohup' : '');
+	my $shell = (-x '/bin/sh') ? '/bin/sh' : '/usr/bin/sh';
+	my $cmd;
+	my $inner = "echo status:running time=\$(date -Is) > $pfile; /usr/sbin/qhtlfirewall -uf >> $ulog 2>&1; ec=\$?; echo status:done exit=\$ec time=\$(date -Is) > $pfile";
+	if ($nohup ne '') {
+		$cmd = "$nohup $shell -c '$inner' >> $ulog 2>&1 &";
+	} else {
+		$cmd = "($inner) >> $ulog 2>&1 &";
+	}
+	system($cmd);
+	# Respond JSON
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	print '{"ok":1}';
+	exit 0;
+}
+
+# API endpoint to report upgrade progress using the progress file and log
+if (defined $FORM{action} && $FORM{action} eq 'upgrade_progress') {
+	my $pfile = "/var/lib/qhtlfirewall/ui-postinstall.txt";
+	my $ulog  = "/var/log/qhtlfirewall-ui-upgrade.log";
+	my ($status, $exit, $time, $pct) = ('unknown', -1, '', -1);
+	if (-r $pfile) {
+		if (open(my $PF, '<', $pfile)) {
+			my @lines = <$PF>; close $PF;
+			my $last = pop @lines; $last = '' unless defined $last; chomp $last;
+			if ($last =~ /status:(\w+)/) { $status = $1; }
+			if ($last =~ /exit=(\-?\d+)/) { $exit = $1+0; }
+			if ($last =~ /time=([^\s]+)/) { $time = $1; }
+			if ($last =~ /pct=(\d{1,3})/) { $pct = $1+0; $pct = 100 if $pct>100; }
+		}
+	}
+	my $done = 0;
+	if ($status eq 'done') { $done = 1; }
+	else {
+		# Fallback to log marker if progress file missing
+		if (open(my $UL, '<', $ulog)) {
+			local $/ = undef; my $data = <$UL>; close $UL; $done = ($data =~ /\bAll done\b|\.\.\.All done/i) ? 1 : 0;
+		}
+	}
+	# Emit JSON
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my $json = '{'
+	  . '"ok":1,'
+	  . '"status":"'.$status.'",'
+	  . '"done":'.($done?1:0).','
+	  . '"exit":'.$exit.','
+	  . '"time":"'.$time.'",'
+	  . '"pct":'.$pct
+	  . '}';
+	print $json;
+	exit 0;
+}
+
+# API endpoint to manually check for the latest available version (used by the Upgrade tab/button)
+if (defined $FORM{action} && $FORM{action} eq 'api_manual_check') {
+	# If accidentally loaded as a <script>, emit a JS no-op
+	my $sec_dest = lc($ENV{HTTP_SEC_FETCH_DEST} // '');
+	if ($sec_dest eq 'script') {
+		print "Content-type: application/javascript\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+		print ";\n";
+		exit 0;
+	}
+
+	# Helper: semantic version compare (returns 1 if a>b, -1 if a<b, 0 if equal)
+	my $ver_cmp = sub {
+		my ($a,$b) = @_;
+		my @a = split /\./, ($a // '');
+		my @b = split /\./, ($b // '');
+		for (my $i=0; $i < @a || $i < @b; $i++) {
+			my $ai = $i < @a ? int($a[$i]||0) : 0;
+			my $bi = $i < @b ? int($b[$i]||0) : 0;
+			return 1 if $ai > $bi;
+			return -1 if $ai < $bi;
+		}
+		return 0;
+	};
+
+	# Load minimal config safely
+	my %cfg = (
+		URLGET         => 1,                    # prefer HTTP::Tiny
+		URLPROXY       => '',
+		DOWNLOADSERVER => '',
+	);
+	my $cleanreg;
+	eval {
+		require QhtLink::Config;
+		require QhtLink::Slurp;
+		my $c = QhtLink::Config->loadconfig();
+		my %full = $c->config;
+		$cfg{URLGET}         = $full{URLGET}         if defined $full{URLGET};
+		$cfg{URLPROXY}       = $full{URLPROXY}       if defined $full{URLPROXY};
+		$cfg{DOWNLOADSERVER} = $full{DOWNLOADSERVER} if defined $full{DOWNLOADSERVER};
+		$cleanreg = QhtLink::Slurp->cleanreg;
+		1;
+	} or do { };
+
+	# Initialize HTTP client
+	my $urlget;
+	my $ua_ok = eval { require QhtLink::URLGet; 1 } ? 1 : 0;
+	if ($ua_ok) {
+		$urlget = QhtLink::URLGet->new($cfg{URLGET}, "qhtlfirewall/$myv", $cfg{URLPROXY});
+		if (!defined $urlget) {
+			# Fallback to HTTP::Tiny mode
+			$cfg{URLGET} = 1;
+			$urlget = QhtLink::URLGet->new($cfg{URLGET}, "qhtlfirewall/$myv", $cfg{URLPROXY});
+		}
+	}
+
+	my $ok = 0; my $err = '';
+	my $avail = ''; my $src = '';
+	my $curr = $myv // '';
+
+	if (!$ua_ok || !defined $urlget) {
+		$err = 'HTTP client not initialized';
+	} else {
+		eval {
+			# Build mirrors list from file and config
+			my %seen; my @mirrors;
+			my $list = '/etc/qhtlfirewall/downloadservers';
+			if (eval { -r $list }) {
+				eval {
+					require QhtLink::Slurp;
+					my @lines = QhtLink::Slurp::slurp($list);
+					foreach my $line (@lines) {
+						$line =~ s/$cleanreg//g if defined $cleanreg;
+						$line =~ s/#.*$//; $line =~ s/^\s+|\s+$//g;
+						next unless length $line;
+						$line =~ s{^https?://}{}i;   # drop scheme
+						$line =~ s{/.*$}{};          # drop path
+						$line =~ s{/+\z}{};         # drop trailing slash
+						next if $seen{lc $line}++;
+						push @mirrors, $line;
+					}
+					1;
+				} or do { };
+			}
+			if (defined $cfg{DOWNLOADSERVER} && $cfg{DOWNLOADSERVER} ne '') {
+				my $c = $cfg{DOWNLOADSERVER};
+				$c =~ s{^https?://}{}i; $c =~ s{/.*$}{}; $c =~ s{/+\z}{};
+				if (!$seen{lc $c}++) { unshift @mirrors, $c; }
+			}
+			# Fallback legacy host only if none explicitly provided
+			push @mirrors, 'update.qhtl.link' if !@mirrors;
+
+			# Shuffle for resilience
+			for (my $x = @mirrors; --$x;) {
+				my $y = int(rand($x+1));
+				next if $x == $y;
+				@mirrors[$x,$y] = @mirrors[$y,$x];
+			}
+
+			my $last_err = '';
+			MIRROR: for my $host (@mirrors) {
+				for my $scheme ('https','http') {
+					my $url = "$scheme://$host/qhtlfirewall/version.txt";
+					my ($rc, $data) = $urlget->urlget($url);
+					if (!$rc && defined $data) {
+						# Strip BOM and parse for a version token
+						$data =~ s/^\xEF\xBB\xBF//;
+						my $found = '';
+						for my $line (split /\r?\n/, $data) {
+							$line =~ s/^\s+|\s+$//g; next unless length $line;
+							if ($line =~ /^v?(\d+(?:\.\d+){1,3})\b/i) { $found = $1; last; }
+						}
+						if (!$found && $data =~ /^\s*v?(\d+(?:\.\d+){1,3})\s*$/m) { $found = $1; }
+						if ($found) { $avail = $found; $src = $host; }
+					}
+					if ($avail) { last MIRROR; }
+					else {
+						my $why = defined $data ? $data : '';
+						$why =~ s/[\r\n]+/ /g; $why =~ s/\s{2,}/ /g; $why = substr($why,0,180);
+						$last_err = ($why ne '' ? $why : 'Unknown error');
+					}
+				}
+			}
+			if (!$avail) { $err = 'Version check failed: '.($last_err||''); }
+			1;
+		} or do { $err = 'Version check failed'; };
+	}
+
+	my $need_up = 0;
+	if ($avail && $curr) {
+		# Remove leading v's if present
+		(my $a = $avail) =~ s/^v//i; (my $c = $curr) =~ s/^v//i;
+		$need_up = ($ver_cmp->($a, $c) == 1) ? 1 : 0;
+	}
+
+	my $okflag = ($avail ne '' && $err eq '') ? 1 : 0;
+	# Emit JSON
+	print "Content-type: application/json\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	my $json = '{'
+		. '"ok":'.($okflag?1:0).','
+		. '"current":"'.($curr//'') .'",'
+		. '"available":"'.($avail//'').'",'
+		. '"upgrade":'.($need_up?1:0).','
+		. '"source":"'.($src//'').'",'
+		. '"error":"'.($err//'').'"'
+		. '}';
+	print $json;
+	exit 0;
+}
+
 	# Minimal HTML banner for iframe embedding (no JS required in parent)
 	if (defined $FORM{action} && $FORM{action} eq 'banner_frame') {
 		# If loaded as a <script>, emit a JS no-op instead of HTML to prevent parse errors
@@ -1028,7 +1293,7 @@ print <<HTML_SMART_WRAPPER;
 			}
 			modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='none'; modal.style.zIndex='9999';
 			var dialog = document.createElement('div');
-			dialog.style.width='660px'; dialog.style.maxWidth='95%'; dialog.style.height='500px'; dialog.style.background='linear-gradient(180deg, #f7fafc 0%, #ffffff 40%, #f7fafc 100%)'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='absolute'; dialog.style.top='50%'; dialog.style.left='50%'; dialog.style.transform='translate(-50%, -50%)'; dialog.style.margin='0';
+			dialog.style.width='660px'; dialog.style.maxWidth='calc(100% - 40px)'; dialog.style.height='500px'; dialog.style.background='linear-gradient(180deg, #f7fafc 0%, #ffffff 40%, #f7fafc 100%)'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='absolute'; dialog.style.top='20px'; dialog.style.left='50%'; dialog.style.transform='translate(-50%, 0)'; dialog.style.margin='0';
 			var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflowX='hidden'; body.style.overflowY='auto'; body.style.padding='10px'; body.style.minHeight='0';
 			var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';
 			// Header-right container for countdown next to title
@@ -1183,10 +1448,10 @@ print <<HTML_SMART_WRAPPER;
 							var html = x.responseText || '';
 							// Note: Scripts inserted via innerHTML generally do not execute; this is acceptable for log output.
 							b.innerHTML = html;
-							// Auto-scroll to bottom if not in live mode; in live mode, respect user scroll position
-							if (window.__qhtlWatcherMode !== 'live') {
-								try { b.scrollTop = b.scrollHeight; } catch(_) {}
-							}
+								// Auto-scroll to top if not in live mode (newest-first); in live mode, respect user scroll position
+								if (window.__qhtlWatcherMode !== 'live') {
+									try { b.scrollTop = 0; } catch(_) {}
+								}
 							if (typeof done==='function') { try{ done(); }catch(_){} }
 						} else {
 							b.innerHTML = "<div class='alert alert-danger'>Failed to load content ("+x.status+"). Staying in Quick View.</div>";
@@ -1209,8 +1474,8 @@ print <<HTML_SMART_WRAPPER;
 			// Enforce global modal max height 480px
 			h = Math.min(480, Math.floor(h * 0.9));
 			d.style.width = w + 'px'; d.style.height = h + 'px';
-			d.style.maxWidth='95%'; d.style.maxHeight='480px';
-			d.style.position='absolute'; d.style.top='50%'; d.style.left='50%'; d.style.transform='translate(-50%, -50%)'; d.style.margin='0';
+			d.style.maxWidth='calc(100% - 40px)'; d.style.maxHeight='480px';
+			d.style.position='absolute'; d.style.top='20px'; d.style.left='50%'; d.style.transform='translateX(-50%)'; d.style.margin='0';
 		}
 				// Ensure blue pulsating glow CSS exists and apply class
 				(function(){ var css=document.getElementById('qhtl-blue-style'); if(!css){ css=document.createElement('style'); css.id='qhtl-blue-style'; css.textContent=String.fromCharCode(64)+'keyframes qhtl-blue {0%,100%{box-shadow: 0 0 12px 5px rgba(0,123,255,0.55), 0 0 20px 9px rgba(0,123,255,0.3);}50%{box-shadow: 0 0 22px 12px rgba(0,123,255,0.95), 0 0 36px 16px rgba(0,123,255,0.55);}} .fire-blue{ animation: qhtl-blue 2.2s infinite ease-in-out; }'; document.head.appendChild(css);} if(d){ d.classList.add('fire-blue'); } var bodyEl=document.getElementById('quickViewBodyShim'); if(bodyEl){ bodyEl.style.background='white'; bodyEl.style.borderRadius='4px'; bodyEl.style.padding='10px'; } })();
@@ -1235,8 +1500,14 @@ print <<HTML_HEADER_ASSETS;
 						try {
 							var loc = window.location || {};
 							var origin = loc.origin || (loc.protocol + '//' + loc.host);
-							var m = (loc.pathname||'').match(/\/cpsess\d+/);
-							var token = m ? m[0] : '';
+							// Extract cpsess token without regex to avoid parsing issues
+							var pth = String(loc.pathname || '');
+							var idx = pth.indexOf('/cpsess');
+							var token = '';
+							if (idx !== -1) {
+								var end = pth.indexOf('/', idx + 1);
+								token = (end === -1) ? pth.substring(idx) : pth.substring(idx, end);
+							}
 							// Build absolute path to our CGI, e.g., https://host:2087/cpsessXXXX/cgi/qhtlink/qhtlfirewall.cgi
 							window.QHTL_SCRIPT = origin + token + '/cgi/qhtlink/' + '$script';
 						} catch(e) {
@@ -1354,7 +1625,13 @@ unless ($skip_capture || $is_ajax) {
 	<div class='row' style='display:flex;align-items:center;'>
 		<div class='col-sm-8 col-xs-12' style='display:flex;align-items:center;gap:10px;'>
 			<img src='$images/qhtlfirewall_small.gif' onerror="this.onerror=null;this.src='$images/qhtlfirewall_small.png';" style='width:48px;height:48px;vertical-align:middle' alt='Logo'>
-			<h4 style='margin:5px 0;'>QhtLink Firewall v$myv</h4>
+			<h4 style='margin:5px 0;'>
+				<a href='$script' style='text-decoration:none;' title='Open QhtLink Firewall'
+					onclick="try{ if(window.QHTL_SCRIPT){ window.location = window.QHTL_SCRIPT; return false; } }catch(e){}">
+					QhtLink Firewall
+				</a>
+				&nbsp;v$myv
+			</h4>
 		</div>
 		<div class='col-sm-4 col-xs-12'>
 			<div style='display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:10px;padding-right:10px;'>

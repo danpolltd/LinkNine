@@ -3769,7 +3769,8 @@ sub doupdate {
 			if ($config{URLGET} == 1) {$url = "http://$config{DOWNLOADSERVER}/qhtlfirewall.tgz";}
 			my ($status, $text) = $urlget->urlget($url,"/usr/src/qhtlfirewall.tgz");
 
-			if (! -z "/usr/src/qhtlfirewall/qhtlfirewall.tgz") {
+			# Proceed only if the downloaded archive exists and is non-empty
+			if (! -z "/usr/src/qhtlfirewall.tgz") {
 				print "\nUnpacking new qhtlfirewall package...\n";
 				system ("cd /usr/src ; tar -xzf qhtlfirewall.tgz ; cd qhtlfirewall ; sh install.sh");
 				print "\nTidying up...\n";

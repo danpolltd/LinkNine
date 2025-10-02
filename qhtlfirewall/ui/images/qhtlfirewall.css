@@ -60,6 +60,42 @@
 .qhtl-bubble-bg .tab-content .btn:not(.btn-watcher-bubble):not(.btn-status):hover {
 	color: #111 !important;
 }
+
+/* Transparent buttons specifically within the Waterfall tab */
+#waterfall .btn,
+.tab-content #waterfall .btn,
+.qhtl-bubble-bg .tab-content #waterfall .btn {
+	background: transparent !important;
+	border-color: transparent !important;
+	box-shadow: none !important;
+	text-shadow: none !important;
+	color: inherit !important;
+}
+#waterfall .btn:hover,
+.tab-content #waterfall .btn:hover,
+.qhtl-bubble-bg .tab-content #waterfall .btn:hover,
+#waterfall .btn:active,
+.tab-content #waterfall .btn:active,
+.qhtl-bubble-bg .tab-content #waterfall .btn:active,
+#waterfall .btn:focus,
+.tab-content #waterfall .btn:focus,
+.qhtl-bubble-bg .tab-content #waterfall .btn:focus {
+	background: transparent !important;
+	border-color: transparent !important;
+	box-shadow: none !important;
+	text-shadow: none !important;
+}
+/* Also remove the bubble pseudo highlight and rounded border in Waterfall tab */
+#waterfall button.btn:not(.btn-watcher-bubble):not(.btn-status):before,
+#waterfall a.btn:not(.btn-watcher-bubble):not(.btn-status):before,
+#waterfall input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status):before {
+	display: none !important;
+}
+#waterfall button.btn:not(.btn-watcher-bubble):not(.btn-status),
+#waterfall a.btn:not(.btn-watcher-bubble):not(.btn-status),
+#waterfall input[type=submit].btn:not(.btn-watcher-bubble):not(.btn-status) {
+	border-radius: 0 !important;
+}
 .btn-qhtlfirewall-config:focus,
 .btn-qhtlfirewall-config:hover,
 .btn-qhtlfirewall-config:active,
