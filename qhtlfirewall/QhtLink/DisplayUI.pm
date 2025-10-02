@@ -3894,11 +3894,9 @@ QHTL_UPGRADE_WIRE_JS
 		print "<form action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 	print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
-	print "<tr><td colspan='2'><button name='action' value='servercheck' type='submit' class='btn btn-default' data-bubble-color='blue'>Test Security</button><div class='text-muted small' style='margin-top:6px'>Perform a basic security, stability and settings check on the server</div></td></tr>\n";
-		# Eight orange square buttons (80x80) with a 10px bright-orange halo, centered above Qht Link Info
+		# Eight orange square buttons (80x80) with a 10px bright-orange halo, centered, each word on its own line
 		print "<tr><td colspan='2'>";
 		print "<div style='display:flex; justify-content:center; margin:10px 0;'>";
-		# Use 30px gap between items so the 10px halos have ~10px space between them (gap - 20px halo overlap = 10px)
 		print "  <div style='display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:30px;'>";
 		my @orangeBtns = (
 			{ label => 'Test Security',   action => 'servercheck' },
@@ -3914,18 +3912,12 @@ QHTL_UPGRADE_WIRE_JS
 			my $label  = $b->{label};
 			my $action = $b->{action};
 			my $aria   = $label;
-			print "<button name='action' value='$action' type='submit' aria-label='$aria' title='$label' onmouseover=\"this.style.transform='scale(1.05)'\" onmouseout=\"this.style.transform='scale(1)'\" style=\"all:unset; cursor:pointer; width:80px; height:80px; display:flex; align-items:center; justify-content:center; text-align:center; padding:6px; background: linear-gradient(180deg, #ffd27a 0%, #ffad33 50%, #ff9800 70%, #e67e00 100%); border:2px solid #e68900; box-shadow: 0 0 0 10px rgba(255,165,0,0.65), 0 10px 18px rgba(255,140,0,0.35); transition: transform .15s ease; transform: translateZ(0);\"><span style=\"display:block; color:#fff; font-weight:800; font-size:11px; line-height:1.1; text-shadow:0 1px 0 rgba(0,0,0,0.25)\">$label</span></button>";
+			my $label_html = join('<br>', map { "<span style=\"display:block;\">$_</span>" } split(/\s+/, $label));
+			print "<button name='action' value='$action' type='submit' aria-label='$aria' title='$label' onmouseover=\"this.style.transform='scale(1.05)'\" onmouseout=\"this.style.transform='scale(1)'\" style=\"all:unset; cursor:pointer; width:80px; height:80px; display:flex; align-items:center; justify-content:center; text-align:center; padding:6px; background: linear-gradient(180deg, #ffd27a 0%, #ffad33 50%, #ff9800 70%, #e67e00 100%); border:2px solid #e68900; box-shadow: 0 0 0 10px rgba(255,165,0,0.65), 0 10px 18px rgba(255,140,0,0.35); transition: transform .15s ease; transform: translateZ(0);\"><span style=\"display:block; color:#fff; font-weight:800; font-size:11px; line-height:1.15; text-shadow:0 1px 0 rgba(0,0,0,0.25); width:100%; text-align:center;\">$label_html</span></button>";
 		}
 		print "  </div>";
 		print "</div>";
 		print "</td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='readme' type='submit' class='btn btn-default' data-bubble-color='gray'>Qht Link Info</button><div class='text-muted small' style='margin-top:6px'>View the qhtlfirewall+qhtlwaterfall readme.txt file</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='loggrep' type='submit' class='btn btn-default' data-bubble-color='purple'>Search Logs</button><div class='text-muted small' style='margin-top:6px'>Search (grep) various system log files (listed in qhtlfirewall.syslogs)</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='viewports' type='submit' class='btn btn-default' data-bubble-color='green'>Active Ports</button><div class='text-muted small' style='margin-top:6px'>View ports on the server that have a running process behind them listening for external connections</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='rblcheck' type='submit' class='btn btn-default' data-bubble-color='orange'>Check in RBLs</button><div class='text-muted small' style='margin-top:6px'>Check whether any of the servers IP addresses are listed in RBLs</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='viewlogs' type='submit' class='btn btn-default' data-bubble-color='red'>View ipt Log</button><div class='text-muted small' style='margin-top:6px'>View the last $config{ST_IPTABLES} iptables log lines</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='chart' type='submit' class='btn btn-default' data-bubble-color='blue'>QhtL Stats</button><div class='text-muted small' style='margin-top:6px'>View qhtlwaterfall blocking statistics</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='systemstats' type='submit' class='btn btn-default' data-bubble-color='gray'>View Sys Stats</button><div class='text-muted small' style='margin-top:6px'>View basic system statistics</div></td></tr>\n";
 		print "</table>\n";
 		print "</form>\n";
 		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
