@@ -1,0 +1,1 @@
+(function(){ try{ console.debug('Loaded oViewiptLog.js'); }catch(e){} })();

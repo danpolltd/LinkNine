@@ -6,6 +6,14 @@ Latest release: 0.1.11 “Curse Blade”. See `qhtlfirewall/changelog.txt` for f
 
 This repository now contains the suite: qhtlfirewall and its companion daemon qhtlwaterfall.
 
+Highlights in 0.1.11 (UI and security hardening):
+
+- Quick Actions stars: 6 violet, five-point controls (Allow, Deny, Ignore, Search, Unblock, Temp) with a precise non-scaling halo. Stars 1–5 render results inline; long-press opens Quick View.
+- Temporary Rule modal: scoped, glowing dialog that scrolls with the page, has constrained inputs, and closes on outside click (mouse/touch/pointer). Works with and without jQuery.
+- Robust delivery: migrated $.ajax to jQuery.ajax and added vanilla XHR fallbacks; hardened inline scripts using single-quoted heredocs to avoid unintended interpolation.
+- Safer UI glue: capture-phase listeners, idempotent class toggles, sanitized CSS decimals/comments.
+- Options tab polish: tightened 70×70 button labels (balanced font-size, reduced inter-line gap) while retaining accessibility and focus outlines.
+
 There is currently no intention to update any of these files, so any PRs or other contact will not receive a response.
 
 For qhtlfirewall uninstallation scripts, see the [uninstallers/qhtlfirewall](uninstallers/qhtlfirewall) directory.

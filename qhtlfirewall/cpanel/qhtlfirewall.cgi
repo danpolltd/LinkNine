@@ -1312,17 +1312,17 @@ print <<HTML_SMART_WRAPPER;
 			modal = document.createElement('div');
 			modal.id = 'quickViewModalShim';
 			modal.setAttribute('role','dialog');
+			// Anchor to the firewall container when available so the modal stays within the page, otherwise fall back to full page
 			var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
 			var inScoped = (parent.classList && parent.classList.contains('qhtl-bubble-bg'));
 			if (inScoped) {
-				// Anchor to container so it scrolls with the page content
 				modal.style.position='absolute'; modal.style.left='0'; modal.style.top='0'; modal.style.right='0'; modal.style.bottom='0';
 			} else {
 				modal.style.position='fixed'; modal.style.inset='0';
 			}
 			modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='none'; modal.style.zIndex='9999';
 			var dialog = document.createElement('div');
-			dialog.style.width='auto'; dialog.style.maxWidth='none'; dialog.style.left='20px'; dialog.style.right='20px'; dialog.style.height='500px'; dialog.style.background='linear-gradient(180deg, #f7fafc 0%, #ffffff 40%, #f7fafc 100%)'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='absolute'; dialog.style.top='20px'; dialog.style.transform='none'; dialog.style.margin='0';
+			dialog.style.width='auto'; dialog.style.maxWidth='none'; dialog.style.left='20px'; dialog.style.right='20px'; dialog.style.minHeight='300px'; dialog.style.background='linear-gradient(180deg, #f7fafc 0%, #ffffff 40%, #f7fafc 100%)'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='absolute'; dialog.style.top='20px'; dialog.style.bottom='20px'; dialog.style.transform='none'; dialog.style.margin='0';
 			var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflowX='hidden'; body.style.overflowY='auto'; body.style.padding='10px'; body.style.minHeight='0';
 			var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';
 			// Header-right container for countdown next to title
@@ -1798,11 +1798,25 @@ if (!$skip_capture && defined $templatehtml && length $templatehtml) {
   function sameOrigin(u){ try{ var a=document.createElement('a'); a.href=u; return (!a.host || a.host===location.host); }catch(e){ return false; } }
   function isQhtlAction(u, form){ try{ if (String(u).indexOf('?action=')!==-1) return true; if (form && form.querySelector && form.querySelector('[name=\x61ction]')) return true; return false; }catch(e){ return false; } }
   function loadInto(url, method, data){ try{ var area=document.getElementById(areaId); if(!area){ location.href=url; return; } if (window.jQuery){ if(method==='POST'){ jQuery(area).html('<div class="text-muted">Loading...</div>').load(url, data); } else { jQuery(area).html('<div class="text-muted">Loading...</div>').load(url); } } else { var x=new XMLHttpRequest(); x.open(method||'GET', url, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} if(method==='POST'){ try{x.setRequestHeader('Content-Type','application/x-www-form-urlencoded; charset=UTF-8');}catch(__){} } x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ area.innerHTML = x.responseText; } else { location.href=url; } } }; x.send(data||null); } } catch(e){ try{ location.href=url; }catch(_){} } }
+  function loadIntoOptions(url, method, data){ try{ var area=document.getElementById('qhtl-options-inline-area'); if(!area){ location.href=url; return; } if (window.jQuery){ if(method==='POST'){ jQuery(area).html('<div class="text-muted">Loading...</div>').load(url, data); } else { jQuery(area).html('<div class="text-muted">Loading...</div>').load(url); } } else { var x=new XMLHttpRequest(); x.open(method||'GET', url, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} if(method==='POST'){ try{x.setRequestHeader('Content-Type','application/x-www-form-urlencoded; charset=UTF-8');}catch(__){} } x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ area.innerHTML = x.responseText; } else { location.href=url; } } }; x.send(data||null); } } catch(e){ try{ location.href=url; }catch(_){} } }
   var __qhtl_lastSubmitter=null;
   function serialize(form, submitter){ try{ var p=[]; for(var i=0;i<form.elements.length;i++){ var el=form.elements[i]; if(!el || !el.name || el.disabled) continue; var t=(el.type||'').toLowerCase(); if(t==='file') continue; if((t==='checkbox'||t==='radio')&&!el.checked) continue; if(t==='submit'||t==='button'){ if(submitter && el===submitter){ p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(el.value)); } continue; } if(t==='select-multiple'){ for(var j=0;j<el.options.length;j++){ var opt=el.options[j]; if(opt.selected){ p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(opt.value)); } } continue; } p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(el.value)); } if(submitter && submitter.name){ var found=false; for(var k=0;k<form.elements.length;k++){ if(form.elements[k]===submitter){ found=true; break; } } if(!found){ p.push(encodeURIComponent(submitter.name)+'='+encodeURIComponent(submitter.value||'')); } } return p.join('&'); }catch(e){ return ''; } }
   var root = document.getElementById('waterfall') || document;
-  root.addEventListener('click', function(ev){ var tgt=ev.target; var btn=tgt && tgt.closest ? tgt.closest('button, input[type=submit]') : null; if(btn && (String(btn.type||'').toLowerCase()==='submit')){ __qhtl_lastSubmitter=btn; } var a=tgt && tgt.closest ? tgt.closest('a') : null; if(!a) return; var href=a.getAttribute('href')||''; if(!href || href==='javascript:void(0)') return; if(!sameOrigin(href) || !isQhtlAction(href, null)) return; ev.preventDefault(); var u = href + (href.indexOf('?')>-1?'&':'?') + 'ajax=1'; loadInto(u, 'GET'); }, true);
-  root.addEventListener('submit', function(ev){ var f=ev.target; if(!f || f.tagName!=='FORM') return; var action=f.getAttribute('action')||location.pathname; if(!sameOrigin(action) || !isQhtlAction(action, f)) return; var enc=(f.enctype||''); if (enc && String(enc).toLowerCase().indexOf('multipart/form-data')!==-1) return; ev.preventDefault(); var submitter = (ev.submitter ? ev.submitter : __qhtl_lastSubmitter); var data=serialize(f, submitter); loadInto(action + (action.indexOf('?')>-1?'&':'?') + 'ajax=1', (f.method||'GET').toUpperCase(), data); }, true);
+	root.addEventListener('click', function(ev){
+		var tgt=ev.target;
+		var btn=tgt && tgt.closest ? tgt.closest('button, input[type=submit]') : null;
+		if(btn && (String(btn.type||'').toLowerCase()==='submit')){ __qhtl_lastSubmitter=btn; }
+		var a=tgt && tgt.closest ? tgt.closest('a') : null; if(!a) return;
+		// If the click is inside the Options inline area, load into Options area
+		try { var optArea=document.getElementById('qhtl-options-inline-area'); if (optArea && optArea.contains(a)) { var href=a.getAttribute('href')||''; if(!href || href==='javascript:void(0)') return; if(!sameOrigin(href) || !isQhtlAction(href, null)) return; ev.preventDefault(); var uo = href + (href.indexOf('?')>-1?'&':'?') + 'ajax=1'; loadIntoOptions(uo, 'GET'); return; } } catch(_){ }
+		var href=a.getAttribute('href')||''; if(!href || href==='javascript:void(0)') return; if(!sameOrigin(href) || !isQhtlAction(href, null)) return; ev.preventDefault(); var u = href + (href.indexOf('?')>-1?'&':'?') + 'ajax=1'; loadInto(u, 'GET');
+	}, true);
+	root.addEventListener('submit', function(ev){
+		var f=ev.target; if(!f || f.tagName!=='FORM') return;
+		// If the form lives inside the Options inline area, load content into Options area
+		try { var optArea=document.getElementById('qhtl-options-inline-area'); if (optArea && optArea.contains(f)) { var action=f.getAttribute('action')||location.pathname; if(!sameOrigin(action) || !isQhtlAction(action, f)) return; var enc=(f.enctype||''); if (enc && String(enc).toLowerCase().indexOf('multipart/form-data')!==-1) return; ev.preventDefault(); var submitter=(ev.submitter ? ev.submitter : __qhtl_lastSubmitter); var data=serialize(f, submitter); loadIntoOptions(action + (action.indexOf('?')>-1?'&':'?') + 'ajax=1', (f.method||'GET').toUpperCase(), data); return; } } catch(_){ }
+		var action=f.getAttribute('action')||location.pathname; if(!sameOrigin(action) || !isQhtlAction(action, f)) return; var enc=(f.enctype||''); if (enc && String(enc).toLowerCase().indexOf('multipart/form-data')!==-1) return; ev.preventDefault(); var submitter = (ev.submitter ? ev.submitter : __qhtl_lastSubmitter); var data=serialize(f, submitter); loadInto(action + (action.indexOf('?')>-1?'&':'?') + 'ajax=1', (f.method||'GET').toUpperCase(), data);
+	}, true);
 })();</script>
 JSLOADER
 		# Replace only if we find the legacy loader signature with exact areaId marker

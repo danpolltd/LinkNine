@@ -24,6 +24,29 @@ General
 - Layout fix: all triangle buttons render normally; only the first morphs to the Upgrade state when applicable.
 - Light CSS/JS polish around the triangle components and modal sizing.
 
+Quick Actions & Inline Results
+- Introduced a compact Quick Actions toolbar with six violet, five-point stars (non-scaling 10px halo) labeled Allow, Deny, Ignore, Search, Unblock, Temp.
+- Stars 1–5 submit via a cancelable AJAX pathway and render results inline in a dedicated content area (no full-page navigation).
+- Long-press behavior (3s) on Allow/Deny/Ignore shows an on-star countdown and opens Quick View popups. A capture-phase guard prevents background-tab misfires.
+- Removed legacy quick rows and ensured all hidden forms (qallow, qdeny, qignore, grep, qkill) are intercepted for inline delivery.
+
+Temporary Rule Modal
+- Added a new Temporary Allow/Deny modal with a subtle, pulsating yellow glow; it scrolls with the firewall container and preserves 20px gutters.
+- Close behavior hardened: clicking outside the dialog now closes the modal across mousedown/touchstart/pointerdown events; explicit Close button retained.
+- Constrained inputs to ≤150px; kept concise helper text for ports and durations. Modal works with or without jQuery and degrades gracefully.
+
+Security & Robustness Hardening
+- Replaced instances of $.ajax with jQuery.ajax to eliminate dependency on the global "$" alias and improve supply-chain resilience of the JS runtime.
+- Implemented a vanilla XMLHttpRequest fallback for all critical flows (form submits and modal apply) for defense-in-depth.
+- Converted risky inline JS to single-quoted heredocs to prevent accidental Perl interpolation of "$" identifiers and ensure literal emission of JavaScript.
+- Normalized CSS decimal literals and sanitized stray comment tokens embedded in Perl strings to avoid parse drift across browsers.
+- Added capture-phase event interceptors for consistent behavior under nested handlers; guarded DOM appends and modal class toggles for idempotency.
+
+UI Polish
+- Removed the legacy inline Temporary Rule row/button now that the modal supersedes it.
+- Tuned Options tab orange buttons: label font-size increased, then balanced to 15px, and reduced vertical line-height to tighten the gap between stacked words for greater legibility within 70×70 squares.
+- Preserved the 10px bright-orange halo and hover micro-interactions; ensured accessible focus outlines remain present.
+
 Date: 2025-09-30
 Version: 0.1.10 “Sharp Scratch”
 

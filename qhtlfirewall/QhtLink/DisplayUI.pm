@@ -177,7 +177,7 @@ sub main {
 	}
 
 	if ($config{RESTRICT_UI} == 2) {
-		print "<table class='table table-bordered table-striped'>\n";
+		print "<table class='table table-bordered table-striped' style='background:transparent!important'>\n";
 		print "<tr><td><font color='red'>qhtlfirewall UI Disabled via the RESTRICT_UI option in /etc/qhtlfirewall/qhtlfirewall.conf</font></td></tr>\n";
 		print "</tr></table>\n";
 		return;
@@ -223,6 +223,17 @@ sub main {
 		}
 		print "<p>...<b>Done</b>.</p></div>\n";
 		&printreturn;
+	}
+	elsif ($FORM{action} eq "chart") {
+		# QhtL Stats: render charts inline (AJAX-safe)
+		&chart();
+		return;
+	}
+	elsif ($FORM{action} eq "systemstats") {
+		# System Stats: render selectable graphs inline (AJAX-safe)
+		my $type = $FORM{graph} // '';
+		&systemstats($type);
+		return;
 	}
 	elsif ($FORM{action} eq "logtail") {
 		$FORM{lines} =~ s/\D//g;
@@ -1977,9 +1988,9 @@ QHTL_JQ_GREP
 		}
 
 		print "<div><b>These options can take a long time to run</b> (several minutes) depending on the number of IP addresses to check and the response speed of the DNS requests:</div>\n";
-		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='1'><input type='submit' class='btn btn-default' value='Update All Checks (standard)'> Generates the normal report showing exceptions only</form></div>\n";
-		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='2'><input type='submit' class='btn btn-default' value='Update All Checks (verbose)'> Generates the normal report but shows successes and failures</form></div>\n";
-		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='rblcheckedit'><input type='submit' class='btn btn-default' value='Edit RBL Options'> Edit qhtlfirewall.rblconf to enable and disable IPs and RBLs</form></div>\n";
+		print "<br><div><form action='${script}?ajax=1' method='post' onsubmit=\"return window.__QHTL_OPTIONS_AJAX && __QHTL_OPTIONS_AJAX(this);\"><input type='hidden' name='ajax' value='1'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='1'><input type='submit' class='btn btn-default' value='Update All Checks (standard)'> Generates the normal report showing exceptions only</form></div>\n";
+		print "<br><div><form action='${script}?ajax=1' method='post' onsubmit=\"return window.__QHTL_OPTIONS_AJAX && __QHTL_OPTIONS_AJAX(this);\"><input type='hidden' name='ajax' value='1'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='2'><input type='submit' class='btn btn-default' value='Update All Checks (verbose)'> Generates the normal report but shows successes and failures</form></div>\n";
+		print "<br><div><form action='${script}?ajax=1' method='post' onsubmit=\"return window.__QHTL_OPTIONS_AJAX && __QHTL_OPTIONS_AJAX(this);\"><input type='hidden' name='ajax' value='1'><input type='hidden' name='action' value='rblcheckedit'><input type='submit' class='btn btn-default' value='Edit RBL Options'> Edit qhtlfirewall.rblconf to enable and disable IPs and RBLs</form></div>\n";
 
 		open (my $IN, "<", "/etc/cron.d/qhtlfirewall-cron");
 		flock ($IN, LOCK_SH);
@@ -1991,8 +2002,8 @@ QHTL_JQ_GREP
 		if (my @ls = grep {$_ =~ /qhtlfirewall \-\-rbl/} @data) {
 			if ($ls[0] =~ /\@(\w+)\s+root\s+\/usr\/sbin\/qhtlfirewall \-\-rbl (.*)/) {$optionselected = $1; $email = $2}
 		}
-		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='rblchecksave'>\n";
-		print "Generate and email this report <select name='freq'>\n";
+		print "<br><div><form action='${script}?ajax=1' method='post' onsubmit=\"return window.__QHTL_OPTIONS_AJAX && __QHTL_OPTIONS_AJAX(this);\"><input type='hidden' name='action' value='rblchecksave'>\n";
+		print "<input type='hidden' name='ajax' value='1'>Generate and email this report <select name='freq'>\n";
 		foreach my $option ("never","hourly","daily","weekly","monthly") {
 			if ($option eq $optionselected) {print "<option selected>$option</option>\n"} else {print "<option>$option</option>\n"}
 		}
@@ -2508,7 +2519,7 @@ EOF
 		close ($DIV);
 		print @divdata;
 		print "<div id='paginatediv2' class='text-center'></div>\n";
-		print "<form action='$script' method='post'>\n";
+		print "<form action='$script' method='post' id='qhtl-options-form'>\n";
 		print "<input type='hidden' name='action' value='saveconf'>\n";
 		my $first = 1;
 		my @divnames;
@@ -3132,6 +3143,15 @@ QHTL_UPGRADE_POLL
 			print "<br><strong>Note: LF_SPI is already disabled</strong>";
 		}
 		print "</td></tr>\n";
+		# Inline content area for Quick Actions (results from star button actions)
+		print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'><div id='qhtl-quick-inline-area' style='padding-top:10px;min-height:160px;background:transparent'></div></td></tr>\n";
+		# Intercept hidden form submits (qallow,qdeny,qignore,grep,qkill) to load into the Quick Actions inline area
+		print "<script>(function(){try{ var area=document.getElementById('qhtl-quick-inline-area'); if(!area) return;\n".
+			"  function setLoading(msg){ try{ if(area.qhtlCancelFade) area.qhtlCancelFade(); area.innerHTML = '<div class=\\'text-muted\\'>'+(msg||'Loading...')+'</div>'; }catch(_){ } }\n".
+			"  function onLoaded(html){ try{ area.innerHTML = html; if(area.qhtlArmAuto) area.qhtlArmAuto(); }catch(_){ } }\n".
+			"  function handleForm(f){ try{ var fd=new FormData(f); try{ fd.append('ajax','1'); }catch(__){} var u=f.getAttribute('action')||''; setLoading(); if(window.jQuery){ jQuery.ajax({ url:u, method:(f.method||'POST'), data:fd, processData:false, contentType:false }).done(function(d){ onLoaded(d); }).fail(function(){ onLoaded('<div class=\\'text-danger\\'>Failed to load content.</div>'); }); } else { var x=new XMLHttpRequest(); x.open((f.method||'POST'), u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ onLoaded(x.responseText); } else { onLoaded('<div class=\\'text-danger\\'>Failed to load content.</div>'); } } }; x.send(fd); } }catch(e){} }\n".
+			"  document.addEventListener('submit', function(ev){ try{ var f=ev.target; if(!f || f.tagName!=='FORM') return; var id=f.id||''; if(id==='qallow'||id==='qdeny'||id==='qignore'||id==='grep'||id==='qkill'){ ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation && ev.stopImmediatePropagation(); handleForm(f); } }catch(_){ } }, true);\n".
+			"}catch(e){} })();</script>\n";
 
 		if ($config{TCP_IN} =~ /30000:35000/) {
 			print "<tr><td><button class='btn btn-default' disabled>Open PASV FTP Hole</button>\n";
@@ -3492,7 +3512,7 @@ EOF
 
 		print "<div class='normalcontainer'>\n";
 		# Enforce tab-pane visibility regardless of host theme CSS and disable tab clicks while Quick View is open
-		print "<style>.tab-content>.tab-pane{display:none!important}.tab-content>.tab-pane.active{display:block!important}.qhtl-tabs-locked #myTabs a[data-toggle='tab']{pointer-events:none;cursor:not-allowed;opacity:.6;filter:grayscale(.25)}</style>\n";
+		print "<style>.tab-content>.tab-pane{display:none!important}.tab-content>.tab-pane.active{display:block!important}.qhtl-tabs-locked #myTabs a[data-toggle='tab']{pointer-events:none;cursor:not-allowed;opacity:0.6;filter:grayscale(0.25)}</style>\n";
 	# Removed upgrade-available ribbon above tabs per request
 
 		print "<ul class='nav nav-tabs' id='myTabs' style='font-weight:bold'>\n";
@@ -3789,124 +3809,279 @@ QHTL_UPGRADE_WIRE_JS
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Quick Actions</th></tr></thead>";
 
-		# Quick Allow (inputs above/below the button)
-		print "<tr><td colspan='2'>";
-		print "<form action='$script' method='post' id='qallow'><input type='submit' class='hide'><input type='hidden' name='action' value='qallow'>";
-		print "<div style='width:100%'>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' data-url='$script?action=viewlist&which=allow' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
-		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='allowip' value='' size='36' style='background-color: #BDECB6; width:100%;'></div>";
-		print "  </div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qallow').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='green'>Quick Allow</button></div>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
-		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Allow:</div>";
-		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
-		print "  </div>";
-		print "</div></form>";
+		# First cell: six violet star buttons (120x70) with a precise 10px bright-violet halo via SVG stroke, 15px apart, centered, labeled left-to-right
+		print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
+		print "<div style=\"width:100%; display:flex; justify-content:center;\">";
+		# Scoped styles for star layout and shape
+		print "<style>\n".
+			".qhtl-star-item{width:140px;display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:150px;}\n".
+			".qhtl-star-wrap{position:relative;width:140px;height:90px;display:inline-flex;align-items:center;justify-content:center;}\n".
+			".qhtl-star{position:relative;width:140px;height:90px;background:transparent;border:none;cursor:pointer;display:inline-block;padding:0;}\n".
+			".qhtl-star svg{display:block;width:140px;height:90px;}\n".
+			".qhtl-star:focus{outline:2px solid #fff;outline-offset:2px;}\n".
+			".qhtl-star.counting text{visibility:hidden;}\n".
+			".qhtl-star-label{margin-top:6px;font-size:13px;line-height:1.1;color:#eee;text-shadow:0 1px 0 rgba(0,0,0,0.35);}\n".
+			".qhtl-star-field{margin-top:6px;width:120px;max-width:120px;}\n".
+		"</style>";
+		# Button group with 15px gap between halos (wrappers)
+		print "<div style=\"display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:15px;\">";
+		my @qstars = (
+			{ label => 'Allow',   form => 'qallow',   btn => 'btn-qallow',   file => 'qAllow.js',   key => 'allow'   },
+			{ label => 'Deny',    form => 'qdeny',    btn => 'btn-qdeny',    file => 'qDeny.js',    key => 'deny'    },
+			{ label => 'Ignore',  form => 'qignore',  btn => 'btn-qignore',  file => 'qIgnore.js',  key => 'ignore'  },
+			{ label => 'Search',  form => 'grep',     btn => 'btn-grep',     file => 'qSearch.js',  key => 'search'  },
+			{ label => 'Unblock', form => 'qkill',    btn => 'btn-qkill',    file => 'qUnblock.js', key => 'unblock' },
+			{ label => 'Temp',    form => 'tempdeny', btn => 'btn-tempdeny', file => 'qTemp.js',    key => 'temp'    },
+		);
+		foreach my $q (@qstars) {
+			my $label = $q->{label};
+			my $form  = $q->{form};
+			my $btnid = $q->{btn};
+			my $sid   = "starip-".$q->{key};
+			my $onclick = '';
+			if ($q->{key} eq 'temp') {
+				$onclick = "try{ openTempRule({}); }catch(e){}";
+			} else {
+				$onclick = "try{var siv=document.getElementById('$sid'); var tf=document.querySelector('#$form input[name=ip]'); if(tf && siv){ tf.value=siv.value; } var f=document.getElementById('$form'); if(!f){ return false; } var ev; try{ ev=new Event('submit', {bubbles:true, cancelable:true}); }catch(__){ try{ ev=document.createEvent('Event'); ev.initEvent('submit', true, true); }catch(___){ ev=null; } } if(ev){ var notCancelled = f.dispatchEvent(ev); if(notCancelled){ try{ f.submit(); }catch(____){} } } else { try{ f.submit(); }catch(_____){} } }catch(e){}";
+			}
+			my $bg    = ($q->{key} eq 'allow') ? '#BDECB6' :
+			           ($q->{key} eq 'deny') ? '#FFD1DC' :
+			           ($q->{key} eq 'ignore') ? '#FFD27A' :
+			           ($q->{key} eq 'search') ? '#D9EDF7' :
+			           ($q->{key} eq 'unblock') ? '#E0E0E0' : '#FFFFFF';
+			my $title = $label;
+			print "<div class=\"qhtl-star-item\">".
+				"<div class=\"qhtl-star-wrap\" aria-hidden=\"false\">".
+					"<button type=\"button\" class=\"qhtl-star\" data-qaction=\"$q->{key}\" title=\"$title\" aria-label=\"$title\" onclick=\"$onclick\">".
+						"<svg width=\"140\" height=\"90\" viewBox=\"-10 -10 140 90\" xmlns=\"http://www.w3.org/2000/svg\" aria-hidden=\"true\">".
+							"<path d=\"M60,0 L73.2,24.5 L117.6,24.5 L81.6,39.9 L94.8,63.7 L60,49 L25.2,63.7 L38.4,39.9 L2.4,24.5 L46.8,24.5 Z\" fill=\"none\" stroke=\"#ee82ee\" stroke-width=\"20\" stroke-linejoin=\"round\" vector-effect=\"non-scaling-stroke\"/>".
+							"<path d=\"M60,0 L73.2,24.5 L117.6,24.5 L81.6,39.9 L94.8,63.7 L60,49 L25.2,63.7 L38.4,39.9 L2.4,24.5 L46.8,24.5 Z\" fill=\"#8a2be2\"/>".
+							"<text x=\"60\" y=\"35\" fill=\"#ffffff\" stroke=\"rgba(0,0,0,0.45)\" stroke-width=\"2\" paint-order=\"stroke fill\" text-anchor=\"middle\" dominant-baseline=\"middle\" font-weight=\"700\" font-size=\"15\" style=\"font-family: Arial, Helvetica, sans-serif; letter-spacing:.2px;\">$label</text>".
+						"</svg>".
+					"</button>".
+				"</div>".
+				(($q->{key} ne 'temp') ? ("<input id=\"$sid\" class=\"qhtl-star-field form-control\" type=\"text\" placeholder=\"IP\" style=\"background:$bg;width:120px;\">") : ('')).
+			"</div>";
+		}
+		print "</div>"; # end group
+		print "</div>"; # end centering container
+		# Load per-button JS files (qAllow.js, qDeny.js, qIgnore.js, qSearch.js, qUnblock.js, qTemp.js)
+		foreach my $q (@qstars) { my $f = $q->{file}; print "<script src='$script?action=widget_js&name=$f&v=$myv'></script>"; }
+		# Long-press (3s) for first three stars (Allow/Deny/Ignore) to open their Quick View popups with a visible countdown
+		print "<script>(function(){try{\n".
+			"  var map = { allow:'allow', deny:'deny', ignore:'ignore' }; var secs=3;\n".
+			"  function attach(btn){ var key=btn.getAttribute('data-qaction'); if(!map[key]) return; var down=false, t=null, remain=secs, overlay=null;\n".
+			"    function clearOv(){ try{ if(overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }catch(_){ } overlay=null; }\n".
+			"    function cancel(){ down=false; if(t){ clearInterval(t); t=null; } clearOv(); btn.dataset.lpHandled='0'; btn.classList.remove('counting'); }\n".
+			"    function done(){ if(t){ clearInterval(t); t=null; } btn.dataset.lpHandled='1'; clearOv(); btn.classList.remove('counting'); try{ var a=document.querySelector('a.quickview-link[data-which=\\''+map[key]+'\\']'); if(a){ a.click(); } }catch(_){ } }\n".
+			"    function start(){ down=true; remain=secs; clearOv(); btn.classList.add('counting'); overlay=document.createElement('div'); overlay.className='qhtl-star-countdown'; overlay.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#ffff00;text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none;'; overlay.textContent=remain; btn.appendChild(overlay); t=setInterval(function(){ if(!down){ cancel(); return; } remain--; if(remain>0){ overlay.textContent=remain; } else { done(); } }, 1000); }\n".
+			"    btn.addEventListener('mousedown', start); btn.addEventListener('touchstart', start, {passive:true});\n".
+			"    ['mouseup','mouseleave','touchend','touchcancel','blur'].forEach(function(ev){ btn.addEventListener(ev, cancel, {passive:true}); });\n".
+			"    // Suppress normal click when long-press handled\n".
+			"    btn.addEventListener('click', function(e){ if(btn.dataset.lpHandled==='1'){ e.preventDefault(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); btn.dataset.lpHandled='0'; } }, true);\n".
+			"  }\n".
+			"  document.querySelectorAll('.qhtl-star[data-qaction]').forEach(attach);\n".
+			"}catch(e){} })();</script>";
+		# New: Temporary Rule Popup modal (same sizing behaviour as Quick View), yellow glow, scrolls with page and closes on outside click
+		print "<style>\n".
+			  ".qhtl-temp-modal{ position:absolute !important; inset:0 !important; z-index:1100 !important; background: rgba(0,0,0,0.5); opacity:0; transition: opacity .2s ease; }\n".
+			  ".qhtl-temp-modal.in, .qhtl-temp-modal.show{ opacity:1 !important; }\n".
+			  ".qhtl-temp-modal .modal-dialog{ width: calc(100% - 40px) !important; max-width:none !important; position:absolute !important; top:20px !important; left:20px !important; right:20px !important; transform:none !important; margin:0 !important; }\n".
+		      ".qhtl-temp-modal .modal-content{ height:auto !important; max-height:480px !important; display:flex !important; flex-direction:column !important; overflow:hidden !important; }\n".
+		      ".qhtl-temp-modal .modal-body{ flex:1 1 auto !important; min-height:0 !important; overflow:auto !important; padding:10px !important; }\n".
+		      ".qhtl-temp-modal .modal-footer{ flex:0 0 auto !important; padding:10px !important; display:flex !important; justify-content:flex-end !important; gap:8px !important; }\n".
+		      ".qhtl-yellow-glow{ box-shadow: 0 0 14px 6px rgba(255,215,0,0.6), 0 0 26px 14px rgba(255,215,0,0.32); animation: qhtl-yellow 2.4s infinite ease-in-out; }\n".
+		      "@keyframes qhtl-yellow { 0%,100%{ box-shadow: 0 0 14px 6px rgba(255,215,0,0.55), 0 0 26px 12px rgba(255,215,0,0.28);} 50%{ box-shadow: 0 0 28px 14px rgba(255,215,0,0.95), 0 0 46px 20px rgba(255,215,0,0.55);} }\n".
+			  "/* Constrain input fields inside the Temp modal to 150px */\n".
+			  ".qhtl-temp-modal input.form-control, .qhtl-temp-modal input[type=text]{ max-width:150px !important; width:150px !important; }\n".
+		      "</style>\n";
+		print "<div class='modal fade qhtl-temp-modal' id='qhtlTempRuleModal' tabindex='-1' role='dialog' aria-hidden='true' data-backdrop='false' style='display:none'>\n".
+		      "  <div class='modal-dialog'>\n".
+		      "    <div class='modal-content qhtl-yellow-glow'>\n".
+		      "      <div class='modal-body'>\n".
+		      "        <h4 id='qhtlTempRuleTitle' style='margin:0 0 8px 0;'>Temporary Allow/Deny</h4>\n".
+		      "        <div id='qhtlTempRuleBody'>\n".
+		      "          <form action='$script' method='post' id='qhtlTempRuleForm'>\n".
+		      "            <input type='hidden' name='action' value='applytemp'>\n".
+		      "            <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>\n".
+		      "              <div style='flex:0 0 20%; max-width:20%'>Action</div>\n".
+		      "              <div style='flex:1 1 auto'><select name='do' class='form-control' style='width:auto; display:inline-block; min-width:140px'><option>block</option><option>allow</option></select></div>\n".
+		      "            </div>\n".
+		      "            <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>\n".
+		      "              <div style='flex:0 0 20%; max-width:20%'>IP address</div>\n".
+		      "              <div style='flex:1 1 auto'><input type='text' name='ip' value='' size='18' class='form-control' style='max-width:340px'></div>\n".
+		      "            </div>\n".
+		      "            <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>\n".
+		      "              <div style='flex:0 0 20%; max-width:20%'>Ports</div>\n".
+		      "              <div style='flex:1 1 auto'><input type='text' name='ports' value='*' size='5' class='form-control' style='max-width:200px'></div>\n".
+		      "            </div>\n".
+		      "            <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>\n".
+		      "              <div style='flex:0 0 20%; max-width:20%'>Duration for</div>\n".
+		      "              <div style='flex:1 1 auto'><input type='text' name='timeout' value='' size='4' class='form-control' style='display:inline-block; width:90px; margin-right:8px;'> <select name='dur' class='form-control' style='display:inline-block; width:auto; min-width:120px'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select></div>\n".
+		      "            </div>\n".
+		      "            <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>\n".
+		      "              <div style='flex:0 0 20%; max-width:20%'>Comment</div>\n".
+		      "              <div style='flex:1 1 auto'><input type='text' name='comment' value='' size='30' class='form-control' style='max-width:520px'></div>\n".
+		      "            </div>\n".
+		      "            <div class='text-muted' style='font-size:12px; margin-bottom:8px'>(ports can be either * for all ports, a single port, or a comma separated list of ports)</div>\n".
+		      "            <div style='display:flex; justify-content:center; margin:6px 0;'><button id='qhtlTempRuleApplyBtn' type='submit' class='btn btn-default' data-bubble-color='purple'>Apply Temporary Rule</button></div>\n".
+		      "          </form>\n".
+		      "        </div>\n".
+		      "      </div>\n".
+		      "      <div class='modal-footer'>\n".
+		      "        <button type='button' class='btn btn-default' id='qhtlTempRuleCloseBtn' data-dismiss='modal'>Close</button>\n".
+		      "      </div>\n".
+		      "    </div>\n".
+		      "  </div>\n".
+		      "</div>\n";
+	  # Script to wire the Temporary Rule modal: use single-quoted heredoc to prevent Perl from interpolating $ in jQuery
+	  print <<'QHTL_TEMP_MODAL_JS_A';
+<script>(function(){ try{
+  function getJQ(){ try{ return window.jQuery || window.$ || null; }catch(_){ return null; } }
+  var $modal = $('#qhtlTempRuleModal');
+  function appendToScope(){ try{ var $w=$('.qhtl-bubble-bg').first(); if($w.length){ $modal.appendTo($w); $modal.css({position:'absolute'}); try{ var el=$w.get(0); var cs=window.getComputedStyle(el); if(cs && cs.position==='static'){ el.style.position='relative'; } }catch(__){} } else { $modal.appendTo('body'); $modal.css({position:'fixed'}); } }catch(_){ } }
+  window.openTempRule = function(prefill){ try{ appendToScope(); var jq=getJQ(); var $m=$modal; var mEl=document.getElementById('qhtlTempRuleModal'); try{ if(prefill && prefill.ip){ var ipI=document.querySelector('#qhtlTempRuleForm input[name=ip]'); if(ipI) ipI.value=prefill.ip; } }catch(__){} var canJQ = !!(jq && $m && typeof $m.modal==='function'); if (canJQ) { $m.css({ left:0, top:0, right:0, bottom:0, width:'auto', height:'auto', margin:0, background:'rgba(0,0,0,0.5)' }); $m.modal({ show:true, backdrop:false, keyboard:true }); try{ jq('body').removeClass('modal-open').css({ overflow: '' }); }catch(__){} } else if (mEl) { mEl.style.left='0'; mEl.style.top='0'; mEl.style.right='0'; mEl.style.bottom='0'; mEl.style.width='auto'; mEl.style.height='auto'; mEl.style.margin='0'; mEl.style.background='rgba(0,0,0,0.5)'; mEl.style.display='block'; mEl.style.opacity='1'; try{ mEl.classList.add('in'); mEl.classList.add('show'); }catch(_c){} mEl.setAttribute('aria-hidden','false'); } } catch(e){} };
+  // Close modal when clicking outside dialog (works with or without jQuery)
+	(function(){ try{
+		var jq=getJQ(); var $m=$modal; var mEl=document.getElementById('qhtlTempRuleModal');
+		// jQuery/Bootstrap path: bind on mousedown/touchstart/pointerdown
+		if(jq && $m){
+			try{ $m.off('mousedown.qhtlOutside touchstart.qhtlOutside pointerdown.qhtlOutside'); }catch(_){ }
+			$m.on('mousedown.qhtlOutside touchstart.qhtlOutside pointerdown.qhtlOutside', function(ev){ try{
+				var dlg = $(this).find('.modal-dialog')[0]; if(!dlg) return; var t = ev.target;
+				if (t === this || (dlg && !dlg.contains(t))){ $(this).modal('hide'); }
+			}catch(_){ } });
+		}
+		// Vanilla path: bind on mousedown/touchstart/pointerdown
+		if(mEl){
+			function hideVanilla(){ try{ if(jq && $m && typeof $m.modal==='function'){ $m.modal('hide'); } }catch(__){} mEl.style.display='none'; mEl.style.opacity=''; try{ mEl.classList.remove('in'); mEl.classList.remove('show'); }catch(_r){} mEl.setAttribute('aria-hidden','true'); }
+			function outsideHandler(ev){ try{ var dlg=mEl.querySelector('.modal-dialog'); var t=ev.target; if (t===mEl || (dlg && !dlg.contains(t))){ hideVanilla(); } }catch(__){} }
+			try{
+				mEl.addEventListener('mousedown', outsideHandler, {passive:true});
+				mEl.addEventListener('touchstart', outsideHandler, {passive:true});
+				mEl.addEventListener('pointerdown', outsideHandler, {passive:true});
+			}catch(_){ }
+			var cb=document.getElementById('qhtlTempRuleCloseBtn'); if(cb){ cb.addEventListener('click', function(){ hideVanilla(); }); }
+		}
+	}catch(_){ } })();
+  // AJAX-submit the form and render results inside body, keep header/button visible
+  $(document).on('submit', '#qhtlTempRuleForm', function(ev){ try{ ev.preventDefault(); var f=this; var area = document.getElementById('qhtlTempRuleBody'); if(!area) return; if(area.qhtlCancelFade) area.qhtlCancelFade(); area.innerHTML = '<div class=\'text-muted\'>Applying…</div>'; var fd=new FormData(f); try{ fd.append('ajax','1'); }catch(__){} var u=f.getAttribute('action')||''; if(window.jQuery){ jQuery.ajax({ url:u, method:(f.method||'POST'), data:fd, processData:false, contentType:false }).done(function(d){ try{ area.innerHTML=d; if(area.qhtlArmAuto) area.qhtlArmAuto(); }catch(__){} }).fail(function(){ try{ area.innerHTML='<div class=\'text-danger\'>Failed to apply temporary rule.</div>'; }catch(__){} }); } else { var x=new XMLHttpRequest(); x.open((f.method||'POST'), u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200 && x.status<300){ area.innerHTML=x.responseText; if(area.qhtlArmAuto) area.qhtlArmAuto(); } else { area.innerHTML='<div class=\'text-danger\'>Failed to apply temporary rule.</div>'; } }catch(__){} } }; x.send(fd); } }catch(_){ } });
+  // Wire the Temp star long-press to open this modal too (3s), similar overlay/countdown as others
+  (function(){ try{ var btn = document.querySelector('.qhtl-star[data-qaction=\'temp\']'); if(!btn) return; var secs=3, down=false, t=null, remain=secs, overlay=null; function clearOv(){ try{ if(overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }catch(_){ } overlay=null; } function cancel(){ down=false; if(t){ clearInterval(t); t=null; } clearOv(); btn.dataset.lpHandled='0'; btn.classList.remove('counting'); } function done(){ if(t){ clearInterval(t); t=null; } btn.dataset.lpHandled='1'; clearOv(); btn.classList.remove('counting'); try{ openTempRule({}); }catch(__){} } function start(){ down=true; remain=secs; clearOv(); btn.classList.add('counting'); overlay=document.createElement('div'); overlay.className='qhtl-star-countdown'; overlay.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#ffff00;text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none;'; overlay.textContent=remain; btn.appendChild(overlay); t=setInterval(function(){ if(!down){ cancel(); return; } remain--; if(remain>0){ overlay.textContent=remain; } else { done(); } }, 1000); } btn.addEventListener('mousedown', start); btn.addEventListener('touchstart', start, {passive:true}); ['mouseup','mouseleave','touchend','touchcancel','blur'].forEach(function(ev){ btn.addEventListener(ev, cancel, {passive:true}); }); btn.addEventListener('click', function(e){ if(btn.dataset.lpHandled==='1'){ e.preventDefault(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); btn.dataset.lpHandled='0'; } }, true); }catch(_){ } })();
+  // Capture-phase click to ensure Temp star always opens the popup (robust vs inline handlers)
+  document.addEventListener('click', function(ev){ try{ var el = ev.target && ev.target.closest ? ev.target.closest('.qhtl-star[data-qaction=\'temp\']') : null; if(!el) return; ev.preventDefault(); if(ev.stopPropagation) ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); openTempRule({}); }catch(_){ } }, true);
+  // Load optional external behavior file for the Temp Rule modal
+  var s=document.createElement('script'); s.async=true;
+QHTL_TEMP_MODAL_JS_A
+	  print "  s.src='$script?action=widget_js&name=qTempRule.js&v=$myv';\n";
+	  print <<'QHTL_TEMP_MODAL_JS_B';
+  try{ document.body.appendChild(s); }catch(__){}
+}catch(e){} })();</script>
+QHTL_TEMP_MODAL_JS_B
+		# Fallback: define openTempRule and handlers without jQuery if previous script failed (ensures popup opens)
+		print "<script>(function(){ try{\n".
+		      "  if (typeof window.openTempRule !== 'function') {\n".
+		      "    window.openTempRule = function(prefill){ try{ var modal=document.getElementById('qhtlTempRuleModal'); if(!modal) return; var wrap=document.querySelector('.qhtl-bubble-bg'); if(wrap){ try{ wrap.appendChild(modal); modal.style.position='absolute'; }catch(_){} } else { try{ document.body.appendChild(modal); modal.style.position='fixed'; }catch(_){} } try{ if(prefill && prefill.ip){ var ipI = document.querySelector('#qhtlTempRuleForm input[name=ip]'); if(ipI) ipI.value = prefill.ip; } }catch(__){} modal.style.left='0'; modal.style.top='0'; modal.style.right='0'; modal.style.bottom='0'; modal.style.width='auto'; modal.style.height='auto'; modal.style.margin='0'; modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='block'; modal.setAttribute('aria-hidden','false'); } catch(e){} };\n".
+			  "    // Outside-click to close (vanilla)\n".
+			  "    (function(){ try{ var modal=document.getElementById('qhtlTempRuleModal'); if(!modal) return; function hide(){ try{ modal.style.display='none'; modal.setAttribute('aria-hidden','true'); }catch(__){} } function outside(ev){ try{ var dlg=modal.querySelector('.modal-dialog'); var t=ev.target; if (t===modal || (dlg && !dlg.contains(t))){ hide(); } }catch(__){} } modal.addEventListener('mousedown', outside, {passive:true}); modal.addEventListener('touchstart', outside, {passive:true}); modal.addEventListener('pointerdown', outside, {passive:true}); var cb=document.getElementById('qhtlTempRuleCloseBtn'); if(cb){ cb.addEventListener('click', function(){ hide(); }); } }catch(_){ } })();\n".
+		      "    // AJAX-submit (vanilla)\n".
+		      "    document.addEventListener('submit', function(ev){ try{ var f=ev.target; if(!f || f.id!=='qhtlTempRuleForm') return; ev.preventDefault(); var area=document.getElementById('qhtlTempRuleBody'); if(!area) return; if(area.qhtlCancelFade) area.qhtlCancelFade(); area.innerHTML='<div class=\\'text-muted\\'>Applying…</div>'; var fd=new FormData(f); try{ fd.append('ajax','1'); }catch(__){} var u=f.getAttribute('action')||''; var x=new XMLHttpRequest(); x.open((f.method||'POST'), u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200 && x.status<300){ area.innerHTML=x.responseText; if(area.qhtlArmAuto) area.qhtlArmAuto(); } else { area.innerHTML='<div class=\\'text-danger\\'>Failed to apply temporary rule.</div>'; } }catch(__){} } }; x.send(fd); }catch(_){ } }, true);\n".
+		      "  }\n".
+		      "}catch(e){} })();</script>";
+		# Hidden helpers: quickview links and minimal forms for star submissions
+		print "<div id='qhtl-quick-hidden' style='display:none'>";
+		print "<a class='quickview-link' data-which='allow' data-url='$script?action=viewlist&which=allow' href='javascript:void(0)'></a>";
+		print "<a class='quickview-link' data-which='deny' data-url='$script?action=viewlist&which=deny' href='javascript:void(0)'></a>";
+		print "<a class='quickview-link' data-which='ignore' data-url='$script?action=viewlist&which=ignore' href='javascript:void(0)'></a>";
+		print "<form id='qallow' action='$script' method='post'><input type='hidden' name='action' value='qallow'><input type='text' name='ip' value=''></form>";
+		print "<form id='qdeny' action='$script' method='post'><input type='hidden' name='action' value='qdeny'><input type='text' name='ip' value=''></form>";
+		print "<form id='qignore' action='$script' method='post'><input type='hidden' name='action' value='qignore'><input type='text' name='ip' value=''></form>";
+		print "<form id='grep' action='$script' method='post'><input type='hidden' name='action' value='grep'><input type='text' name='ip' value=''></form>";
+		print "<form id='qkill' action='$script' method='post'><input type='hidden' name='action' value='kill'><input type='text' name='ip' value=''></form>";
+		print "</div>";
 		print "</td></tr>\n";
 
-		# Quick Deny
-		print "<tr><td colspan='2'>";
-		print "<form action='$script' method='post' id='qdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='qdeny'>";
-		print "<div style='width:100%'>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' data-url='$script?action=viewlist&which=deny' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
-		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='denyip' value='' size='36' style='background-color: #FFD1DC; width:100%;'></div>";
-		print "  </div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qdeny').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='red'>Quick Deny</button></div>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
-		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Block:</div>";
-		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
-		print "  </div>";
-		print "</div></form>";
-		print "</td></tr>\n";
+		# Inline content area for Quick Actions (results from star button actions)
+		print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'><div id='qhtl-quick-inline-area' style='padding-top:10px;min-height:160px;background:transparent'></div></td></tr>\n";
+		# Intercept hidden form submits (qallow,qdeny,qignore,grep,qkill) to load into the Quick Actions inline area
+		print "<script>(function(){try{ var area=document.getElementById('qhtl-quick-inline-area'); if(!area) return;\n".
+			"  function setLoading(msg){ try{ if(area.qhtlCancelFade) area.qhtlCancelFade(); area.innerHTML = '<div class=\\'text-muted\\'>'+(msg||'Loading...')+'</div>'; }catch(_){ } }\n".
+			"  function onLoaded(html){ try{ area.innerHTML = html; if(area.qhtlArmAuto) area.qhtlArmAuto(); }catch(_){ } }\n".
+			"  function handleForm(f){ try{ var fd=new FormData(f); try{ fd.append('ajax','1'); }catch(__){} var u=f.getAttribute('action')||''; setLoading(); if(window.jQuery){ jQuery.ajax({ url:u, method:(f.method||'POST'), data:fd, processData:false, contentType:false }).done(function(d){ onLoaded(d); }).fail(function(){ onLoaded('<div class=\\'text-danger\\'>Failed to load content.</div>'); }); } else { var x=new XMLHttpRequest(); x.open((f.method||'POST'), u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200&&x.status<300){ onLoaded(x.responseText); } else { onLoaded('<div class=\\'text-danger\\'>Failed to load content.</div>'); } } }; x.send(fd); } }catch(e){} }\n".
+			"  document.addEventListener('submit', function(ev){ try{ var f=ev.target; if(!f || f.tagName!=='FORM') return; var id=f.id||''; if(id==='qallow'||id==='qdeny'||id==='qignore'||id==='grep'||id==='qkill'){ ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation && ev.stopImmediatePropagation(); handleForm(f); } }catch(_){ } }, true);\n".
+			"}catch(e){} })();</script>\n";
 
-		# Quick Ignore
-		print "<tr><td colspan='2'>";
-		print "<form action='$script' method='post' id='qignore'><input type='submit' class='hide'><input type='hidden' name='action' value='qignore'>";
-		print "<div style='width:100%'>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-	print "    <div style='flex:0 0 30%; max-width:30%'>Ignore IP address <a class='quickview-link' data-which='ignore' data-url='$script?action=viewlist&which=ignore' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
-		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='ignoreip' value='' size='36' style='background-color: #D9EDF7; width:100%;'></div>";
-		print "  </div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qignore').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='orange'>Quick Ignore</button></div>";
-		print "</div></form>";
-		print "</td></tr>\n";
-
-		# Search for IP
-		print "<tr><td colspan='2'>";
-		print "<form action='$script' method='post' id='grep'><input type='submit' class='hide'><input type='hidden' name='action' value='grep'>";
-		print "<div style='width:100%'>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-		print "    <div style='flex:0 0 30%; max-width:30%'>Search IP address</div>";
-		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
-		print "  </div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('grep').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='blue'>Search for IP</button></div>";
-		print "</div></form>";
-		print "</td></tr>\n";
-
-		# Quick Unblock
-		print "<tr><td colspan='2'>";
-		print "<form action='$script' method='post' id='qkill'><input type='submit' class='hide'><input type='hidden' name='action' value='kill'>";
-		print "<div style='width:100%'>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-		print "    <div style='flex:0 0 30%; max-width:30%'>Remove IP address</div>";
-		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='killip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
-		print "  </div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qkill').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='gray'>Quick Unblock</button></div>";
-		print "</div></form>";
-		print "</td></tr>\n";
-
-		# Temporary Allow/Deny (merged into a single full-width row)
-		print "<tr><td colspan='2'>";
-		print "<form action='$script' method='post' id='tempdeny'><input type='submit' class='hide'><input type='hidden' name='action' value='applytemp'>";
-		print "<div style='width:100%'>";
-		print "  <div class='h4' style='margin:0 0 8px 0;'>Temporary Allow/Deny</div>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-		print "    <div style='flex:0 0 20%; max-width:20%'>Action</div>";
-		print "    <div style='flex:1 1 auto'><select name='do' class='form-control' style='width:auto; display:inline-block; min-width:140px'><option>block</option><option>allow</option></select></div>";
-		print "  </div>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-		print "    <div style='flex:0 0 20%; max-width:20%'>IP address</div>";
-		print "    <div style='flex:1 1 auto'><input type='text' name='ip' value='' size='18' class='form-control' style='max-width:340px'></div>";
-		print "  </div>";
-	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-	print "    <div style='flex:0 0 20%; max-width:20%'>Ports</div>";
-	print "    <div style='flex:1 1 auto'><input type='text' name='ports' value='*' size='5' class='form-control' style='max-width:200px'></div>";
-	print "  </div>";
-	print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-	print "    <div style='flex:0 0 20%; max-width:20%'>Duration for</div>";
-	print "    <div style='flex:1 1 auto'><input type='text' name='timeout' value='' size='4' class='form-control' style='display:inline-block; width:90px; margin-right:8px;'> <select name='dur' class='form-control' style='display:inline-block; width:auto; min-width:120px'><option>seconds</option><option>minutes</option><option>hours</option><option>days</option></select></div>";
-	print "  </div>";
-		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-bottom:8px'>";
-		print "    <div style='flex:0 0 20%; max-width:20%'>Comment</div>";
-		print "    <div style='flex:1 1 auto'><input type='text' name='comment' value='' size='30' class='form-control' style='max-width:520px'></div>";
-		print "  </div>";
-	print "  <div class='text-muted' style='font-size:12px; margin-bottom:8px'>(ports can be either * for all ports, a single port, or a comma separated list of ports)</div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('tempdeny').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='purple'>Apply Temporary Rule</button></div>";
-		print "</div></form>";
-		print "</td></tr>\n";
 
 		print "</table>\n";
 		print "</div>\n";
 
 		print "<div id='home' class='tab-pane'>\n";
-		print "<form action='$script' method='post'>\n";
-		print "<table class='table table-bordered table-striped'>\n";
-	print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
-	print "<tr><td colspan='2'><button name='action' value='servercheck' type='submit' class='btn btn-default' data-bubble-color='blue'>Test Security</button><div class='text-muted small' style='margin-top:6px'>Perform a basic security, stability and settings check on the server</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='readme' type='submit' class='btn btn-default' data-bubble-color='gray'>Qht Link Info</button><div class='text-muted small' style='margin-top:6px'>View the qhtlfirewall+qhtlwaterfall readme.txt file</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='loggrep' type='submit' class='btn btn-default' data-bubble-color='purple'>Search Logs</button><div class='text-muted small' style='margin-top:6px'>Search (grep) various system log files (listed in qhtlfirewall.syslogs)</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='viewports' type='submit' class='btn btn-default' data-bubble-color='green'>Active Ports</button><div class='text-muted small' style='margin-top:6px'>View ports on the server that have a running process behind them listening for external connections</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='rblcheck' type='submit' class='btn btn-default' data-bubble-color='orange'>Check in RBLs</button><div class='text-muted small' style='margin-top:6px'>Check whether any of the servers IP addresses are listed in RBLs</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='viewlogs' type='submit' class='btn btn-default' data-bubble-color='red'>View ipt Log</button><div class='text-muted small' style='margin-top:6px'>View the last $config{ST_IPTABLES} iptables log lines</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='chart' type='submit' class='btn btn-default' data-bubble-color='blue'>QhtL Stats</button><div class='text-muted small' style='margin-top:6px'>View qhtlwaterfall blocking statistics</div></td></tr>\n";
-	print "<tr><td colspan='2'><button name='action' value='systemstats' type='submit' class='btn btn-default' data-bubble-color='gray'>View Sys Stats</button><div class='text-muted small' style='margin-top:6px'>View basic system statistics</div></td></tr>\n";
+		print "<form id='qhtl-options-form' action='$script' method='post'>\n";
+		# Ensure Options table and all cells are transparent so the gradient shows through
+		print "<style>#qhtl-options-table, #qhtl-options-table thead th, #qhtl-options-table tbody td, #qhtl-options-table tbody tr { background: transparent !important; } #qhtl-options-table.table-striped > tbody > tr:nth-of-type(odd){ background: transparent !important; } #qhtl-options-table td, #qhtl-options-table th{ background-color: transparent !important; }</style>\n";
+		print "<table id='qhtl-options-table' class='table table-bordered table-striped' style='background:transparent!important'>\n";
+		print "<thead style='background:transparent!important'><tr><th colspan='2' style='background:transparent!important'>Server Information</th></tr></thead>";
+		# Eight orange square buttons (80x80) with a 10px bright-orange halo, centered, each word on its own line
+		print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
+		print "<div style='display:flex; justify-content:center; margin:10px 0;'>";
+		print "  <div style='display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:30px;'>";
+		my @orangeBtns = (
+			{ label => 'Test Security',   action => 'servercheck' },
+			{ label => 'QhtLink Info',    action => 'readme'      },
+			{ label => 'Search Logs',     action => 'loggrep'     },
+			{ label => 'Active Ports',    action => 'viewports'   },
+			{ label => 'Check RBLs',      action => 'rblcheck'    },
+			{ label => 'View ipt-Log',    action => 'viewlogs'    },
+			{ label => 'QhtL Stats',      action => 'chart'       },
+			{ label => 'System Stats',    action => 'systemstats' },
+		);
+		foreach my $b (@orangeBtns) {
+			my $label  = $b->{label};
+			my $action = $b->{action};
+			my $aria   = $label;
+			my $label_html = join('<br>', map { "<span style=\"display:block; line-height:1.02;\">$_</span>" } split(/\s+/, $label));
+			print "<button name='action' value='$action' type='button' aria-label='$aria' title='$label' onmouseover=\"this.style.transform='scale(1.05)'\" onmouseout=\"this.style.transform='scale(1)'\" style=\"all:unset; cursor:pointer; width:70px; height:70px; display:flex; align-items:center; justify-content:center; text-align:center; padding:6px; background: linear-gradient(180deg, #ffd27a 0%, #ffad33 50%, #ff9800 70%, #e67e00 100%); border:2px solid #e68900; box-shadow: 0 0 0 10px rgba(255,165,0,0.65), 0 10px 18px rgba(255,140,0,0.35); transition: transform .15s ease; transform: translateZ(0);\"><span style=\"display:block; color:#fff; font-weight:800; font-size:15px; line-height:1.02; text-shadow:0 1px 0 rgba(0,0,0,0.25); width:100%; text-align:center;\">$label_html</span></button>";
+		}
+        # Load an optional, per-button JS file named as 'o' + label without non-alphanumerics + '.js' (e.g., Active Ports => oActivePorts.js)
+        foreach my $b (@orangeBtns) {
+            my $label = $b->{label};
+            my $norm = $label; $norm =~ s/[^A-Za-z0-9]+//g; # strip spaces, hyphens, punctuation
+            my $ofile = "o${norm}.js";
+            print "<script src='$script?action=widget_js&name=$ofile&v=$myv'></script>";
+        }
+		print "  </div>";
+		print "</div>";
+		print "</td></tr>\n";
+		# Inline content area for Options actions (load results below squares)
+		print "<tr style='background:transparent!important'><td style='background:transparent!important'><div id='qhtl-options-inline-area' style='padding-top:10px;min-height:180px;background:transparent'></div></td></tr>\n";
 		print "</table>\n";
 		print "</form>\n";
+
+		# Delegate the Options form submit/click to load into inline area instead of navigating
+		print "<script>(function(){\n";
+		print "  try{ var of=document.getElementById('qhtl-options-form'); if(!of) return; var area=document.getElementById('qhtl-options-inline-area'); if(!area) return;\n";
+		print "    function setLoading(){ try{ if(area.qhtlCancelFade) area.qhtlCancelFade(); if(window.jQuery){ jQuery(area).html('<div class=\\\'text-muted\\\'>Loading...</div>'); } else { area.innerHTML='<div class=\\\'text-muted\\\'>Loading...</div>'; } }catch(_){ } }\n";
+		print "    function onLoaded(html){ try{ area.innerHTML = html; if(area.qhtlArmAuto) area.qhtlArmAuto(); }catch(_){ } }\n";
+		print "    function sendAjax(submitter){ try{ setLoading(); var u = of.getAttribute('action') || ''; var fd = new FormData(of); try{ fd.append('ajax','1'); }catch(__){} try{ if(submitter && submitter.name){ fd.append(submitter.name, submitter.value); } }catch(__){}\n";
+		print "      if (window.jQuery) { jQuery.ajax({ url: u, method: 'POST', data: fd, processData: false, contentType: false }).done(function(d){ onLoaded(d); }).fail(function(){ onLoaded('<div class=\\\'text-danger\\\'>Failed to load content.</div>'); }); }\n";
+		print "      else { var x=new XMLHttpRequest(); x.open('POST', u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ onLoaded(x.responseText); } else { onLoaded('<div class=\\\'text-danger\\\'>Failed to load content.</div>'); } } }; x.send(fd); } }catch(e){} }\n";
+		print "    of.addEventListener('submit', function(ev){ try{ ev.preventDefault(); sendAjax(ev.submitter || null); }catch(_){ } }, true);\n";
+		print "    // Also intercept direct clicks/keys on square buttons to send AJAX and include their name/value\n";
+		print "    of.addEventListener('click', function(ev){ try{ var btn = ev.target && ev.target.closest ? ev.target.closest('button[name=action]') : null; if(!btn) return; ev.preventDefault(); sendAjax(btn); }catch(_){ } }, true);\n";
+		print "    of.addEventListener('keydown', function(ev){ try{ var key=ev.key||''; if(key!=='Enter' && key!==' ') return; var btn = ev.target && ev.target.closest ? ev.target.closest('button[name=action]') : null; if(!btn) return; ev.preventDefault(); sendAjax(btn); }catch(_){ } }, true);\n";
+		print "    // Intercept submits from forms inside the Options inline area (e.g., System Stats), and load inline here\n";
+		print "    document.addEventListener('submit', function(ev){ try{ var f=ev.target; if(!f || f.tagName!=='FORM') return; if(!area.contains(f)) return; ev.preventDefault(); if(ev.stopPropagation) ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); var msg='Loading...'; try{ if(f.querySelector('[name=action][value=rblcheck]')){ msg='Running RBL checks — this can take several minutes…'; } }catch(__){} try{ if(window.jQuery){ jQuery(area).html('<div class=\\\'text-muted\\\'>'+msg+'</div>'); } else { area.innerHTML='<div class=\\\'text-muted\\\'>'+msg+'</div>'; } }catch(__){} var fd=new FormData(f); try{ fd.append('ajax','1'); }catch(__){} var u=f.getAttribute('action')||''; if(window.jQuery){ jQuery.ajax({ url:u, method:'POST', data:fd, processData:false, contentType:false }).done(function(d){ onLoaded(d); }).fail(function(){ onLoaded('<div class=\\\'text-danger\\\'>Failed to load content.</div>'); }); } else { var x=new XMLHttpRequest(); x.open('POST', u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ onLoaded(x.responseText); } else { onLoaded('<div class=\\\'text-danger\\\'>Failed to load content.</div>'); } } }; x.send(fd); } }catch(_){ } }, true);\n";
+		print "    // Document-level click capture to catch submit button clicks inside Options inline area\n";
+		print "    document.addEventListener('click', function(ev){ try{ var btn = ev.target && ev.target.closest ? ev.target.closest('input[type=submit],button[type=submit]') : null; if(!btn) return; var f = btn.form; if(!f) return; if(!area.contains(f)) return; ev.preventDefault(); if(ev.stopPropagation) ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); var msg='Loading...'; try{ if(f.querySelector('[name=action][value=rblcheck]')){ msg='Running RBL checks — this can take several minutes…'; } }catch(__){} try{ if(window.jQuery){ jQuery(area).html('<div class=\\\'text-muted\\\'>'+msg+'</div>'); } else { area.innerHTML='<div class=\\\'text-muted\\\'>'+msg+'</div>'; } }catch(__){} var fd = new FormData(f); try{ fd.append('ajax','1'); }catch(__){} try{ if(btn.name){ fd.append(btn.name, btn.value); } }catch(__){} var u = f.getAttribute('action')||''; if(window.jQuery){ jQuery.ajax({ url:u, method:'POST', data:fd, processData:false, contentType:false }).done(function(d){ onLoaded(d); }).fail(function(){ onLoaded('<div class=\\\'text-danger\\\'>Failed to load content.</div>'); }); } else { var x=new XMLHttpRequest(); x.open('POST', u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ onLoaded(x.responseText); } else { onLoaded('<div class=\\\'text-danger\\\'>Failed to load content.</div>'); } } }; x.send(fd); } }catch(_){ } }, true);\n";
+		print "    // Global helper to force-submit any Options-area form via AJAX (used as onsubmit handler)\n";
+		print "    window.__QHTL_OPTIONS_AJAX = function(f){ try{ if(!f) return true; var area=document.getElementById('qhtl-options-inline-area'); if(!area) return true; if(!area.contains(f)) return true; var msg='Loading...'; try{ if(f.querySelector('[name=action][value=rblcheck]')){ msg='Running RBL checks — this can take several minutes…'; } }catch(__){} try{ if(window.jQuery){ jQuery(area).html('<div class=\\\'text-muted\\\'>'+msg+'</div>'); } else { area.innerHTML='<div class=\\\'text-muted\\\'>'+msg+'</div>'; } }catch(__){} var fd=new FormData(f); try{ fd.append('ajax','1'); }catch(__){} var u=f.getAttribute('action')||''; if(u && u.indexOf('ajax=1')===-1){ u += (u.indexOf('?')>-1?'&':'?')+'ajax=1'; } if(window.jQuery){ jQuery.ajax({ url:u, method:(f.method||'POST'), data:fd, processData:false, contentType:false }).done(function(d){ try{ area.innerHTML=d; if(area.qhtlArmAuto) area.qhtlArmAuto(); }catch(__){} }).fail(function(){ try{ area.innerHTML='<div class=\\\'text-danger\\\'>Failed to load content.</div>'; }catch(__){} }); } else { var x=new XMLHttpRequest(); x.open((f.method||'POST'), u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200 && x.status<300){ area.innerHTML=x.responseText; if(area.qhtlArmAuto) area.qhtlArmAuto(); } else { area.innerHTML='<div class=\\\'text-danger\\\'>Failed to load content.</div>'; } }catch(__){} } }; x.send(fd); } return false; } catch(e){ return true; } };\n";
+		print "    // Also catch clicks on submit buttons inside the Options inline area to prevent navigation and submit via AJAX\n";
+		print "    area.addEventListener('click', function(ev){ try{ var btn = ev.target && ev.target.closest ? ev.target.closest('input[type=submit],button[type=submit]') : null; if(!btn) return; var f = btn.form; if(!f || !area.contains(f)) return; ev.preventDefault(); if(ev.stopPropagation) ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); setLoading(); var fd = new FormData(f); try{ fd.append('ajax','1'); }catch(__){} try{ if(btn.name){ fd.append(btn.name, btn.value); } }catch(__){} var u = f.getAttribute('action')||''; if(window.jQuery){ jQuery.ajax({ url:u, method:'POST', data:fd, processData:false, contentType:false }).done(function(d){ onLoaded(d); }).fail(function(){ onLoaded('<div class=\\\'text-danger\\\'>Failed to load content.</div>'); }); } else { var x=new XMLHttpRequest(); x.open('POST', u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ onLoaded(x.responseText); } else { onLoaded('<div class=\\\'text-danger\\\'>Failed to load content.</div>'); } } }; x.send(fd); } }catch(_){ } }, true);\n";
+		print "  }catch(e){}\n";
+		print "})();</script>\n";
 		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
-			print "<table class='table table-bordered table-striped'>\n";
-			print "<thead><tr><th>Legacy Firewalls</th></tr></thead>";
+			print "<table class='table table-bordered table-striped' style='background:transparent!important'>\n";
+			print "<thead style='background:transparent!important'><tr><th style='background:transparent!important'>Legacy Firewalls</th></tr></thead>";
 			print "<tr><td><form action='$script' method='post'><button name='action' value='remapf' type='submit' class='btn btn-default'>Remove APF/BFD</button></form><div class='text-muted small' style='margin-top:6px'>Remove APF/BFD from the server. You must not run both APF or BFD with qhtlfirewall on the same server</div></td></tr>\n";
 			print "</table>\n";
 		}
@@ -3935,8 +4110,8 @@ QHTL_UPGRADE_WIRE_JS
 
 		# New Waterfall tab (duplicate of QhtLink Waterfall content) placed before QhtLink Firewall
 					print "<div id='waterfall' class='tab-pane'>\n";
-		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
+		print "<table class='table table-bordered table-striped' style='background:transparent!important'>\n";
+		print "<thead style='background:transparent!important'><tr><th style='background:transparent!important'>qhtlwaterfall - Login Failure Daemon</th></tr></thead>";
 					print "<tr style='background:transparent!important'><td style='background:transparent!important'>".
 				  "<div style='display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;justify-content:center'>".
 						"<div id='wstatus-anchor' style='position:relative;display:inline-block;width:100px;height:100px'>".
@@ -4004,19 +4179,23 @@ QHTL_UPGRADE_WIRE_JS
 	print "<script>\n";
 	print "(function(){\n";
 	print "  function makeAutoClear(id){ var el=document.getElementById(id); if(!el) return; el.style.transition = el.style.transition || 'opacity 5s ease'; var t=null, fading=false, fadeTimer=null;\n";
-	print "    function clearNow(){ try{ el.innerHTML=''; el.style.opacity=''; el.style.pointerEvents=''; fading=false; if(fadeTimer){ clearTimeout(fadeTimer); fadeTimer=null; } showFallback(); }catch(_){ } }\n";
-	print "    function beginFade(){ if(fading) return; fading=true; el.style.opacity='0'; el.style.pointerEvents='none'; fadeTimer=setTimeout(clearNow, 5000); }\n";
+	print "    function clearNow(){ try{ el.innerHTML=''; el.style.opacity=''; el.style.pointerEvents=''; fading=false; if(fadeTimer){ clearTimeout(fadeTimer); fadeTimer=null; } showFallback(true); }catch(_){ } }\n";
+	print "    function beginFade(){ if(fading) return; try{ var onlyFallback = (el.children && el.children.length===1 && el.querySelector('.qhtl-fallback-holder')); if(onlyFallback){ return; } }catch(__){} fading=true; el.style.opacity='0'; el.style.pointerEvents='none'; fadeTimer=setTimeout(clearNow, 5000); }\n";
 	print "    function cancelFade(){ if(!fading) return; try{ el.style.opacity=''; el.style.pointerEvents=''; }catch(_){ } fading=false; if(fadeTimer){ clearTimeout(fadeTimer); fadeTimer=null; } }\n";
-	print "    function showFallback(){ try{ if(!el) return; if (el.children.length>0) return; var url=(window.QHTL_SCRIPT||'$script')+'?action=fallback_asset&name=idle_fallback.gif&v=$myv'; el.innerHTML = \"<div class=\\\"qhtl-fallback-holder\\\" style=\\\"min-height:160px;display:flex;align-items:center;justify-content:center;\\\"><img alt=\\\"\\\" src=\\\"\"+url+\"\\\" style=\\\"max-width:100%;height:auto;opacity:.9\\\"></div>\"; }catch(_){ } }\n";
+	print "    function showFallback(force){ try{ if(!el) return; if (!force && el.children.length>0) return; var url=(window.QHTL_SCRIPT||'$script')+'?action=fallback_asset&name=idle_fallback.gif&v=$myv'; el.innerHTML = \"<div class=\\\"qhtl-fallback-holder\\\" style=\\\"min-height:160px;display:flex;align-items:center;justify-content:center;\\\"><img alt=\\\"\\\" src=\\\"\"+url+\"\\\" style=\\\"max-width:100%;height:auto;opacity:0.9\\\"></div>\"; el.style.opacity=''; el.style.pointerEvents=''; }catch(_){ } }\n";
 	print "    function arm(){ if(t){ clearTimeout(t); } cancelFade(); t=setTimeout(beginFade, 10000); }\n";
 	print "    // Arm on interactions and when content changes; also cancel any active dimming to keep content visible\n";
 	print "    ['click','input','mousemove','wheel','keydown','touchstart','pointermove','pointerdown'].forEach(function(evt){ el.addEventListener(evt, arm, {passive:true}); });\n";
+	print "    // Also listen globally so activity outside the area cancels dimming and resets the timer\n";
+	print "    try { if (!el.qhtlDocArmBound) { el.qhtlDocArmBound = true; ['click','input','mousemove','wheel','keydown','touchstart','pointermove','pointerdown','scroll'].forEach(function(evt){ document.addEventListener(evt, arm, {passive:true, capture:true}); }); } } catch(_) { }\n";
 	print "    var mo = new MutationObserver(function(){ arm(); try{ var fh=el.querySelector('.qhtl-fallback-holder'); if (el.children.length===0){ showFallback(); } else if (fh && el.children.length>1){ if(fh.parentNode) fh.parentNode.removeChild(fh); } }catch(_){ } }); mo.observe(el, { childList:true, subtree:true }); arm(); if (el.children.length===0) showFallback();\n";
 	print "    // Expose small helpers for external use (e.g., tab re-click toggles)\n";
 	print "    el.qhtlClearNow = clearNow; el.qhtlCancelFade = cancelFade; el.qhtlArmAuto = arm; el.qhtlShowFallback = showFallback;\n";
 	print "  }\n";
 	print "  makeAutoClear('qhtl-inline-area');\n";
 	print "  makeAutoClear('qhtl-upgrade-inline-area');\n";
+	print "  makeAutoClear('qhtl-options-inline-area');\n";
+	print "  makeAutoClear('qhtl-quick-inline-area');\n";
 	print "})();\n";
 	print "</script>\n";
 	# Re-click active tab name to clear its own inline area and cancel dimming
@@ -4455,7 +4634,7 @@ function openQuickView(url, which) {
 
     try { if (window.__qhtlCurrentXHR && window.__qhtlCurrentXHR.abort) { window.__qhtlCurrentXHR.abort(); } } catch(__ax){}
     if (window.console && console.info) { try { console.info('[QHTL] QuickView GET', url); } catch(__c){} }
-    window.__qhtlCurrentXHR = $.ajax({ url: url, method: 'GET', dataType: 'html', timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+	window.__qhtlCurrentXHR = jQuery.ajax({ url: url, method: 'GET', dataType: 'html', timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
 		.done(function(data){
 			try { window.clearTimeout(window.__qhtlLoadHintTimer); } catch(__h){}
 			var body = data;
@@ -4547,7 +4726,7 @@ $(document).on('click', '#quickViewEditBtn', function(){
 	$('#quickViewBody').html('Loading...');
     try { if (window.__qhtlEditXHR && window.__qhtlEditXHR.abort) { window.__qhtlEditXHR.abort(); } } catch(__ax){}
     if (window.console && console.info) { try { console.info('[QHTL] QuickView EDIT GET', url); } catch(__c){} }
-    window.__qhtlEditXHR = $.ajax({ url: url, method: 'GET', dataType: 'html', timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+	window.__qhtlEditXHR = jQuery.ajax({ url: url, method: 'GET', dataType: 'html', timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
 		.done(function(data){
 			$('#quickViewBody').html(data);
 			$('#quickViewEditBtn').hide();
@@ -4580,7 +4759,7 @@ $(document).on('click', '#quickViewSaveBtn', function(){
 	$('#quickViewBody').html('Saving...');
     try { if (window.__qhtlSaveXHR && window.__qhtlSaveXHR.abort) { window.__qhtlSaveXHR.abort(); } } catch(__ax){}
     if (window.console && console.info) { try { console.info('[QHTL] QuickView SAVE POST', currentQuickWhich); } catch(__c){} }
-    window.__qhtlSaveXHR = $.ajax({ url: QHTL_SCRIPT + '?action=savelist&which=' + encodeURIComponent(currentQuickWhich), method: 'POST', data: { formdata: content }, timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+	window.__qhtlSaveXHR = jQuery.ajax({ url: QHTL_SCRIPT + '?action=savelist&which=' + encodeURIComponent(currentQuickWhich), method: 'POST', data: { formdata: content }, timeout: 15000, cache: false, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
 		.done(function(){
 			showQuickView(currentQuickWhich);
 			$('#quickViewEditBtn').show();
@@ -4954,7 +5133,7 @@ sub systemstats {
 	if (@stats > 1) {
 		QhtLink::ServerStats::graphs($type,$config{ST_SYSTEM_MAXDAYS},$imghddir);
 
-		print "<div class='text-center'><form action='$script' method='post'><input type='hidden' name='action' value='systemstats'><select name='graph'>\n";
+		print "<div class='text-center'><form action='${script}?ajax=1' method='post' onsubmit=\"return window.__QHTL_OPTIONS_AJAX && __QHTL_OPTIONS_AJAX(this);\"><input type='hidden' name='action' value='systemstats'><select name='graph'>\n";
 		my $selected;
 		if ($type eq "" or $type eq "load") {$selected = "selected"} else {$selected = ""}
 		print "<option value='load' $selected>Load Average Statistics</option>\n";
