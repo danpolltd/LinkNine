@@ -3895,6 +3895,17 @@ QHTL_UPGRADE_WIRE_JS
 		print "<table class='table table-bordered table-striped'>\n";
 	print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
 	print "<tr><td colspan='2'><button name='action' value='servercheck' type='submit' class='btn btn-default' data-bubble-color='blue'>Test Security</button><div class='text-muted small' style='margin-top:6px'>Perform a basic security, stability and settings check on the server</div></td></tr>\n";
+		# Eight orange square buttons (80x80) with a 10px bright-orange halo, centered above Qht Link Info
+		print "<tr><td colspan='2'>";
+		print "<div style='display:flex; justify-content:center; margin:10px 0;'>";
+		print "  <div style='display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:12px;'>";
+		for (my $i=1; $i<=8; $i++) {
+			my $aria = "Orange button $i";
+			print "<button type='button' aria-label='$aria' style=\"all:unset; cursor:pointer; width:80px; height:80px; display:inline-block; background:#ff9800; border:2px solid #e68900; box-shadow: 0 0 0 10px rgba(255,165,0,0.75), 0 0 22px 10px rgba(255,140,0,0.45);\"></button>";
+		}
+		print "  </div>";
+		print "</div>";
+		print "</td></tr>\n";
 	print "<tr><td colspan='2'><button name='action' value='readme' type='submit' class='btn btn-default' data-bubble-color='gray'>Qht Link Info</button><div class='text-muted small' style='margin-top:6px'>View the qhtlfirewall+qhtlwaterfall readme.txt file</div></td></tr>\n";
 	print "<tr><td colspan='2'><button name='action' value='loggrep' type='submit' class='btn btn-default' data-bubble-color='purple'>Search Logs</button><div class='text-muted small' style='margin-top:6px'>Search (grep) various system log files (listed in qhtlfirewall.syslogs)</div></td></tr>\n";
 	print "<tr><td colspan='2'><button name='action' value='viewports' type='submit' class='btn btn-default' data-bubble-color='green'>Active Ports</button><div class='text-muted small' style='margin-top:6px'>View ports on the server that have a running process behind them listening for external connections</div></td></tr>\n";
