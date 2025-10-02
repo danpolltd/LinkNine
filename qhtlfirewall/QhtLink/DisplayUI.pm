@@ -1935,8 +1935,8 @@ QHTL_JQ_GREP
 			print <<'HTML_TABS_CSS_JS';
 <style>
 .qhtl-tabs { margin: 10px 0; }
-.qhtl-tab-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px 0; padding: 0; list-style: none; }
-.qhtl-tab { padding: 6px 10px; border: 1px solid #DDD; border-radius: 4px; background: #F9F9F9; cursor: pointer; user-select: none; }
+.qhtl-tab-list { display: flex !important; flex-wrap: wrap; gap: 6px; margin: 0 0 10px 0; padding: 0; list-style: none; }
+.qhtl-tab { display: inline-block !important; padding: 6px 10px; border: 1px solid #DDD; border-radius: 4px; background: #F9F9F9; cursor: pointer; user-select: none; }
 .qhtl-tab[aria-selected="true"] { background: #EDEBFF; border-color: #BBB; font-weight: 600; }
 .qhtl-tab-panel { display: none; border: 1px solid #DDD; border-radius: 4px; padding: 10px; background: #FFF; }
 .qhtl-tab-panel.active { display: block; }
@@ -1965,6 +1965,58 @@ QHTL_JQ_GREP
     // Default to first tab (empty)
     selectTab(root, 0);
   };
+
+	// Fallback: If server-side parsing yielded no panels, try to transform stacked sections
+	window.qhtlTabsFallback = function(containerId){
+		var container = document.getElementById(containerId);
+		if (!container) return;
+		var hasPanels = container.querySelectorAll('.qhtl-tab-panel').length > 0;
+		if (hasPanels) return;
+		// Find known section headers: div > strong title blocks
+		var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT, null);
+		var sections = [];
+		var current = null;
+		while (walker.nextNode()){
+			var node = walker.currentNode;
+			if (node.tagName === 'DIV'){
+				var strong = node.querySelector(':scope > strong');
+				if (strong && /Check$|Firewall Check|Server Check|SSH\/Telnet Check|Mail Check|Apache Check|PHP Check|WHM Settings Check|DirectAdmin Settings Check|Server Services Check/i.test(strong.textContent)){
+					if (current) sections.push(current);
+					current = {title: strong.textContent, contentNodes: []};
+					continue;
+				}
+			}
+			if (current) current.contentNodes.push(node.cloneNode(true));
+		}
+		if (current) sections.push(current);
+		if (!sections.length) return;
+
+		// Build tabs structure
+		var ul = document.createElement('ul');
+		ul.className = 'qhtl-tab-list'; ul.setAttribute('role','tablist');
+		var panelsFrag = document.createDocumentFragment();
+		var labels = ['Empty'];
+		var contents = [''];
+		for (var i=0;i<8;i++){
+			if (sections[i]){ labels.push(sections[i].title); }
+			else { labels.push('Tab '+(i+2)); }
+			if (sections[i]){
+				var wrap = document.createElement('div');
+				sections[i].contentNodes.forEach(function(n){ wrap.appendChild(n); });
+				contents.push(wrap.innerHTML);
+			} else { contents.push(''); }
+		}
+		labels.forEach(function(lab){
+			var li = document.createElement('li');
+			li.className = 'qhtl-tab'; li.setAttribute('role','tab'); li.setAttribute('aria-selected','false'); li.textContent = lab;
+			ul.appendChild(li);
+		});
+		container.appendChild(ul);
+		contents.forEach(function(html){
+			var p = document.createElement('div'); p.className = 'qhtl-tab-panel'; p.setAttribute('role','tabpanel'); p.innerHTML = html; container.appendChild(p);
+		});
+		if (typeof window.initQhtlTabs === 'function') window.initQhtlTabs(containerId);
+	};
 })();
 </script>
 HTML_TABS_CSS_JS
@@ -1999,7 +2051,7 @@ HTML_TABS_CSS_JS
 				print "\n</div>\n";
 			}
 			print "</div>\n";
-			print "<script>initQhtlTabs('$container_id');</script>\n";
+			print "<script>initQhtlTabs('$container_id'); if (typeof qhtlTabsFallback==='function'){ qhtlTabsFallback('$container_id'); }</script>\n";
 		} else {
 			print "<div class='alert alert-warning'>ServerCheck module not available in this environment. Skipping report.</div>\n";
 		}
