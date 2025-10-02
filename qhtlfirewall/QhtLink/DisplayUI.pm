@@ -3800,15 +3800,15 @@ QHTL_UPGRADE_WIRE_JS
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Quick Actions</th></tr></thead>";
 
-		# First cell: six violet star buttons (120x70) with a 10px bright-violet halo, 15px apart, centered, labeled left-to-right
+		# First cell: six violet star buttons (120x70) with a precise 10px bright-violet halo via SVG stroke, 15px apart, centered, labeled left-to-right
 		print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>";
 		print "<div style=\"width:100%; display:flex; justify-content:center;\">";
 		# Scoped styles for star layout and shape
 		print "<style>\n".
 			".qhtl-star-item{width:140px;display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-start;}\n".
 			".qhtl-star-wrap{position:relative;width:140px;height:90px;display:inline-flex;align-items:center;justify-content:center;}\n".
-			".qhtl-star-halo{position:absolute;inset:0;clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);background:#ee82ee;border:none;}\n".
-			".qhtl-star{position:relative;width:120px;height:70px;clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);background:#8a2be2;border:none;cursor:pointer;display:inline-block;}\n".
+			".qhtl-star{position:relative;width:140px;height:90px;background:transparent;border:none;cursor:pointer;display:inline-block;padding:0;}\n".
+			".qhtl-star svg{display:block;width:140px;height:90px;}\n".
 			".qhtl-star:focus{outline:2px solid #fff;outline-offset:2px;}\n".
 			".qhtl-star-label{margin-top:6px;font-size:13px;line-height:1.1;color:#eee;text-shadow:0 1px 0 rgba(0,0,0,0.35);}\n".
 		"</style>";
@@ -3828,8 +3828,12 @@ QHTL_UPGRADE_WIRE_JS
 			my $title = $label;
 			print "<div class=\"qhtl-star-item\">".
 				"<div class=\"qhtl-star-wrap\" aria-hidden=\"false\">".
-					"<div class=\"qhtl-star-halo\" aria-hidden=\"true\"></div>".
-					"<button type=\"button\" class=\"qhtl-star\" data-qaction=\"$q->{key}\" title=\"$title\" aria-label=\"$title\" onclick=\"try{document.getElementById('$form').submit();}catch(e){}\"></button>".
+					"<button type=\"button\" class=\"qhtl-star\" data-qaction=\"$q->{key}\" title=\"$title\" aria-label=\"$title\" onclick=\"try{document.getElementById('$form').submit();}catch(e){}\">".
+						"<svg width=\"140\" height=\"90\" viewBox=\"-10 -10 140 90\" xmlns=\"http://www.w3.org/2000/svg\" aria-hidden=\"true\">".
+							"<path d=\"M60,0 L73.2,24.5 L117.6,24.5 L81.6,39.9 L94.8,63.7 L60,49 L25.2,63.7 L38.4,39.9 L2.4,24.5 L46.8,24.5 Z\" fill=\"none\" stroke=\"#ee82ee\" stroke-width=\"20\" stroke-linejoin=\"round\" vector-effect=\"non-scaling-stroke\"/>".
+							"<path d=\"M60,0 L73.2,24.5 L117.6,24.5 L81.6,39.9 L94.8,63.7 L60,49 L25.2,63.7 L38.4,39.9 L2.4,24.5 L46.8,24.5 Z\" fill=\"#8a2be2\"/>".
+						"</svg>".
+					"</button>".
 				"</div>".
 				"<div class=\"qhtl-star-label\">$label</div>".
 			"</div>";
