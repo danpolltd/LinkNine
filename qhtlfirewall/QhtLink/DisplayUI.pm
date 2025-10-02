@@ -4111,10 +4111,13 @@ QHTL_UPGRADE_WIRE_JS
 	print "#quickViewModal .modal-body { flex: 1 1 auto !important; display:flex !important; flex-direction:column !important; overflow:auto !important; min-height:0 !important; padding:10px !important; }\n";
 		print "#quickViewModal .modal-footer { flex: 0 0 auto !important; margin-top: auto !important; padding:10px !important; display:flex !important; justify-content: space-between !important; align-items: center !important; gap:8px !important; }\n";
 	print "#quickViewModal #quickViewTitle { margin:0 0 8px 0 !important; }\n";
-	print "#quickViewBody { flex:1 1 auto !important; min-height:0 !important; overflow:hidden !important; }\n";
-	print "#quickViewModal #quickViewBody { display:block; width:100%; height:100%; max-height:100%; overflow:auto; }\n";
-	print "#quickViewModal #quickViewBody pre { height: 100%; max-height: 100%; white-space: pre; overflow: auto; overflow-wrap: normal; word-break: normal; }\n";
-	print "#quickEditArea { height: 100% !important; max-height: 100% !important; }\n";
+	# Make Quick View body a flex column that can grow and scroll, without forcing 100% height
+	print "#quickViewBody { flex:1 1 auto !important; min-height:0 !important; display:flex !important; flex-direction:column !important; overflow:auto !important; }\n";
+	print "#quickViewModal #quickViewBody { display:flex !important; flex-direction:column !important; width:100% !important; height:auto !important; max-height:none !important; overflow:auto !important; }\n";
+	# Ensure <pre> in view mode expands within the modal and scrolls if needed
+	print "#quickViewModal #quickViewBody pre { flex:1 1 auto !important; min-height:0 !important; height:auto !important; max-height:none !important; white-space: pre; overflow: auto; overflow-wrap: normal; word-break: normal; }\n";
+	# Textarea in edit mode should fill available space via flex, not absolute 100% height
+	print "#quickEditArea { flex: 1 1 auto !important; min-height: 0 !important; height: auto !important; max-height: none !important; }\n";
 	print "#quickViewModal #quickEditArea { resize: none !important; }\n";
 	print ".btn-close-red { background: linear-gradient(180deg, #f8d7da 0%, #f5c6cb 100%); color: #721c24 !important; border-color: #f1b0b7 !important; }\n";
 	print ".btn-close-red:hover { background: #dc3545 !important; color: #fff !important; border-color: #dc3545 !important; }\n";
