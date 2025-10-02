@@ -283,6 +283,8 @@ sub main {
 		close ($AJAX);
 		print "<script>\n";
 		print @jsdata;
+		# Ensure global function is available in this page scope
+		print "\nif (typeof window.QHTLFIREWALLgrep !== 'function' && typeof QHTLFIREWALLgrep === 'function') { window.QHTLFIREWALLgrep = QHTLFIREWALLgrep; }\n";
 		print "</script>\n";
 		print <<EOF;
 <div>$options Lines:<input type='text' id="QHTLFIREWALLlines" value="100" size='4'>&nbsp;&nbsp;<button class='btn btn-default' onclick="QHTLFIREWALLrefreshtimer()">Refresh Now</button></div>
@@ -487,6 +489,7 @@ QHTL_JQ_TAIL
 		close ($AJAX);
 		print "<script>\n";
 		print @jsdata;
+		print "\nif (typeof window.QHTLFIREWALLgrep !== 'function' && typeof QHTLFIREWALLgrep === 'function') { window.QHTLFIREWALLgrep = QHTLFIREWALLgrep; }\n";
 		print "</script>\n";
 		print <<EOF;
 <div>Log: $options</div>
@@ -2031,6 +2034,9 @@ HTML_TABS_CSS
 				printf "#%s-tab-%d:checked ~ .qhtl-panels .panel-%d{ display:block !important; }\n", $container_id, $i, $i;
 			}
 			print "</style>\n";
+
+			# Defensive: ensure clicking labels always toggles radios even if theme CSS interferes
+			print "<script>(function(){try{var c=document.getElementById('".$container_id."');if(!c)return;var labels=c.querySelectorAll('.qhtl-tab-list label');for(var i=0;i<labels.length;i++){labels[i].addEventListener('click',function(e){var f=this.getAttribute('for');if(!f)return;var r=document.getElementById(f);if(r&&r.type==='radio'){r.checked=true;}});}}catch(_){}})();</script>\n";
 
 			# Render radios, labels, and panels (pure CSS tabs)
 			print "<div id='$container_id' class='qhtl-tabs'>\n";
@@ -5162,7 +5168,8 @@ sub chart {
 		umask(0133);
 	}
 	if ($config{THIS_UI}) {
-		$imgdir = "$images/";
+		# Do not override $imgdir for dynamic graphs on cPanel/WHM; keep CGI endpoint if already set
+		if ($imgdir eq "") { $imgdir = "$images/"; }
 		$imghddir = "/etc/qhtlfirewall/ui/images/";
 	}
 
@@ -5252,7 +5259,8 @@ sub systemstats {
 		umask(0133);
 	}
 	if ($config{THIS_UI}) {
-		$imgdir = "$images/";
+		# Do not override $imgdir for dynamic graphs on cPanel/WHM; keep CGI endpoint if already set
+		if ($imgdir eq "") { $imgdir = "$images/"; }
 		$imghddir = "/etc/qhtlfirewall/ui/images/";
 	}
 	if (defined $ENV{WEBMIN_VAR} and defined $ENV{WEBMIN_CONFIG}) {
