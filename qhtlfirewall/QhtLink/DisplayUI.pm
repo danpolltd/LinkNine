@@ -3832,10 +3832,10 @@ QHTL_UPGRADE_WIRE_JS
 						"<svg width=\"140\" height=\"90\" viewBox=\"-10 -10 140 90\" xmlns=\"http://www.w3.org/2000/svg\" aria-hidden=\"true\">".
 							"<path d=\"M60,0 L73.2,24.5 L117.6,24.5 L81.6,39.9 L94.8,63.7 L60,49 L25.2,63.7 L38.4,39.9 L2.4,24.5 L46.8,24.5 Z\" fill=\"none\" stroke=\"#ee82ee\" stroke-width=\"20\" stroke-linejoin=\"round\" vector-effect=\"non-scaling-stroke\"/>".
 							"<path d=\"M60,0 L73.2,24.5 L117.6,24.5 L81.6,39.9 L94.8,63.7 L60,49 L25.2,63.7 L38.4,39.9 L2.4,24.5 L46.8,24.5 Z\" fill=\"#8a2be2\"/>".
+							"<text x=\"60\" y=\"35\" fill=\"#ffffff\" stroke=\"rgba(0,0,0,0.45)\" stroke-width=\"2\" paint-order=\"stroke fill\" text-anchor=\"middle\" dominant-baseline=\"middle\" font-weight=\"700\" font-size=\"16\" style=\"font-family: Arial, Helvetica, sans-serif; letter-spacing:.2px;\">$label</text>".
 						"</svg>".
 					"</button>".
 				"</div>".
-				"<div class=\"qhtl-star-label\">$label</div>".
 			"</div>";
 		}
 		print "</div>"; # end group
