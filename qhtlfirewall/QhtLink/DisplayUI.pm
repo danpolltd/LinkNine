@@ -3947,6 +3947,16 @@ QHTL_UPGRADE_WIRE_JS
 		      "  // Load optional external behavior file for the Temp Rule modal\n".
 		      "  var s=document.createElement('script'); s.src='$script?action=widget_js&name=qTempRule.js&v=$myv'; s.async=true; try{ document.body.appendChild(s); }catch(__){}\n".
 		      "}catch(e){} })();</script>";
+		# Fallback: define openTempRule and handlers without jQuery if previous script failed (ensures popup opens)
+		print "<script>(function(){ try{\n".
+		      "  if (typeof window.openTempRule !== 'function') {\n".
+		      "    window.openTempRule = function(prefill){ try{ var modal=document.getElementById('qhtlTempRuleModal'); if(!modal) return; var wrap=document.querySelector('.qhtl-bubble-bg'); if(wrap){ try{ wrap.appendChild(modal); modal.style.position='absolute'; }catch(_){} } else { try{ document.body.appendChild(modal); modal.style.position='fixed'; }catch(_){} } try{ if(prefill && prefill.ip){ var ipI = document.querySelector('#qhtlTempRuleForm input[name=ip]'); if(ipI) ipI.value = prefill.ip; } }catch(__){} modal.style.left='0'; modal.style.top='0'; modal.style.right='0'; modal.style.bottom='0'; modal.style.width='auto'; modal.style.height='auto'; modal.style.margin='0'; modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='block'; modal.setAttribute('aria-hidden','false'); } catch(e){} };\n".
+		      "    // Outside-click to close (vanilla)\n".
+		      "    (function(){ try{ var modal=document.getElementById('qhtlTempRuleModal'); if(!modal) return; modal.addEventListener('mousedown', function(ev){ try{ var dlg=modal.querySelector('.modal-dialog'); var t=ev.target; if (t===modal || (dlg && !dlg.contains(t))){ modal.style.display='none'; modal.setAttribute('aria-hidden','true'); } }catch(__){} }); var cb=document.getElementById('qhtlTempRuleCloseBtn'); if(cb){ cb.addEventListener('click', function(){ try{ modal.style.display='none'; modal.setAttribute('aria-hidden','true'); }catch(__){} }); } }catch(_){ } })();\n".
+		      "    // AJAX-submit (vanilla)\n".
+		      "    document.addEventListener('submit', function(ev){ try{ var f=ev.target; if(!f || f.id!=='qhtlTempRuleForm') return; ev.preventDefault(); var area=document.getElementById('qhtlTempRuleBody'); if(!area) return; if(area.qhtlCancelFade) area.qhtlCancelFade(); area.innerHTML='<div class=\\'text-muted\\'>Applying…</div>'; var fd=new FormData(f); try{ fd.append('ajax','1'); }catch(__){} var u=f.getAttribute('action')||''; var x=new XMLHttpRequest(); x.open((f.method||'POST'), u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ try{ if(x.status>=200 && x.status<300){ area.innerHTML=x.responseText; if(area.qhtlArmAuto) area.qhtlArmAuto(); } else { area.innerHTML='<div class=\\'text-danger\\'>Failed to apply temporary rule.</div>'; } }catch(__){} } }; x.send(fd); }catch(_){ } }, true);\n".
+		      "  }\n".
+		      "}catch(e){} })();</script>";
 		# Hidden helpers: quickview links and minimal forms for star submissions
 		print "<div id='qhtl-quick-hidden' style='display:none'>";
 		print "<a class='quickview-link' data-which='allow' data-url='$script?action=viewlist&which=allow' href='javascript:void(0)'></a>";
