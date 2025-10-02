@@ -3923,15 +3923,17 @@ QHTL_UPGRADE_WIRE_JS
 		print "</table>\n";
 		print "</form>\n";
 
-		# Delegate the Options form submit to load into inline area instead of navigating
+		# Delegate the Options form submit/click to load into inline area instead of navigating
 		print "<script>(function(){\n";
 		print "  try{ var of=document.getElementById('qhtl-options-form'); if(!of) return; var area=document.getElementById('qhtl-options-inline-area'); if(!area) return;\n";
 		print "    function setLoading(){ try{ if(area.qhtlCancelFade) area.qhtlCancelFade(); if(window.jQuery){ jQuery(area).html('<div class=\\\'text-muted\\\'>Loading...</div>'); } else { area.innerHTML='<div class=\\\'text-muted\\\'>Loading...</div>'; } }catch(_){ } }\n";
 		print "    function onLoaded(html){ try{ area.innerHTML = html; if(area.qhtlArmAuto) area.qhtlArmAuto(); }catch(_){ } }\n";
-		print "    of.addEventListener('submit', function(ev){ ev.preventDefault(); try{ setLoading(); var u = of.getAttribute('action') || ''; var fd = new FormData(of); try{ fd.append('ajax','1'); }catch(__){}\n";
+		print "    function sendAjax(submitter){ try{ setLoading(); var u = of.getAttribute('action') || ''; var fd = new FormData(of); try{ fd.append('ajax','1'); }catch(__){} try{ if(submitter && submitter.name){ fd.append(submitter.name, submitter.value); } }catch(__){}\n";
 		print "      if (window.jQuery) { jQuery.ajax({ url: u, method: 'POST', data: fd, processData: false, contentType: false }).done(function(d){ onLoaded(d); }).fail(function(){ onLoaded('<div class=\\\'text-danger\\\'>Failed to load content.</div>'); }); }\n";
-		print "      else { var x=new XMLHttpRequest(); x.open('POST', u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ onLoaded(x.responseText); } else { onLoaded('<div class=\\\'text-danger\\\'>Failed to load content.</div>'); } } }; x.send(fd); }\n";
-		print "    } catch(e){ } }, true);\n";
+		print "      else { var x=new XMLHttpRequest(); x.open('POST', u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ onLoaded(x.responseText); } else { onLoaded('<div class=\\\'text-danger\\\'>Failed to load content.</div>'); } } }; x.send(fd); } }catch(e){} }\n";
+		print "    of.addEventListener('submit', function(ev){ try{ ev.preventDefault(); sendAjax(ev.submitter || null); }catch(_){ } }, true);\n";
+		print "    // Also intercept direct clicks on square buttons to avoid navigation and include their name/value\n";
+		print "    of.addEventListener('click', function(ev){ try{ var btn = ev.target && ev.target.closest ? ev.target.closest('button[name=action]') : null; if(!btn) return; ev.preventDefault(); sendAjax(btn); }catch(_){ } }, true);\n";
 		print "  }catch(e){}\n";
 		print "})();</script>\n";
 		if (!$config{INTERWORX} and (-e "/etc/apf" or -e "/usr/local/bfd")) {
