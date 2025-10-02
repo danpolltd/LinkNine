@@ -3815,20 +3815,21 @@ QHTL_UPGRADE_WIRE_JS
 		# Button group with 15px gap between halos (wrappers)
 		print "<div style=\"display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:15px;\">";
 		my @qstars = (
-			{ label => 'Allow',   form => 'qallow',  file => 'qAllow.js',   key => 'allow'   },
-			{ label => 'Deny',    form => 'qdeny',   file => 'qDeny.js',    key => 'deny'    },
-			{ label => 'Ignore',  form => 'qignore', file => 'qIgnore.js',  key => 'ignore'  },
-			{ label => 'Search',  form => 'grep',    file => 'qSearch.js',  key => 'search'  },
-			{ label => 'Unblock', form => 'qkill',   file => 'qUnblock.js', key => 'unblock' },
-			{ label => 'Temp',    form => 'tempdeny',file => 'qTemp.js',    key => 'temp'    },
+			{ label => 'Allow',   form => 'qallow',   btn => 'btn-qallow',   file => 'qAllow.js',   key => 'allow'   },
+			{ label => 'Deny',    form => 'qdeny',    btn => 'btn-qdeny',    file => 'qDeny.js',    key => 'deny'    },
+			{ label => 'Ignore',  form => 'qignore',  btn => 'btn-qignore',  file => 'qIgnore.js',  key => 'ignore'  },
+			{ label => 'Search',  form => 'grep',     btn => 'btn-grep',     file => 'qSearch.js',  key => 'search'  },
+			{ label => 'Unblock', form => 'qkill',    btn => 'btn-qkill',    file => 'qUnblock.js', key => 'unblock' },
+			{ label => 'Temp',    form => 'tempdeny', btn => 'btn-tempdeny', file => 'qTemp.js',    key => 'temp'    },
 		);
 		foreach my $q (@qstars) {
 			my $label = $q->{label};
 			my $form  = $q->{form};
+			my $btnid = $q->{btn};
 			my $title = $label;
 			print "<div class=\"qhtl-star-item\">".
 				"<div class=\"qhtl-star-wrap\" aria-hidden=\"false\">".
-					"<button type=\"button\" class=\"qhtl-star\" data-qaction=\"$q->{key}\" title=\"$title\" aria-label=\"$title\" onclick=\"try{document.getElementById('$form').submit();}catch(e){}\">".
+					"<button type=\"button\" class=\"qhtl-star\" data-qaction=\"$q->{key}\" title=\"$title\" aria-label=\"$title\" onclick=\"try{var b=document.getElementById('$btnid'); if(b){ b.click(); } else { document.getElementById('$form').submit(); }}catch(e){}\">".
 						"<svg width=\"140\" height=\"90\" viewBox=\"-10 -10 140 90\" xmlns=\"http://www.w3.org/2000/svg\" aria-hidden=\"true\">".
 							"<path d=\"M60,0 L73.2,24.5 L117.6,24.5 L81.6,39.9 L94.8,63.7 L60,49 L25.2,63.7 L38.4,39.9 L2.4,24.5 L46.8,24.5 Z\" fill=\"none\" stroke=\"#ee82ee\" stroke-width=\"20\" stroke-linejoin=\"round\" vector-effect=\"non-scaling-stroke\"/>".
 							"<path d=\"M60,0 L73.2,24.5 L117.6,24.5 L81.6,39.9 L94.8,63.7 L60,49 L25.2,63.7 L38.4,39.9 L2.4,24.5 L46.8,24.5 Z\" fill=\"#8a2be2\"/>".
@@ -3852,7 +3853,7 @@ QHTL_UPGRADE_WIRE_JS
 	print "    <div style='flex:0 0 30%; max-width:30%'>Allow IP address <a class='quickview-link' data-which='allow' data-url='$script?action=viewlist&which=allow' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='allowip' value='' size='36' style='background-color: #BDECB6; width:100%;'></div>";
 		print "  </div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qallow').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='green'>Quick Allow</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button id='btn-qallow' type='button' onclick=\"try{document.getElementById('qallow').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='green'>Quick Allow</button></div>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
 		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Allow:</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
@@ -3868,7 +3869,7 @@ QHTL_UPGRADE_WIRE_JS
 	print "    <div style='flex:0 0 30%; max-width:30%'>Block IP address <a class='quickview-link' data-which='deny' data-url='$script?action=viewlist&which=deny' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='denyip' value='' size='36' style='background-color: #FFD1DC; width:100%;'></div>";
 		print "  </div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qdeny').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='red'>Quick Deny</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button id='btn-qdeny' type='button' onclick=\"try{document.getElementById('qdeny').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='red'>Quick Deny</button></div>";
 		print "  <div style='display:flex; align-items:center; gap:12px; width:100%; margin-top:8px'>";
 		print "    <div style='flex:0 0 30%; max-width:30%'>Comment for Block:</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='comment' value='' size='30' style='width:100%;'></div>";
@@ -3884,7 +3885,7 @@ QHTL_UPGRADE_WIRE_JS
 	print "    <div style='flex:0 0 30%; max-width:30%'>Ignore IP address <a class='quickview-link' data-which='ignore' data-url='$script?action=viewlist&which=ignore' href='javascript:void(0)'><span class='glyphicon glyphicon-cog icon-qhtlfirewall' style='font-size:1.3em; margin-right:12px;' data-tooltip='tooltip' title='Quick Manual Configuration'></span></a></div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='ignoreip' value='' size='36' style='background-color: #D9EDF7; width:100%;'></div>";
 		print "  </div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qignore').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='orange'>Quick Ignore</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button id='btn-qignore' type='button' onclick=\"try{document.getElementById('qignore').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='orange'>Quick Ignore</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
@@ -3896,7 +3897,7 @@ QHTL_UPGRADE_WIRE_JS
 		print "    <div style='flex:0 0 30%; max-width:30%'>Search IP address</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
 		print "  </div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('grep').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='blue'>Search for IP</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button id='btn-grep' type='button' onclick=\"try{document.getElementById('grep').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='blue'>Search for IP</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
@@ -3908,7 +3909,7 @@ QHTL_UPGRADE_WIRE_JS
 		print "    <div style='flex:0 0 30%; max-width:30%'>Remove IP address</div>";
 		print "    <div style='flex:1 1 auto; max-width:70%'><input type='text' name='ip' id='killip' value='' size='36' style='background-color: #F5F5F5; width:100%;'></div>";
 		print "  </div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('qkill').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='gray'>Quick Unblock</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button id='btn-qkill' type='button' onclick=\"try{document.getElementById('qkill').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='gray'>Quick Unblock</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
@@ -3938,7 +3939,7 @@ QHTL_UPGRADE_WIRE_JS
 		print "    <div style='flex:1 1 auto'><input type='text' name='comment' value='' size='30' class='form-control' style='max-width:520px'></div>";
 		print "  </div>";
 	print "  <div class='text-muted' style='font-size:12px; margin-bottom:8px'>(ports can be either * for all ports, a single port, or a comma separated list of ports)</div>";
-	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button type='button' onclick=\"try{document.getElementById('tempdeny').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='purple'>Apply Temporary Rule</button></div>";
+	print "  <div style='display:flex; justify-content:center; margin:6px 0;'><button id='btn-tempdeny' type='button' onclick=\"try{document.getElementById('tempdeny').submit();}catch(e){}\" class='btn btn-default' data-bubble-color='purple'>Apply Temporary Rule</button></div>";
 		print "</div></form>";
 		print "</td></tr>\n";
 
