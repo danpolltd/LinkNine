@@ -3851,6 +3851,21 @@ QHTL_UPGRADE_WIRE_JS
 		print "</div>"; # end centering container
 		# Load per-button JS files (qAllow.js, qDeny.js, qIgnore.js, qSearch.js, qUnblock.js, qTemp.js)
 		foreach my $q (@qstars) { my $f = $q->{file}; print "<script src='$script?action=widget_js&name=$f&v=$myv'></script>"; }
+		# Long-press (3s) for first three stars (Allow/Deny/Ignore) to open their Quick View popups with a visible countdown
+		print "<script>(function(){try{\n".
+			"  var map = { allow:'allow', deny:'deny', ignore:'ignore' }; var secs=3;\n".
+			"  function attach(btn){ var key=btn.getAttribute('data-qaction'); if(!map[key]) return; var down=false, t=null, remain=secs, overlay=null;\n".
+			"    function clearOv(){ try{ if(overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }catch(_){ } overlay=null; }\n".
+			"    function cancel(){ down=false; if(t){ clearInterval(t); t=null; } clearOv(); btn.dataset.lpHandled='0'; }\n".
+			"    function done(){ if(t){ clearInterval(t); t=null; } btn.dataset.lpHandled='1'; clearOv(); try{ var a=document.querySelector('a.quickview-link[data-which=\\''+map[key]+'\\']'); if(a){ a.click(); } }catch(_){ } }\n".
+			"    function start(){ down=true; remain=secs; clearOv(); overlay=document.createElement('div'); overlay.className='qhtl-star-countdown'; overlay.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#ffff00;text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none;'; overlay.textContent=remain; btn.appendChild(overlay); t=setInterval(function(){ if(!down){ cancel(); return; } remain--; if(remain>0){ overlay.textContent=remain; } else { done(); } }, 1000); }\n".
+			"    btn.addEventListener('mousedown', start); btn.addEventListener('touchstart', start, {passive:true});\n".
+			"    ['mouseup','mouseleave','touchend','touchcancel','blur'].forEach(function(ev){ btn.addEventListener(ev, cancel, {passive:true}); });\n".
+			"    // Suppress normal click when long-press handled\n".
+			"    btn.addEventListener('click', function(e){ if(btn.dataset.lpHandled==='1'){ e.preventDefault(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); btn.dataset.lpHandled='0'; } }, true);\n".
+			"  }\n".
+			"  document.querySelectorAll('.qhtl-star[data-qaction]').forEach(attach);\n".
+			"}catch(e){} })();</script>";
 		print "</td></tr>\n";
 
 		# Quick Allow (inputs above/below the button)
