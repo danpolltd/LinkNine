@@ -3482,10 +3482,11 @@ sub minmaxavg {
 sub graphs_html {
 	my $imgdir = shift;
 	my $html;
+	my $qsep = ($imgdir =~ /\?/ ? '&' : '?');
 
 	$html .= "<table class='table table-bordered'>\n";
 	$html .= "<tr><td>\n";
-	$html .= "<p align='center'><img class='img-responsive' src='".$imgdir."qhtlwaterfall_systemhour.gif?text=".time."'><br><table border='0' align='center'>\n";
+	$html .= "<p align='center'><img class='img-responsive' src='".$imgdir."qhtlwaterfall_systemhour.gif".$qsep."text=".time."'><br><table border='0' align='center'>\n";
 	foreach my $key (sort keys %{$minmaxavg{HOUR}}) {
 		my $item = $key;
 		if ($key =~ /^\d(.*)$/) {$item = $1}
@@ -3495,7 +3496,7 @@ sub graphs_html {
 		$html .= "<td>Avg:<b>".sprintf("%.2f",$minmaxavg{HOUR}{$key}{AVG})."</b></td></tr>\n";
 	}
 	$html .= "</table></p><div class='bs-callout bs-callout-info'>Note: This graph displays per minute statistics unless otherwise stated</div></td></tr><tr><td>\n";
-	$html .= "<p align='center'><img class='img-responsive' src='".$imgdir."qhtlwaterfall_systemday.gif?text=".time."'><br><table border='0' align='center'>\n";
+	$html .= "<p align='center'><img class='img-responsive' src='".$imgdir."qhtlwaterfall_systemday.gif".$qsep."text=".time."'><br><table border='0' align='center'>\n";
 	foreach my $key (sort keys %{$minmaxavg{DAY}}) {
 		my $item = $key;
 		if ($key =~ /^\d(.*)$/) {$item = $1}
@@ -3505,7 +3506,7 @@ sub graphs_html {
 		$html .= "<td>Avg:<b>".sprintf("%.2f",$minmaxavg{DAY}{$key}{AVG})."</b></td></tr>\n";
 	}
 	$html .= "</table></p><div class='bs-callout bs-callout-info'>Note: This graph displays per minute statistics unless otherwise stated</div></td></tr><tr><td>\n";
-	$html .= "<p align='center'><img class='img-responsive' src='".$imgdir."qhtlwaterfall_systemweek.gif?text=".time."'><br><table border='0' align='center'>\n";
+	$html .= "<p align='center'><img class='img-responsive' src='".$imgdir."qhtlwaterfall_systemweek.gif".$qsep."text=".time."'><br><table border='0' align='center'>\n";
 	foreach my $key (sort keys %{$minmaxavg{WEEK}}) {
 		my $item = $key;
 		if ($key =~ /^\d(.*)$/) {$item = $1}
@@ -3515,7 +3516,7 @@ sub graphs_html {
 		$html .= "<td>Avg:<b>".sprintf("%.2f",$minmaxavg{WEEK}{$key}{AVG})."</b></td></tr>\n";
 	}
 	$html .= "</table></p><div class='bs-callout bs-callout-info'>Note: This graph displays an hourly average of the per minute statistics, so you will not see the peak minute values</div></td></tr><tr><td>\n";
-	$html .= "<p align='center'><img class='img-responsive' src='".$imgdir."qhtlwaterfall_systemmonth.gif?text=".time."'><br><table border='0' align='center'>\n";
+	$html .= "<p align='center'><img class='img-responsive' src='".$imgdir."qhtlwaterfall_systemmonth.gif".$qsep."text=".time."'><br><table border='0' align='center'>\n";
 	foreach my $key (sort keys %{$minmaxavg{MONTH}}) {
 		my $item = $key;
 		if ($key =~ /^\d(.*)$/) {$item = $1}

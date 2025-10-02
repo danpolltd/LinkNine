@@ -5011,12 +5011,13 @@ sub chart {
 	my $imgdir = "";
 	my $imghddir = "";
 	if (-e "/usr/local/cpanel/version") {
-		# When installed via cPanel register_appconfig, serve images from WHM static docroot (not /cgi)
+		# When installed via cPanel register_appconfig, serve images from WHM cgi docroot
 		if (-e "/usr/local/cpanel/bin/register_appconfig") {
 			my $token = $ENV{cp_security_token} // ""; # e.g. /cpsess1590026883
 			if ($token ne "" && $token !~ m{^/}) { $token = "/".$token }
-			$imgdir = ($token ne "" ? $token : "")."/qhtlink/qhtlfirewall/";
-			$imghddir = "/usr/local/cpanel/whostmgr/docroot/qhtlink/qhtlfirewall/";
+			# Point image src to CGI endpoint which serves generated files
+			$imgdir = ($token ne "" ? $token : "")."/cgi/qhtlink/qhtlfirewall.cgi?action=serve_stat_image&f=";
+			$imghddir = "/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/";
 			umask(0133);
 		} else {
 			$imgdir = "/";
@@ -5102,11 +5103,11 @@ sub systemstats {
 	my $imghddir = "";
 	if (-e "/usr/local/cpanel/version") {
 		if (-e "/usr/local/cpanel/bin/register_appconfig") {
-			# Serve via WHM static docroot and write to the same place
+			# Serve via WHM CGI endpoint and write to the same place
 			my $token = $ENV{cp_security_token} // ""; # e.g. /cpsess1590026883
 			if ($token ne "" && $token !~ m{^/}) { $token = "/".$token }
-			$imgdir = ($token ne "" ? $token : "")."/qhtlink/qhtlfirewall/";
-			$imghddir = "/usr/local/cpanel/whostmgr/docroot/qhtlink/qhtlfirewall/";
+			$imgdir = ($token ne "" ? $token : "")."/cgi/qhtlink/qhtlfirewall.cgi?action=serve_stat_image&f=";
+			$imghddir = "/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/";
 			umask(0133);
 		} else {
 			$imgdir = "/";

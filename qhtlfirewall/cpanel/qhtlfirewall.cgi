@@ -225,6 +225,42 @@ if (defined $FORM{action} && $FORM{action} eq 'fallback_asset') {
 	exit 0;
 }
 
+# Serve generated system stat images safely via CGI
+if (defined $FORM{action} && $FORM{action} eq 'serve_stat_image') {
+	my $f = $FORM{f} // '';
+	# Allow only specific known filenames
+	my %ok = map { $_ => 1 } qw(
+		qhtlwaterfall_systemhour.gif
+		qhtlwaterfall_systemday.gif
+		qhtlwaterfall_systemweek.gif
+		qhtlwaterfall_systemmonth.gif
+		qhtlwaterfall_hour.gif
+		qhtlwaterfall_pie_hour.gif
+		qhtlwaterfall_month.gif
+		qhtlwaterfall_pie_day.gif
+		qhtlwaterfall_year.gif
+		qhtlwaterfall_pie_year.gif
+		qhtlwaterfall_cc.gif
+	);
+	$f =~ s/[^a-zA-Z0-9_.-]//g; # sanitize
+	my $ctype = 'image/gif';
+	print "Content-type: $ctype\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
+	if (!$ok{$f}) { print ""; exit 0; }
+	my @paths = (
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/$f",
+		"/usr/local/cpanel/whostmgr/docroot/qhtlink/qhtlfirewall/$f",
+		"/etc/qhtlfirewall/ui/images/$f",
+		"/usr/local/qhtlfirewall/ui/images/$f",
+	);
+	my $done = 0;
+	for my $p (@paths) {
+		next unless -e $p;
+		if (open(my $FH, '<', $p)) { binmode $FH; local $/ = undef; my $data = <$FH> // ''; close $FH; print $data; $done = 1; last; }
+	}
+	if (!$done) { print ""; }
+	exit 0;
+}
+
 
 if (-e "/usr/local/cpanel/bin/register_appconfig") {
 	$script = "qhtlfirewall.cgi";
