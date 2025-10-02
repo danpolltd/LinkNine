@@ -2131,6 +2131,8 @@ QHTL_PLUS_BTN_CSS
 			}
 			print "  </div>\n";
 			print "</div>\n";
+			# Client-side visibility fallback: explicitly show the checked panel in case theme CSS overrides our rules
+			print "<script>(function(){ try{ var c=document.getElementById('$container_id'); if(!c) return; var radios=c.querySelectorAll('.qhtl-tab-radio'); var panels=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel'); function show(i){ for(var k=0;k<panels.length;k++){ panels[k].style.display = (k===i?'block':'none'); } } var sel=0; for(var i=0;i<radios.length;i++){ if(radios[i].checked){ sel=i; break; } } show(sel); c.addEventListener('change', function(ev){ try{ var t=ev.target; if(!t || !t.matches) return; if(!t.matches('.qhtl-tab-radio')) return; var idx=Array.prototype.indexOf.call(radios,t); if(idx>=0) show(idx); }catch(__){} }, true); }catch(_){ } })();</script>\n";
 
 			# Client-side safety net: if all secondary panels are effectively empty, show full HTML in Tab 2 and select it
 			my $escaped_full = $full_html; $escaped_full =~ s/\\/\\\\/g; $escaped_full =~ s/'/\\'/g; $escaped_full =~ s/\r?\n/\n/g;
