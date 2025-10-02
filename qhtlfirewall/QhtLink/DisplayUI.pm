@@ -9,6 +9,10 @@ BEGIN {
 	eval { require IPC::Open3;           IPC::Open3->import(qw(open3));  1 } or do { };
 	eval { require QhtLink::CheckIP;     QhtLink::CheckIP->import(qw(checkip)); 1 } or do { };
 	eval { require QhtLink::Sanity;      QhtLink::Sanity->import(qw(sanity)); 1 } or do { };
+	# Also try to load feature modules used in sections below; keep optional
+	eval { require QhtLink::ServerCheck;  QhtLink::ServerCheck->import(); 1 } or do { };
+	eval { require QhtLink::RBLCheck;     QhtLink::RBLCheck->import();     1 } or do { };
+	eval { require QhtLink::Ports;        QhtLink::Ports->import();        1 } or do { };
 	# Needed for fileparse() usages around profiles/backups
 	eval { require File::Basename;        File::Basename->import(qw(fileparse)); 1 } or do { };
 }
@@ -404,8 +408,11 @@ QHTL_JQ_TAIL
 					my ($childin, $childout);
 					my $pid = open3($childin, $childout, $childout,$config{TAIL},"-$FORM{lines}",$logfile);
 					if ($wrap_pre) { print "<pre class='comment' style=\"overflow:auto; max-height:500px; white-space: pre-wrap; line-height: 1.5;\">"; }
-					while (<$childout>) {
-						my $line = $_;
+					# Read all lines, then optionally reverse for AJAX watcher (newest-first)
+					my @buf = <$childout>;
+					if ($wrap_pre) { @buf = reverse @buf; }
+					foreach my $raw (@buf) {
+						my $line = $raw;
 						$line =~ s/&/&amp;/g;
 						$line =~ s/</&lt;/g;
 						$line =~ s/>/&gt;/g;
@@ -1882,7 +1889,20 @@ QHTL_JQ_GREP
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "servercheck") {
-		print QhtLink::ServerCheck::report($FORM{verbose});
+		my $out = '';
+		my $ok = 0;
+		eval {
+			if (defined &QhtLink::ServerCheck::report) {
+				$out = QhtLink::ServerCheck::report($FORM{verbose});
+				$ok = 1;
+			}
+			1;
+		} or do { $ok = 0; };
+		if ($ok) {
+			print $out;
+		} else {
+			print "<div class='alert alert-warning'>ServerCheck module not available in this environment. Skipping report.</div>\n";
+		}
 
 		open (my $IN, "<", "/etc/cron.d/qhtlfirewall-cron");
 		flock ($IN, LOCK_SH);
@@ -1943,7 +1963,18 @@ QHTL_JQ_GREP
 		# Return button removed (legacy); users can navigate via tabs or browser back
 	}
 	elsif ($FORM{action} eq "rblcheck") {
-		my ($status, undef) = QhtLink::RBLCheck::report($FORM{verbose},$images,1);
+		my $status = 0;
+		my $ok = 0;
+		eval {
+			if (defined &QhtLink::RBLCheck::report) {
+				($status, undef) = QhtLink::RBLCheck::report($FORM{verbose},$images,1);
+				$ok = 1;
+			}
+			1;
+		} or do { $ok = 0; };
+		unless ($ok) {
+			print "<div class='alert alert-warning'>RBLCheck module not available in this environment. Skipping report.</div>\n";
+		}
 
 		print "<div><b>These options can take a long time to run</b> (several minutes) depending on the number of IP addresses to check and the response speed of the DNS requests:</div>\n";
 		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='1'><input type='submit' class='btn btn-default' value='Update All Checks (standard)'> Generates the normal report showing exceptions only</form></div>\n";
@@ -3039,8 +3070,20 @@ QHTL_UPGRADE_POLL
 		print "<div><h4>Ports listening for external connections and the executables running behind them:</h4></div>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th>Port</th><th>Proto</th><th>Open</th><th>Conns</th><th>PID</th><th>User</th><th>Command Line</th><th>Executable</th></tr></thead>\n";
-		my %listen = QhtLink::Ports->listening;
-		my %ports = QhtLink::Ports->openports;
+		my (%listen, %ports);
+		my $ports_ok = 0;
+		eval {
+			# Ensure methods exist before calling
+			if (QhtLink::Ports->can('listening') && QhtLink::Ports->can('openports')) {
+				%listen = QhtLink::Ports->listening;
+				%ports  = QhtLink::Ports->openports;
+				$ports_ok = 1;
+			}
+			1;
+		} or do { $ports_ok = 0; };
+		unless ($ports_ok) {
+			print "<tr><td colspan='8'><div class='alert alert-warning' style='margin:0'>Ports module not available; unable to enumerate listening ports in this environment.</div></td></tr>\n";
+		}
 		foreach my $protocol (sort keys %listen) {
 			foreach my $port (sort {$a <=> $b} keys %{$listen{$protocol}}) {
 				foreach my $pid (sort {$a <=> $b} keys %{$listen{$protocol}{$port}}) {
