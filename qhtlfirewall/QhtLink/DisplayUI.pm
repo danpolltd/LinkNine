@@ -5277,7 +5277,7 @@ sub systemstats {
 	if (@stats > 1) {
 		QhtLink::ServerStats::graphs($type,$config{ST_SYSTEM_MAXDAYS},$imghddir);
 
-		print "<div class='text-center'><form action='${script}?ajax=1' method='post' onsubmit=\"return window.__QHTL_OPTIONS_AJAX && __QHTL_OPTIONS_AJAX(this);\"><input type='hidden' name='action' value='systemstats'><select name='graph'>\n";
+		print "<div class='text-center'><form id='qhtl-systemstats-form' action='${script}?ajax=1' method='post' onsubmit=\"return window.__QHTL_OPTIONS_AJAX && __QHTL_OPTIONS_AJAX(this);\"><input type='hidden' name='action' value='systemstats'><input type='hidden' name='ajax' value='1'><select name='graph'>\n";
 		my $selected;
 		if ($type eq "" or $type eq "load") {$selected = "selected"} else {$selected = ""}
 		print "<option value='load' $selected>Load Average Statistics</option>\n";
@@ -5326,6 +5326,8 @@ sub systemstats {
 			print "<option value='apachework' $selected>Apache Workers</option>\n";
 		}
 		print "</select> <input type='submit' class='btn btn-default' value='Select Graphs'></form></div><br />\n";
+		# Ensure inline AJAX intercept applies even when dynamically injected
+		print "<script>(function(){try{var f=document.getElementById('qhtl-systemstats-form');if(!f)return;f.addEventListener('submit',function(e){try{if(window.__QHTL_OPTIONS_AJAX){var r=window.__QHTL_OPTIONS_AJAX(f);if(r===false){e.preventDefault();return false;}}}catch(__){}},false);}catch(__){}})();</script>\n";
 
 		print QhtLink::ServerStats::graphs_html($imgdir);
 
