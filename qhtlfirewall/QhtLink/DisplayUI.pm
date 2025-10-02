@@ -3838,6 +3838,12 @@ QHTL_UPGRADE_WIRE_JS
 			my $form  = $q->{form};
 			my $btnid = $q->{btn};
 			my $sid   = "starip-".$q->{key};
+			my $onclick = '';
+			if ($q->{key} eq 'temp') {
+				$onclick = "try{ openTempRule({}); }catch(e){}";
+			} else {
+				$onclick = "try{var siv=document.getElementById('$sid'); var tf=document.querySelector('#$form input[name=ip]'); if(tf && siv){ tf.value=siv.value; } var b=document.getElementById('$btnid'); if(b){ b.click(); } else { document.getElementById('$form').submit(); }}catch(e){}";
+			}
 			my $bg    = ($q->{key} eq 'allow') ? '#BDECB6' :
 			           ($q->{key} eq 'deny') ? '#FFD1DC' :
 			           ($q->{key} eq 'ignore') ? '#FFD27A' :
@@ -3846,7 +3852,7 @@ QHTL_UPGRADE_WIRE_JS
 			my $title = $label;
 			print "<div class=\"qhtl-star-item\">".
 				"<div class=\"qhtl-star-wrap\" aria-hidden=\"false\">".
-					"<button type=\"button\" class=\"qhtl-star\" data-qaction=\"$q->{key}\" title=\"$title\" aria-label=\"$title\" onclick=\"try{var siv=document.getElementById('$sid'); var tf=document.querySelector('#$form input[name=ip]'); if(tf && siv){ tf.value=siv.value; } var b=document.getElementById('$btnid'); if(b){ b.click(); } else { document.getElementById('$form').submit(); }}catch(e){}\">".
+					"<button type=\"button\" class=\"qhtl-star\" data-qaction=\"$q->{key}\" title=\"$title\" aria-label=\"$title\" onclick=\"$onclick\">".
 						"<svg width=\"140\" height=\"90\" viewBox=\"-10 -10 140 90\" xmlns=\"http://www.w3.org/2000/svg\" aria-hidden=\"true\">".
 							"<path d=\"M60,0 L73.2,24.5 L117.6,24.5 L81.6,39.9 L94.8,63.7 L60,49 L25.2,63.7 L38.4,39.9 L2.4,24.5 L46.8,24.5 Z\" fill=\"none\" stroke=\"#ee82ee\" stroke-width=\"20\" stroke-linejoin=\"round\" vector-effect=\"non-scaling-stroke\"/>".
 							"<path d=\"M60,0 L73.2,24.5 L117.6,24.5 L81.6,39.9 L94.8,63.7 L60,49 L25.2,63.7 L38.4,39.9 L2.4,24.5 L46.8,24.5 Z\" fill=\"#8a2be2\"/>".
