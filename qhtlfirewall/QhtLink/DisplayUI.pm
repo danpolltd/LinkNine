@@ -3805,7 +3805,7 @@ QHTL_UPGRADE_WIRE_JS
 		print "<div style=\"width:100%; display:flex; justify-content:center;\">";
 		# Scoped styles for star layout and shape
 		print "<style>\n".
-			".qhtl-star-item{width:140px;display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-start;}\n".
+			".qhtl-star-item{width:140px;display:inline-flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:150px;}\n".
 			".qhtl-star-wrap{position:relative;width:140px;height:90px;display:inline-flex;align-items:center;justify-content:center;}\n".
 			".qhtl-star{position:relative;width:140px;height:90px;background:transparent;border:none;cursor:pointer;display:inline-block;padding:0;}\n".
 			".qhtl-star svg{display:block;width:140px;height:90px;}\n".
@@ -3814,7 +3814,7 @@ QHTL_UPGRADE_WIRE_JS
 			".qhtl-star-field{margin-top:6px;width:120px;max-width:120px;}\n".
 		"</style>";
 		# Button group with 15px gap between halos (wrappers)
-		print "<div style=\"display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:15px;\">";
+		print "<div style=\"display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:15px;\">";
 		my @qstars = (
 			{ label => 'Allow',   form => 'qallow',   btn => 'btn-qallow',   file => 'qAllow.js',   key => 'allow'   },
 			{ label => 'Deny',    form => 'qdeny',    btn => 'btn-qdeny',    file => 'qDeny.js',    key => 'deny'    },
