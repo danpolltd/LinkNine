@@ -3891,7 +3891,7 @@ QHTL_UPGRADE_WIRE_JS
 		print "</div>\n";
 
 		print "<div id='home' class='tab-pane'>\n";
-		print "<form action='$script' method='post'>\n";
+		print "<form id='qhtl-options-form' action='$script' method='post'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 	print "<thead><tr><th colspan='2'>Server Information</th></tr></thead>";
 		# Eight orange square buttons (80x80) with a 10px bright-orange halo, centered, each word on its own line
