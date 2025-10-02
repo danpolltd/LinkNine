@@ -3722,7 +3722,7 @@ EOF
 	print "<li><a data-toggle='tab' href='#home'>Options</a></li>\n";
     	print "<li><a data-toggle='tab' href='#firewall1'>Firewall</a></li>\n";
     	print "<li><a data-toggle='tab' href='#waterfall'>Waterfall</a></li>\n";
-    	print "<li><a data-toggle='tab' href='#moreplus'>More</a></li>\n";
+    	print "<li><a data-toggle='tab' href='#moreplus'>Advanced</a></li>\n";
 		print "<li><a data-toggle='tab' href='#promotion' class='qhtl-promo-tab'>".
 		      "<span class='glyphicon glyphicon-star' style='color:#ffbf00'></span>" x 5 .
 		      " Promotion " .
