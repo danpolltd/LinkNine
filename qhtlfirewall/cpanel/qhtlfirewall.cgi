@@ -1312,12 +1312,17 @@ print <<HTML_SMART_WRAPPER;
 			modal = document.createElement('div');
 			modal.id = 'quickViewModalShim';
 			modal.setAttribute('role','dialog');
-			// Always anchor to the full page, not the inner content container, so the modal is page-wide
-			var parent = document.body;
-			modal.style.position='fixed'; modal.style.inset='0';
+			// Anchor to the firewall container when available so the modal stays within the page, otherwise fall back to full page
+			var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
+			var inScoped = (parent.classList && parent.classList.contains('qhtl-bubble-bg'));
+			if (inScoped) {
+				modal.style.position='absolute'; modal.style.left='0'; modal.style.top='0'; modal.style.right='0'; modal.style.bottom='0';
+			} else {
+				modal.style.position='fixed'; modal.style.inset='0';
+			}
 			modal.style.background='rgba(0,0,0,0.5)'; modal.style.display='none'; modal.style.zIndex='9999';
 			var dialog = document.createElement('div');
-			dialog.style.width='auto'; dialog.style.maxWidth='none'; dialog.style.left='20px'; dialog.style.right='20px'; dialog.style.minHeight='300px'; dialog.style.height='min(80vh, 720px)'; dialog.style.background='linear-gradient(180deg, #f7fafc 0%, #ffffff 40%, #f7fafc 100%)'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='absolute'; dialog.style.top='20px'; dialog.style.bottom='20px'; dialog.style.transform='none'; dialog.style.margin='0';
+			dialog.style.width='auto'; dialog.style.maxWidth='none'; dialog.style.left='20px'; dialog.style.right='20px'; dialog.style.minHeight='300px'; dialog.style.background='linear-gradient(180deg, #f7fafc 0%, #ffffff 40%, #f7fafc 100%)'; dialog.style.borderRadius='6px'; dialog.style.display='flex'; dialog.style.flexDirection='column'; dialog.style.overflow='hidden'; dialog.style.boxSizing='border-box'; dialog.style.position='absolute'; dialog.style.top='20px'; dialog.style.bottom='20px'; dialog.style.transform='none'; dialog.style.margin='0';
 			var body = document.createElement('div'); body.id='quickViewBodyShim'; body.style.flex='1 1 auto'; body.style.overflowX='hidden'; body.style.overflowY='auto'; body.style.padding='10px'; body.style.minHeight='0';
 			var title = document.createElement('h4'); title.id='quickViewTitleShim'; title.style.margin='10px'; title.textContent='Quick View';
 			// Header-right container for countdown next to title
