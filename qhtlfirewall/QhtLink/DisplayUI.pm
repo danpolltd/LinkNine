@@ -3810,6 +3810,7 @@ QHTL_UPGRADE_WIRE_JS
 			".qhtl-star{position:relative;width:140px;height:90px;background:transparent;border:none;cursor:pointer;display:inline-block;padding:0;}\n".
 			".qhtl-star svg{display:block;width:140px;height:90px;}\n".
 			".qhtl-star:focus{outline:2px solid #fff;outline-offset:2px;}\n".
+			".qhtl-star.counting text{visibility:hidden;}\n".
 			".qhtl-star-label{margin-top:6px;font-size:13px;line-height:1.1;color:#eee;text-shadow:0 1px 0 rgba(0,0,0,0.35);}\n".
 			".qhtl-star-field{margin-top:6px;width:120px;max-width:120px;}\n".
 		"</style>";
@@ -3856,9 +3857,9 @@ QHTL_UPGRADE_WIRE_JS
 			"  var map = { allow:'allow', deny:'deny', ignore:'ignore' }; var secs=3;\n".
 			"  function attach(btn){ var key=btn.getAttribute('data-qaction'); if(!map[key]) return; var down=false, t=null, remain=secs, overlay=null;\n".
 			"    function clearOv(){ try{ if(overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }catch(_){ } overlay=null; }\n".
-			"    function cancel(){ down=false; if(t){ clearInterval(t); t=null; } clearOv(); btn.dataset.lpHandled='0'; }\n".
-			"    function done(){ if(t){ clearInterval(t); t=null; } btn.dataset.lpHandled='1'; clearOv(); try{ var a=document.querySelector('a.quickview-link[data-which=\\''+map[key]+'\\']'); if(a){ a.click(); } }catch(_){ } }\n".
-			"    function start(){ down=true; remain=secs; clearOv(); overlay=document.createElement('div'); overlay.className='qhtl-star-countdown'; overlay.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#ffff00;text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none;'; overlay.textContent=remain; btn.appendChild(overlay); t=setInterval(function(){ if(!down){ cancel(); return; } remain--; if(remain>0){ overlay.textContent=remain; } else { done(); } }, 1000); }\n".
+			"    function cancel(){ down=false; if(t){ clearInterval(t); t=null; } clearOv(); btn.dataset.lpHandled='0'; btn.classList.remove('counting'); }\n".
+			"    function done(){ if(t){ clearInterval(t); t=null; } btn.dataset.lpHandled='1'; clearOv(); btn.classList.remove('counting'); try{ var a=document.querySelector('a.quickview-link[data-which=\\''+map[key]+'\\']'); if(a){ a.click(); } }catch(_){ } }\n".
+			"    function start(){ down=true; remain=secs; clearOv(); btn.classList.add('counting'); overlay=document.createElement('div'); overlay.className='qhtl-star-countdown'; overlay.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#ffff00;text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none;'; overlay.textContent=remain; btn.appendChild(overlay); t=setInterval(function(){ if(!down){ cancel(); return; } remain--; if(remain>0){ overlay.textContent=remain; } else { done(); } }, 1000); }\n".
 			"    btn.addEventListener('mousedown', start); btn.addEventListener('touchstart', start, {passive:true});\n".
 			"    ['mouseup','mouseleave','touchend','touchcancel','blur'].forEach(function(ev){ btn.addEventListener(ev, cancel, {passive:true}); });\n".
 			"    // Suppress normal click when long-press handled\n".
