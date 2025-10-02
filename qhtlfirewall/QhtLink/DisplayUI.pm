@@ -5199,6 +5199,12 @@ sub systemstats {
 
 		print QhtLink::ServerStats::graphs_html($imgdir);
 
+		# Defensive: if any legacy static paths slipped through (e.g., cached HTML), rewrite them client-side to the CGI endpoint
+		my $token = $ENV{cp_security_token} // '';
+		if ($token ne '' && $token !~ m{^/}) { $token = '/'.$token }
+		my $cgi_base = ($token ne '' ? $token : '')."/cgi/qhtlink/qhtlfirewall.cgi?action=serve_stat_image&f=";
+		print "<script>(function(){try{var base='".$cgi_base."';var imgs=document.querySelectorAll('img');for(var i=0;i<imgs.length;i++){var s=imgs[i].getAttribute('src')||'';if(/\\/cgi\\/qhtlink\\/qhtlfirewall\\/qhtlwaterfall_system(?:hour|day|week|month)\\.gif/.test(s)){var fname=(s.split('/')||[]).pop().split('?')[0];var qs='';var qi=s.indexOf('?');if(qi>=0){qs=s.substring(qi+1)};imgs[i].setAttribute('src',base+fname+(qs?('&'+qs):''));}}}catch(_){}})();</script>\n";
+
 		unless ($config{ST_MYSQL} and $config{ST_APACHE}) {
 			print "<br>\n<table class='table table-bordered table-striped'>\n";
 			print "<tr><td>You may be able to collect more statistics by enabling ST_MYSQL or ST_APACHE in the qhtlfirewall configuration</td></tr></table>\n";

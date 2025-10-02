@@ -246,16 +246,44 @@ if (defined $FORM{action} && $FORM{action} eq 'serve_stat_image') {
 	my $ctype = 'image/gif';
 	print "Content-type: $ctype\r\nX-Content-Type-Options: nosniff\r\nCache-Control: no-cache, no-store, must-revalidate, private\r\nPragma: no-cache\r\nExpires: 0\r\n\r\n";
 	if (!$ok{$f}) { print ""; exit 0; }
-	my @paths = (
-		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/$f",
-		"/usr/local/cpanel/whostmgr/docroot/qhtlink/qhtlfirewall/$f",
-		"/etc/qhtlfirewall/ui/images/$f",
-		"/usr/local/qhtlfirewall/ui/images/$f",
+	my @dirs = (
+		"/usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall",
+		"/usr/local/cpanel/whostmgr/docroot/qhtlink/qhtlfirewall",
+		"/etc/qhtlfirewall/ui/images",
+		"/usr/local/qhtlfirewall/ui/images",
 	);
 	my $done = 0;
-	for my $p (@paths) {
+	my $path_used = '';
+	for my $d (@dirs) {
+		my $p = "$d/$f";
 		next unless -e $p;
-		if (open(my $FH, '<', $p)) { binmode $FH; local $/ = undef; my $data = <$FH> // ''; close $FH; print $data; $done = 1; last; }
+		if (open(my $FH, '<', $p)) { binmode $FH; local $/ = undef; my $data = <$FH> // ''; close $FH; print $data; $done = 1; $path_used = $p; last; }
+	}
+	# If not found, attempt to generate via ServerStats (best-effort)
+	if (!$done) {
+		my $outdir = $dirs[0];
+		eval {
+			require File::Path; File::Path::make_path($outdir, { mode => 0755 });
+			# Parse ST_SYSTEM_MAXDAYS from config (fallback 7)
+			my $maxdays = 7;
+			if (open(my $CFH,'<','/etc/qhtlfirewall/qhtlfirewall.conf')) {
+				while (my $line = <$CFH>) {
+					if ($line =~ /^ST_SYSTEM_MAXDAYS\s*=\s*(\d+)/) { $maxdays = $1; last; }
+				}
+				close $CFH;
+			}
+			# Generate 'load' graphs which produce the systemhour/day/week/month GIFs
+			use lib '/usr/local/qhtlfirewall/lib';
+			require QhtLink::ServerStats;
+			QhtLink::ServerStats::graphs('load', $maxdays, $outdir);
+			1;
+		};
+		# Retry reading
+		for my $d (@dirs) {
+			my $p = "$d/$f";
+			next unless -e $p;
+			if (open(my $FH, '<', $p)) { binmode $FH; local $/ = undef; my $data = <$FH> // ''; close $FH; print $data; $done = 1; $path_used = $p; last; }
+		}
 	}
 	if (!$done) { print ""; }
 	exit 0;
