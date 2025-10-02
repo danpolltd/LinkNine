@@ -3512,7 +3512,7 @@ EOF
 
 		print "<div class='normalcontainer'>\n";
 		# Enforce tab-pane visibility regardless of host theme CSS and disable tab clicks while Quick View is open
-		print "<style>.tab-content>.tab-pane{display:none!important}.tab-content>.tab-pane.active{display:block!important}.qhtl-tabs-locked #myTabs a[data-toggle='tab']{pointer-events:none;cursor:not-allowed;opacity:.6;filter:grayscale(.25)}</style>\n";
+		print "<style>.tab-content>.tab-pane{display:none!important}.tab-content>.tab-pane.active{display:block!important}.qhtl-tabs-locked #myTabs a[data-toggle='tab']{pointer-events:none;cursor:not-allowed;opacity:0.6;filter:grayscale(0.25)}</style>\n";
 	# Removed upgrade-available ribbon above tabs per request
 
 		print "<ul class='nav nav-tabs' id='myTabs' style='font-weight:bold'>\n";
@@ -4185,7 +4185,7 @@ QHTL_UPGRADE_WIRE_JS
 	print "    function clearNow(){ try{ el.innerHTML=''; el.style.opacity=''; el.style.pointerEvents=''; fading=false; if(fadeTimer){ clearTimeout(fadeTimer); fadeTimer=null; } showFallback(true); }catch(_){ } }\n";
 	print "    function beginFade(){ if(fading) return; try{ var onlyFallback = (el.children && el.children.length===1 && el.querySelector('.qhtl-fallback-holder')); if(onlyFallback){ return; } }catch(__){} fading=true; el.style.opacity='0'; el.style.pointerEvents='none'; fadeTimer=setTimeout(clearNow, 5000); }\n";
 	print "    function cancelFade(){ if(!fading) return; try{ el.style.opacity=''; el.style.pointerEvents=''; }catch(_){ } fading=false; if(fadeTimer){ clearTimeout(fadeTimer); fadeTimer=null; } }\n";
-	print "    function showFallback(force){ try{ if(!el) return; if (!force && el.children.length>0) return; var url=(window.QHTL_SCRIPT||'$script')+'?action=fallback_asset&name=idle_fallback.gif&v=$myv'; el.innerHTML = \"<div class=\\\"qhtl-fallback-holder\\\" style=\\\"min-height:160px;display:flex;align-items:center;justify-content:center;\\\"><img alt=\\\"\\\" src=\\\"\"+url+\"\\\" style=\\\"max-width:100%;height:auto;opacity:.9\\\"></div>\"; el.style.opacity=''; el.style.pointerEvents=''; }catch(_){ } }\n";
+	print "    function showFallback(force){ try{ if(!el) return; if (!force && el.children.length>0) return; var url=(window.QHTL_SCRIPT||'$script')+'?action=fallback_asset&name=idle_fallback.gif&v=$myv'; el.innerHTML = \"<div class=\\\"qhtl-fallback-holder\\\" style=\\\"min-height:160px;display:flex;align-items:center;justify-content:center;\\\"><img alt=\\\"\\\" src=\\\"\"+url+\"\\\" style=\\\"max-width:100%;height:auto;opacity:0.9\\\"></div>\"; el.style.opacity=''; el.style.pointerEvents=''; }catch(_){ } }\n";
 	print "    function arm(){ if(t){ clearTimeout(t); } cancelFade(); t=setTimeout(beginFade, 10000); }\n";
 	print "    // Arm on interactions and when content changes; also cancel any active dimming to keep content visible\n";
 	print "    ['click','input','mousemove','wheel','keydown','touchstart','pointermove','pointerdown'].forEach(function(evt){ el.addEventListener(evt, arm, {passive:true}); });\n";
