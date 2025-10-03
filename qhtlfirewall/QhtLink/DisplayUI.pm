@@ -429,7 +429,10 @@ sub main {
 		print "window.QHTL_GREP = function(){ try{ if (typeof QHTLFIREWALLgrep === 'function') return QHTLFIREWALLgrep(); }catch(__){} try{ var fn = window['QHTLFIREWALLgrep']; if (typeof fn === 'function') return fn(); }catch(__){} return false; };\n";
 		print "\nif (typeof window.QHTLFIREWALLgrep !== 'function' && typeof QHTLFIREWALLgrep === 'function') { window.QHTLFIREWALLgrep = QHTLFIREWALLgrep; }\n";
 		print "window.QHTL_GREP = function(){ try{ if (typeof QHTLFIREWALLgrep === 'function') return QHTLFIREWALLgrep(); }catch(__){} try{ var fn = window['QHTLFIREWALLgrep']; if (typeof fn === 'function') return fn(); }catch(__){} return false; };\n";
-		print "</script>\n";
+	# Ensure wrapper helper exists to avoid form submission and call grep safely
+	print "if (typeof window.QHTLFIREWALLgrep !== 'function' && typeof QHTLFIREWALLgrep === 'function') { window.QHTLFIREWALLgrep = QHTLFIREWALLgrep; }\n";
+	print "window.QHTL_GREP = function(){ try{ if (typeof QHTLFIREWALLgrep === 'function') return QHTLFIREWALLgrep(); }catch(__){} try{ var fn = window['QHTLFIREWALLgrep']; if (typeof fn === 'function') return fn(); }catch(__){} return false; };\n";
+	print "</script>\n";
 		print <<EOF;
 <div>$options Lines:<input type='text' id="QHTLFIREWALLlines" value="100" size='4'>&nbsp;&nbsp;<button class='btn btn-default' onclick="QHTLFIREWALLrefreshtimer()">Refresh Now</button></div>
 <div>Refresh in <span id="QHTLFIREWALLtimer">0</span> <button class='btn btn-default' id="QHTLFIREWALLpauseID" onclick="QHTLFIREWALLpausetimer()" style="width:80px;">Pause</button> <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
@@ -641,7 +644,7 @@ QHTL_JQ_TAIL
 <input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
 <input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
 <input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
-<button class='btn btn-default' onClick="return window.QHTL_GREP && QHTL_GREP();">Search</button>&nbsp;
+<button type='button' class='btn btn-default' onClick="return window.QHTL_GREP && QHTL_GREP();">Search</button>&nbsp;
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
@@ -1048,7 +1051,7 @@ QHTL_JQ_GREP
 <input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
 <input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
 <input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
-<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<button type='button' class='btn btn-default' onClick="return window.QHTL_GREP && QHTL_GREP();">Search</button>&nbsp;
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
@@ -1249,7 +1252,7 @@ QHTL_JQ_GREP
 <input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
 <input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
 <input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
-<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<button type='button' class='btn btn-default' onClick="return window.QHTL_GREP && QHTL_GREP();">Search</button>&nbsp;
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
@@ -1450,7 +1453,7 @@ QHTL_JQ_GREP
 <input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
 <input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
 <input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
-<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<button type='button' class='btn btn-default' onClick="return window.QHTL_GREP && QHTL_GREP();">Search</button>&nbsp;
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
@@ -1651,7 +1654,7 @@ QHTL_JQ_GREP
 <input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
 <input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
 <input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
-<button class='btn btn-default' onClick="QHTLFIREWALLgrep()">Search</button>&nbsp;
+<button type='button' class='btn btn-default' onClick="return window.QHTL_GREP && QHTL_GREP();">Search</button>&nbsp;
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
 <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
 <button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
