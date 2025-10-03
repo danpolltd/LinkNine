@@ -4316,7 +4316,7 @@ QHTL_TEMP_MODAL_JS_B
 <style>#firewall1 .fw-plus-row td.fw-plus-cell { background:transparent!important; box-shadow:none!important; }</style>
 <div class='fw-plus-wrapper'>
 	<div class='fw-plus-grid' aria-label='Firewall Plus Buttons'>
-		<div class='fw-plus-item'><button id='fwb1' class='fw-plus-btn' aria-label='Top Firewall Control' title='Top Firewall Control'><span class='fw-plus-label'>Top</span></button></div>
+		<div class='fw-plus-item'><button id='fwb1' class='fw-plus-btn fw-status-btn' aria-label='Firewall Status' title='Firewall Status'><span class='fw-plus-label' id='fw-status-text'>Status</span></button></div>
 		<div class='fw-plus-item'><button id='fwb2' class='fw-plus-btn' aria-label='Config' title='Config'><span class='fw-plus-label'>Config</span></button></div>
 		<div class='fw-plus-item'><button id='fwb3' class='fw-plus-btn' aria-label='Profiles' title='Profiles'><span class='fw-plus-label'>Profiles</span></button></div>
 		<div class='fw-plus-item'><button id='fwb4' class='fw-plus-btn' aria-label='Allow IPs' title='Allow IPs'><span class='fw-plus-label'>Allow</span><span class='fw-plus-count' id='fw-allow-count'></span></button></div>
@@ -4326,11 +4326,25 @@ QHTL_TEMP_MODAL_JS_B
 		<div class='fw-plus-item'><button id='fwb8' class='fw-plus-btn' aria-label='Bottom Control' title='Bottom Control'><span class='fw-plus-label'>Bottom</span></button></div>
 	</div>
 </div>
-<script>(function(){ try { var base=(window.QHTL_SCRIPT||'$script'); var allowCount=(function(){ try{ var m=("$permallows").match(/<code>(\d+)<\/code>/); return m?m[1]:""; }catch(e){ return "";} })(); var c=document.getElementById('fw-allow-count'); if(c && allowCount!==''){ c.textContent=allowCount; }
-['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); }, 400); 
+<script>(function(){ try { var base=(window.QHTL_SCRIPT||'$script'); var allowCount=(function(){ try{ var m=("$permallows").match(/<code>(\d+)<\/code>/); return m?m[1]:""; }catch(e){ return "";} })(); var c=document.getElementById('fw-allow-count'); if(c && allowCount!=='' ){ c.textContent=allowCount; }
+ // Determine firewall status (simple heuristic; could be replaced with explicit server var)
+ var statusState='off';
+ try {
+	 var hasDisable=document.querySelector("button[name='action'][value='disable']");
+	 if(hasDisable){ statusState='on'; }
+	 if(window.QHTL_FW_TESTING){ statusState='testing'; }
+ } catch(e){}
+ var statusBtn=document.getElementById('fwb1'); var statusLabel=document.getElementById('fw-status-text');
+ if(statusBtn && statusLabel){
+	 statusBtn.classList.remove('fw-status-on','fw-status-testing','fw-status-off');
+	 if(statusState==='on'){ statusBtn.classList.add('fw-status-on'); statusLabel.textContent='On'; }
+	 else if(statusState==='testing'){ statusBtn.classList.add('fw-status-testing'); statusLabel.textContent='Testing'; }
+	 else { statusBtn.classList.add('fw-status-off'); statusLabel.textContent='Off'; }
+ }
+ ['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); }, 400); 
 	var act=null; if(id==='fwb2'){ act='conf'; } else if(id==='fwb3'){ act='profiles'; } else if(id==='fwb4'){ act='allow'; }
 	if(act){ try{ var f=document.createElement('form'); f.method='post'; f.action=base; if(base.indexOf('?')===-1){ /* ok */ } var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); document.body.appendChild(f); f.submit(); return; }catch(__){} }
-}); }); } catch(e){} })();</script>
+ }); }); } catch(e){} })();</script>
 QHTL_FIREWALL_CLUSTER
 		# Added/Updated: Firewall plus button label styling (labels above buttons, white text)
 		# Find the existing fw-plus CSS block and append overrides.
@@ -4341,6 +4355,13 @@ QHTL_FIREWALL_CLUSTER
 #firewall1 .fw-plus-btn {position:relative;}
 #firewall1 .fw-plus-btn .fw-plus-label {position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:16px; font-weight:700; color:#fff !important; text-shadow:0 0 3px #000,0 0 6px #d40000,0 0 12px #ff2020; letter-spacing:.6px; pointer-events:none; z-index:3; line-height:1; white-space:nowrap;}
 #firewall1 .fw-plus-btn .fw-plus-count {position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:#fff; color:#000; font-weight:700; font-size:13px; line-height:1; padding:3px 7px 4px; border-radius:3px; box-shadow:0 1px 3px rgba(0,0,0,0.45); min-width:18px; text-align:center;}
+#firewall1 .fw-status-btn::before, #firewall1 .fw-status-btn::after { transition:background .4s ease; }
+#firewall1 .fw-status-on::before, #firewall1 .fw-status-on::after { background: linear-gradient(180deg,#e8ffe9 0%,#b9f5c2 8%,#2ecc4f 42%,#1f9939 78%,#16722a 100%) !important; }
+#firewall1 .fw-status-testing::before, #firewall1 .fw-status-testing::after { background: linear-gradient(180deg,#fff6e6 0%,#ffe2b3 8%,#ffb347 45%,#ff8c00 78%,#d46a00 100%) !important; }
+#firewall1 .fw-status-off::before, #firewall1 .fw-status-off::after { background: linear-gradient(180deg,#ffe6e6 0%,#ffb5b5 8%,#ff2a2a 38%,#d40000 78%,#a70000 100%) !important; }
+#firewall1 .fw-status-btn.fw-status-off .fw-plus-label { text-shadow:0 0 3px #000,0 0 6px #700,0 0 10px #900; }
+#firewall1 .fw-status-btn.fw-status-on .fw-plus-label { text-shadow:0 0 3px #000,0 0 6px #0c5,0 0 12px #1fae55; }
+#firewall1 .fw-status-btn.fw-status-testing .fw-plus-label { text-shadow:0 0 3px #000,0 0 6px #c96,0 0 12px #e87; }
 #firewall1 .fw-plus-grid {margin-top:0 !important;}
 #firewall1 .fw-plus-btn, #firewall1 .fw-plus-btn * {color:#fff !important;}
 </style>
