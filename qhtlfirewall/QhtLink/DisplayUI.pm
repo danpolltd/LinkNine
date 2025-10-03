@@ -199,10 +199,12 @@ sub _qhtl_render_servercheck_tabs {
 /* qhtl tabs: tightly scoped, high-specificity to avoid collisions */
 .qhtl-tabs { margin: 8px 0; }
 .qhtl-tabs .qhtl-tabs-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px 0; padding: 0; list-style: none; }
-.qhtl-tabs .qhtl-tabs-nav button { cursor: pointer; border: 1px solid #ccc; background: #f7f7f7; padding: 6px 10px; border-radius: 4px; font-weight: 600; }
-.qhtl-tabs .qhtl-tabs-nav button[aria-selected="true"] { background: #e7f0ff; border-color: #8fb3ff; }
-.qhtl-tabs .qhtl-tabpanel { display: none; }
-.qhtl-tabs .qhtl-tabpanel[data-active="1"] { display: block; }
+	.qhtl-tabs .qhtl-tabs-nav a[role=tab] { text-decoration: none; cursor: pointer; border: 1px solid #ccc; background: #f7f7f7; padding: 6px 10px; border-radius: 4px; font-weight: 600; color: inherit; display: inline-block; }
+	.qhtl-tabs .qhtl-tabs-nav a[role=tab][aria-selected="true"] { background: #e7f0ff; border-color: #8fb3ff; }
+	.qhtl-tabs .qhtl-tabpanel { display: none; }
+	.qhtl-tabs .qhtl-tabpanel[data-active="1"] { display: block; }
+	/* CSS fallback: allow fragment targeting to show a panel when JS is unavailable */
+	.qhtl-tabs .qhtl-tabpanel:target { display:block; }
 /* Ensure our panels don’t get hidden by external CSS */
 .qhtl-tabs .qhtl-tabpanel * { box-sizing: border-box; }
 </style>
@@ -228,11 +230,11 @@ $//g;
 		$html .= "<div class='qhtl-tabs' id='qhtl-tabs-servercheck'>\n";
 		$html .= "  <ul class='qhtl-tabs-nav'>\n";
 		for my $i (0..$#labels) {
-				my $sel = ($i == 0) ? 'true' : 'false';
-				my $id  = $ids[$i];
-				my $lab = $labels[$i];
-				$lab =~ s/&/&amp;/g; $lab =~ s/</&lt;/g; $lab =~ s/>/&gt;/g;
-				$html .= "    <li><button type='button' role='tab' aria-controls='qhtl-tab-$id' aria-selected='$sel' data-idx='$i'>$lab</button></li>\n";
+			my $sel = ($i == 0) ? 'true' : 'false';
+			my $id  = $ids[$i];
+			my $lab = $labels[$i];
+			$lab =~ s/&/&amp;/g; $lab =~ s/</&lt;/g; $lab =~ s/>/&gt;/g;
+			$html .= "    <li><a role='tab' href='#qhtl-tab-$id' aria-controls='qhtl-tab-$id' aria-selected='$sel' data-idx='$i'>$lab</a></li>\n";
 		}
 		$html .= "  </ul>\n";
 
@@ -255,28 +257,46 @@ $//g;
 		$html .= "</div>\n";
 
 		# Tiny controller – scoped to our container only
-		$html .= <<'QHTL_TABS_JS';
+			$html .= <<'QHTL_TABS_JS';
 <script>
 (function(){
 	try {
 		var root = document.getElementById('qhtl-tabs-servercheck');
 		if (!root) return;
-		var buttons = root.querySelectorAll('.qhtl-tabs-nav button');
-		var panels  = root.querySelectorAll('.qhtl-tabpanel');
-		function activate(idx){
-			for (var i=0;i<buttons.length;i++) {
-				var sel = (i===idx);
-				buttons[i].setAttribute('aria-selected', sel ? 'true':'false');
-				if (panels[i]) panels[i].setAttribute('data-active', sel ? '1':'0');
+			var tabs   = root.querySelectorAll('.qhtl-tabs-nav a[role=tab]');
+			var panels = root.querySelectorAll('.qhtl-tabpanel');
+			var idToIdx = {};
+			for (var i=0;i<panels.length;i++) { idToIdx[panels[i].id] = i; }
+			function activate(idx, push){
+				for (var i=0;i<tabs.length;i++) {
+					var sel = (i===idx);
+					tabs[i].setAttribute('aria-selected', sel ? 'true':'false');
+					if (panels[i]) panels[i].setAttribute('data-active', sel ? '1':'0');
+				}
+				try {
+					if (push) {
+						var id = panels[idx] && panels[idx].id ? ('#'+panels[idx].id) : '';
+						if (id) { history.replaceState(null, '', id); }
+					}
+				} catch(_){}
 			}
-		}
-		for (var i=0;i<buttons.length;i++){
-			(function(ii){
-				buttons[ii].addEventListener('click', function(ev){ activate(ii); });
-			})(i);
-		}
-		// Ensure first is visible (in case of hydration timing)
-		activate(0);
+			for (var i=0;i<tabs.length;i++){
+				(function(ii){
+					tabs[ii].addEventListener('click', function(ev){ ev.preventDefault(); activate(ii, true); });
+				})(i);
+			}
+			// Deep-link and hash-change support
+			function syncFromHash(){
+				var h = location.hash.replace(/^#/, '');
+				if (h && idToIdx.hasOwnProperty(h)) { activate(idToIdx[h], false); return true; }
+				if (h) {
+					var q = document.getElementById(h);
+					if (q && idToIdx.hasOwnProperty(q.id)) { activate(idToIdx[q.id], false); return true; }
+				}
+				return false;
+			}
+			if (!syncFromHash()) { activate(0, false); }
+			window.addEventListener('hashchange', function(){ syncFromHash(); });
 	} catch(e) {}
 })();
 </script>
