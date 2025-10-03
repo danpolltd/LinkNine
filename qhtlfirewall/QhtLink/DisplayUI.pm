@@ -4389,26 +4389,50 @@ QHTL_TEMP_MODAL_JS_B
 	 } catch(e){}
  }, 600);
  // Button action mappings (added Flush -> fwb8 / action=denyf)
- ['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){
-	 var el=document.getElementById(id); if(!el) return;
-	 el.addEventListener('click', function(){
-		 try{ console.log('Firewall button clicked:', id); }catch(e){}
-		 el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); }, 400);
-		 var act=null;
-		 if(id==='fwb2'){ act='conf'; }
-		 else if(id==='fwb3'){ act='profiles'; }
-		 else if(id==='fwb4'){ act='allow'; }
-		 else if(id==='fwb8'){ act='denyf'; }
-			else if(id==='fwb1'){
-				 // If Off state, attempt to enable firewall (maps to action=enable)
-				 try {
-					 var cur=(typeof window.QHTL_FW_STATUS==='string')?window.QHTL_FW_STATUS:'';
-					 if(cur==='off'){ act='enable'; }
-				 } catch(e){}
-			}
-		 if(act){ try{ var f=document.createElement('form'); f.method='post'; f.action=base; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); if(act==='enable'){ var o=document.createElement('input'); o.type='hidden'; o.name='override'; o.value='1'; f.appendChild(o);} document.body.appendChild(f); f.submit(); return; }catch(__){} }
+ (function(){
+	 var holdState={active:false,phase:0,count:3,countInt:null,dimTimer:null,actionArmed:null,mouseDown:false};
+	 function submitAction(act, extra){ try{ var f=document.createElement('form'); f.method='post'; f.action=base; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); if(act==='enable'){ var o=document.createElement('input'); o.type='hidden'; o.name='override'; o.value='1'; f.appendChild(o);} if(extra){ Object.keys(extra).forEach(function(k){ var h=document.createElement('input'); h.type='hidden'; h.name=k; h.value=extra[k]; f.appendChild(h); }); } document.body.appendChild(f); f.submit(); }catch(e){} }
+	 function clearHold(btn){ if(!btn) return; holdState.active=false; holdState.phase=0; holdState.count=3; if(holdState.countInt){ clearInterval(holdState.countInt); holdState.countInt=null; } if(holdState.dimTimer){ clearTimeout(holdState.dimTimer); holdState.dimTimer=null; } btn.classList.remove('hold-counting','hold-warning','hold-dimming'); try{ var cur=(typeof window.QHTL_FW_STATUS==='string')?window.QHTL_FW_STATUS:''; var lab=document.getElementById('fw-status-text'); if(lab && cur){ lab.textContent = (cur==='on')?'On':(cur==='testing')?'Testing':'Off'; } }catch(_){ } }
+	 function startHold(btn){ if(!btn) return; try{ var cur=(typeof window.QHTL_FW_STATUS==='string')?window.QHTL_FW_STATUS:''; if(cur==='off'){ // treat as enable click
+				 submitAction('enable'); return; } }catch(_){ }
+		 clearHold(btn); holdState.active=true; holdState.phase=1; btn.classList.add('hold-counting'); var lab=document.getElementById('fw-status-text'); if(lab){ lab.textContent='3'; }
+		 holdState.count=3; holdState.countInt=setInterval(function(){ holdState.count--; if(holdState.count<=0){ clearInterval(holdState.countInt); holdState.countInt=null; // transition to warning
+					 holdState.phase=2; btn.classList.remove('hold-counting'); btn.classList.add('hold-warning'); if(lab){ lab.textContent='Warning'; }
+					 // after short delay start dimming phase
+					 setTimeout(function(){ if(!holdState.active||holdState.phase!==2) return; holdState.phase=3; btn.classList.remove('hold-warning'); btn.classList.add('hold-dimming'); if(lab){ lab.textContent='Dimming'; }
+						 holdState.dimTimer=setTimeout(function(){ // if still holding at end, disable
+								 if(holdState.active && holdState.phase===3){ submitAction('disable'); }
+							 },3000);
+					 },600); // warning visible ~600ms before dim starts
+				 } else { if(lab){ lab.textContent=String(holdState.count); } }
+		 },800); // 3->2->1 over ~2.4s
+	 }
+	 function releaseHold(btn){ if(!btn) return; if(!holdState.active){ // normal click semantics
+			 // For status button simple click when not holding: if off => enable else no immediate action
+			 try{ var cur=(typeof window.QHTL_FW_STATUS==='string')?window.QHTL_FW_STATUS:''; if(cur==='off'){ submitAction('enable'); return; } }catch(_){ }
+			 return; }
+		 // If released during counting or warning or dimming before completion: restart firewall
+		 if(holdState.phase===1 || holdState.phase===2 || (holdState.phase===3 && holdState.dimTimer)){ submitAction('restart'); }
+		 clearHold(btn);
+	 }
+	 ['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){
+		 var el=document.getElementById(id); if(!el) return;
+		 if(id==='fwb1'){
+			 // Press-and-hold listeners
+			 ['mousedown','touchstart'].forEach(function(evt){ el.addEventListener(evt,function(e){ holdState.mouseDown=true; startHold(el); }); });
+			 ['mouseup','mouseleave','touchend','touchcancel'].forEach(function(evt){ el.addEventListener(evt,function(e){ holdState.mouseDown=false; releaseHold(el); }); });
+			 // Prevent default context menu interfering
+			 el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+			 // Also allow Enter/Space keyboard
+			 el.addEventListener('keydown', function(e){ if(e.code==='Enter'||e.code==='Space'){ if(!holdState.active){ startHold(el); } } });
+			 el.addEventListener('keyup', function(e){ if(e.code==='Enter'||e.code==='Space'){ releaseHold(el); } });
+		 }
+		 // Fallback click for other buttons (and status button simple clicks not treated as hold)
+		 if(id!=='fwb1'){
+			 el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); },400); var act=null; if(id==='fwb2'){ act='conf'; } else if(id==='fwb3'){ act='profiles'; } else if(id==='fwb4'){ act='allow'; } else if(id==='fwb8'){ act='denyf'; } if(act){ submitAction(act); } });
+		 }
 	 });
- });
+ })();
  } catch(e){} })();</script>
 QHTL_FIREWALL_CLUSTER
 		# Added/Updated: Firewall plus button label styling (labels above buttons, white text)
@@ -4419,7 +4443,7 @@ QHTL_FIREWALL_CLUSTER
 #firewall1 .fw-plus-item {position:relative; display:inline-flex; flex-direction:column; align-items:center; justify-content:flex-start;}
 #firewall1 .fw-plus-btn {position:relative;}
 #firewall1 .fw-plus-btn .fw-plus-label {position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:16px; font-weight:700; color:#fff !important; text-shadow:0 0 3px #000,0 0 6px #d40000,0 0 12px #ff2020; letter-spacing:.6px; pointer-events:none; z-index:3; line-height:1; white-space:nowrap;}
-#firewall1 .fw-plus-btn .fw-plus-count {position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:#fff; color:#000; font-weight:700; font-size:13px; line-height:1; padding:3px 7px 4px; border-radius:3px; box-shadow:0 1px 3px rgba(0,0,0,0.45); min-width:18px; text-align:center;}
+#firewall1 .fw-plus-btn .fw-plus-count {position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:#fff; color:#000; font-weight:700; font-size:13px; line-height:1; padding:3px 7px 4px; border-radius:3px; box-shadow:0 1px 3px rgba(0,0,0,0.45); min-width:18px; text-align:center; z-index:5;}
 #firewall1 .fw-status-btn::before, #firewall1 .fw-status-btn::after { transition:background .4s ease; }
 #firewall1 .fw-status-on::before, #firewall1 .fw-status-on::after { background: linear-gradient(180deg,#e8ffe9 0%,#b9f5c2 8%,#2ecc4f 42%,#1f9939 78%,#16722a 100%) !important; }
 #firewall1 .fw-status-testing::before, #firewall1 .fw-status-testing::after { background: linear-gradient(180deg,#fff6e6 0%,#ffe2b3 8%,#ffb347 45%,#ff8c00 78%,#d46a00 100%) !important; }
@@ -4436,6 +4460,13 @@ QHTL_FIREWALL_CLUSTER
 /* Advanced tab hex halo restoration */
 #moreplus .qhtl-hex-btn { box-shadow:0 0 0 10px rgba(192,192,192,0.55), 0 6px 14px rgba(0,0,0,0.35); }
 #moreplus .qhtl-hex-btn::after { content:""; position:absolute; inset:0; border-radius:6px; background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.9),rgba(255,255,255,0) 60%); pointer-events:none; mix-blend-mode:screen; }
+/* Hold-to-disable status button states */
+#firewall1 .fw-status-btn.hold-counting::before, #firewall1 .fw-status-btn.hold-counting::after { background: linear-gradient(180deg,#f2ffe6 0%,#d6f5b0 8%,#9ccc3a 40%,#7aa52c 78%,#5c7a20 100%) !important; }
+#firewall1 .fw-status-btn.hold-warning::before, #firewall1 .fw-status-btn.hold-warning::after { background: linear-gradient(180deg,#fff4e0 0%,#ffd9a3 12%,#ffb347 45%,#ff8c00 78%,#d46a00 100%) !important; animation: fwWarnFlash 0.9s ease-in-out infinite; }
+#firewall1 .fw-status-btn.hold-dimming::before, #firewall1 .fw-status-btn.hold-dimming::after { background: linear-gradient(180deg,#fff4e0 0%,#ffd0a0 10%,#ff7a30 38%,#ff2a2a 78%,#a70000 100%) !important; animation: fwDimToRed 3s linear forwards; }
+#firewall1 .fw-status-btn.hold-counting .fw-plus-label, #firewall1 .fw-status-btn.hold-warning .fw-plus-label, #firewall1 .fw-status-btn.hold-dimming .fw-plus-label { text-shadow:0 0 4px #000,0 0 10px rgba(255,180,0,0.9),0 0 16px rgba(255,90,0,0.9); }
+@keyframes fwWarnFlash { 0%,55% { filter:brightness(1); box-shadow:0 0 0 0 rgba(255,140,0,0.6),0 0 14px 4px rgba(255,120,0,0.4); } 70% { filter:brightness(1.25); box-shadow:0 0 0 4px rgba(255,140,0,0.5),0 0 18px 8px rgba(255,120,0,0.55); } 100% { filter:brightness(1); box-shadow:0 0 0 0 rgba(255,140,0,0.6),0 0 14px 4px rgba(255,120,0,0.4);} }
+@keyframes fwDimToRed { 0% { filter:brightness(1); } 30% { filter:brightness(.9); } 60% { filter:brightness(.8); } 100% { filter:brightness(.65); } }
 </style>
 QHTL_FW_PLUS_LABELS_CSS
 		print "</td></tr>\n";
