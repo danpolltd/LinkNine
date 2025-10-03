@@ -2095,6 +2095,15 @@ QHTL_PLUS_BTN_CSS
 
 			# Embed score (if found) and controls into the first tab
 			my $score_block = '';
+			if ((!defined $score_html) || $score_html eq '') {
+				# Final fallback: try to pull the score directly from the full report
+				if ($full_html =~ m{((?:<br>\s*)*<table[^>]*align=['\"]?center['\"]?[^>]*>[\s\S]*?Server\s+Score:[\s\S]*?</td>\s*</tr>\s*</table>)}is) {
+					$score_html = $1;
+				}
+				elsif ($full_html =~ m{(<h4[^>]*>\s*Server\s+Score:[\s\S]*?(?:<br>\s*<div>\*\s*This\s+scoring[\s\S]*?</div>))}is) {
+					$score_html = $1;
+				}
+			}
 			if (defined $score_html && $score_html ne '') {
 				# Place the Server Score above the controls with some breathing room
 				$score_block = "<div class='qhtl-score-block' style='margin: 0 0 14px 0;'>$score_html</div>";
