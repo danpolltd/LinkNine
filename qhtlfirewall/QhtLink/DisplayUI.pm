@@ -135,6 +135,155 @@ sub qhtlfirewallgetversion {
 	$upgrade = $flag; $actv = $act;
 	return ($upgrade, $actv);
 }
+
+# Build non-destructive tabs for ServerCheck output. The first tab "General"
+# shows non-section content (intro note + scorecard) and the action forms. Each
+# subsequent tab contains exactly one original section (title block + lines).
+sub _qhtl_render_servercheck_tabs {
+		my ($full_html, $forms_html) = @_;
+
+		# Defensive defaults
+		$full_html  = '' unless defined $full_html;
+		$forms_html = '' unless defined $forms_html;
+
+		# Identify the start of the scorecard (Server Score) – use a tolerant marker
+		my $score_idx = index($full_html, 'Server Score:');
+		my $pre       = $full_html;   # content before first section (intro note)
+		my $scorecard = '';
+		if ($score_idx > -1) {
+				# Include a small buffer before the heading to preserve layout breaks
+				my $prefix_cut = rindex($full_html, '<br>', $score_idx);
+				$prefix_cut = ($prefix_cut > -1) ? $prefix_cut : $score_idx;
+				$scorecard = substr($full_html, $prefix_cut);
+				$pre       = substr($full_html, 0, $prefix_cut);
+		}
+
+		# Extract sections: each begins with the addtitle() header block which is a
+		# <div> containing a <strong>Title</strong> and a distinctive background.
+		# We don’t rely on the exact inline styles – match a <div><strong>..</strong></div>.
+		my @sections;
+		my $work   = $pre; # re-scan pre+score separation correctly; we want sections within $pre
+		$work      = $full_html; # sections live in the body (excluding scorecard at end)
+		if ($score_idx > -1) { $work = substr($full_html, 0, $score_idx); }
+
+		my $pos = 0;
+		while ($work =~ m{<div[^>]*>\s*<strong>([^<]+)<\/strong>\s*<\/div>}g) {
+				my $title   = $1;
+				my $start   = $-[0];
+				my $end     = pos($work);
+				# Find the start of the next title to bound this section
+				my $next_at = ($work =~ m{<div[^>]*>\s*<strong>([^<]+)<\/strong>\s*<\/div>}g) ? $-[0] : length($work);
+				# Reset pos to after the current end for next loop step
+				pos($work) = $end;
+				# Compute slice: from this title start up to the next title (or end)
+				my $slice_end = $next_at;
+				my $html = substr($work, $start, $slice_end - $start);
+				push @sections, { title => $title, html => $html };
+		}
+
+		# General tab content: everything not a section that’s still meaningful.
+		# We keep only the top note (anything before the first section title) and
+		# the scorecard; then append forms.
+		my $first_title_pos = -1;
+		if ($work =~ m{<div[^>]*>\s*<strong>([^<]+)<\/strong>\s*<\/div>}s) {
+				$first_title_pos = $-[0];
+		}
+		my $intro = '';
+		if ($first_title_pos > 0) { $intro = substr($work, 0, $first_title_pos); }
+		elsif ($first_title_pos == -1) { $intro = $work; }
+
+		# Build the tab UI. Keep CSS/JS strongly namespaced to avoid host theme clashes.
+		my $html = '';
+		$html .= <<'QHTL_TABS_CSS';
+<style>
+/* qhtl tabs: tightly scoped, high-specificity to avoid collisions */
+.qhtl-tabs { margin: 8px 0; }
+.qhtl-tabs .qhtl-tabs-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px 0; padding: 0; list-style: none; }
+.qhtl-tabs .qhtl-tabs-nav button { cursor: pointer; border: 1px solid #ccc; background: #f7f7f7; padding: 6px 10px; border-radius: 4px; font-weight: 600; }
+.qhtl-tabs .qhtl-tabs-nav button[aria-selected="true"] { background: #e7f0ff; border-color: #8fb3ff; }
+.qhtl-tabs .qhtl-tabpanel { display: none; }
+.qhtl-tabs .qhtl-tabpanel[data-active="1"] { display: block; }
+/* Ensure our panels don’t get hidden by external CSS */
+.qhtl-tabs .qhtl-tabpanel * { box-sizing: border-box; }
+</style>
+QHTL_TABS_CSS
+
+		# Build tabs list: General + sections
+		my @labels = ('General');
+		push @labels, map { $_->{title} } @sections;
+		my @ids;
+		for my $i (0..$#labels) {
+				my $id = $labels[$i];
+				$id =~ s/[^A-Za-z0-9]+/-/g;
+				$id =~ s/^-|-
+$//g;
+				$id = lc($id);
+				$id = "gen" if $i == 0;
+				# Ensure uniqueness
+				my $base = $id; my $n = 2;
+				while (grep { $_ eq $id } @ids) { $id = $base."-".$n++; }
+				push @ids, $id;
+		}
+
+		$html .= "<div class='qhtl-tabs' id='qhtl-tabs-servercheck'>\n";
+		$html .= "  <ul class='qhtl-tabs-nav'>\n";
+		for my $i (0..$#labels) {
+				my $sel = ($i == 0) ? 'true' : 'false';
+				my $id  = $ids[$i];
+				my $lab = $labels[$i];
+				$lab =~ s/&/&amp;/g; $lab =~ s/</&lt;/g; $lab =~ s/>/&gt;/g;
+				$html .= "    <li><button type='button' role='tab' aria-controls='qhtl-tab-$id' aria-selected='$sel' data-idx='$i'>$lab</button></li>\n";
+		}
+		$html .= "  </ul>\n";
+
+		# Panels
+		for my $i (0..$#labels) {
+				my $active = ($i == 0) ? 1 : 0;
+				my $id = $ids[$i];
+				$html .= "  <div id='qhtl-tab-$id' class='qhtl-tabpanel' role='tabpanel' data-active='$active'>\n";
+				if ($i == 0) {
+						# General = intro note (if any) + scorecard + forms
+						$html .= $intro if length $intro;
+						$html .= $scorecard if length $scorecard;
+						$html .= $forms_html if length $forms_html;
+				} else {
+						my $sec = $sections[$i-1];
+						$html .= $sec->{html} if $sec && $sec->{html};
+				}
+				$html .= "  </div>\n";
+		}
+		$html .= "</div>\n";
+
+		# Tiny controller – scoped to our container only
+		$html .= <<'QHTL_TABS_JS';
+<script>
+(function(){
+	try {
+		var root = document.getElementById('qhtl-tabs-servercheck');
+		if (!root) return;
+		var buttons = root.querySelectorAll('.qhtl-tabs-nav button');
+		var panels  = root.querySelectorAll('.qhtl-tabpanel');
+		function activate(idx){
+			for (var i=0;i<buttons.length;i++) {
+				var sel = (i===idx);
+				buttons[i].setAttribute('aria-selected', sel ? 'true':'false');
+				if (panels[i]) panels[i].setAttribute('data-active', sel ? '1':'0');
+			}
+		}
+		for (var i=0;i<buttons.length;i++){
+			(function(ii){
+				buttons[ii].addEventListener('click', function(ev){ activate(ii); });
+			})(i);
+		}
+		// Ensure first is visible (in case of hydration timing)
+		activate(0);
+	} catch(e) {}
+})();
+</script>
+QHTL_TABS_JS
+
+		return $html;
+}
 ###############################################################################
 # start main
 sub main {
@@ -1907,7 +2056,7 @@ QHTL_JQ_GREP
 	}
 	elsif ($FORM{action} eq "servercheck") {
 		my $out = '';
-		my $ok = 0;
+		my $ok  = 0;
 		eval {
 			if (defined &QhtLink::ServerCheck::report) {
 				$out = QhtLink::ServerCheck::report($FORM{verbose});
@@ -1915,12 +2064,12 @@ QHTL_JQ_GREP
 			}
 			1;
 		} or do { $ok = 0; };
-		if ($ok) {
-			print $out;
-		} else {
+		unless ($ok) {
 			print "<div class='alert alert-warning'>ServerCheck module not available in this environment. Skipping report.</div>\n";
+			&printreturn; return;
 		}
 
+		# Build the action forms HTML (Schedule / Run Again / Verbose)
 		open (my $IN, "<", "/etc/cron.d/qhtlfirewall-cron");
 		flock ($IN, LOCK_SH);
 		my @data = <$IN>;
@@ -1931,14 +2080,19 @@ QHTL_JQ_GREP
 		if (my @ls = grep {$_ =~ /qhtlfirewall \-m/} @data) {
 			if ($ls[0] =~ /\@(\w+)\s+root\s+\/usr\/sbin\/qhtlfirewall \-m (.*)/) {$optionselected = $1; $email = $2}
 		}
-		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='serverchecksave'>\n";
-		print "Generate and email this report <select name='freq'>\n";
+		my $forms = "";
+		$forms .= "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='serverchecksave'>\n";
+		$forms .= "Generate and email this report <select name='freq'>\n";
 		foreach my $option ("never","hourly","daily","weekly","monthly") {
-			if ($option eq $optionselected) {print "<option selected>$option</option>\n"} else {print "<option>$option</option>\n"}
+			if ($option eq $optionselected) { $forms .= "<option selected>$option</option>\n" } else { $forms .= "<option>$option</option>\n" }
 		}
-		print "</select> to the email address <input type='text' name='email' value='$email'> <input type='submit' class='btn btn-default' value='Schedule'></form></div>\n";
-		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='servercheck'><input type='submit' class='btn btn-default' value='Run Again'></form></div>\n";
-		print "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='servercheck'><input type='hidden' name='verbose' value='1'><input type='submit' class='btn btn-default' value='Run Again and Display All Checks'></form></div>\n";
+		$forms .= "</select> to the email address <input type='text' name='email' value='$email'> <input type='submit' class='btn btn-default' value='Schedule'></form></div>\n";
+		$forms .= "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='servercheck'><input type='submit' class='btn btn-default' value='Run Again'></form></div>\n";
+		$forms .= "<br><div><form action='$script' method='post'><input type='hidden' name='action' value='servercheck'><input type='hidden' name='verbose' value='1'><input type='submit' class='btn btn-default' value='Run Again and Display All Checks'></form></div>\n";
+
+		# Render tabs view (General + one tab per report section)
+		my $tabs_html = _qhtl_render_servercheck_tabs($out, $forms);
+		print $tabs_html;
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "serverchecksave") {
