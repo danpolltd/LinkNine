@@ -4319,17 +4319,18 @@ QHTL_TEMP_MODAL_JS_B
 		<div class='fw-plus-item'><button id='fwb1' class='fw-plus-btn' aria-label='Top Firewall Control' title='Top Firewall Control'><span class='fw-plus-label'>Top</span></button></div>
 		<div class='fw-plus-item'><button id='fwb2' class='fw-plus-btn' aria-label='Config' title='Config'><span class='fw-plus-label'>Config</span></button></div>
 		<div class='fw-plus-item'><button id='fwb3' class='fw-plus-btn' aria-label='Profiles' title='Profiles'><span class='fw-plus-label'>Profiles</span></button></div>
-		<div class='fw-plus-item'><button id='fwb4' class='fw-plus-btn' aria-label='Allow IPs' title='Allow IPs'><span class='fw-plus-label'>Allow</span></button></div>
+		<div class='fw-plus-item'><button id='fwb4' class='fw-plus-btn' aria-label='Allow IPs' title='Allow IPs'><span class='fw-plus-label'>Allow</span><span class='fw-plus-count' id='fw-allow-count'></span></button></div>
 		<div class='fw-plus-item'><button id='fwb5' class='fw-plus-btn' aria-label='Center Control' title='Center Control'><span class='fw-plus-label'>Center</span></button></div>
 		<div class='fw-plus-item' style='display:none'><button id='fwb6' class='fw-plus-btn' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'><span class='fw-plus-label'>Hidden</span></button></div>
 		<div class='fw-plus-item'><button id='fwb7' class='fw-plus-btn' aria-label='Lower Control' title='Lower Control'><span class='fw-plus-label'>Lower</span></button></div>
 		<div class='fw-plus-item'><button id='fwb8' class='fw-plus-btn' aria-label='Bottom Control' title='Bottom Control'><span class='fw-plus-label'>Bottom</span></button></div>
 	</div>
 </div>
-<script>(function(){ try { var base=(window.QHTL_SCRIPT||'$script'); ['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); }, 400); 
-				var act=null; if(id==='fwb2'){ act='conf'; } else if(id==='fwb3'){ act='profiles'; } else if(id==='fwb4'){ act='allow'; }
-				if(act){ try{ var f=document.createElement('form'); f.method='post'; f.action=base; if(base.indexOf('?')===-1){ /* ok */ } var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); document.body.appendChild(f); f.submit(); return; }catch(__){} }
-			}); }); } catch(e){} })();</script>
+<script>(function(){ try { var base=(window.QHTL_SCRIPT||'$script'); var allowCount=(function(){ try{ var m=("$permallows").match(/<code>(\d+)<\/code>/); return m?m[1]:""; }catch(e){ return "";} })(); var c=document.getElementById('fw-allow-count'); if(c && allowCount!==''){ c.textContent=allowCount; }
+['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); }, 400); 
+	var act=null; if(id==='fwb2'){ act='conf'; } else if(id==='fwb3'){ act='profiles'; } else if(id==='fwb4'){ act='allow'; }
+	if(act){ try{ var f=document.createElement('form'); f.method='post'; f.action=base; if(base.indexOf('?')===-1){ /* ok */ } var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); document.body.appendChild(f); f.submit(); return; }catch(__){} }
+}); }); } catch(e){} })();</script>
 QHTL_FIREWALL_CLUSTER
 		# Added/Updated: Firewall plus button label styling (labels above buttons, white text)
 		# Find the existing fw-plus CSS block and append overrides.
@@ -4339,6 +4340,7 @@ QHTL_FIREWALL_CLUSTER
 #firewall1 .fw-plus-item {position:relative; display:inline-flex; flex-direction:column; align-items:center; justify-content:flex-start;}
 #firewall1 .fw-plus-btn {position:relative;}
 #firewall1 .fw-plus-btn .fw-plus-label {position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:16px; font-weight:700; color:#fff !important; text-shadow:0 0 3px #000,0 0 6px #d40000,0 0 12px #ff2020; letter-spacing:.6px; pointer-events:none; z-index:3; line-height:1; white-space:nowrap;}
+#firewall1 .fw-plus-btn .fw-plus-count {position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:#fff; color:#000; font-weight:700; font-size:13px; line-height:1; padding:3px 7px 4px; border-radius:3px; box-shadow:0 1px 3px rgba(0,0,0,0.45); min-width:18px; text-align:center;}
 #firewall1 .fw-plus-grid {margin-top:0 !important;}
 #firewall1 .fw-plus-btn, #firewall1 .fw-plus-btn * {color:#fff !important;}
 </style>
