@@ -1973,15 +1973,17 @@ QHTL_JQ_GREP
 .qhtl-tabs { margin: 10px 0; }
 .qhtl-tabs input.qhtl-tab-radio { display: none !important; }
 .qhtl-tab-list { display: flex !important; flex-wrap: wrap; gap: 6px; margin: 0 0 10px 0; padding: 0; list-style: none; }
-.qhtl-tab-list { position: relative; z-index: 20; }
+.qhtl-tab-list { position: relative; z-index: 1000; }
 .qhtl-tab-list .qhtl-tab { display: inline-block !important; padding: 6px 10px; border: 1px solid #DDD; border-radius: 4px; background: #F9F9F9; cursor: pointer; user-select: none; pointer-events: auto !important; position: relative; z-index: 6; }
 .qhtl-tab-list .qhtl-tab { -webkit-tap-highlight-color: transparent; }
 .qhtl-tab-list .qhtl-tab.selected { background: #EDEBFF; border-color: #BBB; font-weight: 600; }
-.qhtl-panels { position: relative; z-index: 15; }
+.qhtl-panels { position: relative; z-index: 1001; }
 .qhtl-panels .qhtl-tab-panel { display: none !important; border: 1px solid #DDD; border-radius: 4px; padding: 10px; background: #FFF; min-height: 160px; }
 /* Defensive: ensure tab container and panels sit above any theme gradients/overlays */
 .qhtl-tabs, .qhtl-panels, .qhtl-tab-panel { position: relative; }
-.qhtl-panels .qhtl-tab-panel { z-index: 21; }
+.qhtl-panels .qhtl-tab-panel { z-index: 1002; opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; }
+/* Ensure the specific container sits on top */
+#qhtl-servercheck-tabs { position: relative; z-index: 99999; }
 /* Per-tab rules added below to show selected panel and style selected label */
 </style>
 HTML_TABS_CSS
@@ -2103,13 +2105,13 @@ QHTL_PLUS_BTN_CSS
 			# Emit CSS rules to style the selected label and reveal the selected panel per radio
 			print "<style>\n";
 			for (my $i=0; $i<scalar(@labels); $i++) {
-				printf "#%s-tab-%d:checked ~ .qhtl-tab-list label[for='%s-tab-%d']{ background:#EDEBFF; border-color:#BBB; font-weight:600; }\n", $container_id, $i, $container_id, $i;
-				printf "#%s-tab-%d:checked ~ .qhtl-panels .panel-%d{ display:block !important; }\n", $container_id, $i, $i;
+				printf "#%s #%s-tab-%d:checked ~ .qhtl-tab-list label[for='%s-tab-%d']{ background:#EDEBFF; border-color:#BBB; font-weight:600; }\n", $container_id, $container_id, $i, $container_id, $i;
+				printf "#%s #%s-tab-%d:checked ~ .qhtl-panels .panel-%d{ display:block !important; }\n", $container_id, $container_id, $i, $i;
 			}
 			print "</style>\n";
 
-			# Defensive: ensure clicking labels always toggles radios even if theme CSS interferes
-			print "<script>(function(){try{var c=document.getElementById('".$container_id."');if(!c)return;var labels=c.querySelectorAll('.qhtl-tab-list label');for(var i=0;i<labels.length;i++){labels[i].addEventListener('click',function(e){var f=this.getAttribute('for');if(!f)return;var r=document.getElementById(f);if(r&&r.type==='radio'){r.checked=true;}});}}catch(_){}})();</script>\n";
+			# Defensive: ensure clicking labels always toggles radios and forces panel visibility even if theme CSS interferes
+			print "<script>(function(){try{var c=document.getElementById('".$container_id."');if(!c)return;var labels=c.querySelectorAll('.qhtl-tab-list label');var radios=c.querySelectorAll('.qhtl-tab-radio');var panels=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel');function show(i){for(var k=0;k<panels.length;k++){panels[k].style.display=(k===i?'block':'none');}}for(var i=0;i<labels.length;i++){labels[i].addEventListener('click',function(e){try{var f=this.getAttribute('for');if(!f)return;var r=document.getElementById(f);if(r&&r.type==='radio'){r.checked=true;var idx=Array.prototype.indexOf.call(radios,r);if(idx>=0)show(idx);} }catch(__){} });}}catch(_){}})();</script>\n";
 
 			# Render radios, labels, and panels (pure CSS tabs)
 			print "<div id='$container_id' class='qhtl-tabs'>\n";
@@ -2125,14 +2127,15 @@ QHTL_PLUS_BTN_CSS
 			print "  </div>\n";
 			print "  <div class='qhtl-panels'>\n";
 			for (my $i = 0; $i < scalar(@panels); $i++) {
-				print "    <div class='qhtl-tab-panel panel-$i'>\n";
+				my $inline_vis = ($i == $default_idx) ? " style=\"display:block !important\"" : " style=\"display:none !important\"";
+				print "    <div class='qhtl-tab-panel panel-$i'$inline_vis>\n";
 				print $panels[$i];
 				print "\n    </div>\n";
 			}
 			print "  </div>\n";
 			print "</div>\n";
 			# Client-side visibility fallback: explicitly show the checked panel in case theme CSS overrides our rules
-			print "<script>(function(){ try{ var c=document.getElementById('$container_id'); if(!c) return; var radios=c.querySelectorAll('.qhtl-tab-radio'); var panels=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel'); function show(i){ for(var k=0;k<panels.length;k++){ panels[k].style.display = (k===i?'block':'none'); } } var sel=0; for(var i=0;i<radios.length;i++){ if(radios[i].checked){ sel=i; break; } } show(sel); c.addEventListener('change', function(ev){ try{ var t=ev.target; if(!t || !t.matches) return; if(!t.matches('.qhtl-tab-radio')) return; var idx=Array.prototype.indexOf.call(radios,t); if(idx>=0) show(idx); }catch(__){} }, true); }catch(_){ } })();</script>\n";
+			print "<script>(function(){ try{ var c=document.getElementById('$container_id'); if(!c) return; var radios=c.querySelectorAll('.qhtl-tab-radio'); var panels=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel'); function show(i){ for(var k=0;k<panels.length;k++){ try{ panels[k].style.setProperty('display', (k===i?'block':'none'), 'important'); }catch(__){} } } var sel=0; for(var i=0;i<radios.length;i++){ if(radios[i].checked){ sel=i; break; } } show(sel); c.addEventListener('change', function(ev){ try{ var t=ev.target; if(!t || !t.matches) return; if(!t.matches('.qhtl-tab-radio')) return; var idx=Array.prototype.indexOf.call(radios,t); if(idx>=0) show(idx); }catch(__){} }, true); }catch(_){ } })();</script>\n";
 
 			# Client-side safety net: if all secondary panels are effectively empty, show full HTML in Tab 2 and select it
 			my $escaped_full = $full_html; $escaped_full =~ s/\\/\\\\/g; $escaped_full =~ s/'/\\'/g; $escaped_full =~ s/\r?\n/\n/g;
