@@ -3697,6 +3697,19 @@ EOF
 		} else {
 			print $status;
 			print $status_extras;
+			# Emit a JS global with concise firewall status for UI widgets (on/testing/off)
+			my $fw_state_js = 'off';
+			if (-e "/etc/qhtlfirewall/qhtlfirewall.disable") {
+				$fw_state_js = 'off';
+			} elsif ($config{TESTING}) {
+				$fw_state_js = 'testing';
+			} elsif ($iptstatus[0] !~ /^Chain LOCALINPUT/) {
+				# Enabled but stopped: treat as off for button color (distinct from 'testing')
+				$fw_state_js = 'off';
+			} else {
+				$fw_state_js = 'on';
+			}
+			print "<script>window.QHTL_FW_STATUS='".$fw_state_js."';</script>\n";
 		}
 
 		print "<div class='normalcontainer'>\n";
@@ -4330,22 +4343,26 @@ QHTL_TEMP_MODAL_JS_B
  // Allow count extraction (unchanged)
  var allowCount=(function(){ try{ var m=("$permallows").match(/<code>(\d+)<\/code>/); return m?m[1]:""; }catch(e){ return "";} })();
  var c=document.getElementById('fw-allow-count'); if(c && allowCount!==''){ c.textContent=allowCount; }
- // Improved firewall status detection: derive from existing header callout if present for authoritative state
- var statusState='off';
- try {
-	 var header=document.querySelector('.bs-callout-success h4, .bs-callout-warning h4, .bs-callout-danger h4');
-	 if(header){
-		 var t=header.textContent||'';
-		 if(/Test Mode|Testing/i.test(t)){ statusState='testing'; }
-		 else if(/Enabled/i.test(t) && /Running/i.test(t)){ statusState='on'; }
-		 else { statusState='off'; }
-	 } else {
-		 // Fallback to previous heuristic if header not yet in DOM
-		 var hasDisable=document.querySelector("button[name='action'][value='disable']");
-		 if(hasDisable){ statusState='on'; }
-		 if(window.QHTL_FW_TESTING){ statusState='testing'; }
-	 }
- } catch(e){}
+ // Improved firewall status detection: prefer authoritative global set by server, fallback to callout or heuristic
+ var statusState = (typeof window.QHTL_FW_STATUS==='string') ? window.QHTL_FW_STATUS : 'off';
+ if(statusState!=='on' && statusState!=='off' && statusState!=='testing'){ statusState='off'; }
+ if(statusState==='off' || statusState==='testing') { // only bother parsing DOM if not already definitively 'on'
+	 try {
+		 if(typeof window.QHTL_FW_STATUS==='undefined') { // only scrape if global absent
+			 var header=document.querySelector('.bs-callout-success h4, .bs-callout-warning h4, .bs-callout-danger h4');
+			 if(header){
+				 var t=header.textContent||'';
+				 if(/Test Mode|Testing/i.test(t)){ statusState='testing'; }
+				 else if(/Enabled/i.test(t) && /Running/i.test(t)){ statusState='on'; }
+				 else { statusState='off'; }
+			 } else {
+				 var hasDisable=document.querySelector("button[name='action'][value='disable']");
+				 if(hasDisable){ statusState='on'; }
+				 if(window.QHTL_FW_TESTING){ statusState='testing'; }
+			 }
+		 }
+	 } catch(e){}
+ }
  var statusBtn=document.getElementById('fwb1'); var statusLabel=document.getElementById('fw-status-text');
  if(statusBtn && statusLabel){
 	 statusBtn.classList.remove('fw-status-on','fw-status-testing','fw-status-off');
