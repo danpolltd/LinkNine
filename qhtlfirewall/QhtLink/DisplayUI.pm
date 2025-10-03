@@ -4516,15 +4516,10 @@ QHTL_ADV_RESET_JS
 		}
 		print "</div>\n";
 	print "</td></tr>\n";
-	# Inline results area for Advanced actions
-	print "<tr><td colspan='2'>\n";
-	print "  <div id='qhtl-advanced-inline' class='qhtl-advanced-inline' style='min-height:160px;padding:10px;border:1px solid rgba(255,215,0,0.35);border-radius:6px;background:transparent'>\n";
-	# Updated default content per request: show 'blade' and include the word 'sword'
-	print "    <div class='qhtl-adv-default' style='text-align:center; padding:8px 4px;'>\n";
-	print "      <div class='blade-title' style='font-weight:800; font-size:16px; color:#d4af37; text-shadow:0 1px 0 rgba(0,0,0,0.25); letter-spacing:.3px; margin-bottom:6px;'>blade</div>\n";
-	print "      <div class='text-muted small'>Use the advanced actions above; your sword status and results will appear here.</div>\n";
-	print "    </div>\n";
-	print "  </div>\n";
+	# Inline results area for Advanced actions (clean area; fallback animation will show when empty)
+	print "<tr style='background:transparent!important'><td style='background:transparent!important'>".
+	      "<div id='qhtl-advanced-inline' style='padding-top:10px;min-height:180px;background:transparent'></div>".
+	      "</td></tr>\n";
 	print "  <script>(function(){\n";
 	print "    if(window.__QHTL_ADV_INLINE_LOADER_ACTIVE){return;} window.__QHTL_ADV_INLINE_LOADER_ACTIVE=true;\n";
 	print "    var areaId='qhtl-advanced-inline';\n";
@@ -4679,21 +4674,13 @@ QHTL_ADV_RESET_JS
 			try {
 				var inScoped = (parent.classList && parent.classList.contains('qhtl-bubble-bg'));
 				var w = inScoped ? (parent.clientWidth || window.innerWidth) : window.innerWidth;
-				var h = inScoped ? (parent.clientHeight || window.innerHeight) : window.innerHeight;
-				var $dlg = $modal.find('.modal-dialog');
+				var isAdv = (href === '#moreplus');
+				var areaId = (href === '#upgrade') ? 'qhtl-upgrade-inline-area' : (href === '#waterfall' ? 'qhtl-inline-area' : (isAdv ? 'qhtl-advanced-inline' : null));
 				var $mc = $modal.find('.modal-content');
 				if (inScoped) {
 					$modal.css({ position:'absolute', left: 0, top: 0, right: 0, bottom: 0, width:'auto', height:'auto', margin:0 });
-				} else {
-					$modal.css({ position:'fixed', left: 0, top: 0, right: 0, bottom: 0, width:'auto', height:'auto', margin:0 });
-				}
-				$dlg.css({ position:'absolute', left:'50%', top:'12px', transform:'translateX(-50%)', margin:0, width: Math.min(320, Math.floor(w*0.95)) + 'px', maxWidth: Math.min(320, Math.floor(w*0.95)) + 'px' });
-				var maxH = 480; // enforce global cap
-				$mc.css({ display:'flex', flexDirection:'column', overflow:'hidden', maxHeight: maxH+'px' });
-				$modal.find('.modal-body').css({ flex:'1 1 auto', minHeight:0, overflow:'auto' });
-			} catch(_) {}
-      // add orange glow
-      $modal.find('.modal-content').addClass('fire-orange');
+					area.innerHTML = '';
+					if (area.qhtlShowFallback) area.qhtlShowFallback();
 			// wire buttons
 			// sanitize numeric input (max 10 digits) on the fly
 			$modal.on('input', '#qhtlPromoAmount', function(){
