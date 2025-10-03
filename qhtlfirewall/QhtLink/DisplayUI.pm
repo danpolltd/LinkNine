@@ -4323,16 +4323,28 @@ QHTL_TEMP_MODAL_JS_B
 		<div class='fw-plus-item'><button id='fwb5' class='fw-plus-btn' aria-label='Center Control' title='Center Control'><span class='fw-plus-label'>Center</span></button></div>
 		<div class='fw-plus-item' style='display:none'><button id='fwb6' class='fw-plus-btn' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'><span class='fw-plus-label'>Hidden</span></button></div>
 		<div class='fw-plus-item'><button id='fwb7' class='fw-plus-btn' aria-label='Lower Control' title='Lower Control'><span class='fw-plus-label'>Lower</span></button></div>
-		<div class='fw-plus-item'><button id='fwb8' class='fw-plus-btn' aria-label='Bottom Control' title='Bottom Control'><span class='fw-plus-label'>Bottom</span></button></div>
+		<div class='fw-plus-item'><button id='fwb8' class='fw-plus-btn' aria-label='Flush All' title='Flush All'><span class='fw-plus-label'>Flush</span></button></div>
 	</div>
 </div>
-<script>(function(){ try { var base=(window.QHTL_SCRIPT||'$script'); var allowCount=(function(){ try{ var m=("$permallows").match(/<code>(\d+)<\/code>/); return m?m[1]:""; }catch(e){ return "";} })(); var c=document.getElementById('fw-allow-count'); if(c && allowCount!=='' ){ c.textContent=allowCount; }
- // Determine firewall status (simple heuristic; could be replaced with explicit server var)
+<script>(function(){ try { var base=(window.QHTL_SCRIPT||'$script');
+ // Allow count extraction (unchanged)
+ var allowCount=(function(){ try{ var m=("$permallows").match(/<code>(\d+)<\/code>/); return m?m[1]:""; }catch(e){ return "";} })();
+ var c=document.getElementById('fw-allow-count'); if(c && allowCount!==''){ c.textContent=allowCount; }
+ // Improved firewall status detection: derive from existing header callout if present for authoritative state
  var statusState='off';
  try {
-	 var hasDisable=document.querySelector("button[name='action'][value='disable']");
-	 if(hasDisable){ statusState='on'; }
-	 if(window.QHTL_FW_TESTING){ statusState='testing'; }
+	 var header=document.querySelector('.bs-callout-success h4, .bs-callout-warning h4, .bs-callout-danger h4');
+	 if(header){
+		 var t=header.textContent||'';
+		 if(/Test Mode|Testing/i.test(t)){ statusState='testing'; }
+		 else if(/Enabled/i.test(t) && /Running/i.test(t)){ statusState='on'; }
+		 else { statusState='off'; }
+	 } else {
+		 // Fallback to previous heuristic if header not yet in DOM
+		 var hasDisable=document.querySelector("button[name='action'][value='disable']");
+		 if(hasDisable){ statusState='on'; }
+		 if(window.QHTL_FW_TESTING){ statusState='testing'; }
+	 }
  } catch(e){}
  var statusBtn=document.getElementById('fwb1'); var statusLabel=document.getElementById('fw-status-text');
  if(statusBtn && statusLabel){
@@ -4341,10 +4353,21 @@ QHTL_TEMP_MODAL_JS_B
 	 else if(statusState==='testing'){ statusBtn.classList.add('fw-status-testing'); statusLabel.textContent='Testing'; }
 	 else { statusBtn.classList.add('fw-status-off'); statusLabel.textContent='Off'; }
  }
- ['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); }, 400); 
-	var act=null; if(id==='fwb2'){ act='conf'; } else if(id==='fwb3'){ act='profiles'; } else if(id==='fwb4'){ act='allow'; }
-	if(act){ try{ var f=document.createElement('form'); f.method='post'; f.action=base; if(base.indexOf('?')===-1){ /* ok */ } var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); document.body.appendChild(f); f.submit(); return; }catch(__){} }
- }); }); } catch(e){} })();</script>
+ // Button action mappings (added Flush -> fwb8 / action=denyf)
+ ['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){
+	 var el=document.getElementById(id); if(!el) return;
+	 el.addEventListener('click', function(){
+		 try{ console.log('Firewall button clicked:', id); }catch(e){}
+		 el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); }, 400);
+		 var act=null;
+		 if(id==='fwb2'){ act='conf'; }
+		 else if(id==='fwb3'){ act='profiles'; }
+		 else if(id==='fwb4'){ act='allow'; }
+		 else if(id==='fwb8'){ act='denyf'; }
+		 if(act){ try{ var f=document.createElement('form'); f.method='post'; f.action=base; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); document.body.appendChild(f); f.submit(); return; }catch(__){} }
+	 });
+ });
+ } catch(e){} })();</script>
 QHTL_FIREWALL_CLUSTER
 		# Added/Updated: Firewall plus button label styling (labels above buttons, white text)
 		# Find the existing fw-plus CSS block and append overrides.
@@ -4380,7 +4403,7 @@ QHTL_FW_PLUS_LABELS_CSS
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='restartq' type='submit' class='btn btn-default'>Reboot</button></form><div class='text-muted small' style='margin-top:6px'>Have qhtlwaterfall restart the qhtlfirewall iptables firewall</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='temp' type='submit' class='btn btn-default'>Temp IPs</button></form><div class='text-muted small' style='margin-top:6px'>View/Remove the <i>temporary</i> IP entries $tempbans</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='sips' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Deny access to and from specific IP addresses configured on the server (qhtlfirewall.sips)</div></td></tr>\n";
-	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='denyf' type='submit' class='btn btn-default'>Flush All</button></form><div class='text-muted small' style='margin-top:6px'>Removes and unblocks all entries in qhtlfirewall.deny (excluding those marked \"do not delete\") and all temporary IP entries (blocks <i>and</i> allows)</div></td></tr>\n";
+	#print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='denyf' type='submit' class='btn btn-default'>Flush All</button></form><div class='text-muted small' style='margin-top:6px'>Removes and unblocks all entries in qhtlfirewall.deny (excluding those marked \"do not delete\") and all temporary IP entries (blocks <i>and</i> allows)</div></td></tr>\n"; # Mapped to fwb8 plus button (Flush)
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='redirect' type='submit' class='btn btn-default'>Redirect</button></form><div class='text-muted small' style='margin-top:6px'>Redirect connections to this server to other ports/IP addresses</div></td></tr>\n";
 	# Fix Tool moved into Advanced (hex buttons) as 3rd hex; original row removed
 		print "</table>\n";
