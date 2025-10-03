@@ -4315,7 +4315,7 @@ QHTL_TEMP_MODAL_JS_B
 	<div class='fw-plus-grid' aria-label='Firewall Plus Buttons'>
 		<button id='fwb1' class='fw-plus-btn' aria-label='Top Firewall Control' title='Top Firewall Control'></button>
 		<button id='fwb2' class='fw-plus-btn' aria-label='Upper Firewall Control' title='Upper Firewall Control'></button>
-		<button id='fwb3' class='fw-plus-btn' aria-label='Left Firewall Control' title='Left Firewall Control'></button>
+		<button id='fwb3' class='fw-plus-btn' aria-label='Profiles' title='Profiles'></button>
 		<button id='fwb4' class='fw-plus-btn' aria-label='Inner Left Firewall Control' title='Inner Left Firewall Control'></button>
 		<button id='fwb5' class='fw-plus-btn' aria-label='Center Firewall Control' title='Center Firewall Control'></button>
 		<button id='fwb6' class='fw-plus-btn' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'></button>
@@ -4324,13 +4324,15 @@ QHTL_TEMP_MODAL_JS_B
 	</div>
 </div>
 <script>(function(){ try { ['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); }, 400); 
-				if(id==='fwb2'){ try{ var f=document.createElement('form'); f.method='post'; f.action='$script'; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value='conf'; f.appendChild(i); document.body.appendChild(f); f.submit(); return; }catch(__){} }
+				var act=null; if(id==='fwb2'){ act='conf'; } else if(id==='fwb3'){ act='profiles'; }
+				if(act){ try{ var f=document.createElement('form'); f.method='post'; f.action='$script'; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); document.body.appendChild(f); f.submit(); return; }catch(__){} }
 			}); }); } catch(e){} })();</script>
 QHTL_FIREWALL_CLUSTER
 		print "</td></tr>\n";
 		# Config row removed; action now mapped to second firewall plus button (fwb2)
 		#print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='conf' type='submit' class='btn btn-default'>Config</button></form><div class='text-muted small' style='margin-top:6px'>Edit the configuration file for the qhtlfirewall firewall and qhtlwaterfall</div></td></tr>\n";
-	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='profiles' type='submit' class='btn btn-default'>Profiles</button></form><div class='text-muted small' style='margin-top:6px'>Apply pre-configured qhtlfirewall.conf profiles and backup/restore qhtlfirewall.conf</div></td></tr>\n";
+	# Profiles row removed; action now mapped to third firewall plus button (fwb3)
+	#print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='profiles' type='submit' class='btn btn-default'>Profiles</button></form><div class='text-muted small' style='margin-top:6px'>Apply pre-configured qhtlfirewall.conf profiles and backup/restore qhtlfirewall.conf</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='status' type='submit' class='btn btn-default'>View Rules</button></form><div class='text-muted small' style='margin-top:6px'>Display the active iptables rules</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='allow' type='submit' class='btn btn-default'>Allow IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.allow, the IP address allow file $permallows</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.deny, the IP address deny file $permbans</div></td></tr>\n";
