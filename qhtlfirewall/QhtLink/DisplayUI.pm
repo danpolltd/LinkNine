@@ -2034,6 +2034,8 @@ QHTL_PLUS_BTN_CSS
 					push @panels, '';
 				}
 			}
+			# Keep a copy of original panels for later restoration if any become empty after transformations
+			my @orig_panels = @panels;
 
 			# If no meaningful sections parsed into tabs 2..9, provide a fallback: put full HTML into Tab 2 (index 1)
 			my $nonempty_sections = 0;
@@ -2108,6 +2110,17 @@ QHTL_PLUS_BTN_CSS
 			my $controls_block = ($controls_html // '');
 			if ($controls_block ne '') { $controls_block = "<div style='margin-top:10px;'>$controls_block</div>"; }
 			$panels[0] = ($score_block) . $controls_block . ($panels[0] // '');
+
+			# Safety: if any secondary panel ended up effectively empty after processing, restore its original content
+			for (my $i=1; $i<scalar(@panels); $i++) {
+				my $p = $panels[$i] // '';
+				my $t = $p; $t =~ s/<[^>]+>//g; $t =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $t =~ s/\s+//g; $t =~ s/^\++$//;
+				if ($t !~ /[A-Za-z0-9]{2,}/) {
+					my $orig = $orig_panels[$i] // '';
+					my $ot = $orig; $ot =~ s/<[^>]+>//g; $ot =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $ot =~ s/\s+//g; $ot =~ s/^\++$//;
+					if ($ot =~ /[A-Za-z0-9]{2,}/) { $panels[$i] = $orig; }
+				}
+			}
 
 			# Default selected tab: choose the first non-empty panel; if we fell back to All Checks, prefer Tab 2
 			my $default_idx = 0;
