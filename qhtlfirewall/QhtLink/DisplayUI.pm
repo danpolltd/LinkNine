@@ -4337,7 +4337,7 @@ QHTL_TEMP_MODAL_JS_B
 		<div class='fw-plus-item'><button id='fwb2' class='fw-plus-btn' aria-label='Config' title='Config'><span class='fw-plus-label'>Config</span></button></div>
 		<div class='fw-plus-item'><button id='fwb3' class='fw-plus-btn' aria-label='Profiles' title='Profiles'><span class='fw-plus-label'>Profiles</span></button></div>
 		<div class='fw-plus-item'><button id='fwb4' class='fw-plus-btn fw-allow-btn' aria-label='Allow IPs' title='Allow IPs'><span class='fw-plus-label'>Allow</span><span class='fw-plus-count' id='fw-allow-count'></span></button></div>
-		<div class='fw-plus-item'><button id='fwb5' class='fw-plus-btn' aria-label='Center Control' title='Center Control'><span class='fw-plus-label'>Center</span></button></div>
+		<div class='fw-plus-item'><button id='fwb5' class='fw-plus-btn' aria-label='Rules' title='Firewall Rules'><span class='fw-plus-label'>Rules</span></button></div>
 		<div class='fw-plus-item' style='display:none'><button id='fwb6' class='fw-plus-btn' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'><span class='fw-plus-label'>Hidden</span></button></div>
 		<div class='fw-plus-item'><button id='fwb7' class='fw-plus-btn' aria-label='Lower Control' title='Lower Control'><span class='fw-plus-label'>Lower</span></button></div>
 		<div class='fw-plus-item'><button id='fwb8' class='fw-plus-btn' aria-label='Flush All' title='Flush All'><span class='fw-plus-label'>Flush</span></button></div>
@@ -4428,8 +4428,8 @@ QHTL_TEMP_MODAL_JS_B
 			 el.addEventListener('keyup', function(e){ if(e.code==='Enter'||e.code==='Space'){ releaseHold(el); } });
 		 }
 		 // Fallback click for other buttons (and status button simple clicks not treated as hold)
-		 if(id!=='fwb1'){
-			 el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); },400); var act=null; if(id==='fwb2'){ act='conf'; } else if(id==='fwb3'){ act='profiles'; } else if(id==='fwb4'){ act='allow'; } else if(id==='fwb8'){ act='denyf'; } if(act){ submitAction(act); } });
+			 if(id!=='fwb1'){
+				 el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); },400); var act=null; if(id==='fwb2'){ act='conf'; } else if(id==='fwb3'){ act='profiles'; } else if(id==='fwb4'){ act='allow'; } else if(id==='fwb5'){ act='status'; } else if(id==='fwb8'){ act='denyf'; } if(act){ submitAction(act); } });
 		 }
 	 });
  })();
@@ -4476,7 +4476,7 @@ QHTL_FW_PLUS_LABELS_CSS
 		#print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='conf' type='submit' class='btn btn-default'>Config</button></form><div class='text-muted small' style='margin-top:6px'>Edit the configuration file for the qhtlfirewall firewall and qhtlwaterfall</div></td></tr>\n";
 	# Profiles row removed; action now mapped to third firewall plus button (fwb3)
 	#print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='profiles' type='submit' class='btn btn-default'>Profiles</button></form><div class='text-muted small' style='margin-top:6px'>Apply pre-configured qhtlfirewall.conf profiles and backup/restore qhtlfirewall.conf</div></td></tr>\n";
-	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='status' type='submit' class='btn btn-default'>View Rules</button></form><div class='text-muted small' style='margin-top:6px'>Display the active iptables rules</div></td></tr>\n";
+    # View Rules row removed; functionality moved to fifth plus button (fwb5 -> action=status)
 	#print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='allow' type='submit' class='btn btn-default'>Allow IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.allow, the IP address allow file $permallows</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.deny, the IP address deny file $permbans</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='enable' type='submit' class='btn btn-default'>Enable</button></form><div class='text-muted small' style='margin-top:6px'>Enables qhtlfirewall and qhtlwaterfall if previously Disabled</div></td></tr>\n";
