@@ -2119,6 +2119,12 @@ QHTL_PLUS_BTN_CSS
 					my $orig = $orig_panels[$i] // '';
 					my $ot = $orig; $ot =~ s/<[^>]+>//g; $ot =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $ot =~ s/\s+//g; $ot =~ s/^\++$//;
 					if ($ot =~ /[A-Za-z0-9]{2,}/) { $panels[$i] = $orig; }
+					# If still effectively empty, show a friendly placeholder instead of a blank panel
+					$p = $panels[$i] // '';
+					$t = $p; $t =~ s/<[^>]+>//g; $t =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $t =~ s/\s+//g; $t =~ s/^\++$//;
+					if ($t !~ /[A-Za-z0-9]{2,}/) {
+						$panels[$i] = "<div class='text-muted' style='padding:8px'>No issues reported in this section. Use <em>Run Again and Display All Checks</em> to see full details.</div>";
+					}
 				}
 			}
 
