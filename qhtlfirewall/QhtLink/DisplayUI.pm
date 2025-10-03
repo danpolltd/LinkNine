@@ -4503,7 +4503,8 @@ QHTL_ADV_RESET_JS
 		# True move: include the former 'Extra' tab content inside 'More...'
 		$moreplus_has_content = 1;
 		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th colspan='2'>Extra</th></tr></thead>";
+		# Removed heading row label 'Extra' (no longer needed now that hex buttons replace that section)
+		# (Previously: <thead><tr><th colspan='2'>Extra</th></tr></thead>)
 		# Hex button grid (Advanced): 8 golden hex buttons with 10px silver glitter halo, above 'Test iptables'
 		print "<tr><td colspan='2' class='qhtl-advanced-hex-cell'>\n";
 		print "<style>\n";
@@ -4524,7 +4525,13 @@ QHTL_ADV_RESET_JS
 	print "  #moreplus .qhtl-hex-btn:active{transform:translateY(0) scale(.97); box-shadow:0 0 3px 1px rgba(255,215,0,0.9),0 0 10px 4px rgba(255,200,0,0.65),0 0 18px 10px rgba(255,200,0,0.5);}\n";
 		print "    transition:transform .12s ease, box-shadow .12s ease;\n";
 		print "  }\n";
-	print "  #moreplus .qhtl-hex-btn:before{content:'';display:none;}\n";
+	print "  /* Restored luminous halo via :before pseudo-element */\n";
+	print "  #moreplus .qhtl-hex-btn:before{content:'';position:absolute;inset:-10px;clip-path:inherit;border-radius:18px;pointer-events:none;\n";
+	print "    background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.95) 0%, rgba(255,235,120,0.65) 40%, rgba(255,200,0,0.25) 68%, rgba(255,200,0,0) 78%);\n";
+	print "    box-shadow:0 0 6px 3px rgba(255,255,200,0.95),0 0 14px 8px rgba(255,235,140,0.75),0 0 30px 18px rgba(255,215,60,0.55),0 0 60px 32px rgba(255,210,40,0.35);\n";
+	print "    animation:qhtlHexPulse 3.6s ease-in-out infinite; transform-origin:center center;\n";
+	print "  }\n";
+	print "  @keyframes qhtlHexPulse { 0%,100%{opacity:1; filter:brightness(1);} 50%{opacity:.86; filter:brightness(1.08);} }\n";
 	print "  #moreplus a.qhtl-hex-btn{color:#ffffff !important; text-shadow:0 1px 2px rgba(0,0,0,0.65);}\n";
 	print "  #moreplus a.qhtl-hex-btn:visited{color:#ffffff !important;}\n";
 	print "  #moreplus a.qhtl-hex-btn:hover{color:#ffffff !important;}\n";
