@@ -4281,7 +4281,7 @@ QHTL_TEMP_MODAL_JS_B
 		print "<table class='table table-bordered table-striped'>\n";
 	print "<thead><tr><th colspan='2'>QHTL \"Firewall\"</th></tr></thead>";
 		# Replace single + with 8-button red plus cluster
-		print "<tr><td colspan='2'>";
+		print "<tr class='fw-plus-row'><td colspan='2' class='fw-plus-cell'>";
 		print <<'QHTL_FIREWALL_CLUSTER';
 <style>
 #firewall1 .fw-plus-wrapper { position:relative; width:100%; display:flex; justify-content:center; padding:24px 0 12px; }
@@ -4310,6 +4310,7 @@ QHTL_TEMP_MODAL_JS_B
 @media (max-width: 860px) { #firewall1 .fw-plus-grid { transform:scale(.85); transform-origin:top center; } }
 @media (max-width: 620px) { #firewall1 .fw-plus-grid { transform:scale(.72); } }
 </style>
+<style>#firewall1 .fw-plus-row td.fw-plus-cell { background:transparent!important; box-shadow:none!important; }</style>
 <div class='fw-plus-wrapper'>
 	<div class='fw-plus-grid' aria-label='Firewall Plus Buttons'>
 		<button id='fwb1' class='fw-plus-btn' aria-label='Top Firewall Control' title='Top Firewall Control'></button>
