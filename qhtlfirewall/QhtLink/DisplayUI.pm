@@ -198,7 +198,7 @@ sub _qhtl_render_servercheck_tabs {
 <style>
 /* qhtl tabs: tightly scoped, high-specificity to avoid collisions */
 .qhtl-tabs { margin: 8px 0; }
-	.qhtl-tabs .qhtl-tabs-inputs { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+	.qhtl-tabs .qhtl-tabs-radio { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 	.qhtl-tabs .qhtl-tabs-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px 0; padding: 0; list-style: none; }
 	.qhtl-tabs .qhtl-tabs-nav label { cursor: pointer; border: 1px solid #ccc; background: #f7f7f7; padding: 6px 10px; border-radius: 4px; font-weight: 600; display: inline-block; }
 	.qhtl-tabs .qhtl-tabpanel { display: none !important; }
@@ -226,14 +226,12 @@ QHTL_TABS_CSS
 			# Render container
 			$html .= "<div class='qhtl-tabs' id='qhtl-tabs-servercheck'>\n";
 
-			# Hidden radio inputs for pure-CSS tab switching
-			$html .= "  <div class='qhtl-tabs-inputs'>\n";
+			# Hidden radio inputs for pure-CSS tab switching (must be siblings of nav and panels)
 			for my $i (0..$#ids) {
-					my $rid = 'qhtl-r-'.$ids[$i];
-					my $checked = ($i==0) ? " checked" : "";
-					$html .= "    <input type='radio' name='qhtl-sc-tabs' id='$rid' value='$rid'$checked>\n";
+				my $rid = 'qhtl-r-'.$ids[$i];
+				my $checked = ($i==0) ? " checked" : "";
+				$html .= "  <input class='qhtl-tabs-radio' type='radio' name='qhtl-sc-tabs' id='$rid' value='$rid'$checked>\n";
 			}
-			$html .= "  </div>\n";
 
 			# Tab labels/nav
 			$html .= "  <ul class='qhtl-tabs-nav'>\n";
