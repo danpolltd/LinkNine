@@ -4404,6 +4404,10 @@ QHTL_FIREWALL_CLUSTER
 #firewall1 .fw-status-btn.fw-status-testing .fw-plus-label { text-shadow:0 0 3px #000,0 0 6px #c96,0 0 12px #e87; }
 #firewall1 .fw-plus-grid {margin-top:0 !important;}
 #firewall1 .fw-plus-btn, #firewall1 .fw-plus-btn * {color:#fff !important;}
+/* Allow button (fwb4) green theme */
+#fwb4.fw-plus-btn::before, #fwb4.fw-plus-btn::after { background: linear-gradient(180deg,#e6ffe9 0%,#b0f5be 8%,#31c451 42%,#1b9a39 78%,#14722a 100%) !important; }
+#fwb4 .fw-plus-label { text-shadow:0 0 3px #000,0 0 6px #0c5,0 0 12px #20c060 !important; }
+#fwb4 .fw-plus-count { box-shadow:0 0 0 2px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.45); }
 </style>
 QHTL_FW_PLUS_LABELS_CSS
 		print "</td></tr>\n";
