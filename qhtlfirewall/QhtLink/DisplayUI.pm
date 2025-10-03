@@ -436,8 +436,8 @@ sub main {
 		print <<EOF;
 <div>$options Lines:<input type='text' id="QHTLFIREWALLlines" value="100" size='4'>&nbsp;&nbsp;<button class='btn btn-default' onclick="QHTLFIREWALLrefreshtimer()">Refresh Now</button></div>
 <div>Refresh in <span id="QHTLFIREWALLtimer">0</span> <button class='btn btn-default' id="QHTLFIREWALLpauseID" onclick="QHTLFIREWALLpausetimer()" style="width:80px;">Pause</button> <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
-<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
-<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
+<div class='pull-right btn-group'><button type='button' class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
+<button type='button' class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
 <pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap; line-height: 1.5; clear:both"> &nbsp; </pre>
 
 		<script>
@@ -458,17 +458,18 @@ EOF
 	print <<'QHTL_JQ_TAIL';
 <script>
 var myFont = 14;
-$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
-$("#fontminus-btn").on('click', function () {
-	myFont--;
-	if (myFont < 12) { myFont = 12 }
-	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
-});
-$("#fontplus-btn").on('click', function () {
-	myFont++;
-	if (myFont > 40) { myFont = 40 }
-	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
-});
+(function(){
+	function apply(){ try{ var el=document.getElementById('QHTLFIREWALLajax'); if(el){ el.style.fontSize = myFont + 'px'; } }catch(_){ }
+	}
+	apply();
+	if (window.jQuery) {
+		jQuery('#fontminus-btn').on('click', function(){ myFont--; if(myFont<12) myFont=12; apply(); });
+		jQuery('#fontplus-btn').on('click', function(){ myFont++; if(myFont>40) myFont=40; apply(); });
+	} else {
+		try{ var m=document.getElementById('fontminus-btn'); if(m){ m.addEventListener('click', function(){ myFont--; if(myFont<12) myFont=12; apply(); }); } }catch(_){ }
+		try{ var p=document.getElementById('fontplus-btn'); if(p){ p.addEventListener('click', function(){ myFont++; if(myFont>40) myFont=40; apply(); }); } }catch(_){ }
+	}
+})();
 </script>
 <!-- Quick View modal handlers are defined once in the main UI script below -->
 QHTL_JQ_TAIL
@@ -5406,8 +5407,8 @@ sub editfile {
 		print "<script src='/libraries/ace-editor/optimized/src-min-noconflict/ace.js'></script>\n";
 		print "<h4>Edit <code>$file</code></h4>\n";
 		print "<button class='btn btn-default' id='toggletextarea-btn'>Toggle Editor/Textarea</button>\n";
-		print " <div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>\n";
-		print "<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>\n";
+	print " <div class='pull-right btn-group'><button type='button' class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>\n";
+	print "<button type='button' class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>\n";
 		print "<form action='$script' method='post'>\n";
 		print "<input type='hidden' name='action' value='$save'>\n";
 		print "<input type='hidden' name='ace' value='1'>\n";
