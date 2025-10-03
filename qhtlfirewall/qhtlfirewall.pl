@@ -3765,8 +3765,8 @@ sub doupdate {
 			if (-e "/usr/src/qhtlfirewall.tgz") {unlink ("/usr/src/qhtlfirewall.tgz") or die $!}
 			print "Retrieving new qhtlfirewall package...\n";
 
-			my $url = "https://$config{DOWNLOADSERVER}/qhtlfirewall.tgz";
-			if ($config{URLGET} == 1) {$url = "http://$config{DOWNLOADSERVER}/qhtlfirewall.tgz";}
+			my $url = "https://$config{DOWNLOADSERVER}/qhtlfirewall.tgz?_=" . time();
+			if ($config{URLGET} == 1) {$url = "http://$config{DOWNLOADSERVER}/qhtlfirewall.tgz?_=" . time();}
 			my ($status, $text) = $urlget->urlget($url,"/usr/src/qhtlfirewall.tgz");
 
 			# Proceed only if the downloaded archive exists and is non-empty

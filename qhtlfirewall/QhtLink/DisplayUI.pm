@@ -3569,7 +3569,7 @@ bash /etc/qhtlfirewall/uninstall.sh
 cd /usr/src
 mv -fv qhtlfirewall.tgz qhtlfirewall.tgz.$time
 mv -fv qhtlfirewall qhtlfirewall.$time
-wget https://$config{DOWNLOADSERVER}/qhtlfirewall.tgz
+wget "https://$config{DOWNLOADSERVER}/qhtlfirewall.tgz?_=$time"
 tar -xzf qhtlfirewall.tgz
 cd qhtlfirewall
 sh install.sh
@@ -4420,17 +4420,7 @@ QHTL_TEMP_MODAL_JS_B
 			print "</table>\n";
 		}
 
-		if (-e "/usr/local/cpanel/version" or $config{DIRECTADMIN} or $config{INTERWORX}) {
-			$moreplus_has_content = 1;
-			my $resellers = "cPanel Resellers";
-			if ($config{DIRECTADMIN}) {$resellers = "DirectAdmin Resellers"}
-			elsif ($config{INTERWORX}) {$resellers = "InterWorx Resellers"}
-			print "<table class='table table-bordered table-striped'>\n";
-			print "<thead><tr><th colspan='2'>$resellers</th></tr></thead>";
-			# Old 'Edit Reseller Privs' button removed; now provided as Hex #2 above
-			print "<tr><td colspan='2'><div class='text-muted small' style='margin-top:6px'>Privileges can be assigned to $resellers accounts by editing this file (qhtlfirewall.resellers). Use the Advanced hex buttons above.</div></td></tr>\n";
-			print "</table>\n";
-		}
+		# Resellers section removed (handled by Advanced hex buttons)
 
 		# True move: include the former 'Extra' tab content inside 'More...'
 		$moreplus_has_content = 1;
@@ -4441,17 +4431,17 @@ QHTL_TEMP_MODAL_JS_B
 		print "<style>\n";
 		print "  /* Scoped to Advanced tab only */\n";
 		print "  #moreplus .qhtl-advanced-hex-cell{background:transparent !important; border:0 !important;}\n";
-		print "  #moreplus .qhtl-advanced-hexes{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;align-items:flex-start;margin:8px 0 14px 0}\n";
-		print "  #moreplus .qhtl-hex-wrap{padding:10px;display:flex;align-items:center;justify-content:center;text-align:center}\n";
-		print "  #moreplus .qhtl-hex-btn{position:relative;width:70px;height:70px;cursor:pointer;border:none;padding:0 6px;background:linear-gradient(135deg,#b8860b,#ffd700,#d4af37);\n";
+	print "  #moreplus .qhtl-advanced-hexes{display:flex;flex-wrap:wrap;justify-content:center;gap:30px;align-items:flex-start;margin:8px 0 14px 0}\n";
+	print "  #moreplus .qhtl-hex-wrap{padding:0;display:flex;align-items:center;justify-content:center;text-align:center}\n";
+	print "  #moreplus .qhtl-hex-btn{position:relative;width:70px;height:70px;cursor:pointer;border:none;padding:0 6px;background:linear-gradient(135deg,#b8860b,#ffd700,#d4af37);\n";
 		print "    display:flex;align-items:center;justify-content:center;text-align:center; font-size:11px; font-weight:600; color:#1a1200; text-shadow:0 1px 0 rgba(255,255,255,0.35); outline:none; clip-path:polygon(25% 6.7%,75% 6.7%,100% 50%,75% 93.3%,25% 93.3%,0% 50%);\n";
-		print "    box-shadow:0 0 0 10px rgba(255,215,0,0.9);\n";
+	print "    box-shadow:0 0 0 10px rgba(255,191,0,1);\n";
 		print "    transition:transform .12s ease, box-shadow .12s ease;\n";
 		print "  }\n";
-		print "  #moreplus .qhtl-hex-btn:before{content:'';display:none;}\n";
-		print "  #moreplus .qhtl-hex-btn:hover{transform:translateY(-2px); box-shadow:0 0 0 10px rgba(255,215,0,0.95);}\n";
-		print "  #moreplus .qhtl-hex-btn:active{transform:translateY(0); box-shadow:0 0 0 10px rgba(255,215,0,0.75);}\n";
-		print "  /* halo animation removed: plain ring */\n";
+	print "  #moreplus .qhtl-hex-btn:before{content:'';display:none;}\n";
+	print "  #moreplus .qhtl-hex-btn:hover{transform:translateY(-2px);}\n";
+	print "  #moreplus .qhtl-hex-btn:active{transform:translateY(0);}\n";
+	print "  /* halo: plain ring; spacing via container gap only */\n";
 		print "  /* Provide minimal fallback if clip-path unsupported */\n";
 		print "  @supports not (clip-path: polygon(0 0)){ #moreplus .qhtl-hex-btn{border-radius:10px;} #moreplus .qhtl-hex-btn:before{clip-path:none;} }\n";
 		print "</style>\n";
@@ -4484,23 +4474,28 @@ QHTL_TEMP_MODAL_JS_B
 			}
 		}
 		print "</div>\n";
-		print "</td></tr>\n";
-		print "</table>\n";
+	print "</td></tr>\n";
+	# Inline results area for Advanced actions
+	print "<tr><td colspan='2'>\n";
+	print "  <div id='qhtl-advanced-inline' class='qhtl-advanced-inline' style='min-height:160px;padding:10px;border:1px solid rgba(255,215,0,0.35);border-radius:6px;background:transparent'>\n";
+	print "    <div class='text-muted small'>Select an action above to display results here.</div>\n";
+	print "  </div>\n";
+	print "  <script>(function(){\n";
+	print "    if(window.__QHTL_ADV_INLINE_LOADER_ACTIVE){return;} window.__QHTL_ADV_INLINE_LOADER_ACTIVE=true;\n";
+	print "    var areaId='qhtl-advanced-inline';\n";
+	print "    function sameOrigin(u){ try{ var a=document.createElement('a'); a.href=u; return (!a.host || a.host===location.host); }catch(e){ return false; } }\n";
+	print "    function isQhtlAction(u, form){ try{ if(String(u).indexOf('?action=')!==-1) return true; if(form && form.querySelector && form.querySelector('[name=\\x61ction]')) return true; return false; }catch(e){ return false; } }\n";
+	print "    function loadInto(url, method, data){ try{ var area=document.getElementById(areaId); if(!area){ location.href=url; return; } if(window.jQuery){ if(method==='POST'){ jQuery(area).html(\"<div class='text-muted'>Loading...</div>\").load(url, data); } else { jQuery(area).html(\"<div class='text-muted'>Loading...</div>\").load(url); } } else { var x=new XMLHttpRequest(); x.open(method||'GET', url, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} if(method==='POST'){ try{x.setRequestHeader('Content-Type','application/x-www-form-urlencoded; charset=UTF-8');}catch(__){} } x.onreadystatechange=function(){ if(x.readyState===4){ if(x.status>=200 && x.status<300){ area.innerHTML=x.responseText; } else { location.href=url; } } }; x.send(data||null); } } catch(e){ try{ location.href=url; }catch(_){} } }\n";
+	print "    var __qhtl_adv_lastSubmitter=null;\n";
+	print "    function serialize(form, submitter){ try{ var p=[]; for(var i=0;i<form.elements.length;i++){ var el=form.elements[i]; if(!el||!el.name||el.disabled) continue; var t=(el.type||'').toLowerCase(); if(t==='file') continue; if((t==='checkbox'||t==='radio')&&!el.checked) continue; if(t==='submit'||t==='button'){ if(submitter && el===submitter){ p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(el.value)); } continue; } if(t==='select-multiple'){ for(var j=0;j<el.options.length;j++){ var opt=form.elements[i].options[j]; if(opt.selected){ p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(opt.value)); } } continue; } p.push(encodeURIComponent(el.name)+'='+encodeURIComponent(el.value)); } if(submitter && submitter.name){ var found=false; for(var k=0;k<form.elements.length;k++){ if(form.elements[k]===submitter){ found=true; break; } } if(!found){ p.push(encodeURIComponent(submitter.name)+'='+encodeURIComponent(submitter.value||'')); } } return p.join('&'); }catch(e){ return ''; } }\n";
+	print "    var root=document.getElementById('moreplus'); if(!root) return;\n";
+	print "    root.addEventListener('click', function(ev){ var t=ev.target; if(!t) return; var btn=t.closest?t.closest('button, input[type=submit]'):null; if(btn && (String(btn.type||'').toLowerCase()==='submit')){ __qhtl_adv_lastSubmitter=btn; } var a=t.closest?t.closest('a'):null; if(!a) return; var href=a.getAttribute('href')||''; if(!href || href==='javascript:void(0)') return; if(!sameOrigin(href) || !isQhtlAction(href,null)) return; ev.preventDefault(); var u=href+(href.indexOf('?')>-1?'&':'?')+'ajax=1'; loadInto(u,'GET'); }, true);\n";
+	print "    root.addEventListener('submit', function(ev){ var f=ev.target; if(!f||f.tagName!=='FORM') return; var action=f.getAttribute('action')||location.pathname; if(!sameOrigin(action) || !isQhtlAction(action,f)) return; var enc=(f.enctype||''); if(enc && String(enc).toLowerCase().indexOf('multipart/form-data')!==-1) return; ev.preventDefault(); var submitter=(ev.submitter?ev.submitter:__qhtl_adv_lastSubmitter); var data=serialize(f, submitter); loadInto(action+(action.indexOf('?')>-1?'&':'?')+'ajax=1', (f.method||'GET').toUpperCase(), data); }, true);\n";
+	print "  })();</script>\n";
+	print "</td></tr>\n";
+	print "</table>\n";
 
-		# About/Forum link (restored) – placed under More tab as a true move
-		$moreplus_has_content = 1;
-		print "<table class='table table-bordered table-striped'>\n";
-		print "<thead><tr><th>About</th></tr></thead>";
-		print "<tr><td>Visit <a href='https://www.forum.danpol.co.uk' target='_blank' rel='noopener'>forum.danpol.co.uk</a> for updates and support.</td></tr>\n";
-		print "</table>\n";
-
-		unless ($moreplus_has_content) {
-				print "<div class='text-muted small' style='padding:8px'>No additional modules are enabled for this section.</div>\n";
-				print "<table class='table table-bordered table-striped'>\n";
-				print "<thead><tr><th>About qhtlfirewall</th></tr></thead>";
-				print "<tr><td>This interface provides quick access to qhtlfirewall and qhtlwaterfall management. Use the tabs above to navigate. The Upgrade tab will show when updates are available and provide a link to the ChangeLog.</td></tr>\n";
-				print "</table>\n";
-		}
+	# About section replaced by hex button; no fallback table
 
 		print "</div>\n";
 
