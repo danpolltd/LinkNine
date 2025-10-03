@@ -4469,8 +4469,15 @@ QHTL_ADV_RESET_JS
 	print "  #moreplus .qhtl-hex-wrap{padding:0;display:flex;align-items:center;justify-content:center;text-align:center}\n";
 	print "  #moreplus .qhtl-hex-btn{position:relative;width:70px;height:70px;cursor:pointer;border:none;padding:4px 4px;background:linear-gradient(135deg,#b8860b,#ffd700,#d4af37);\n";
 		print "    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center; font-size:11px; font-weight:700; line-height:1.05; color:#ffffff; text-shadow:0 1px 2px rgba(0,0,0,0.65); outline:none; clip-path:polygon(25% 6.7%,75% 6.7%,100% 50%,75% 93.3%,25% 93.3%,0% 50%);\n";
-		print "    box-shadow:0 0 0 6px rgba(192,192,192,0.85),0 0 14px 6px rgba(255,215,0,0.55),0 0 28px 12px rgba(255,215,0,0.35);\n";
-		print "    border:1px solid rgba(255,255,255,0.35);\n";
+		print "    box-shadow:0 0 4px 2px rgba(255,215,0,0.9),0 0 10px 4px rgba(255,215,0,0.75),0 0 18px 8px rgba(255,215,0,0.55),0 0 34px 14px rgba(255,223,100,0.45),0 0 48px 22px rgba(255,240,160,0.35);\n";
+		print "    border:1px solid rgba(255,255,255,0.5);\n";
+		print "    transition:transform .15s ease, box-shadow .25s ease;\n";
+	print "  }\n";
+	print "  #moreplus .qhtl-hex-btn:after{content:'';position:absolute;inset:-6px;pointer-events:none;clip-path:inherit;border-radius:12px;\n";
+	print "    background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.55) 0%, rgba(255,215,0,0.25) 55%, rgba(255,215,0,0) 70%); mix-blend-mode:screen; opacity:0.9; filter:blur(2px);\n";
+	print "  }\n";
+	print "  #moreplus .qhtl-hex-btn:hover{transform:translateY(-3px) scale(1.04); box-shadow:0 0 6px 3px rgba(255,230,120,0.95),0 0 14px 6px rgba(255,230,120,0.85),0 0 26px 12px rgba(255,220,90,0.75),0 0 50px 22px rgba(255,235,140,0.6);}\n";
+	print "  #moreplus .qhtl-hex-btn:active{transform:translateY(0) scale(.97); box-shadow:0 0 3px 1px rgba(255,215,0,0.9),0 0 10px 4px rgba(255,200,0,0.65),0 0 18px 10px rgba(255,200,0,0.5);}\n";
 		print "    transition:transform .12s ease, box-shadow .12s ease;\n";
 		print "  }\n";
 	print "  #moreplus .qhtl-hex-btn:before{content:'';display:none;}\n";
