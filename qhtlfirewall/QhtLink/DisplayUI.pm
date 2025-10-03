@@ -2029,22 +2029,15 @@ QHTL_PLUS_BTN_CSS
 				}
 			}
 
-			# Prepend the 70x70 "+" button to the "Firewall Check" tab content if present
-			for (my $i=0; $i<@labels; $i++) {
-				if (defined $labels[$i] && $labels[$i] eq 'Firewall Check') {
-					my $btn = "<div class='qhtl-plus-wrap'><button type='button' class='qhtl-plus-btn' aria-label='Add'>+</button></div>";
-					$panels[$i] = $btn . ($panels[$i] // '');
-					last;
-				}
-			}
-
 			# If no meaningful sections parsed into tabs 2..9, provide a fallback: put full HTML into Tab 2 (index 1)
 			my $nonempty_sections = 0;
 			for (my $i=1; $i<scalar(@panels); $i++) {
 				my $p = $panels[$i] // '';
-				# Strip tags and whitespace to detect real content
+				# Strip tags and whitespace to detect real content (ignore trivial symbols)
 				my $t = $p; $t =~ s/<[^>]+>//g; $t =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $t =~ s/\s+//g;
-				if ($t ne '') { $nonempty_sections++; }
+				# Remove lone plus or very short leftovers
+				$t =~ s/^\++$//; # plus-only
+				if ($t =~ /[A-Za-z0-9]{2,}/) { $nonempty_sections++; }
 			}
 			if ($nonempty_sections == 0) {
 				$panels[1] = $full_html;
@@ -2139,7 +2132,7 @@ QHTL_PLUS_BTN_CSS
 
 			# Client-side safety net: if all secondary panels are effectively empty, show full HTML in Tab 2 and select it
 			my $escaped_full = $full_html; $escaped_full =~ s/\\/\\\\/g; $escaped_full =~ s/'/\\'/g; $escaped_full =~ s/\r?\n/\n/g;
-			print "<script>(function(){try{var c=document.getElementById('$container_id');if(!c)return;var panels=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel');var nonempty=0;for(var i=1;i<panels.length;i++){var t=(panels[i].textContent||'').replace(/\s+/g,'');if(t!==''){nonempty++;break;}}if(nonempty===0&&panels.length>1){panels[1].innerHTML='".$escaped_full."';var labels=c.querySelectorAll('.qhtl-tab-list label');if(labels[1]){labels[1].textContent='All Checks';}var r=document.getElementById('".$container_id."-tab-1'); if(r&&r.type==='radio'){ r.checked=true; }}}catch(_){}})();</script>\n";
+			print "<script>(function(){try{var c=document.getElementById('$container_id');if(!c)return;var panels=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel');function isMeaningful(el){try{var t=(el.textContent||'');t=t.replace(/<[^>]+>/g,'');t=t.replace(/\u00a0|\s+/g,'');t=t.replace(/^\++$/,'');return /[A-Za-z0-9]{2,}/.test(t);}catch(_){return false;}}var nonempty=0;for(var i=1;i<panels.length;i++){ if(isMeaningful(panels[i])){ nonempty++; break; } }if(nonempty===0&&panels.length>1){panels[1].innerHTML='".$escaped_full."';var labels=c.querySelectorAll('.qhtl-tab-list label');if(labels[1]){labels[1].textContent='All Checks';}var r=document.getElementById('".$container_id."-tab-1'); if(r&&r.type==='radio'){ r.checked=true; } var ps=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel'); for(var k=0;k<ps.length;k++){ ps[k].style.display=(k===1?'block':'none'); } }}catch(_){}})();</script>\n";
 		} else {
 			print "<div class='alert alert-warning'>ServerCheck module not available in this environment. Skipping report.</div>\n";
 		}
