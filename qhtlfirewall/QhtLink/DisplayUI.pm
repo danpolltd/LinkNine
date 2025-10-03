@@ -4435,6 +4435,35 @@ QHTL_TEMP_MODAL_JS_B
 		$moreplus_has_content = 1;
 		print "<table class='table table-bordered table-striped'>\n";
 		print "<thead><tr><th colspan='2'>Extra</th></tr></thead>";
+		# Hex button grid (Advanced): 8 golden hex buttons with 10px silver glitter halo, above 'Test iptables'
+		print "<tr><td colspan='2'>\n";
+		print "<style>\n";
+		print "  /* Scoped to Advanced tab only */\n";
+		print "  #moreplus .qhtl-advanced-hexes{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0 14px 0}\n";
+		print "  #moreplus .qhtl-hex-btn{position:relative;width:70px;height:70px;cursor:pointer;border:none;padding:0;background:linear-gradient(135deg,#b8860b,#ffd700,#d4af37);\n";
+		print "    color:transparent; /* no visible text */ outline:none; clip-path:polygon(25% 6.7%,75% 6.7%,100% 50%,75% 93.3%,25% 93.3%,0% 50%);\n";
+		print "    box-shadow:0 0 0 10px rgba(192,192,192,0.45), 0 0 8px 2px rgba(192,192,192,0.55), inset 0 0 6px rgba(0,0,0,0.25);\n";
+		print "    transition:transform .12s ease, box-shadow .12s ease;\n";
+		print "  }\n";
+		print "  #moreplus .qhtl-hex-btn:before{content:'';position:absolute;inset:-10px;pointer-events:none;\n";
+		print "    /* glitter halo */ background:conic-gradient(from 0deg, rgba(192,192,192,0.0) 0 10%, rgba(255,255,255,0.65) 10% 12%, rgba(192,192,192,0.0) 12% 22%, rgba(224,224,224,0.75) 22% 24%, rgba(192,192,192,0.0) 24% 34%, rgba(255,255,255,0.6) 34% 36%, rgba(192,192,192,0.0) 36% 46%, rgba(224,224,224,0.7) 46% 48%, rgba(192,192,192,0.0) 48% 58%, rgba(255,255,255,0.6) 58% 60%, rgba(192,192,192,0.0) 60% 70%, rgba(224,224,224,0.75) 70% 72%, rgba(192,192,192,0.0) 72% 82%, rgba(255,255,255,0.65) 82% 84%, rgba(192,192,192,0.0) 84% 100%);\n";
+		print "    -webkit-mask: radial-gradient(circle, transparent 48%, black 49.5%, black 100%); mask: radial-gradient(circle, transparent 48%, black 49.5%, black 100%); filter: blur(.2px);\n";
+		print "    animation:qhtlHaloSpin 4.5s linear infinite;\n";
+		print "    clip-path:polygon(22% 3%,78% 3%,100% 50%,78% 97%,22% 97%,0% 50%); /* align ring to hex */\n";
+		print "  }\n";
+		print "  #moreplus .qhtl-hex-btn:hover{transform:translateY(-2px); box-shadow:0 0 0 10px rgba(225,225,225,0.55), 0 0 14px 3px rgba(220,220,220,0.75), inset 0 0 8px rgba(0,0,0,0.28);}\n";
+		print "  #moreplus .qhtl-hex-btn:active{transform:translateY(0); box-shadow:0 0 0 10px rgba(200,200,200,0.5), 0 0 6px 2px rgba(180,180,180,0.6), inset 0 0 10px rgba(0,0,0,0.35);}\n";
+		print "  @keyframes qhtlHaloSpin{to{transform:rotate(360deg)}}\n";
+		print "  /* Provide minimal fallback if clip-path unsupported */\n";
+		print "  @supports not (clip-path: polygon(0 0)){ #moreplus .qhtl-hex-btn{border-radius:10px;} #moreplus .qhtl-hex-btn:before{clip-path:none;} }\n";
+		print "</style>\n";
+		print "<div class='qhtl-advanced-hexes' aria-label='Advanced actions'>\n";
+		for my $i (1..8) {
+			my $lbl = "Advanced Action $i";
+			print "  <button type='button' class='qhtl-hex-btn' aria-label='$lbl' title='$lbl'></button>\n";
+		}
+		print "</div>\n";
+		print "</td></tr>\n";
 		print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='qhtlfirewalltest' type='submit' class='btn btn-default'>Test iptables</button></form><div class='text-muted small' style='margin-top:6px'>Check that iptables has the required modules to run qhtlfirewall</div></td></tr>\n";
 		print "</table>\n";
 
