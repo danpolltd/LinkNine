@@ -2045,6 +2045,8 @@ QHTL_PLUS_BTN_CSS
 				my $t = $p; $t =~ s/<[^>]+>//g; $t =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $t =~ s/\s+//g;
 				# Remove lone plus or very short leftovers
 				$t =~ s/^\++$//; # plus-only
+				# Treat a bare "OK" section as not meaningful
+				if ($t =~ /^ok$/i) { $t = '' }
 				if ($t =~ /[A-Za-z0-9]{2,}/) { $nonempty_sections++; }
 			}
 			if ($nonempty_sections == 0) {
@@ -2114,17 +2116,30 @@ QHTL_PLUS_BTN_CSS
 			# Safety: if any secondary panel ended up effectively empty after processing, restore its original content
 			for (my $i=1; $i<scalar(@panels); $i++) {
 				my $p = $panels[$i] // '';
-				my $t = $p; $t =~ s/<[^>]+>//g; $t =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $t =~ s/\s+//g; $t =~ s/^\++$//;
+				my $t = $p; $t =~ s/<[^>]+>//g; $t =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $t =~ s/\s+//g; $t =~ s/^\++$//; if ($t =~ /^ok$/i) { $t = '' }
 				if ($t !~ /[A-Za-z0-9]{2,}/) {
 					my $orig = $orig_panels[$i] // '';
-					my $ot = $orig; $ot =~ s/<[^>]+>//g; $ot =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $ot =~ s/\s+//g; $ot =~ s/^\++$//;
+					my $ot = $orig; $ot =~ s/<[^>]+>//g; $ot =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $ot =~ s/\s+//g; $ot =~ s/^\++$//; if ($ot =~ /^ok$/i) { $ot = '' }
 					if ($ot =~ /[A-Za-z0-9]{2,}/) { $panels[$i] = $orig; }
 					# If still effectively empty, show a friendly placeholder instead of a blank panel
 					$p = $panels[$i] // '';
-					$t = $p; $t =~ s/<[^>]+>//g; $t =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $t =~ s/\s+//g; $t =~ s/^\++$//;
+					$t = $p; $t =~ s/<[^>]+>//g; $t =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $t =~ s/\s+//g; $t =~ s/^\++$//; if ($t =~ /^ok$/i) { $t = '' }
 					if ($t !~ /[A-Za-z0-9]{2,}/) {
 						$panels[$i] = "<div class='text-muted' style='padding:8px'>No issues reported in this section. Use <em>Run Again and Display All Checks</em> to see full details.</div>";
 					}
+				}
+			}
+
+			# Server-side safety net: ensure at least one non-General tab has full content even without JS
+			my $filled_all_checks = 0;
+			for (my $i=1; $i<scalar(@panels); $i++) {
+				my $p = $panels[$i] // '';
+				my $t = $p; $t =~ s/<[^>]+>//g; $t =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $t =~ s/\s+//g; $t =~ s/^\++$//; if ($t =~ /^ok$/i) { $t = '' }
+				if ($t !~ /[A-Za-z0-9]{2,}/) {
+					$panels[$i] = $full_html;
+					$labels[$i] = 'All Checks' if (!$labels[$i] || $labels[$i] =~ /^Tab\s+/i);
+					$filled_all_checks = 1;
+					last;
 				}
 			}
 
@@ -2135,7 +2150,7 @@ QHTL_PLUS_BTN_CSS
 				# Scan panels from 0..end and pick the first with visible content
 				for (my $i=0; $i<scalar(@panels); $i++) {
 					my $p = $panels[$i] // '';
-					my $t = $p; $t =~ s/<[^>]+>//g; $t =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $t =~ s/\s+//g;
+					my $t = $p; $t =~ s/<[^>]+>//g; $t =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $t =~ s/\s+//g; if ($t =~ /^ok$/i) { $t = '' }
 					if ($t ne '') { $default_idx = $i; last; }
 				}
 			}
