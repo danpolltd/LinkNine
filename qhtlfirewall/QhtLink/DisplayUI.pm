@@ -4323,9 +4323,9 @@ QHTL_TEMP_MODAL_JS_B
 		<button id='fwb8' class='fw-plus-btn' aria-label='Bottom Firewall Control' title='Bottom Firewall Control'></button>
 	</div>
 </div>
-<script>(function(){ try { ['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); }, 400); 
+<script>(function(){ try { var base=(window.QHTL_SCRIPT||'$script'); ['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); }, 400); 
 				var act=null; if(id==='fwb2'){ act='conf'; } else if(id==='fwb3'){ act='profiles'; }
-				if(act){ try{ var f=document.createElement('form'); f.method='post'; f.action='$script'; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); document.body.appendChild(f); f.submit(); return; }catch(__){} }
+				if(act){ try{ var f=document.createElement('form'); f.method='post'; f.action=base; if(base.indexOf('?')===-1){ /* ok */ } var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); document.body.appendChild(f); f.submit(); return; }catch(__){} }
 			}); }); } catch(e){} })();</script>
 QHTL_FIREWALL_CLUSTER
 		print "</td></tr>\n";
@@ -4459,7 +4459,9 @@ QHTL_FIREWALL_CLUSTER
 				try {
 					if (area.qhtlCancelFade) area.qhtlCancelFade();
 					area.innerHTML = '';
-					if (area.qhtlShowFallback) area.qhtlShowFallback();
+					if (area.qhtlShowFallback) area.qhtlShowFallback(true); // force re-show fallback GIF after manual clear
+					// Safety: if still empty shortly after, re-attempt fallback
+					setTimeout(function(){ try{ if(area && area.children.length===0 && area.qhtlShowFallback){ area.qhtlShowFallback(true); } }catch(_){ } },250);
 					if (area.qhtlArmAuto) area.qhtlArmAuto();
 				} catch(_){ }
 			}
