@@ -4316,14 +4316,14 @@ QHTL_TEMP_MODAL_JS_B
 <style>#firewall1 .fw-plus-row td.fw-plus-cell { background:transparent!important; box-shadow:none!important; }</style>
 <div class='fw-plus-wrapper'>
 	<div class='fw-plus-grid' aria-label='Firewall Plus Buttons'>
-		<div class='fw-plus-item'><button id='fwb1' class='fw-plus-btn' aria-label='Top Firewall Control' title='Top Firewall Control'></button><div class='fw-plus-label'>Top</div></div>
-		<div class='fw-plus-item'><button id='fwb2' class='fw-plus-btn' aria-label='Config' title='Config'></button><div class='fw-plus-label'>Config</div></div>
-		<div class='fw-plus-item'><button id='fwb3' class='fw-plus-btn' aria-label='Profiles' title='Profiles'></button><div class='fw-plus-label'>Profiles</div></div>
-		<div class='fw-plus-item'><button id='fwb4' class='fw-plus-btn' aria-label='Left Control' title='Left Control'></button><div class='fw-plus-label'>Left</div></div>
-		<div class='fw-plus-item'><button id='fwb5' class='fw-plus-btn' aria-label='Center Control' title='Center Control'></button><div class='fw-plus-label'>Center</div></div>
-		<div class='fw-plus-item' style='display:none'><button id='fwb6' class='fw-plus-btn' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'></button><div class='fw-plus-label'>Hidden</div></div>
-		<div class='fw-plus-item'><button id='fwb7' class='fw-plus-btn' aria-label='Lower Control' title='Lower Control'></button><div class='fw-plus-label'>Lower</div></div>
-		<div class='fw-plus-item'><button id='fwb8' class='fw-plus-btn' aria-label='Bottom Control' title='Bottom Control'></button><div class='fw-plus-label'>Bottom</div></div>
+		<div class='fw-plus-item'><button id='fwb1' class='fw-plus-btn' aria-label='Top Firewall Control' title='Top Firewall Control'><span class='fw-plus-label'>Top</span></button></div>
+		<div class='fw-plus-item'><button id='fwb2' class='fw-plus-btn' aria-label='Config' title='Config'><span class='fw-plus-label'>Config</span></button></div>
+		<div class='fw-plus-item'><button id='fwb3' class='fw-plus-btn' aria-label='Profiles' title='Profiles'><span class='fw-plus-label'>Profiles</span></button></div>
+		<div class='fw-plus-item'><button id='fwb4' class='fw-plus-btn' aria-label='Left Control' title='Left Control'><span class='fw-plus-label'>Left</span></button></div>
+		<div class='fw-plus-item'><button id='fwb5' class='fw-plus-btn' aria-label='Center Control' title='Center Control'><span class='fw-plus-label'>Center</span></button></div>
+		<div class='fw-plus-item' style='display:none'><button id='fwb6' class='fw-plus-btn' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'><span class='fw-plus-label'>Hidden</span></button></div>
+		<div class='fw-plus-item'><button id='fwb7' class='fw-plus-btn' aria-label='Lower Control' title='Lower Control'><span class='fw-plus-label'>Lower</span></button></div>
+		<div class='fw-plus-item'><button id='fwb8' class='fw-plus-btn' aria-label='Bottom Control' title='Bottom Control'><span class='fw-plus-label'>Bottom</span></button></div>
 	</div>
 </div>
 <script>(function(){ try { var base=(window.QHTL_SCRIPT||'$script'); ['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); }, 400); 
@@ -4335,11 +4335,11 @@ QHTL_FIREWALL_CLUSTER
 		# Find the existing fw-plus CSS block and append overrides.
 		print <<'QHTL_FW_PLUS_LABELS_CSS';
 <style>
+/* Reposition labels inside horizontal bar of plus button */
 #firewall1 .fw-plus-item {position:relative; display:inline-flex; flex-direction:column; align-items:center; justify-content:flex-start;}
-#firewall1 .fw-plus-item .fw-plus-label {position:absolute; top:-26px; left:50%; transform:translateX(-50%); font-size:14px; font-weight:600; color:#fff !important; text-shadow:0 0 3px #000,0 0 6px #d40000,0 0 12px #ff2020; letter-spacing:.5px; pointer-events:none; white-space:nowrap;}
-/* Slightly lift whole grid to compensate for label height */
-#firewall1 .fw-plus-grid {margin-top:34px;}
-/* Ensure button internal text (if any) is white */
+#firewall1 .fw-plus-btn {position:relative;}
+#firewall1 .fw-plus-btn .fw-plus-label {position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:16px; font-weight:700; color:#fff !important; text-shadow:0 0 3px #000,0 0 6px #d40000,0 0 12px #ff2020; letter-spacing:.6px; pointer-events:none; z-index:3; line-height:1; white-space:nowrap;}
+#firewall1 .fw-plus-grid {margin-top:0 !important;}
 #firewall1 .fw-plus-btn, #firewall1 .fw-plus-btn * {color:#fff !important;}
 </style>
 QHTL_FW_PLUS_LABELS_CSS
