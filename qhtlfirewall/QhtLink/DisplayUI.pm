@@ -2064,7 +2064,7 @@ QHTL_PLUS_BTN_CSS
 			for (my $i = scalar(@panels)-1; $i >= 1; $i--) {
 				my $p = $panels[$i];
 				next unless defined $p and $p ne '' and $p =~ /Server Score:/;
-				# Prefer capturing the outer centered table that contains the score H4 and inner charts, ending with </td></tr></table>
+				# Prefer capturing the outer centered table that contains the score H4 and inner charts, if present
 				if ($p =~ m{((?:<br>\s*)*<table[^>]*align=['\"]?center['\"]?[^>]*>.*?Server Score:.*?</td>\s*</tr>\s*</table>)}is) {
 					$score_html = $1;
 					$panels[$i] =~ s/\Q$score_html\E//is;
@@ -2075,14 +2075,20 @@ QHTL_PLUS_BTN_CSS
 					$panels[$i] =~ s/^(?:\s*<br>\s*)+//s; # tidy leading breaks if any
 					last;
 				}
-				# Fallback: capture from the H4 heading to the outer closing
-				elsif ($p =~ m{(<h4[^>]*>\s*Server\s+Score:.*?</table>\s*</div>\s*</td>\s*</tr>\s*</table>)}is) {
+				# Fallback 1: capture from the H4 heading through the disclaimer line (common simple markup)
+				elsif ($p =~ m{(<h4[^>]*>\s*Server\s+Score:[\s\S]*?(?:<br>\s*<div>\*\s*This\s+scoring\s+does\s+not\s+necessarily[\s\S]*?</div>))}is) {
 					$score_html = $1;
 					$panels[$i] =~ s/\Q$score_html\E//is;
 					if ($p =~ m{(<br>\s*<div>\*\s*This\s+scoring\s+does\s+not\s+necessarily.*?</div>)}is) {
 						my $disc = $1; $score_html .= $disc; $panels[$i] =~ s/\Q$disc\E//is;
 					}
 					$panels[$i] =~ s/^(?:\s*<br>\s*)+//s;
+					last;
+				}
+				# Fallback 2: capture just the H4 line if nothing else matched
+				elsif ($p =~ m{(<h4[^>]*>\s*Server\s+Score:[^<]*<\/h4>)}is) {
+					$score_html = $1;
+					$panels[$i] =~ s/\Q$score_html\E//is;
 					last;
 				}
 			}
