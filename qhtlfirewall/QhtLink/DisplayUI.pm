@@ -4326,24 +4326,6 @@ QHTL_TEMP_MODAL_JS_B
 QHTL_FIREWALL_CLUSTER
 		print "</td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='conf' type='submit' class='btn btn-default'>Config</button></form><div class='text-muted small' style='margin-top:6px'>Edit the configuration file for the qhtlfirewall firewall and qhtlwaterfall</div></td></tr>\n";
-	# Insert standalone glossy plus button above Profiles with horizontal bar over vertical
-	print "<tr><td colspan='2'>";
-	print <<'QHTL_SINGLE_PLUS';
-<style>
-#firewall1 .fw-plus-btn-alt { position:relative; width:140px; height:140px; background:transparent; border:none; cursor:pointer; padding:0; outline:none; filter:drop-shadow(0 6px 14px rgba(0,0,0,0.28)) drop-shadow(0 0 14px rgba(255,40,40,0.6)); transition:transform .3s ease, filter .3s ease; display:inline-block; }
-#firewall1 .fw-plus-btn-alt::after, #firewall1 .fw-plus-btn-alt::before { content:""; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); border-radius:26px; background: linear-gradient(180deg,#ffecec 0%,#ffc1c1 10%,#ff4040 42%,#d60000 80%,#a50000 100%); box-shadow: inset 0 2px 4px rgba(255,255,255,0.65), inset 0 -5px 12px rgba(120,0,0,0.55); }
-/* Horizontal over vertical (z-index higher) */
-#firewall1 .fw-plus-btn-alt::after { width:140px; height:52px; z-index:2; }
-#firewall1 .fw-plus-btn-alt::before { width:52px; height:140px; z-index:1; }
-#firewall1 .fw-plus-btn-alt .fw-hi { position:absolute; left:50%; top:32%; width:70px; height:70px; transform:translate(-50%,-50%); background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.55) 45%, rgba(255,255,255,0.08) 75%, rgba(255,255,255,0) 100%); border-radius:50%; mix-blend-mode:screen; pointer-events:none; }
-#firewall1 .fw-plus-btn-alt:hover { transform:translateY(-8px) scale(1.06); filter:drop-shadow(0 8px 18px rgba(0,0,0,0.30)) drop-shadow(0 0 18px rgba(255,40,40,0.7)); }
-#firewall1 .fw-plus-btn-alt:active { transform:scale(.93); filter:drop-shadow(0 5px 10px rgba(0,0,0,0.35)) drop-shadow(0 0 14px rgba(255,0,0,0.65)); }
-</style>
-<div style='display:flex;justify-content:center;align-items:center;padding:10px 0'>
-  <button class='fw-plus-btn-alt' aria-label='Primary Firewall Control' title='Primary Firewall Control'><span class='fw-hi'></span></button>
-</div>
-QHTL_SINGLE_PLUS
-	print "</td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='profiles' type='submit' class='btn btn-default'>Profiles</button></form><div class='text-muted small' style='margin-top:6px'>Apply pre-configured qhtlfirewall.conf profiles and backup/restore qhtlfirewall.conf</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='status' type='submit' class='btn btn-default'>View Rules</button></form><div class='text-muted small' style='margin-top:6px'>Display the active iptables rules</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='allow' type='submit' class='btn btn-default'>Allow IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.allow, the IP address allow file $permallows</div></td></tr>\n";
