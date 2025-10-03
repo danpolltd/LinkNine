@@ -2106,12 +2106,13 @@ QHTL_PLUS_BTN_CSS
 			print "<style>\n";
 			for (my $i=0; $i<scalar(@labels); $i++) {
 				printf "#%s #%s-tab-%d:checked ~ .qhtl-tab-list label[for='%s-tab-%d']{ background:#EDEBFF; border-color:#BBB; font-weight:600; }\n", $container_id, $container_id, $i, $container_id, $i;
-				printf "#%s #%s-tab-%d:checked ~ .qhtl-panels .panel-%d{ display:block !important; }\n", $container_id, $container_id, $i, $i;
+				# Higher specificity: require direct child panels and the container id twice
+				printf "#%s > #%s-tab-%d:checked ~ .qhtl-panels > .panel-%d{ display:block !important; }\n", $container_id, $container_id, $i, $i;
 			}
 			print "</style>\n";
 
 			# Defensive: ensure clicking labels always toggles radios and forces panel visibility even if theme CSS interferes
-			print "<script>(function(){try{var c=document.getElementById('".$container_id."');if(!c)return;var labels=c.querySelectorAll('.qhtl-tab-list label');var radios=c.querySelectorAll('.qhtl-tab-radio');var panels=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel');function show(i){for(var k=0;k<panels.length;k++){panels[k].style.display=(k===i?'block':'none');}}for(var i=0;i<labels.length;i++){labels[i].addEventListener('click',function(e){try{var f=this.getAttribute('for');if(!f)return;var r=document.getElementById(f);if(r&&r.type==='radio'){r.checked=true;var idx=Array.prototype.indexOf.call(radios,r);if(idx>=0)show(idx);} }catch(__){} });}}catch(_){}})();</script>\n";
+			print "<script>(function(){try{var c=document.getElementById('".$container_id."');if(!c)return;var radios=c.querySelectorAll('.qhtl-tab-radio');var panels=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel');function show(i){for(var k=0;k<panels.length;k++){panels[k].style.display=(k===i?'block':'none');}}function current(){for(var i=0;i<radios.length;i++){ if(radios[i].checked) return i; } return 0;} show(current()); c.addEventListener('change', function(ev){ try{ var t=ev.target; if(!t || !t.matches || !t.matches('.qhtl-tab-radio')) return; var idx=current(); show(idx); }catch(__){} }, true); }catch(_){}})();</script>\n";
 
 			# Render radios, labels, and panels (pure CSS tabs)
 			print "<div id='$container_id' class='qhtl-tabs'>\n";
@@ -2127,8 +2128,7 @@ QHTL_PLUS_BTN_CSS
 			print "  </div>\n";
 			print "  <div class='qhtl-panels'>\n";
 			for (my $i = 0; $i < scalar(@panels); $i++) {
-				my $inline_vis = ($i == $default_idx) ? " style=\"display:block !important\"" : " style=\"display:none !important\"";
-				print "    <div class='qhtl-tab-panel panel-$i'$inline_vis>\n";
+				print "    <div class='qhtl-tab-panel panel-$i'>\n";
 				print $panels[$i];
 				print "\n    </div>\n";
 			}
