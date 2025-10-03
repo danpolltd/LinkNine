@@ -86,7 +86,19 @@ sub manualversion {
 	eval {
 
 		my @mirrors = $load_mirrors->();
-		# Fallback legacy host only if no mirrors defined
+		my $html = '';
+		$html .= <<'QHTL_TABS_CSS';
+<style>
+/* qhtl tabs: tightly scoped, high-specificity to avoid collisions */
+.qhtl-tabs { margin: 8px 0; }
+	.qhtl-tabs .qhtl-tabs-radio { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+	.qhtl-tabs .qhtl-tabs-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px 0; padding: 0; list-style: none; }
+	.qhtl-tabs .qhtl-tabs-nav label { cursor: pointer; border: 1px solid #ccc; background: #f7f7f7; padding: 6px 10px; border-radius: 4px; font-weight: 600; display: inline-block; }
+	.qhtl-tabs .qhtl-tabpanel { display: none !important; }
+/* Ensure our panels don’t get hidden by external CSS */
+.qhtl-tabs .qhtl-tabpanel * { box-sizing: border-box; }
+</style>
+QHTL_TABS_CSS
 		push @mirrors, 'update.qhtl.link' if !@mirrors;
 
 		my $last_err = '';
@@ -4375,16 +4387,45 @@ QHTL_TEMP_MODAL_JS_B
 	print "  makeAutoClear('qhtl-upgrade-inline-area');\n";
 	print "  makeAutoClear('qhtl-options-inline-area');\n";
 	print "  makeAutoClear('qhtl-quick-inline-area');\n";
+	print "  makeAutoClear('qhtl-advanced-inline');\n";
 	print "})();\n";
 	print "</script>\n";
 	# Re-click active tab name to clear its own inline area and cancel dimming
-	print "<script>(function(){\n";
-	print "  try{ var tabs=document.getElementById('myTabs'); if(!tabs) return; var lastClick=0;\n";
-	print "    tabs.addEventListener('click', function(ev){ var a=ev.target && ev.target.closest ? ev.target.closest('a[data-toggle=\\'tab\\']') : null; if(!a) return; var href=a.getAttribute('href')||''; if(!href) return; var li=a.parentNode; var isActive = li && li.classList && li.classList.contains('active');\n";
-	print "      if(isActive){ ev.preventDefault(); var now=Date.now(); if(now - lastClick < 350){ return; } lastClick=now; var areaId = (href==='#upgrade') ? 'qhtl-upgrade-inline-area' : (href==='#waterfall' ? 'qhtl-inline-area' : null); if(!areaId) return; var area=document.getElementById(areaId); if(!area) return; try{ if(area.qhtlCancelFade) area.qhtlCancelFade(); area.innerHTML=''; if(area.qhtlArmAuto) area.qhtlArmAuto(); if (area.qhtlShowFallback) area.qhtlShowFallback(); }catch(_){} }\n";
-	print "    }, true);\n";
-	print "  }catch(e){}\n";
-	print "})();</script>\n";
+	print <<'QHTL_ADV_RESET_JS';
+<script>
+(function(){
+	try{
+		var tabs = document.getElementById('myTabs'); if(!tabs) return; var lastClick = 0;
+		tabs.addEventListener('click', function(ev){
+			var a = ev.target && ev.target.closest ? ev.target.closest('a[data-toggle="tab"]') : null; if(!a) return;
+			var href = a.getAttribute('href')||''; if(!href) return;
+			var li = a.parentNode; var isActive = li && li.classList && li.classList.contains('active');
+			if (isActive) {
+				ev.preventDefault();
+				var now = Date.now(); if (now - lastClick < 350) { return; } lastClick = now;
+				var isAdv = (href === '#moreplus');
+				var areaId = (href === '#upgrade') ? 'qhtl-upgrade-inline-area' : (href === '#waterfall' ? 'qhtl-inline-area' : (isAdv ? 'qhtl-advanced-inline' : null));
+				if (!areaId) return; var area = document.getElementById(areaId); if (!area) return;
+				try {
+					if (area.qhtlCancelFade) area.qhtlCancelFade();
+					if (isAdv) {
+						area.innerHTML = `
+<div class='qhtl-adv-default' style='text-align:center; padding:8px 4px;'>
+	<div class='blade-title' style='font-weight:800; font-size:16px; color:#d4af37; text-shadow:0 1px 0 rgba(0,0,0,0.25); letter-spacing:.3px; margin-bottom:6px;'>blade</div>
+	<div class='text-muted small'>Use the advanced actions above; your sword status and results will appear here.</div>
+</div>`;
+					} else {
+						area.innerHTML = '';
+						if (area.qhtlShowFallback) area.qhtlShowFallback();
+					}
+					if (area.qhtlArmAuto) area.qhtlArmAuto();
+				} catch(_){ }
+			}
+		}, true);
+	} catch(e){}
+})();
+</script>
+QHTL_ADV_RESET_JS
 		# Delegate clicks and form submits inside the Waterfall tab to load into inline area
 		print "<script>(function(){\n";
 	print "  if (window.__QHTL_INLINE_LOADER_ACTIVE) { return; } window.__QHTL_INLINE_LOADER_ACTIVE = true;\n";
@@ -4478,7 +4519,11 @@ QHTL_TEMP_MODAL_JS_B
 	# Inline results area for Advanced actions
 	print "<tr><td colspan='2'>\n";
 	print "  <div id='qhtl-advanced-inline' class='qhtl-advanced-inline' style='min-height:160px;padding:10px;border:1px solid rgba(255,215,0,0.35);border-radius:6px;background:transparent'>\n";
-	print "    <div class='text-muted small'>Select an action above to display results here.</div>\n";
+	# Updated default content per request: show 'blade' and include the word 'sword'
+	print "    <div class='qhtl-adv-default' style='text-align:center; padding:8px 4px;'>\n";
+	print "      <div class='blade-title' style='font-weight:800; font-size:16px; color:#d4af37; text-shadow:0 1px 0 rgba(0,0,0,0.25); letter-spacing:.3px; margin-bottom:6px;'>blade</div>\n";
+	print "      <div class='text-muted small'>Use the advanced actions above; your sword status and results will appear here.</div>\n";
+	print "    </div>\n";
 	print "  </div>\n";
 	print "  <script>(function(){\n";
 	print "    if(window.__QHTL_ADV_INLINE_LOADER_ACTIVE){return;} window.__QHTL_ADV_INLINE_LOADER_ACTIVE=true;\n";
