@@ -4427,7 +4427,8 @@ QHTL_TEMP_MODAL_JS_B
 			elsif ($config{INTERWORX}) {$resellers = "InterWorx Resellers"}
 			print "<table class='table table-bordered table-striped'>\n";
 			print "<thead><tr><th colspan='2'>$resellers</th></tr></thead>";
-			print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='reseller' type='submit' class='btn btn-default'>Edit Reseller Privs</button></form><div class='text-muted small' style='margin-top:6px'>Privileges can be assigned to $resellers accounts by editing this file (qhtlfirewall.resellers)</div></td></tr>\n";
+			# Old 'Edit Reseller Privs' button removed; now provided as Hex #2 above
+			print "<tr><td colspan='2'><div class='text-muted small' style='margin-top:6px'>Privileges can be assigned to $resellers accounts by editing this file (qhtlfirewall.resellers). Use the Advanced hex buttons above.</div></td></tr>\n";
 			print "</table>\n";
 		}
 
@@ -4462,6 +4463,18 @@ QHTL_TEMP_MODAL_JS_B
 				print "    <form action='$script' method='post' style='margin:0'>\n";
 				print "      <button name='action' value='qhtlfirewalltest' type='submit' class='qhtl-hex-btn' aria-label='$lbl' title='$lbl'>$lbl</button>\n";
 				print "    </form>\n";
+				print "  </div>\n";
+			} elsif ($i == 2) {
+				my $lbl = "Edit Reseller Privs";
+				print "  <div class='qhtl-hex-wrap'>\n";
+				print "    <form action='$script' method='post' style='margin:0'>\n";
+				print "      <button name='action' value='reseller' type='submit' class='qhtl-hex-btn' aria-label='$lbl' title='$lbl'>$lbl</button>\n";
+				print "    </form>\n";
+				print "  </div>\n";
+			} elsif ($i == 8) {
+				my $lbl = "About";
+				print "  <div class='qhtl-hex-wrap'>\n";
+				print "    <a href='https://forum.danpol.co.uk/' target='_blank' rel='noopener' class='qhtl-hex-btn' aria-label='$lbl' title='$lbl' style='text-decoration:none;color:inherit;display:flex;align-items:center;justify-content:center'>$lbl</a>\n";
 				print "  </div>\n";
 			} else {
 				my $lbl = "Advanced Action $i";
