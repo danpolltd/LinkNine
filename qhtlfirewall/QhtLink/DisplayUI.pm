@@ -1053,6 +1053,9 @@ QHTL_JQ_GREP
 		close ($AJAX);
 		print "<script>\n";
 		print @jsdata;
+		# Ensure grep function exists and provide a safe, collision-proof wrapper
+		print "if (typeof window.QHTLFIREWALLgrep !== 'function' && typeof QHTLFIREWALLgrep === 'function') { window.QHTLFIREWALLgrep = QHTLFIREWALLgrep; }\n";
+		print "window.QHTL_GREP = function(){ try{ if (typeof QHTLFIREWALLgrep === 'function') return QHTLFIREWALLgrep(); }catch(__){} try{ var fn = window['QHTLFIREWALLgrep']; if (typeof fn === 'function') return fn(); }catch(__){} return false; };\n";
 		print "</script>\n";
 		print <<EOF;
 <div>Log: $options</div>
@@ -1060,10 +1063,10 @@ QHTL_JQ_GREP
 <input type="checkbox" id="QHTLFIREWALLgrep_i" value="1">-i&nbsp;
 <input type="checkbox" id="QHTLFIREWALLgrep_E" value="1">-E&nbsp;
 <input type="checkbox" id="QHTLFIREWALLgrep_Z" value="1"> wildcard&nbsp;
-<button type='button' class='btn btn-default' onClick="return window.QHTL_GREP && QHTL_GREP();">Search</button>&nbsp;
+<button type='button' class='btn btn-default' onClick="return (typeof QHTLFIREWALLgrep==='function') ? QHTLFIREWALLgrep() : (window.QHTL_GREP ? QHTL_GREP() : false);">Search</button>&nbsp;
 <img src="$images/loader.gif" id="QHTLFIREWALLrefreshing" style="display:none" /></div>
-<div class='pull-right btn-group'><button class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
-<button class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
+<div class='pull-right btn-group'><button type='button' class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>
+<button type='button' class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>
 <pre class='comment' id="QHTLFIREWALLajax" style="overflow:auto;height:500px;resize:none; white-space: pre-wrap; line-height: 1.5; clear:both">
 Please Note:
 
@@ -1084,18 +1087,20 @@ Please Note:
 EOF
 		print <<'QHTL_JQ_GREP';
 <script>
-// Clean jQuery handlers for grep view
+// Font-size controls for grep view with jQuery and vanilla fallbacks
 var myFont = 14;
-$("#fontplus-btn").on('click', function () {
-	myFont++;
-	if (myFont > 20) { myFont = 20 }
-	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
-});
-$("#fontminus-btn").on('click', function () {
-	myFont--;
-	if (myFont < 12) { myFont = 12 }
-	$('#QHTLFIREWALLajax').css('font-size', myFont + 'px');
-});
+(function(){
+	function apply(){ try{ var el=document.getElementById('QHTLFIREWALLajax'); if(el){ el.style.fontSize = myFont + 'px'; } }catch(_){ }
+	}
+	apply();
+	if (window.jQuery) {
+		jQuery('#fontplus-btn').on('click', function(){ myFont++; if(myFont>40) myFont=40; apply(); });
+		jQuery('#fontminus-btn').on('click', function(){ myFont--; if(myFont<12) myFont=12; apply(); });
+	} else {
+		try{ var plus=document.getElementById('fontplus-btn'); if(plus){ plus.addEventListener('click', function(){ myFont++; if(myFont>40) myFont=40; apply(); }); } }catch(_){ }
+		try{ var minus=document.getElementById('fontminus-btn'); if(minus){ minus.addEventListener('click', function(){ myFont--; if(myFont<12) myFont=12; apply(); }); } }catch(_){ }
+	}
+})();
 </script>
 QHTL_JQ_GREP
 		if ($config{DIRECTADMIN}) {$script = $script_safe}
