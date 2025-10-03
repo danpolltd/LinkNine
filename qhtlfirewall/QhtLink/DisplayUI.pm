@@ -4339,7 +4339,7 @@ QHTL_FIREWALL_CLUSTER
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='sips' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Deny access to and from specific IP addresses configured on the server (qhtlfirewall.sips)</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='denyf' type='submit' class='btn btn-default'>Flush All</button></form><div class='text-muted small' style='margin-top:6px'>Removes and unblocks all entries in qhtlfirewall.deny (excluding those marked \"do not delete\") and all temporary IP entries (blocks <i>and</i> allows)</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='redirect' type='submit' class='btn btn-default'>Redirect</button></form><div class='text-muted small' style='margin-top:6px'>Redirect connections to this server to other ports/IP addresses</div></td></tr>\n";
-	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='fix' type='submit' class='btn btn-default'>Fix Tool</button></form><div class='text-muted small' style='margin-top:6px'>Offers solutions to some common problems when using an SPI firewall</div></td></tr>\n";
+	# Fix Tool moved into Advanced (hex buttons) as 3rd hex; original row removed
 		print "</table>\n";
 		print "</div>\n";
 
@@ -4550,12 +4550,21 @@ QHTL_ADV_RESET_JS
 				print "      <button name='action' value='reseller' type='submit' class='qhtl-hex-btn' aria-label='$lbl' title='$lbl'>$lbl</button>\n";
 				print "    </form>\n";
 				print "  </div>\n";
+			} elsif ($i == 3) {
+				# Third hex now hosts the Fix Tool action (migrated from Firewall tab)
+				my $lbl = "Fix Tool";
+				print "  <div class='qhtl-hex-wrap'>\n";
+				print "    <form action='$script' method='post' style='margin:0'>\n";
+				print "      <button name='action' value='fix' type='submit' class='qhtl-hex-btn' aria-label='$lbl' title='$lbl'>$lbl</button>\n";
+				print "    </form>\n";
+				print "  </div>\n";
 			} elsif ($i == 8) {
 				my $lbl = "About";
 				print "  <div class='qhtl-hex-wrap'>\n";
 				print "    <a href='https://forum.danpol.co.uk/' target='_blank' rel='noopener' class='qhtl-hex-btn' aria-label='$lbl' title='$lbl' style='text-decoration:none;display:flex;align-items:center;justify-content:center'>$lbl</a>\n";
 				print "  </div>\n";
 			} else {
+				# All remaining (non-special) hex buttons are promotion triggers
 				my $aria = 'Buy Promotions Now!';
 				my $lbl_html = "Buy<br>Promotions<br>Now!";
 				print "  <div class='qhtl-hex-wrap'>\n";
