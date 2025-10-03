@@ -4474,6 +4474,9 @@ QHTL_ADV_RESET_JS
 		print "    transition:transform .12s ease, box-shadow .12s ease;\n";
 		print "  }\n";
 	print "  #moreplus .qhtl-hex-btn:before{content:'';display:none;}\n";
+	print "  #moreplus a.qhtl-hex-btn{color:#ffffff !important; text-shadow:0 1px 2px rgba(0,0,0,0.65);}\n";
+	print "  #moreplus a.qhtl-hex-btn:visited{color:#ffffff !important;}\n";
+	print "  #moreplus a.qhtl-hex-btn:hover{color:#ffffff !important;}\n";
 	print "  #moreplus .qhtl-hex-btn:hover{transform:translateY(-2px);}\n";
 	print "  #moreplus .qhtl-hex-btn:active{transform:translateY(0);}\n";
 	print "  /* halo: plain ring; spacing via container gap only */\n";
@@ -4527,6 +4530,18 @@ QHTL_ADV_RESET_JS
 	print "    root.addEventListener('click', function(ev){ var t=ev.target; if(!t) return; var btn=t.closest?t.closest('button, input[type=submit]'):null; if(btn && (String(btn.type||'').toLowerCase()==='submit')){ __qhtl_adv_lastSubmitter=btn; } var a=t.closest?t.closest('a'):null; if(!a) return; var href=a.getAttribute('href')||''; if(!href || href==='javascript:void(0)') return; if(!sameOrigin(href) || !isQhtlAction(href,null)) return; ev.preventDefault(); var u=href+(href.indexOf('?')>-1?'&':'?')+'ajax=1'; loadInto(u,'GET'); }, true);\n";
 	print "    root.addEventListener('submit', function(ev){ var f=ev.target; if(!f||f.tagName!=='FORM') return; var action=f.getAttribute('action')||location.pathname; if(!sameOrigin(action) || !isQhtlAction(action,f)) return; var enc=(f.enctype||''); if(enc && String(enc).toLowerCase().indexOf('multipart/form-data')!==-1) return; ev.preventDefault(); var submitter=(ev.submitter?ev.submitter:__qhtl_adv_lastSubmitter); var data=serialize(f, submitter); loadInto(action+(action.indexOf('?')>-1?'&':'?')+'ajax=1', (f.method||'GET').toUpperCase(), data); }, true);\n";
 	print "  })();</script>\n";
+	# Extra explicit fallback injection immediately after advanced area markup
+print <<'QHTL_ADV_FALLBACK_INJECT';
+	<script>(function(){
+		try {
+			var adv=document.getElementById('qhtl-advanced-inline');
+			if(adv && adv.children.length===0){
+				var u=(window.QHTL_SCRIPT||'$script')+'?action=fallback_asset&name=idle_fallback.gif&v=$myv';
+				adv.innerHTML="<div class=\"qhtl-fallback-holder\" style=\"min-height:160px;display:flex;align-items:center;justify-content:center;\"><img alt=\"\" src=\""+u+"\" style=\"max-width:100%;height:auto;opacity:.9\"></div>";
+			}
+		} catch(e){}
+	})();</script>
+QHTL_ADV_FALLBACK_INJECT
 	print "</td></tr>\n";
 	print "</table>\n";
 
