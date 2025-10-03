@@ -4287,9 +4287,18 @@ QHTL_TEMP_MODAL_JS_B
 #firewall1 .fw-plus-wrapper { position:relative; width:100%; display:flex; justify-content:center; padding:24px 0 12px; }
 /* Glossy circular buttons forming a plus. Increase gap so halos don't merge */
 #firewall1 .fw-plus-grid { display:grid; grid-template-columns: repeat(3, 80px); grid-auto-rows:80px; gap:26px; position:relative; }
-#firewall1 .fw-plus-btn { position:relative; width:80px; height:80px; border:none; background: radial-gradient(circle at 35% 30%, #fffcfc 0%, #ffb3b3 12%, #ff3a3a 42%, #d40000 78%, #aa0000 100%); cursor:pointer; padding:0; outline:none; border-radius:26px; box-shadow:0 0 8px 3px rgba(255,0,0,0.75), 0 0 20px 9px rgba(255,0,0,0.55), 0 0 34px 14px rgba(255,0,0,0.40); transition:transform .25s ease, box-shadow .25s ease, filter .25s ease; }
-#firewall1 .fw-plus-btn::before { content:""; position:absolute; inset:0; border-radius:inherit; background: linear-gradient(145deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.35) 35%, rgba(255,255,255,0) 55%); mix-blend-mode:screen; pointer-events:none; }
-#firewall1 .fw-plus-btn::after { content:""; position:absolute; inset:0; border-radius:inherit; box-shadow:0 0 12px 6px rgba(255,0,0,0.85), 0 0 26px 14px rgba(255,0,0,0.55), 0 0 48px 24px rgba(255,0,0,0.45); opacity:.0; transition:opacity .35s ease; }
+#firewall1 .fw-plus-btn { position:relative; width:120px; height:120px; border:none; background:transparent; cursor:pointer; padding:0; outline:none; filter:drop-shadow(0 0 8px rgba(255,0,0,0.75)) drop-shadow(0 0 20px rgba(255,0,0,0.55)) drop-shadow(0 0 34px rgba(255,0,0,0.4)); transition:transform .25s ease, filter .25s ease; }
+/* Build glossy plus using two layered pseudo elements so each button is an independent plus shape */
+#firewall1 .fw-plus-btn::before, #firewall1 .fw-plus-btn::after { content:""; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); border-radius:18px; background: linear-gradient(180deg,#ffe6e6 0%,#ffb5b5 8%,#ff2a2a 38%,#d40000 78%,#a70000 100%); }
+/* Horizontal bar */
+#firewall1 .fw-plus-btn::before { width:120px; height:48px; box-shadow: inset 0 2px 4px rgba(255,255,255,0.6), inset 0 -4px 10px rgba(120,0,0,0.55); }
+/* Vertical bar */
+#firewall1 .fw-plus-btn::after { height:120px; width:48px; box-shadow: inset 0 2px 4px rgba(255,255,255,0.6), inset 0 -4px 10px rgba(120,0,0,0.55); }
+/* Highlight spot for depth (separate element via extra shadow using :before overlay via after? We'll add a child span dynamically) */
+#firewall1 .fw-plus-btn .fw-hi { position:absolute; left:50%; top:30%; width:54px; height:54px; transform:translate(-50%,-50%); background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.65) 35%, rgba(255,255,255,0.15) 65%, rgba(255,255,255,0) 100%); border-radius:50%; pointer-events:none; mix-blend-mode:screen; }
+/* Hover/active effects */
+#firewall1 .fw-plus-btn:hover { transform:translateY(-6px) scale(1.06); filter:drop-shadow(0 0 10px rgba(255,40,40,0.9)) drop-shadow(0 0 26px rgba(255,40,40,0.7)) drop-shadow(0 0 54px rgba(255,0,0,0.55)); }
+#firewall1 .fw-plus-btn:active { transform:scale(.93); }
 #firewall1 .fw-plus-btn:hover { transform:translateY(-4px) scale(1.06); box-shadow:0 0 10px 4px rgba(255,40,40,0.85), 0 0 26px 12px rgba(255,40,40,0.65), 0 0 52px 26px rgba(255,0,0,0.55); }
 #firewall1 .fw-plus-btn:hover::after { opacity:1; }
 #firewall1 .fw-plus-btn:active { transform:scale(.94); filter:brightness(1.15) contrast(1.1); }
@@ -4307,14 +4316,14 @@ QHTL_TEMP_MODAL_JS_B
 </style>
 <div class='fw-plus-wrapper'>
 	<div class='fw-plus-grid' aria-label='Firewall Plus Buttons'>
-		<button id='fwb1' class='fw-plus-btn' aria-label='Top Firewall Control' title='Top Firewall Control'></button>
-		<button id='fwb2' class='fw-plus-btn' aria-label='Upper Firewall Control' title='Upper Firewall Control'></button>
-		<button id='fwb3' class='fw-plus-btn' aria-label='Left Firewall Control' title='Left Firewall Control'></button>
-		<button id='fwb4' class='fw-plus-btn' aria-label='Inner Left Firewall Control' title='Inner Left Firewall Control'></button>
-		<button id='fwb5' class='fw-plus-btn' aria-label='Center Firewall Control' title='Center Firewall Control'></button>
-		<button id='fwb6' class='fw-plus-btn' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'></button>
-		<button id='fwb7' class='fw-plus-btn' aria-label='Lower Firewall Control' title='Lower Firewall Control'></button>
-		<button id='fwb8' class='fw-plus-btn' aria-label='Bottom Firewall Control' title='Bottom Firewall Control'></button>
+		<button id='fwb1' class='fw-plus-btn' aria-label='Top Firewall Control' title='Top Firewall Control'><span class='fw-hi'></span></button>
+		<button id='fwb2' class='fw-plus-btn' aria-label='Upper Firewall Control' title='Upper Firewall Control'><span class='fw-hi'></span></button>
+		<button id='fwb3' class='fw-plus-btn' aria-label='Left Firewall Control' title='Left Firewall Control'><span class='fw-hi'></span></button>
+		<button id='fwb4' class='fw-plus-btn' aria-label='Inner Left Firewall Control' title='Inner Left Firewall Control'><span class='fw-hi'></span></button>
+		<button id='fwb5' class='fw-plus-btn' aria-label='Center Firewall Control' title='Center Firewall Control'><span class='fw-hi'></span></button>
+		<button id='fwb6' class='fw-plus-btn' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'><span class='fw-hi'></span></button>
+		<button id='fwb7' class='fw-plus-btn' aria-label='Lower Firewall Control' title='Lower Firewall Control'><span class='fw-hi'></span></button>
+		<button id='fwb8' class='fw-plus-btn' aria-label='Bottom Firewall Control' title='Bottom Firewall Control'><span class='fw-hi'></span></button>
 	</div>
 </div>
 <script>(function(){ try { ['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); }, 400); }); }); } catch(e){} })();</script>
