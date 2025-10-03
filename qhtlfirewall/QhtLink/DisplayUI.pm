@@ -2044,6 +2044,15 @@ QHTL_PLUS_BTN_CSS
 				$labels[1] = 'All Checks';
 			}
 
+			# Targeted safety: ensure the 'Server Check' tab shows content by injecting full report if it's effectively empty
+			my $server_idx = -1;
+			for (my $i=0; $i<@labels; $i++) { if (defined $labels[$i] && $labels[$i] eq 'Server Check') { $server_idx = $i; last; } }
+			if ($server_idx >= 0) {
+				my $p = $panels[$server_idx] // '';
+				my $t = $p; $t =~ s/<[^>]+>//g; $t =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $t =~ s/\s+//g; $t =~ s/^\++$//;
+				if ($t !~ /[A-Za-z0-9]{2,}/) { $panels[$server_idx] = $full_html; }
+			}
+
 			# Extract Server Score card from any section and move it to the first tab
 			my $score_html = '';
 			for (my $i = scalar(@panels)-1; $i >= 1; $i--) {
@@ -2132,7 +2141,9 @@ QHTL_PLUS_BTN_CSS
 
 			# Client-side safety net: if all secondary panels are effectively empty, show full HTML in Tab 2 and select it
 			my $escaped_full = $full_html; $escaped_full =~ s/\\/\\\\/g; $escaped_full =~ s/'/\\'/g; $escaped_full =~ s/\r?\n/\n/g;
-			print "<script>(function(){try{var c=document.getElementById('$container_id');if(!c)return;var panels=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel');function isMeaningful(el){try{var t=(el.textContent||'');t=t.replace(/<[^>]+>/g,'');t=t.replace(/\u00a0|\s+/g,'');t=t.replace(/^\++$/,'');return /[A-Za-z0-9]{2,}/.test(t);}catch(_){return false;}}var nonempty=0;for(var i=1;i<panels.length;i++){ if(isMeaningful(panels[i])){ nonempty++; break; } }if(nonempty===0&&panels.length>1){panels[1].innerHTML='".$escaped_full."';var labels=c.querySelectorAll('.qhtl-tab-list label');if(labels[1]){labels[1].textContent='All Checks';}var r=document.getElementById('".$container_id."-tab-1'); if(r&&r.type==='radio'){ r.checked=true; } var ps=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel'); for(var k=0;k<ps.length;k++){ ps[k].style.display=(k===1?'block':'none'); } }}catch(_){}})();</script>\n";
+			print "<script>(function(){try{var c=document.getElementById('$container_id');if(!c)return;var panels=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel');function isMeaningful(el){try{var t=(el.textContent||'');t=t.replace(/<[^>]+>/g,'');t=t.replace(/\u00a0|\s+/g,'');t=t.replace(/^\++$/,'');return /[A-Za-z0-9]{2,}/.test(t);}catch(_){return false;}}var nonempty=0;for(var i=1;i<panels.length;i++){ if(isMeaningful(panels[i])){ nonempty++; break; } }if(nonempty===0&&panels.length>1){panels[1].innerHTML='".$escaped_full."';var labels=c.querySelectorAll('.qhtl-tab-list label');if(labels[1]){labels[1].textContent='All Checks';}var r=document.getElementById('".$container_id."-tab-1'); if(r&&r.type==='radio'){ r.checked=true; } var ps=c.querySelectorAll('.qhtl-panels .qhtl-tab-panel'); for(var k=0;k<ps.length;k++){ ps[k].style.display=(k===1?'block':'none'); } } else { // also ensure 'Server Check' tab gets full content if empty
+  try{ var labels=c.querySelectorAll('.qhtl-tab-list label'); var idx=-1; for(var j=0;j<labels.length;j++){ var txt=(labels[j].textContent||'').trim(); if(txt==='Server Check'){ idx=j; break; } } if(idx>=0 && panels[idx] && !isMeaningful(panels[idx])){ panels[idx].innerHTML='".$escaped_full."'; } }catch(__){}
+} }catch(_){}})();</script>\n";
 		} else {
 			print "<div class='alert alert-warning'>ServerCheck module not available in this environment. Skipping report.</div>\n";
 		}
