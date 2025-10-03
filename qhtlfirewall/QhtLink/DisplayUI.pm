@@ -371,8 +371,11 @@ sub main {
 		return;
 	}
 	elsif ($FORM{action} eq "systemstats") {
-		# System Stats: render selectable graphs inline (AJAX-safe)
-		my $type = $FORM{graph} // '';
+		# System Stats: render graphs inline; ignore posted graph selection (temporarily disabled)
+		if (defined $FORM{graph} && $FORM{graph} ne '') {
+			print "<div class='alert alert-info'>Graph selection is temporarily unavailable.</div>\n";
+		}
+		my $type = '';
 		&systemstats($type);
 		return;
 	}
@@ -2144,13 +2147,19 @@ QHTL_JQ_GREP
 	elsif ($FORM{action} eq "rblcheck") {
 		my $status = 0;
 		my $ok = 0;
-		eval {
-			if (defined &QhtLink::RBLCheck::report) {
-				($status, undef) = QhtLink::RBLCheck::report($FORM{verbose},$images,1);
-				$ok = 1;
-			}
-			1;
-		} or do { $ok = 0; };
+		# Guard: temporarily disable 'standard' run (verbose=1) even if posted from a stale UI
+		if (defined $FORM{verbose} && $FORM{verbose} eq '1') {
+			print "<div class='alert alert-info'>The standard RBL update is temporarily unavailable.</div>\n";
+			$ok = 1; # suppress module-missing warning below
+		} else {
+			eval {
+				if (defined &QhtLink::RBLCheck::report) {
+					($status, undef) = QhtLink::RBLCheck::report($FORM{verbose},$images,1);
+					$ok = 1;
+				}
+				1;
+			} or do { $ok = 0; };
+		}
 		unless ($ok) {
 			print "<div class='alert alert-warning'>RBLCheck module not available in this environment. Skipping report.</div>\n";
 		}
