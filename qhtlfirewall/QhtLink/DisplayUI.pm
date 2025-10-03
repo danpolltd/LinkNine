@@ -4294,10 +4294,10 @@ QHTL_TEMP_MODAL_JS_B
 	transition:transform .25s ease, filter .25s ease; }
 /* Build glossy plus using two layered pseudo elements so each button is an independent plus shape */
 #firewall1 .fw-plus-btn::before, #firewall1 .fw-plus-btn::after { content:""; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); border-radius:18px; background: linear-gradient(180deg,#ffe6e6 0%,#ffb5b5 8%,#ff2a2a 38%,#d40000 78%,#a70000 100%); }
-/* Horizontal bar */
-#firewall1 .fw-plus-btn::before { width:120px; height:48px; box-shadow: inset 0 2px 4px rgba(255,255,255,0.6), inset 0 -4px 10px rgba(120,0,0,0.55); }
-/* Vertical bar */
-#firewall1 .fw-plus-btn::after { height:120px; width:48px; box-shadow: inset 0 2px 4px rgba(255,255,255,0.6), inset 0 -4px 10px rgba(120,0,0,0.55); }
+/* Horizontal bar (on top) */
+#firewall1 .fw-plus-btn::before { width:120px; height:48px; box-shadow: inset 0 2px 4px rgba(255,255,255,0.6), inset 0 -4px 10px rgba(120,0,0,0.55); z-index:2; }
+/* Vertical bar (under) */
+#firewall1 .fw-plus-btn::after { height:120px; width:48px; box-shadow: inset 0 2px 4px rgba(255,255,255,0.6), inset 0 -4px 10px rgba(120,0,0,0.55); z-index:1; }
 /* Remove highlight bubble for cleaner look */
 /* (fw-hi span will be ignored; will remove from markup) */
 /* Hover/active effects */
