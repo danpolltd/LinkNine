@@ -4388,6 +4388,7 @@ QHTL_TEMP_MODAL_JS_B
 	print "  makeAutoClear('qhtl-options-inline-area');\n";
 	print "  makeAutoClear('qhtl-quick-inline-area');\n";
 	print "  makeAutoClear('qhtl-advanced-inline');\n";
+	print "  try{ var adv=document.getElementById('qhtl-advanced-inline'); if(adv && (!adv.children || adv.children.length===0) && adv.qhtlShowFallback){ adv.qhtlShowFallback(true); } }catch(e){}\n";
 	print "})();\n";
 	print "</script>\n";
 	# Re-click active tab name to clear its own inline area and cancel dimming
@@ -4466,9 +4467,10 @@ QHTL_ADV_RESET_JS
 		print "  #moreplus .qhtl-advanced-hex-cell{background:transparent !important; border:0 !important;}\n";
 	print "  #moreplus .qhtl-advanced-hexes{display:flex;flex-wrap:wrap;justify-content:center;gap:30px;align-items:flex-start;margin:8px 0 14px 0}\n";
 	print "  #moreplus .qhtl-hex-wrap{padding:0;display:flex;align-items:center;justify-content:center;text-align:center}\n";
-	print "  #moreplus .qhtl-hex-btn{position:relative;width:70px;height:70px;cursor:pointer;border:none;padding:0 6px;background:linear-gradient(135deg,#b8860b,#ffd700,#d4af37);\n";
-		print "    display:flex;align-items:center;justify-content:center;text-align:center; font-size:11px; font-weight:600; color:#1a1200; text-shadow:0 1px 0 rgba(255,255,255,0.35); outline:none; clip-path:polygon(25% 6.7%,75% 6.7%,100% 50%,75% 93.3%,25% 93.3%,0% 50%);\n";
-	print "    box-shadow:0 0 0 10px rgba(255,191,0,1);\n";
+	print "  #moreplus .qhtl-hex-btn{position:relative;width:70px;height:70px;cursor:pointer;border:none;padding:4px 4px;background:linear-gradient(135deg,#b8860b,#ffd700,#d4af37);\n";
+		print "    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center; font-size:11px; font-weight:700; line-height:1.05; color:#ffffff; text-shadow:0 1px 2px rgba(0,0,0,0.65); outline:none; clip-path:polygon(25% 6.7%,75% 6.7%,100% 50%,75% 93.3%,25% 93.3%,0% 50%);\n";
+		print "    box-shadow:0 0 0 6px rgba(192,192,192,0.85),0 0 14px 6px rgba(255,215,0,0.55),0 0 28px 12px rgba(255,215,0,0.35);\n";
+		print "    border:1px solid rgba(255,255,255,0.35);\n";
 		print "    transition:transform .12s ease, box-shadow .12s ease;\n";
 		print "  }\n";
 	print "  #moreplus .qhtl-hex-btn:before{content:'';display:none;}\n";
@@ -4500,9 +4502,10 @@ QHTL_ADV_RESET_JS
 				print "    <a href='https://forum.danpol.co.uk/' target='_blank' rel='noopener' class='qhtl-hex-btn' aria-label='$lbl' title='$lbl' style='text-decoration:none;color:inherit;display:flex;align-items:center;justify-content:center'>$lbl</a>\n";
 				print "  </div>\n";
 			} else {
-				my $lbl = 'Buy Promotion';
+				my $aria = 'Buy Promotions Now!';
+				my $lbl_html = "Buy<br>Promotions<br>Now!";
 				print "  <div class='qhtl-hex-wrap'>\n";
-				print "    <button type='button' class='qhtl-hex-btn' aria-label='$lbl' title='$lbl' onclick=\"try{ if(window.openPromoModal){ openPromoModal(); } }catch(e){}\">$lbl</button>\n";
+				print "    <button type='button' class='qhtl-hex-btn' aria-label='$aria' title='$aria' onclick=\"try{ if(window.openPromoModal){ openPromoModal(); } }catch(e){}\">$lbl_html</button>\n";
 				print "  </div>\n";
 			}
 		}
