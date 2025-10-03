@@ -4280,8 +4280,44 @@ QHTL_TEMP_MODAL_JS_B
 		print "<div id='firewall1' class='tab-pane'>\n";
 		print "<table class='table table-bordered table-striped'>\n";
 	print "<thead><tr><th colspan='2'>QHTL \"Firewall\"</th></tr></thead>";
-    # Requested 70x70 red "+" button above the Config row
-    print "<tr><td colspan='2'><div class='qhtl-plus-wrap'><button type='button' class='qhtl-plus-btn' aria-label='Add' title='Add'>+</button></div></td></tr>\n";
+		# Replace single + with 8-button red plus cluster
+		print "<tr><td colspan='2'>";
+		print <<'QHTL_FIREWALL_CLUSTER';
+<style>
+#firewall1 .fw-plus-wrapper { position:relative; width:100%; display:flex; justify-content:center; padding:12px 0 4px; }
+#firewall1 .fw-plus-grid { position:relative; width:430px; height:430px; max-width:100%; }
+#firewall1 .fw-plus-btn { position:absolute; width:70px; height:70px; background:#a30000; border:none; cursor:pointer; padding:0; outline:none; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:22px; color:#fff; text-shadow:0 0 6px #ff4d4d,0 0 12px #ff0000; letter-spacing:1px; transition:transform .25s ease, box-shadow .25s ease, filter .25s ease; border-radius:8px; box-shadow:0 0 12px 6px rgba(255,0,0,0.85), 0 0 24px 12px rgba(255,0,0,0.65), 0 0 40px 20px rgba(255,30,0,0.55); }
+#firewall1 .fw-plus-btn::before, #firewall1 .fw-plus-btn::after { content:""; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background: linear-gradient(90deg,#ff1a1a,#ff0000,#cc0000); filter:drop-shadow(0 0 6px #ff2b2b) drop-shadow(0 0 14px #ff0000) drop-shadow(0 0 28px #ff0000); }
+#firewall1 .fw-plus-btn::before { width:60%; height:18%; border-radius:4px; }
+#firewall1 .fw-plus-btn::after { height:60%; width:18%; border-radius:4px; }
+#firewall1 .fw-plus-btn:hover { transform:scale(1.08); box-shadow:0 0 16px 8px rgba(255,40,40,0.95),0 0 32px 16px rgba(255,0,0,0.75),0 0 54px 28px rgba(255,30,0,0.65); }
+#firewall1 .fw-plus-btn:active { transform:scale(0.94); filter:brightness(1.2); }
+/* Pattern positions using 5x5 grid cell size 80 (70 + 10 gap) */
+#firewall1 #fwb1 { left:calc(2 * 80px); top:calc(0 * 80px); }
+#firewall1 #fwb2 { left:calc(2 * 80px); top:calc(1 * 80px); }
+#firewall1 #fwb3 { left:calc(0 * 80px); top:calc(2 * 80px); }
+#firewall1 #fwb4 { left:calc(1 * 80px); top:calc(2 * 80px); }
+#firewall1 #fwb5 { left:calc(2 * 80px); top:calc(2 * 80px); }
+#firewall1 #fwb6 { left:calc(3 * 80px); top:calc(2 * 80px); }
+#firewall1 #fwb7 { left:calc(2 * 80px); top:calc(3 * 80px); }
+#firewall1 #fwb8 { left:calc(2 * 80px); top:calc(4 * 80px); }
+@media (max-width: 620px) { #firewall1 .fw-plus-grid { transform:scale(.72); transform-origin:top center; height:310px; } }
+</style>
+<div class='fw-plus-wrapper'>
+	<div class='fw-plus-grid' aria-label='Firewall Plus Buttons'>
+		<button id='fwb1' class='fw-plus-btn' aria-label='Top Firewall Control' title='Top Firewall Control'></button>
+		<button id='fwb2' class='fw-plus-btn' aria-label='Upper Firewall Control' title='Upper Firewall Control'></button>
+		<button id='fwb3' class='fw-plus-btn' aria-label='Left Firewall Control' title='Left Firewall Control'></button>
+		<button id='fwb4' class='fw-plus-btn' aria-label='Inner Left Firewall Control' title='Inner Left Firewall Control'></button>
+		<button id='fwb5' class='fw-plus-btn' aria-label='Center Firewall Control' title='Center Firewall Control'></button>
+		<button id='fwb6' class='fw-plus-btn' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'></button>
+		<button id='fwb7' class='fw-plus-btn' aria-label='Lower Firewall Control' title='Lower Firewall Control'></button>
+		<button id='fwb8' class='fw-plus-btn' aria-label='Bottom Firewall Control' title='Bottom Firewall Control'></button>
+	</div>
+</div>
+<script>(function(){ try { ['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){ var el=document.getElementById(id); if(!el) return; el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); }, 400); }); }); } catch(e){} })();</script>
+QHTL_FIREWALL_CLUSTER
+		print "</td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='conf' type='submit' class='btn btn-default'>Config</button></form><div class='text-muted small' style='margin-top:6px'>Edit the configuration file for the qhtlfirewall firewall and qhtlwaterfall</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='profiles' type='submit' class='btn btn-default'>Profiles</button></form><div class='text-muted small' style='margin-top:6px'>Apply pre-configured qhtlfirewall.conf profiles and backup/restore qhtlfirewall.conf</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='status' type='submit' class='btn btn-default'>View Rules</button></form><div class='text-muted small' style='margin-top:6px'>Display the active iptables rules</div></td></tr>\n";
@@ -4570,100 +4606,7 @@ QHTL_ADV_FALLBACK_DOMREADY
 
 		print "</div>\n";
 
-		print "<div id='firewall' class='tab-pane'>\n";
-		# New firewall button cluster: 8 red plus-shaped buttons with bright 10px halo and 10px gap
-		print <<'QHTL_FW_BTNS';
-<style>
-/* Firewall plus buttons layout */
-#firewall {
-	display:flex; align-items:center; justify-content:center; min-height:340px; position:relative;
-}
-#firewall .fw-plus-grid {
-	display:grid; grid-template-columns: repeat(5, 70px); grid-auto-rows:70px; gap:10px; position:relative;
-}
-/* We'll place 8 items into a 5x5 conceptual grid forming a large plus shape:
-	 Row indices (1-based):
-	 Use coordinates to mimic plus arms while keeping exactly 8 buttons.
-	 Chosen pattern (C = button, . = empty):
-	 Row1: .. C .. .. .
-	 Row2: .. C .. .. .
-	 Row3: C C C C C  (center bar)
-	 Row4: .. C .. .. .
-	 Row5: .. C .. .. .
-	 This yields 1+1+5+1+1 = 9, which is too many. Adjust to 8 by trimming two outer arm cells on row3 while preserving plus illusion:
-	 Adjusted pattern (8 buttons):
-	 Row1: .. C .. .. .  (top)
-	 Row2: .. C .. .. .  (upper inner)
-	 Row3: C C C C .     (center bar shortened on rightmost) -> 4 center buttons
-	 Row4: .. C .. .. .  (lower inner)
-	 Row5: .. C .. .. .  (bottom)
-	 Total = 1 +1 +4 +1 +1 = 8. Visual still reads as a plus centered-left. To visually center, we'll offset grid with a translateX.
-*/
-#firewall .fw-plus-grid { transform: translateX(35px); }
-#firewall .fw-plus-btn {
-	position:relative; width:70px; height:70px; background:#a30000; border:none; cursor:pointer; padding:0; outline:none;
-	display:flex; align-items:center; justify-content:center; font-weight:700; font-size:22px; color:#fff; text-shadow:0 0 6px #ff4d4d,0 0 12px #ff0000; letter-spacing:1px;
-	transition:transform .25s ease, box-shadow .25s ease, filter .25s ease;
-}
-/* Plus shape via pseudo elements (vertical and horizontal bars) */
-#firewall .fw-plus-btn::before, #firewall .fw-plus-btn::after {
-	content:""; position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); background: linear-gradient(90deg,#ff1a1a,#ff0000,#cc0000);
-	filter:drop-shadow(0 0 6px #ff2b2b) drop-shadow(0 0 14px #ff0000) drop-shadow(0 0 28px #ff0000);
-}
-#firewall .fw-plus-btn::before { width:60%; height:18%; border-radius:4px; }
-#firewall .fw-plus-btn::after { height:60%; width:18%; border-radius:4px; }
-/* 10px bright red halo outside edges */
-#firewall .fw-plus-btn {
-	box-shadow:0 0 12px 6px rgba(255,0,0,0.85), 0 0 24px 12px rgba(255,0,0,0.65), 0 0 40px 20px rgba(255,30,0,0.55);
-	border-radius:8px; /* subtle rounding for glow diffusion */
-}
-#firewall .fw-plus-btn:hover { transform:scale(1.08); box-shadow:0 0 16px 8px rgba(255,40,40,0.95),0 0 32px 16px rgba(255,0,0,0.75),0 0 54px 28px rgba(255,30,0,0.65); }
-#firewall .fw-plus-btn:active { transform:scale(0.94); filter:brightness(1.2); }
-/* Grid positioning: place eight buttons in chosen cells using nth-child manual placement */
-#firewall .fw-plus-grid { position:relative; }
-#firewall .fw-plus-grid .fw-plus-slot { position:relative; }
-/* We'll create 25 slots (5x5). Only some hold buttons. Simpler: create absolute positioning container instead for fewer nodes. */
-#firewall .fw-plus-grid { display:block; width: (5 * 70px + 4 * 10px); height: (5 * 70px + 4 * 10px); width: 430px; height:430px; }
-#firewall .fw-plus-grid { position:relative; }
-/* Helper for placing buttons by percentage ( (index * (size + gap)) ) */
-.fw-place { position:absolute; }
-/* Coordinates (x,y) in grid units (0..4). Convert to px: x*(70+10), y*(70+10) */
-/* Utility: width=70, gap=10 so step=80 */
-/* Pattern positions (x,y): (2,0),(2,1),(0,2),(1,2),(2,2),(3,2),(2,3),(2,4) */
-#fwb1 { left: calc(2 * 80px); top: calc(0 * 80px); }
-#fwb2 { left: calc(2 * 80px); top: calc(1 * 80px); }
-#fwb3 { left: calc(0 * 80px); top: calc(2 * 80px); }
-#fwb4 { left: calc(1 * 80px); top: calc(2 * 80px); }
-#fwb5 { left: calc(2 * 80px); top: calc(2 * 80px); }
-#fwb6 { left: calc(3 * 80px); top: calc(2 * 80px); }
-#fwb7 { left: calc(2 * 80px); top: calc(3 * 80px); }
-#fwb8 { left: calc(2 * 80px); top: calc(4 * 80px); }
-/* Center entire cluster horizontally in parent */
-#firewall .fw-plus-grid { left:50%; top:50%; transform:translate(-50%, -50%); }
-@media (max-width: 620px) {
-	#firewall .fw-plus-grid { transform:translate(-50%, -50%) scale(0.8); }
-}
-</style>
-<div class='fw-plus-grid' aria-label='Firewall Plus Buttons'>
-	<button id='fwb1' class='fw-plus-btn fw-place' aria-label='Top Firewall Control' title='Top Firewall Control'></button>
-	<button id='fwb2' class='fw-plus-btn fw-place' aria-label='Upper Firewall Control' title='Upper Firewall Control'></button>
-	<button id='fwb3' class='fw-plus-btn fw-place' aria-label='Left Firewall Control' title='Left Firewall Control'></button>
-	<button id='fwb4' class='fw-plus-btn fw-place' aria-label='Inner Left Firewall Control' title='Inner Left Firewall Control'></button>
-	<button id='fwb5' class='fw-plus-btn fw-place' aria-label='Center Firewall Control' title='Center Firewall Control'></button>
-	<button id='fwb6' class='fw-plus-btn fw-place' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'></button>
-	<button id='fwb7' class='fw-plus-btn fw-place' aria-label='Lower Firewall Control' title='Lower Firewall Control'></button>
-	<button id='fwb8' class='fw-plus-btn fw-place' aria-label='Bottom Firewall Control' title='Bottom Firewall Control'></button>
-</div>
-<script>
-// Placeholder click handlers for future functionality
-['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){
-	var el = document.getElementById(id); if(!el) return; el.addEventListener('click', function(){
-		try { console.log('Firewall button clicked:', id); } catch(e) {}
-		el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); }, 400);
-	});
-});
-</script>
-QHTL_FW_BTNS
+		# (Removed unused legacy #firewall tab; navigation points to #firewall1)
 	# Enforce Quick View modal sizing (500x400) with scrollable body
 	print "<style>\n";
 	print "#quickViewModal { position: absolute !important; inset: 0 !important; z-index: 1000 !important; touch-action: auto !important; }\n";
