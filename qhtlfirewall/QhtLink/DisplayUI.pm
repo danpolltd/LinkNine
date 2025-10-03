@@ -4408,16 +4408,8 @@ QHTL_TEMP_MODAL_JS_B
 				if (!areaId) return; var area = document.getElementById(areaId); if (!area) return;
 				try {
 					if (area.qhtlCancelFade) area.qhtlCancelFade();
-					if (isAdv) {
-						area.innerHTML = `
-<div class='qhtl-adv-default' style='text-align:center; padding:8px 4px;'>
-	<div class='blade-title' style='font-weight:800; font-size:16px; color:#d4af37; text-shadow:0 1px 0 rgba(0,0,0,0.25); letter-spacing:.3px; margin-bottom:6px;'>blade</div>
-	<div class='text-muted small'>Use the advanced actions above; your sword status and results will appear here.</div>
-</div>`;
-					} else {
-						area.innerHTML = '';
-						if (area.qhtlShowFallback) area.qhtlShowFallback();
-					}
+					area.innerHTML = '';
+					if (area.qhtlShowFallback) area.qhtlShowFallback();
 					if (area.qhtlArmAuto) area.qhtlArmAuto();
 				} catch(_){ }
 			}
