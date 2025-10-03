@@ -4500,9 +4500,9 @@ QHTL_ADV_RESET_JS
 				print "    <a href='https://forum.danpol.co.uk/' target='_blank' rel='noopener' class='qhtl-hex-btn' aria-label='$lbl' title='$lbl' style='text-decoration:none;color:inherit;display:flex;align-items:center;justify-content:center'>$lbl</a>\n";
 				print "  </div>\n";
 			} else {
-				my $lbl = "Advanced Action $i";
+				my $lbl = 'Buy Promotion';
 				print "  <div class='qhtl-hex-wrap'>\n";
-				print "    <button type='button' class='qhtl-hex-btn' aria-label='$lbl' title='$lbl'>$lbl</button>\n";
+				print "    <button type='button' class='qhtl-hex-btn' aria-label='$lbl' title='$lbl' onclick=\"try{ if(window.openPromoModal){ openPromoModal(); } }catch(e){}\">$lbl</button>\n";
 				print "  </div>\n";
 			}
 		}
