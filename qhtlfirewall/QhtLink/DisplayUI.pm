@@ -364,7 +364,8 @@ sub main {
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "enable") {
-		if ($config{THIS_UI}) {
+		# Allow embedded/alternate UI contexts to enable when override flag is explicitly provided
+		if ($config{THIS_UI} && !$FORM{override}) {
 			print "<div><p>You must login to the root shell to enable qhtlfirewall using:\n<p><b>qhtlfirewall -e</b></p>\n";
 		} else {
 			print "<div><p>Enabling qhtlfirewall...</p>\n";
@@ -4405,7 +4406,7 @@ QHTL_TEMP_MODAL_JS_B
 					 if(cur==='off'){ act='enable'; }
 				 } catch(e){}
 			}
-		 if(act){ try{ var f=document.createElement('form'); f.method='post'; f.action=base; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); document.body.appendChild(f); f.submit(); return; }catch(__){} }
+		 if(act){ try{ var f=document.createElement('form'); f.method='post'; f.action=base; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); if(act==='enable'){ var o=document.createElement('input'); o.type='hidden'; o.name='override'; o.value='1'; f.appendChild(o);} document.body.appendChild(f); f.submit(); return; }catch(__){} }
 	 });
  });
  } catch(e){} })();</script>
