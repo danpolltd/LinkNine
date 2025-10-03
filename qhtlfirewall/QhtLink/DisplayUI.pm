@@ -4454,9 +4454,11 @@ QHTL_FIREWALL_CLUSTER
 #firewall1 .fw-plus-grid {margin-top:0 !important;}
 #firewall1 .fw-plus-btn, #firewall1 .fw-plus-btn * {color:#fff !important;}
 /* Allow button (fwb4) green theme */
-#firewall1 .fw-plus-btn.fw-allow-btn::before, #firewall1 .fw-plus-btn.fw-allow-btn::after { background: linear-gradient(180deg,#e6ffe9 0%,#b0f5be 8%,#31c451 42%,#1b9a39 78%,#14722a 100%) !important; }
-#firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-label { text-shadow:0 0 3px #000,0 0 6px #0c5,0 0 12px #20c060 !important; }
-#firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-count { box-shadow:0 0 0 2px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.45); }
+#firewall1 .fw-plus-btn.fw-allow-btn::before, #firewall1 .fw-plus-btn.fw-allow-btn::after { background: linear-gradient(180deg,#e3fcff 0%,#b8f1f7 10%,#6ddbe8 38%,#27b9cc 70%,#138da0 100%) !important; }
+#firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-label { text-shadow:0 0 3px #000,0 0 6px #12b0c7,0 0 14px #3dd0e5 !important; }
+#firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-count { box-shadow:0 0 0 2px rgba(0,0,0,0.25),0 1px 3px rgba(0,0,0,0.55); z-index:8; transform:translate(-50%, calc(100% + 8px)); background:linear-gradient(180deg,#ffffff 0%,#eaffff 100%); border:1px solid rgba(0,0,0,0.25); }
+/* Provide some extra space beneath plus buttons to show count if translated */
+#firewall1 .fw-plus-grid { padding-bottom:26px; }
 /* Advanced tab hex halo restoration */
 #moreplus .qhtl-hex-btn { box-shadow:0 0 0 10px rgba(192,192,192,0.55), 0 6px 14px rgba(0,0,0,0.35); }
 #moreplus .qhtl-hex-btn::after { content:""; position:absolute; inset:0; border-radius:6px; background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.9),rgba(255,255,255,0) 60%); pointer-events:none; mix-blend-mode:screen; }
