@@ -2156,7 +2156,7 @@ QHTL_JQ_GREP
 		}
 
 	print "<div><b>These options can take a long time to run</b> (several minutes) depending on the number of IP addresses to check and the response speed of the DNS requests:</div>\n";
-	print "<br><div><form action='${script}' method='post' data-noajax='1' onsubmit='return false' aria-disabled='true'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='1'><input type='submit' class='btn btn-default' value='Update All Checks (standard)' disabled='disabled' title='Temporarily disabled'> <span class='text-muted small'>(temporarily disabled)</span></form></div>\n";
+	# Removed: 'Update All Checks (standard)' button (temporarily unavailable)
 	print "<br><div><form action='${script}' method='post' data-noajax='1'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='2'><input type='submit' class='btn btn-default' value='Update All Checks (verbose)'> Generates the normal report but shows successes and failures</form></div>\n";
 	print "<br><div><form action='${script}' method='post' data-noajax='1'><input type='hidden' name='action' value='rblcheckedit'><input type='submit' class='btn btn-default' value='Edit RBL Options'> Edit qhtlfirewall.rblconf to enable and disable IPs and RBLs</form></div>\n";
 
@@ -5319,55 +5319,7 @@ sub systemstats {
 	if (@stats > 1) {
 		QhtLink::ServerStats::graphs($type,$config{ST_SYSTEM_MAXDAYS},$imghddir);
 
-	print "<div class='text-center'><form id='qhtl-systemstats-form' action='${script}' method='post' data-noajax='1' onsubmit='return false' aria-disabled='true'><input type='hidden' name='action' value='systemstats'><select name='graph' disabled='disabled' aria-disabled='true'>\n";
-		my $selected;
-		if ($type eq "" or $type eq "load") {$selected = "selected"} else {$selected = ""}
-		print "<option value='load' $selected>Load Average Statistics</option>\n";
-		if ($type eq "cpu") {$selected = "selected"} else {$selected = ""}
-		print "<option value='cpu' $selected>CPU Statistics</option>\n";
-		if ($type eq "mem") {$selected = "selected"} else {$selected = ""}
-		print "<option value='mem' $selected>Memory Statistics</option>\n";
-		if ($type eq "net") {$selected = "selected"} else {$selected = ""}
-		print "<option value='net' $selected>Network Statistics</option>\n";
-		if (-e "/proc/diskstats") {
-			if ($type eq "disk") {$selected = "selected"} else {$selected = ""}
-			print "<option value='disk' $selected>Disk Statistics</option>\n";
-		}
-		if ($config{ST_DISKW}) {
-			if ($type eq "diskw") {$selected = "selected"} else {$selected = ""}
-			print "<option value='diskw' $selected>Disk Write Performance</option>\n";
-		}
-		if (-e "/var/lib/qhtlfirewall/stats/email") {
-			if ($type eq "email") {$selected = "selected"} else {$selected = ""}
-			print "<option value='email' $selected>Email Statistics</option>\n";
-		}
-		my $dotemp = 0;
-		if (-e "/sys/devices/platform/coretemp.0/temp3_input") {$dotemp = 3}
-		if (-e "/sys/devices/platform/coretemp.0/temp2_input") {$dotemp = 2}
-		if (-e "/sys/devices/platform/coretemp.0/temp1_input") {$dotemp = 1}
-		if ($dotemp) {
-			if ($type eq "temp") {$selected = "selected"} else {$selected = ""}
-			print "<option value='temp' $selected>CPU Temperature</option>\n";
-		}
-		if ($config{ST_MYSQL}) {
-			if ($type eq "mysqldata") {$selected = "selected"} else {$selected = ""}
-			print "<option value='mysqldata' $selected>MySQL Data</option>\n";
-			if ($type eq "mysqlqueries") {$selected = "selected"} else {$selected = ""}
-			print "<option value='mysqlqueries' $selected>MySQL Queries</option>\n";
-			if ($type eq "mysqlslowqueries") {$selected = "selected"} else {$selected = ""}
-			print "<option value='mysqlslowqueries' $selected>MySQL Slow Queries</option>\n";
-			if ($type eq "mysqlconns") {$selected = "selected"} else {$selected = ""}
-			print "<option value='mysqlconns' $selected>MySQL Connections</option>\n";
-		}
-		if ($config{ST_APACHE}) {
-			if ($type eq "apachecpu") {$selected = "selected"} else {$selected = ""}
-			print "<option value='apachecpu' $selected>Apache CPU Usage</option>\n";
-			if ($type eq "apacheconn") {$selected = "selected"} else {$selected = ""}
-			print "<option value='apacheconn' $selected>Apache Connections</option>\n";
-			if ($type eq "apachework") {$selected = "selected"} else {$selected = ""}
-			print "<option value='apachework' $selected>Apache Workers</option>\n";
-		}
-	print "</select> <input type='submit' class='btn btn-default' value='Select Graphs' disabled='disabled' title='Temporarily disabled'> <span class='text-muted small'>(temporarily disabled)</span></form></div><br />\n";
+	# Removed: System Stats graph selector and 'Select Graphs' button (temporarily unavailable)
 
 		print QhtLink::ServerStats::graphs_html($imgdir);
 
