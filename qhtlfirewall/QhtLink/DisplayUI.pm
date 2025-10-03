@@ -3708,7 +3708,12 @@ EOF
 			print $status;
 			print $status_extras;
 		}
-		print "<script>window.QHTL_FW_STATUS='".$fw_state_js."';</script>\n";
+		# Provide both concise and detailed (running/testing/disabled/stopped) statuses
+		my $fw_detail = 'running';
+		if (-e "/etc/qhtlfirewall/qhtlfirewall.disable") { $fw_detail = 'disabled'; }
+		elsif ($config{TESTING}) { $fw_detail = 'testing'; }
+		elsif ($iptstatus[0] !~ /^Chain LOCALINPUT/) { $fw_detail = 'stopped'; }
+		print "<script>window.QHTL_FW_STATUS='".$fw_state_js."';window.QHTL_FW_STATE_DETAIL='".$fw_detail."';</script>\n";
 
 		print "<div class='normalcontainer'>\n";
 		# Enforce tab-pane visibility regardless of host theme CSS and disable tab clicks while Quick View is open
@@ -4393,6 +4398,13 @@ QHTL_TEMP_MODAL_JS_B
 		 else if(id==='fwb3'){ act='profiles'; }
 		 else if(id==='fwb4'){ act='allow'; }
 		 else if(id==='fwb8'){ act='denyf'; }
+			else if(id==='fwb1'){
+				 // If Off state, attempt to enable firewall (maps to action=enable)
+				 try {
+					 var cur=(typeof window.QHTL_FW_STATUS==='string')?window.QHTL_FW_STATUS:'';
+					 if(cur==='off'){ act='enable'; }
+				 } catch(e){}
+			}
 		 if(act){ try{ var f=document.createElement('form'); f.method='post'; f.action=base; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); document.body.appendChild(f); f.submit(); return; }catch(__){} }
 	 });
  });
@@ -4420,6 +4432,9 @@ QHTL_FIREWALL_CLUSTER
 #firewall1 .fw-plus-btn.fw-allow-btn::before, #firewall1 .fw-plus-btn.fw-allow-btn::after { background: linear-gradient(180deg,#e6ffe9 0%,#b0f5be 8%,#31c451 42%,#1b9a39 78%,#14722a 100%) !important; }
 #firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-label { text-shadow:0 0 3px #000,0 0 6px #0c5,0 0 12px #20c060 !important; }
 #firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-count { box-shadow:0 0 0 2px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.45); }
+/* Advanced tab hex halo restoration */
+#moreplus .qhtl-hex-btn { box-shadow:0 0 0 10px rgba(192,192,192,0.55), 0 6px 14px rgba(0,0,0,0.35); }
+#moreplus .qhtl-hex-btn::after { content:""; position:absolute; inset:0; border-radius:6px; background:radial-gradient(circle at 30% 30%,rgba(255,255,255,0.9),rgba(255,255,255,0) 60%); pointer-events:none; mix-blend-mode:screen; }
 </style>
 QHTL_FW_PLUS_LABELS_CSS
 		print "</td></tr>\n";
