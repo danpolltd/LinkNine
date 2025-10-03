@@ -2050,45 +2050,41 @@ QHTL_PLUS_BTN_CSS
 				$labels[1] = 'All Checks';
 			}
 
-			# Targeted safety: ensure the 'Server Check' tab shows content by injecting full report if it's effectively empty
-			my $server_idx = -1;
-			for (my $i=0; $i<@labels; $i++) { if (defined $labels[$i] && $labels[$i] eq 'Server Check') { $server_idx = $i; last; } }
-			if ($server_idx >= 0) {
-				my $p = $panels[$server_idx] // '';
-				my $t = $p; $t =~ s/<[^>]+>//g; $t =~ s/&nbsp;|&ensp;|&emsp;|&thinsp;|&ZeroWidthSpace;|&#160;//gi; $t =~ s/\s+//g; $t =~ s/^\++$//;
-				if ($t !~ /[A-Za-z0-9]{2,}/) { $panels[$server_idx] = $full_html; }
-			}
 
 			# Extract Server Score card from any section and move it to the first tab
 			my $score_html = '';
 			for (my $i = scalar(@panels)-1; $i >= 1; $i--) {
 				my $p = $panels[$i];
 				next unless defined $p and $p ne '' and $p =~ /Server Score:/;
+				my $work = $p; # non-destructive copy for searching/removal
 				# Prefer capturing the outer centered table that contains the score H4 and inner charts, if present
-				if ($p =~ m{((?:<br>\s*)*<table[^>]*align=['\"]?center['\"]?[^>]*>.*?Server Score:.*?</td>\s*</tr>\s*</table>)}is) {
+				if ($work =~ m{((?:<br>\s*)*<table[^>]*align=['\"]?center['\"]?[^>]*>.*?Server Score:.*?</td>\s*</tr>\s*</table>)}is) {
 					$score_html = $1;
-					$panels[$i] =~ s/\Q$score_html\E//is;
+					$work =~ s/\Q$score_html\E//is;
 					# If the disclaimer line exists, append it to the score block and remove from source
-					if ($p =~ m{(<br>\s*<div>\*\s*This\s+scoring\s+does\s+not\s+necessarily.*?</div>)}is) {
-						my $disc = $1; $score_html .= $disc; $panels[$i] =~ s/\Q$disc\E//is;
+					if ($work =~ m{(<br>\s*<div>\*\s*This\s+scoring\s+does\s+not\s+necessarily.*?</div>)}is) {
+						my $disc = $1; $score_html .= $disc; $work =~ s/\Q$disc\E//is;
 					}
-					$panels[$i] =~ s/^(?:\s*<br>\s*)+//s; # tidy leading breaks if any
+					$work =~ s/^(?:\s*<br>\s*)+//s; # tidy leading breaks if any
+					$panels[$i] = $work;
 					last;
 				}
 				# Fallback 1: capture from the H4 heading through the disclaimer line (common simple markup)
-				elsif ($p =~ m{(<h4[^>]*>\s*Server\s+Score:[\s\S]*?(?:<br>\s*<div>\*\s*This\s+scoring\s+does\s+not\s+necessarily[\s\S]*?</div>))}is) {
+				elsif ($work =~ m{(<h4[^>]*>\s*Server\s+Score:[\s\S]*?(?:<br>\s*<div>\*\s*This\s+scoring\s+does\s+not\s+necessarily[\s\S]*?</div>))}is) {
 					$score_html = $1;
-					$panels[$i] =~ s/\Q$score_html\E//is;
-					if ($p =~ m{(<br>\s*<div>\*\s*This\s+scoring\s+does\s+not\s+necessarily.*?</div>)}is) {
-						my $disc = $1; $score_html .= $disc; $panels[$i] =~ s/\Q$disc\E//is;
+					$work =~ s/\Q$score_html\E//is;
+					if ($work =~ m{(<br>\s*<div>\*\s*This\s+scoring\s+does\s+not\s+necessarily.*?</div>)}is) {
+						my $disc = $1; $score_html .= $disc; $work =~ s/\Q$disc\E//is;
 					}
-					$panels[$i] =~ s/^(?:\s*<br>\s*)+//s;
+					$work =~ s/^(?:\s*<br>\s*)+//s;
+					$panels[$i] = $work;
 					last;
 				}
 				# Fallback 2: capture just the H4 line if nothing else matched
-				elsif ($p =~ m{(<h4[^>]*>\s*Server\s+Score:[^<]*<\/h4>)}is) {
+				elsif ($work =~ m{(<h4[^>]*>\s*Server\s+Score:[^<]*<\/h4>)}is) {
 					$score_html = $1;
-					$panels[$i] =~ s/\Q$score_html\E//is;
+					$work =~ s/\Q$score_html\E//is;
+					$panels[$i] = $work;
 					last;
 				}
 			}
