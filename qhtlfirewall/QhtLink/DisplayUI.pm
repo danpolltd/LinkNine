@@ -1924,14 +1924,20 @@ QHTL_JQ_GREP
 				$note_html = $1;
 			}
 
-			# Split the HTML into sections by titles added via addtitle()
-			# Pattern matches: <br><div ...><strong>Title</strong></div>
-			my @parts = split(/<br>\s*<div[^>]*>\s*<strong>([^<]+)<\/strong><\/div>\s*/i, $full_html);
+			# Robustly extract sections by headings added via addtitle():
+			# supports either <div><strong>Title</strong></div> (with optional preceding <br>) or <h4>Title</h4>
+			my @marks;
+			while ($full_html =~ m{(?:<br>\s*)?(?:<div[^>]*>\s*<strong>([^<]+)<\/strong>\s*<\/div>|<h4[^>]*>\s*([^<]+)\s*<\/h4>)}sig) {
+				my $title = (defined $1 && $1 ne '') ? $1 : $2;
+				push @marks, { title => $title, start => $-[0], end => $+[0] };
+			}
 			my @sections;
-			if (@parts >= 3) {
-				for (my $i = 1; $i < scalar(@parts); $i += 2) {
-					my $title = $parts[$i] // '';
-					my $content = $parts[$i+1] // '';
+			if (@marks) {
+				for (my $i=0; $i<@marks; $i++) {
+					my $title = $marks[$i]{title} // ('Section '.($i+1));
+					my $from = $marks[$i]{end};
+					my $to = ($i+1 < @marks) ? $marks[$i+1]{start} : length($full_html);
+					my $content = substr($full_html, $from, $to - $from);
 					push @sections, { title => $title, content => $content };
 				}
 			}
