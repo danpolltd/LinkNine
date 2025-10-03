@@ -4502,7 +4502,7 @@ QHTL_ADV_RESET_JS
 			} elsif ($i == 8) {
 				my $lbl = "About";
 				print "  <div class='qhtl-hex-wrap'>\n";
-				print "    <a href='https://forum.danpol.co.uk/' target='_blank' rel='noopener' class='qhtl-hex-btn' aria-label='$lbl' title='$lbl' style='text-decoration:none;color:inherit;display:flex;align-items:center;justify-content:center'>$lbl</a>\n";
+				print "    <a href='https://forum.danpol.co.uk/' target='_blank' rel='noopener' class='qhtl-hex-btn' aria-label='$lbl' title='$lbl' style='text-decoration:none;display:flex;align-items:center;justify-content:center'>$lbl</a>\n";
 				print "  </div>\n";
 			} else {
 				my $aria = 'Buy Promotions Now!';
@@ -4542,6 +4542,20 @@ print <<'QHTL_ADV_FALLBACK_INJECT';
 		} catch(e){}
 	})();</script>
 QHTL_ADV_FALLBACK_INJECT
+print <<'QHTL_ADV_FALLBACK_DOMREADY';
+<script>(function(){
+	function ensureBlade(){
+		try{
+			var adv=document.getElementById('qhtl-advanced-inline');
+			if(!adv) return; if(adv.children && adv.children.length>0) return;
+			var url=(window.QHTL_SCRIPT||'$script')+'?action=fallback_asset&name=idle_fallback.gif&v=$myv';
+			adv.innerHTML="<div class=\"qhtl-fallback-holder\" style=\"min-height:160px;display:flex;align-items:center;justify-content:center;\"><img alt=\"\" src=\""+url+"\" style=\"max-width:100%;height:auto;opacity:.9\"></div>";
+		}catch(e){}
+	}
+	if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', ensureBlade); }
+	else { ensureBlade(); }
+})();</script>
+QHTL_ADV_FALLBACK_DOMREADY
 	print "</td></tr>\n";
 	print "</table>\n";
 
@@ -4672,52 +4686,38 @@ QHTL_ADV_FALLBACK_INJECT
 "</div>\n";
     return modal;
   }
-  window.openPromoModal = function(){
-    try{
-      ensureOrangeCSS();
-      var existing = document.getElementById('qhtlPromoModal');
-      if (existing) { try { $(existing).modal('hide'); } catch(_) {} existing.remove(); }
-      var modal = buildPromoModal();
+	window.openPromoModal = function(){
+		try {
+			ensureOrangeCSS();
+			var existing = document.getElementById('qhtlPromoModal');
+			if (existing) {
+				try { if (window.jQuery) jQuery(existing).modal('hide'); } catch(_h){}
+				try { existing.remove(); } catch(_r){}
+			}
+			var modal = buildPromoModal();
 			var parent = document.querySelector('.qhtl-bubble-bg') || document.body;
 			parent.appendChild(modal);
-			var $modal = $('#qhtlPromoModal');
-			try {
-				var inScoped = (parent.classList && parent.classList.contains('qhtl-bubble-bg'));
-				var w = inScoped ? (parent.clientWidth || window.innerWidth) : window.innerWidth;
-				var isAdv = (href === '#moreplus');
-				var areaId = (href === '#upgrade') ? 'qhtl-upgrade-inline-area' : (href === '#waterfall' ? 'qhtl-inline-area' : (isAdv ? 'qhtl-advanced-inline' : null));
-				var $mc = $modal.find('.modal-content');
-				if (inScoped) {
-					$modal.css({ position:'absolute', left: 0, top: 0, right: 0, bottom: 0, width:'auto', height:'auto', margin:0 });
-					area.innerHTML = '';
-					if (area.qhtlShowFallback) area.qhtlShowFallback();
-			// wire buttons
-			// sanitize numeric input (max 10 digits) on the fly
-			$modal.on('input', '#qhtlPromoAmount', function(){
-				try { this.value = (this.value||'').replace(/\D+/g,'').slice(0,10); } catch(e) {}
-			});
-			// open PayPal with amount appended; default to 10 if empty
-			$modal.on('click', '#qhtlPromoBuyBtn', function(){
-				try{
-					var amt = (document.getElementById('qhtlPromoAmount')||{}).value || '';
-					amt = (amt+'').replace(/\D+/g,'').slice(0,10);
-					if (!amt) { amt = '10'; }
-					var url = 'https://www.paypal.com/paypalme/danpollimited/' + amt;
-					window.open(url, '_blank');
-				}catch(e){}
-			});
-      $modal.on('click', '#qhtlPromoCloseBtn', function(){ try{ $modal.modal('hide'); } catch(e){} });
-      // cleanup on hide
-			$modal.on('hidden.bs.modal', function(){
-        try { $modal.off(); } catch(_) {}
-        try { $modal.remove(); } catch(_) {}
-				try { $('body').removeClass('modal-open').css({ overflow: '' }); } catch(_) {}
-      });
-	// show modal
-	$modal.modal({ show:true, backdrop:false, keyboard:true });
-    }catch(e){ /* optional: fallback */ alert('Unable to open promo'); }
-    return false;
-  };
+			var hasJQ = !!window.jQuery;
+			if (hasJQ) {
+				var $modal = jQuery('#qhtlPromoModal');
+				// wire inputs
+				$modal.on('input', '#qhtlPromoAmount', function(){ try { this.value=(this.value||'').replace(/\D+/g,'').slice(0,10); }catch(e){} });
+				$modal.on('click', '#qhtlPromoBuyBtn', function(){ try{ var amt=(document.getElementById('qhtlPromoAmount')||{}).value||''; amt=(amt+'').replace(/\D+/g,'').slice(0,10); if(!amt) amt='10'; window.open('https://www.paypal.com/paypalme/danpollimited/'+amt,'_blank'); }catch(e){} });
+				$modal.on('click', '#qhtlPromoCloseBtn', function(){ try{ $modal.modal('hide'); }catch(e){} });
+				$modal.on('hidden.bs.modal', function(){ try{ $modal.off(); }catch(_1){} try{ $modal.remove(); }catch(_2){} try{ jQuery('body').removeClass('modal-open').css({overflow:''}); }catch(_3){} });
+				$modal.modal({ show:true, backdrop:false, keyboard:true });
+			} else {
+				// Vanilla fallback: basic close + handlers
+				var buyBtn = modal.querySelector('#qhtlPromoBuyBtn');
+				if (buyBtn) buyBtn.addEventListener('click', function(){ try{ var amt=(document.getElementById('qhtlPromoAmount')||{}).value||''; amt=(amt+'').replace(/\D+/g,'').slice(0,10); if(!amt) amt='10'; window.open('https://www.paypal.com/paypalme/danpollimited/'+amt,'_blank'); }catch(e){} });
+				var closeBtn = modal.querySelector('#qhtlPromoCloseBtn');
+				if (closeBtn) closeBtn.addEventListener('click', function(){ try{ modal.remove(); }catch(e){} });
+				// Simple escape key handler
+				document.addEventListener('keydown', function esc(e){ if(e.key==='Escape'){ try{ modal.remove(); }catch(_){} document.removeEventListener('keydown', esc, true);} }, true);
+			}
+		} catch(e){ try{ console.error('openPromoModal failed', e); }catch(_){} }
+		return false;
+	};
 })();
 QHTL_PROMO_JS
 	print "</script>\n";
