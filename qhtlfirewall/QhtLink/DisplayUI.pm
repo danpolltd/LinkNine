@@ -4286,7 +4286,8 @@ QHTL_TEMP_MODAL_JS_B
 <style>
 #firewall1 .fw-plus-wrapper { position:relative; width:100%; display:flex; justify-content:center; padding:24px 0 12px; }
 /* Glossy circular buttons forming a plus. Increase gap so halos don't merge */
-#firewall1 .fw-plus-grid { display:grid; grid-template-columns: repeat(3, 80px); grid-auto-rows:80px; gap:26px; position:relative; }
+/* Horizontal row of plus buttons */
+#firewall1 .fw-plus-grid { display:flex; flex-wrap:nowrap; gap:26px; position:relative; justify-content:center; align-items:center; }
 #firewall1 .fw-plus-btn { position:relative; width:120px; height:120px; border:none; background:transparent; cursor:pointer; padding:0; outline:none; filter:drop-shadow(0 0 8px rgba(255,0,0,0.75)) drop-shadow(0 0 20px rgba(255,0,0,0.55)) drop-shadow(0 0 34px rgba(255,0,0,0.4)); transition:transform .25s ease, filter .25s ease; }
 /* Build glossy plus using two layered pseudo elements so each button is an independent plus shape */
 #firewall1 .fw-plus-btn::before, #firewall1 .fw-plus-btn::after { content:""; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); border-radius:18px; background: linear-gradient(180deg,#ffe6e6 0%,#ffb5b5 8%,#ff2a2a 38%,#d40000 78%,#a70000 100%); }
@@ -4303,16 +4304,11 @@ QHTL_TEMP_MODAL_JS_B
 #firewall1 .fw-plus-btn:hover::after { opacity:1; }
 #firewall1 .fw-plus-btn:active { transform:scale(.94); filter:brightness(1.15) contrast(1.1); }
 /* Placement (7 true plus buttons + optional center for 8th if needed) */
-#fwb1 { grid-row:1; grid-column:2; }
-#fwb2 { grid-row:2; grid-column:2; }
-#fwb3 { grid-row:3; grid-column:1; }
-#fwb4 { grid-row:3; grid-column:2; }
-#fwb5 { grid-row:3; grid-column:3; }
+/* No special positioning needed in row */
 #fwb6 { display:none; }
-#fwb7 { grid-row:4; grid-column:2; }
-#fwb8 { grid-row:5; grid-column:2; }
-@media (max-width: 860px) { #firewall1 .fw-plus-grid { transform:scale(.8); transform-origin:top center; } }
-@media (max-width: 620px) { #firewall1 .fw-plus-grid { transform:scale(.67); } }
+@media (max-width: 1200px) { #firewall1 .fw-plus-grid { flex-wrap:wrap; } }
+@media (max-width: 860px) { #firewall1 .fw-plus-grid { transform:scale(.85); transform-origin:top center; } }
+@media (max-width: 620px) { #firewall1 .fw-plus-grid { transform:scale(.72); } }
 </style>
 <div class='fw-plus-wrapper'>
 	<div class='fw-plus-grid' aria-label='Firewall Plus Buttons'>
