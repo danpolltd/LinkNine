@@ -237,6 +237,8 @@ QHTL_TABS_CSS
 
 			# Render container
 			$html .= "<div class='qhtl-tabs' id='qhtl-tabs-servercheck'>\n";
+			# Add JS that allows re-clicking the currently active tab label to reset (return to General)
+			$html .= "<script>(function(){try{var wrap=document.getElementById('qhtl-tabs-servercheck');if(!wrap)return;var radios=[].slice.call(wrap.querySelectorAll('.qhtl-tabs-radio'));var first=radios[0];wrap.addEventListener('click',function(e){var lab=e.target.closest('label');if(!lab)return;var forId=lab.getAttribute('for');if(!forId)return;var r=document.getElementById(forId);if(!r)return; if(r.checked && first && first!==r){ first.checked=true; } });}catch(_){}})();</script>";
 
 			# Hidden radio inputs for pure-CSS tab switching (must be siblings of nav and panels)
 			for my $i (0..$#ids) {
@@ -4443,7 +4445,7 @@ QHTL_FIREWALL_CLUSTER
 #firewall1 .fw-plus-item {position:relative; display:inline-flex; flex-direction:column; align-items:center; justify-content:flex-start;}
 #firewall1 .fw-plus-btn {position:relative;}
 #firewall1 .fw-plus-btn .fw-plus-label {position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:16px; font-weight:700; color:#fff !important; text-shadow:0 0 3px #000,0 0 6px #d40000,0 0 12px #ff2020; letter-spacing:.6px; pointer-events:none; z-index:3; line-height:1; white-space:nowrap;}
-#firewall1 .fw-plus-btn .fw-plus-count {position:absolute; bottom:8px; left:50%; transform:translate(-50%, 0); background:#fff; color:#000; font-weight:700; font-size:15px; line-height:1.15; padding:6px 10px 7px; border-radius:5px; box-shadow:0 2px 5px rgba(0,0,0,0.45); min-width:28px; text-align:center; z-index:9; letter-spacing:.5px;}
+#firewall1 .fw-plus-btn .fw-plus-count {position:absolute; bottom:4px; left:50%; transform:translate(-50%, 0); background:#fff; color:#000; font-weight:700; font-size:17px; line-height:1.2; padding:8px 14px 9px; border-radius:6px; box-shadow:0 3px 8px rgba(0,0,0,0.45); min-width:42px; text-align:center; z-index:12; letter-spacing:.6px; white-space:nowrap;}
 #firewall1 .fw-status-btn::before, #firewall1 .fw-status-btn::after { transition:background .4s ease; }
 #firewall1 .fw-status-on::before, #firewall1 .fw-status-on::after { background: linear-gradient(180deg,#e8ffe9 0%,#b9f5c2 8%,#2ecc4f 42%,#1f9939 78%,#16722a 100%) !important; }
 #firewall1 .fw-status-testing::before, #firewall1 .fw-status-testing::after { background: linear-gradient(180deg,#fff6e6 0%,#ffe2b3 8%,#ffb347 45%,#ff8c00 78%,#d46a00 100%) !important; }
@@ -4456,7 +4458,7 @@ QHTL_FIREWALL_CLUSTER
 /* Allow button (fwb4) green theme */
 #firewall1 .fw-plus-btn.fw-allow-btn::before, #firewall1 .fw-plus-btn.fw-allow-btn::after { background: linear-gradient(180deg,#e3fcff 0%,#b8f1f7 10%,#6ddbe8 38%,#27b9cc 70%,#138da0 100%) !important; }
 #firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-label { text-shadow:0 0 3px #000,0 0 6px #12b0c7,0 0 14px #3dd0e5 !important; }
-#firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-count { box-shadow:0 0 0 3px rgba(0,0,0,0.08),0 2px 6px rgba(0,0,0,0.55); z-index:10; transform:translate(-50%, calc(100% + 10px)); background:linear-gradient(180deg,#ffffff 0%,#e4fbff 100%); border:1px solid rgba(0,0,0,0.3); font-size:16px; padding:7px 12px 8px; }
+#firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-count { box-shadow:0 0 0 4px rgba(0,0,0,0.06),0 4px 10px rgba(0,0,0,0.55); z-index:14; transform:translate(-50%, calc(100% + 12px)); background:linear-gradient(180deg,#ffffff 0%,#d8f7ff 100%); border:1px solid rgba(0,0,0,0.32); font-size:18px; padding:9px 16px 10px; min-width:48px; }
 /* Provide some extra space beneath plus buttons to show count if translated */
 #firewall1 .fw-plus-grid { padding-bottom:26px; }
 /* Advanced tab hex halo restoration */
