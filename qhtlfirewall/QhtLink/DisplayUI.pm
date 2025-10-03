@@ -3692,25 +3692,23 @@ EOF
 
 		# If invoked from cPanel/WHM UI, the header already shows status next to the Watcher button.
 		# Suppress the inline ribbon entirely in that context to avoid duplication.
-		if ($config{THIS_UI} && $config{THIS_UI} eq 'cpanel') {
-			# no-op: don't print $status or extras here; header covers it
+		# Decide concise firewall status for UI widgets (on/testing/off) regardless of cpanel context
+		my $fw_state_js = 'off';
+		if (-e "/etc/qhtlfirewall/qhtlfirewall.disable") {
+			$fw_state_js = 'off';
+		} elsif ($config{TESTING}) {
+			$fw_state_js = 'testing';
+		} elsif ($iptstatus[0] !~ /^Chain LOCALINPUT/) {
+			$fw_state_js = 'off';
 		} else {
+			$fw_state_js = 'on';
+		}
+		# Print visual callouts only when not suppressed by cpanel UI embedding
+		if (!($config{THIS_UI} && $config{THIS_UI} eq 'cpanel')) {
 			print $status;
 			print $status_extras;
-			# Emit a JS global with concise firewall status for UI widgets (on/testing/off)
-			my $fw_state_js = 'off';
-			if (-e "/etc/qhtlfirewall/qhtlfirewall.disable") {
-				$fw_state_js = 'off';
-			} elsif ($config{TESTING}) {
-				$fw_state_js = 'testing';
-			} elsif ($iptstatus[0] !~ /^Chain LOCALINPUT/) {
-				# Enabled but stopped: treat as off for button color (distinct from 'testing')
-				$fw_state_js = 'off';
-			} else {
-				$fw_state_js = 'on';
-			}
-			print "<script>window.QHTL_FW_STATUS='".$fw_state_js."';</script>\n";
 		}
+		print "<script>window.QHTL_FW_STATUS='".$fw_state_js."';</script>\n";
 
 		print "<div class='normalcontainer'>\n";
 		# Enforce tab-pane visibility regardless of host theme CSS and disable tab clicks while Quick View is open
@@ -4332,7 +4330,7 @@ QHTL_TEMP_MODAL_JS_B
 		<div class='fw-plus-item'><button id='fwb1' class='fw-plus-btn fw-status-btn' aria-label='Firewall Status' title='Firewall Status'><span class='fw-plus-label' id='fw-status-text'>Status</span></button></div>
 		<div class='fw-plus-item'><button id='fwb2' class='fw-plus-btn' aria-label='Config' title='Config'><span class='fw-plus-label'>Config</span></button></div>
 		<div class='fw-plus-item'><button id='fwb3' class='fw-plus-btn' aria-label='Profiles' title='Profiles'><span class='fw-plus-label'>Profiles</span></button></div>
-		<div class='fw-plus-item'><button id='fwb4' class='fw-plus-btn' aria-label='Allow IPs' title='Allow IPs'><span class='fw-plus-label'>Allow</span><span class='fw-plus-count' id='fw-allow-count'></span></button></div>
+		<div class='fw-plus-item'><button id='fwb4' class='fw-plus-btn fw-allow-btn' aria-label='Allow IPs' title='Allow IPs'><span class='fw-plus-label'>Allow</span><span class='fw-plus-count' id='fw-allow-count'></span></button></div>
 		<div class='fw-plus-item'><button id='fwb5' class='fw-plus-btn' aria-label='Center Control' title='Center Control'><span class='fw-plus-label'>Center</span></button></div>
 		<div class='fw-plus-item' style='display:none'><button id='fwb6' class='fw-plus-btn' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'><span class='fw-plus-label'>Hidden</span></button></div>
 		<div class='fw-plus-item'><button id='fwb7' class='fw-plus-btn' aria-label='Lower Control' title='Lower Control'><span class='fw-plus-label'>Lower</span></button></div>
@@ -4370,6 +4368,20 @@ QHTL_TEMP_MODAL_JS_B
 	 else if(statusState==='testing'){ statusBtn.classList.add('fw-status-testing'); statusLabel.textContent='Testing'; }
 	 else { statusBtn.classList.add('fw-status-off'); statusLabel.textContent='Off'; }
  }
+ // Delayed re-check once DOM likely settled (handles late header injection)
+ setTimeout(function(){
+	 try {
+		 var s = (typeof window.QHTL_FW_STATUS==='string') ? window.QHTL_FW_STATUS : statusState;
+		 if(s!==statusState){ statusState=s; }
+		 var btn=document.getElementById('fwb1'); var lab=document.getElementById('fw-status-text');
+		 if(btn && lab){
+			 btn.classList.remove('fw-status-on','fw-status-testing','fw-status-off');
+			 if(s==='on'){ btn.classList.add('fw-status-on'); lab.textContent='On'; }
+			 else if(s==='testing'){ btn.classList.add('fw-status-testing'); lab.textContent='Testing'; }
+			 else { btn.classList.add('fw-status-off'); lab.textContent='Off'; }
+		 }
+	 } catch(e){}
+ }, 600);
  // Button action mappings (added Flush -> fwb8 / action=denyf)
  ['fwb1','fwb2','fwb3','fwb4','fwb5','fwb6','fwb7','fwb8'].forEach(function(id){
 	 var el=document.getElementById(id); if(!el) return;
@@ -4405,9 +4417,9 @@ QHTL_FIREWALL_CLUSTER
 #firewall1 .fw-plus-grid {margin-top:0 !important;}
 #firewall1 .fw-plus-btn, #firewall1 .fw-plus-btn * {color:#fff !important;}
 /* Allow button (fwb4) green theme */
-#fwb4.fw-plus-btn::before, #fwb4.fw-plus-btn::after { background: linear-gradient(180deg,#e6ffe9 0%,#b0f5be 8%,#31c451 42%,#1b9a39 78%,#14722a 100%) !important; }
-#fwb4 .fw-plus-label { text-shadow:0 0 3px #000,0 0 6px #0c5,0 0 12px #20c060 !important; }
-#fwb4 .fw-plus-count { box-shadow:0 0 0 2px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.45); }
+#firewall1 .fw-plus-btn.fw-allow-btn::before, #firewall1 .fw-plus-btn.fw-allow-btn::after { background: linear-gradient(180deg,#e6ffe9 0%,#b0f5be 8%,#31c451 42%,#1b9a39 78%,#14722a 100%) !important; }
+#firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-label { text-shadow:0 0 3px #000,0 0 6px #0c5,0 0 12px #20c060 !important; }
+#firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-count { box-shadow:0 0 0 2px rgba(0,0,0,0.15),0 1px 3px rgba(0,0,0,0.45); }
 </style>
 QHTL_FW_PLUS_LABELS_CSS
 		print "</td></tr>\n";
