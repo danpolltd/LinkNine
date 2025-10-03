@@ -4284,14 +4284,14 @@ QHTL_TEMP_MODAL_JS_B
 		print "<tr class='fw-plus-row'><td colspan='2' class='fw-plus-cell'>";
 		print <<'QHTL_FIREWALL_CLUSTER';
 <style>
-#firewall1 .fw-plus-wrapper { position:relative; width:100%; display:flex; justify-content:center; padding:24px 0 12px; }
+#firewall1 .fw-plus-wrapper { position:relative; width:100%; display:flex; justify-content:center; padding:7px 0 7px; }
 /* Glossy circular buttons forming a plus. Increase gap so halos don't merge */
 /* Horizontal row of plus buttons */
 #firewall1 .fw-plus-grid { display:flex; flex-wrap:nowrap; gap:26px; position:relative; justify-content:center; align-items:center; }
 /* Row plus buttons refined: remove white square feel, softer halo like waterfall */
 #firewall1 .fw-plus-btn { position:relative; width:120px; height:120px; border:none; background:transparent; cursor:pointer; padding:0; outline:none; 
-	filter:drop-shadow(0 4px 10px rgba(0,0,0,0.25)) drop-shadow(0 0 10px rgba(255,0,0,0.55));
-	transition:transform .25s ease, filter .25s ease; }
+	filter:drop-shadow(0 4px 10px rgba(0,0,0,0.25));
+	transition:transform .25s ease; }
 #firewall1 .fw-plus-item { position:relative; display:flex; flex-direction:column; align-items:center; gap:8px; min-width:120px; }
 #firewall1 .fw-plus-label { font-size:14px; font-weight:600; color:#8b0000; text-shadow:0 1px 1px rgba(255,255,255,0.55); line-height:1; white-space:nowrap; }
 #firewall1 .fw-plus-item .fw-plus-btn:focus + .fw-plus-label, #firewall1 .fw-plus-item:hover .fw-plus-label { color:#b80000; }
@@ -4304,8 +4304,8 @@ QHTL_TEMP_MODAL_JS_B
 /* Remove highlight bubble for cleaner look */
 /* (fw-hi span will be ignored; will remove from markup) */
 /* Hover/active effects */
-#firewall1 .fw-plus-btn:hover { transform:translateY(-4px) scale(1.05); filter:drop-shadow(0 6px 14px rgba(0,0,0,0.28)) drop-shadow(0 0 14px rgba(255,40,40,0.65)); }
-#firewall1 .fw-plus-btn:active { transform:scale(.94); filter:drop-shadow(0 3px 8px rgba(0,0,0,0.35)) drop-shadow(0 0 12px rgba(255,0,0,0.6)); }
+#firewall1 .fw-plus-btn:hover { transform:translateY(-4px) scale(1.05); }
+#firewall1 .fw-plus-btn:active { transform:scale(.94); }
 /* Placement (7 true plus buttons + optional center for 8th if needed) */
 /* No special positioning needed in row */
 #fwb6 { display:none; }
