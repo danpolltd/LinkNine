@@ -2156,7 +2156,7 @@ QHTL_JQ_GREP
 		}
 
 	print "<div><b>These options can take a long time to run</b> (several minutes) depending on the number of IP addresses to check and the response speed of the DNS requests:</div>\n";
-	print "<br><div><form action='${script}' method='post' data-noajax='1'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='1'><input type='submit' class='btn btn-default' value='Update All Checks (standard)'> Generates the normal report showing exceptions only</form></div>\n";
+	print "<br><div><form action='${script}' method='post' data-noajax='1'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='1'><input type='submit' class='btn btn-default' value='Update All Checks (standard)' disabled='disabled' title='Temporarily disabled'> <span class='text-muted small'>(temporarily disabled)</span></form></div>\n";
 	print "<br><div><form action='${script}' method='post' data-noajax='1'><input type='hidden' name='action' value='rblcheck'><input type='hidden' name='verbose' value='2'><input type='submit' class='btn btn-default' value='Update All Checks (verbose)'> Generates the normal report but shows successes and failures</form></div>\n";
 	print "<br><div><form action='${script}' method='post' data-noajax='1'><input type='hidden' name='action' value='rblcheckedit'><input type='submit' class='btn btn-default' value='Edit RBL Options'> Edit qhtlfirewall.rblconf to enable and disable IPs and RBLs</form></div>\n";
 
@@ -5367,7 +5367,7 @@ sub systemstats {
 			if ($type eq "apachework") {$selected = "selected"} else {$selected = ""}
 			print "<option value='apachework' $selected>Apache Workers</option>\n";
 		}
-	print "</select> <input type='submit' class='btn btn-default' value='Select Graphs'></form></div><br />\n";
+	print "</select> <input type='submit' class='btn btn-default' value='Select Graphs' disabled='disabled' title='Temporarily disabled'> <span class='text-muted small'>(temporarily disabled)</span></form></div><br />\n";
 
 		print QhtLink::ServerStats::graphs_html($imgdir);
 
