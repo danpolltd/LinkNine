@@ -4284,24 +4284,27 @@ QHTL_TEMP_MODAL_JS_B
 		print "<tr><td colspan='2'>";
 		print <<'QHTL_FIREWALL_CLUSTER';
 <style>
-#firewall1 .fw-plus-wrapper { position:relative; width:100%; display:flex; justify-content:center; padding:12px 0 4px; }
-#firewall1 .fw-plus-grid { position:relative; width:430px; height:430px; max-width:100%; }
-#firewall1 .fw-plus-btn { position:absolute; width:70px; height:70px; background:#a30000; border:none; cursor:pointer; padding:0; outline:none; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:22px; color:#fff; text-shadow:0 0 6px #ff4d4d,0 0 12px #ff0000; letter-spacing:1px; transition:transform .25s ease, box-shadow .25s ease, filter .25s ease; border-radius:8px; box-shadow:0 0 12px 6px rgba(255,0,0,0.85), 0 0 24px 12px rgba(255,0,0,0.65), 0 0 40px 20px rgba(255,30,0,0.55); }
-#firewall1 .fw-plus-btn::before, #firewall1 .fw-plus-btn::after { content:""; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background: linear-gradient(90deg,#ff1a1a,#ff0000,#cc0000); filter:drop-shadow(0 0 6px #ff2b2b) drop-shadow(0 0 14px #ff0000) drop-shadow(0 0 28px #ff0000); }
-#firewall1 .fw-plus-btn::before { width:60%; height:18%; border-radius:4px; }
-#firewall1 .fw-plus-btn::after { height:60%; width:18%; border-radius:4px; }
-#firewall1 .fw-plus-btn:hover { transform:scale(1.08); box-shadow:0 0 16px 8px rgba(255,40,40,0.95),0 0 32px 16px rgba(255,0,0,0.75),0 0 54px 28px rgba(255,30,0,0.65); }
-#firewall1 .fw-plus-btn:active { transform:scale(0.94); filter:brightness(1.2); }
-/* Pattern positions using 5x5 grid cell size 80 (70 + 10 gap) */
-#firewall1 #fwb1 { left:calc(2 * 80px); top:calc(0 * 80px); }
-#firewall1 #fwb2 { left:calc(2 * 80px); top:calc(1 * 80px); }
-#firewall1 #fwb3 { left:calc(0 * 80px); top:calc(2 * 80px); }
-#firewall1 #fwb4 { left:calc(1 * 80px); top:calc(2 * 80px); }
-#firewall1 #fwb5 { left:calc(2 * 80px); top:calc(2 * 80px); }
-#firewall1 #fwb6 { left:calc(3 * 80px); top:calc(2 * 80px); }
-#firewall1 #fwb7 { left:calc(2 * 80px); top:calc(3 * 80px); }
-#firewall1 #fwb8 { left:calc(2 * 80px); top:calc(4 * 80px); }
-@media (max-width: 620px) { #firewall1 .fw-plus-grid { transform:scale(.72); transform-origin:top center; height:310px; } }
+#firewall1 .fw-plus-wrapper { position:relative; width:100%; display:flex; justify-content:center; padding:18px 0 8px; }
+/* Use CSS grid for simpler alignment: 5 rows x 3 cols (center col forms vertical arm; middle row forms horizontal arm) */
+#firewall1 .fw-plus-grid { display:grid; grid-template-columns: repeat(3, 70px); grid-auto-rows:70px; gap:10px; position:relative; }
+/* Base button */
+#firewall1 .fw-plus-btn { position:relative; width:70px; height:70px; background:#a30000; border:none; cursor:pointer; padding:0; outline:none; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:22px; color:#fff; text-shadow:0 0 4px #ff4d4d,0 0 8px #ff0000; letter-spacing:1px; transition:transform .25s ease, box-shadow .25s ease, filter .25s ease; border-radius:10px; box-shadow:0 0 10px 4px rgba(255,0,0,0.9), 0 0 22px 10px rgba(255,0,0,0.55); }
+#firewall1 .fw-plus-btn::before, #firewall1 .fw-plus-btn::after { content:""; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background: linear-gradient(90deg,#ff2a2a,#ff0000,#c60000); filter:drop-shadow(0 0 6px #ff2b2b) drop-shadow(0 0 16px #ff0000); }
+#firewall1 .fw-plus-btn::before { width:60%; height:20%; border-radius:5px; }
+#firewall1 .fw-plus-btn::after { height:60%; width:20%; border-radius:5px; }
+#firewall1 .fw-plus-btn:hover { transform:scale(1.07); box-shadow:0 0 14px 6px rgba(255,40,40,0.95),0 0 30px 14px rgba(255,0,0,0.7); }
+#firewall1 .fw-plus-btn:active { transform:scale(0.93); filter:brightness(1.18); }
+/* Place only the 8 needed buttons using explicit grid cells: rows 1-5, cols 1-3. We'll skip corners except middle row. */
+#fwb1 { grid-row:1; grid-column:2; }
+#fwb2 { grid-row:2; grid-column:2; }
+#fwb3 { grid-row:3; grid-column:1; }
+#fwb4 { grid-row:3; grid-column:2; }
+#fwb5 { grid-row:3; grid-column:3; }
+#fwb6 { grid-row:3; grid-column:2; display:none; }
+#fwb7 { grid-row:4; grid-column:2; }
+#fwb8 { grid-row:5; grid-column:2; }
+/* Remove unused id slot for clarity (fwb6 hidden placeholder, can be repurposed later) */
+@media (max-width: 620px) { #firewall1 .fw-plus-grid { transform:scale(.85); transform-origin:top center; } }
 </style>
 <div class='fw-plus-wrapper'>
 	<div class='fw-plus-grid' aria-label='Firewall Plus Buttons'>
