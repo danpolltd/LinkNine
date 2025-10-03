@@ -443,7 +443,7 @@ sub main {
 		<script>
 			QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
 			QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
-			QHTLFIREWALLscript = '$script?action=logtailcmd';
+			QHTLFIREWALLscript = '$script?action=logtailcmd&ajax=1';
 			QHTLFIREWALLtimer();
 		</script>
 EOF
@@ -666,7 +666,7 @@ Please Note:
 <script>
 	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
 	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
-	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+	QHTLFIREWALLscript = '$script?action=loggrepcmd&ajax=1';
 </script>
 EOF
 		print <<'QHTL_JQ_GREP';
@@ -876,7 +876,7 @@ Please Note:
 <script>
 	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
 	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
-	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+	QHTLFIREWALLscript = '$script?action=loggrepcmd&ajax=1';
 </script>
 EOF
 		print <<'QHTL_JQ_GREP';
@@ -1082,7 +1082,7 @@ Please Note:
 <script>
 	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
 	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
-	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+	QHTLFIREWALLscript = '$script?action=loggrepcmd&ajax=1';
 </script>
 EOF
 		print <<'QHTL_JQ_GREP';
@@ -1285,7 +1285,7 @@ Please Note:
 <script>
 	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
 	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
-	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+	QHTLFIREWALLscript = '$script?action=loggrepcmd&ajax=1';
 </script>
 EOF
 		print <<'QHTL_JQ_GREP';
@@ -1486,7 +1486,7 @@ Please Note:
 <script>
 	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
 	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
-	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+	QHTLFIREWALLscript = '$script?action=loggrepcmd&ajax=1';
 </script>
 EOF
 		print <<'QHTL_JQ_GREP';
@@ -1687,7 +1687,7 @@ Please Note:
 <script>
 	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
 	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
-	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+	QHTLFIREWALLscript = '$script?action=loggrepcmd&ajax=1';
 </script>
 EOF
 		print <<'QHTL_JQ_GREP';
@@ -1888,7 +1888,7 @@ Please Note:
 <script>
 	QHTLFIREWALLfrombot = $QHTLFIREWALLfrombot;
 	QHTLFIREWALLfromright = $QHTLFIREWALLfromright;
-	QHTLFIREWALLscript = '$script?action=loggrepcmd';
+	QHTLFIREWALLscript = '$script?action=loggrepcmd&ajax=1';
 </script>
 EOF
 		print <<'QHTL_JQ_GREP';
