@@ -4760,6 +4760,13 @@ setTimeout(function(){
 		['mousedown','touchstart'].forEach(function(ev){ allowBtn.addEventListener(ev,function(e){ if(e.button!==0 && ev==='mousedown') return; startPress(); },{passive:true}); });
 		['mouseup','mouseleave','touchend','touchcancel','blur'].forEach(function(ev){ allowBtn.addEventListener(ev,function(){ cancel(); },{passive:true}); });
 	})();
+	// Firewall tab name click reset: clear inline area and show loader briefly
+	['fw-tab-label','firewall-tab','firewallTab','fw-main-tab','firewall1-label'].forEach(function(id){
+		var el=document.getElementById(id); if(!el || el._fwResetBound) return; el._fwResetBound=1;
+		el.addEventListener('click',function(){ try{
+			var area=document.getElementById('fw-spacer-inline-area'); if(!area) return; area.innerHTML=''; area.classList.add('fw-spacer-empty'); area.classList.add('fw-loading'); setTimeout(function(){ area.classList.remove('fw-loading'); },600);
+		}catch(_){ } });
+	});
 },400);
  } catch(e){} })();</script>
 QHTL_FIREWALL_CLUSTER
@@ -6101,7 +6108,7 @@ sub editfile {
 		print "<button class='btn btn-default' id='toggletextarea-btn'>Toggle Editor/Textarea</button>\n";
 	print " <div class='pull-right btn-group'><button type='button' class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>\n";
 	print "<button type='button' class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>\n";
-		print "<form action='$script' method='post'>\n";
+		print "<form action='$script' method='post" . ($is_ajax ? "' id='qhtlfirewallform'" : "'") . ">\n";
 		print "<input type='hidden' name='action' value='$save'>\n";
 		print "<input type='hidden' name='ace' value='1'>\n";
 		if ($extra) {print "<input type='hidden' name='$extra' value='$FORM{$extra}'>\n";}
@@ -6167,7 +6174,8 @@ EOF
 			print "<form action='$script?pipe_post=yes' method='post'" . ($is_ajax ? " id='qhtlfirewallform'" : '') . ">\n<div class='panel panel-default'>\n";
 		} else {
 			print "<div class='qhtl-inline-fragment'>" if $is_ajax;
-			print "<form action='$script' method='post'" . ($is_ajax ? " id='qhtlfirewallform'" : '') . ">\n<div class='panel panel-default'>\n" unless $is_ajax;
+			# Always print form (previously suppressed in ajax causing missing form)
+			print "<form action='$script' method='post'" . ($is_ajax ? " id='qhtlfirewallform'" : '') . ">\n<div class='panel panel-default'>\n";
 		}
 		print "<div class='panel-heading panel-heading-qhtlwatcher'>Edit <code>$file</code></div>\n" unless $is_ajax;
 		print "<div class='panel-body'>\n";
@@ -6181,7 +6189,7 @@ EOF
 		}
 		print "</textarea></div>\n";
 		print "<div class='panel-footer text-center'><input type='submit' class='btn btn-default' value='Change'></div>\n" unless $is_ajax;
-		print "</div></form>\n" unless $is_ajax;
+		print "</div></form>\n"; # always close form now
 		print "</div>" if $is_ajax;
 	}
 

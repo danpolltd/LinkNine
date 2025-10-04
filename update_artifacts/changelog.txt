@@ -9,6 +9,13 @@ Version: 0.1.54 “Inline Save Actions”
 Date: 2025-10-04
 Version: 0.1.55 “Unified Save Done Message”
 
+Date: 2025-10-04
+Version: 0.1.56 “Save Form Binding + Tab Reset”
+Fix
+- Ensure AJAX edit forms (ace + basic) always output <form id='qhtlfirewallform'> in inline mode so Save buttons (Allow/Deny/Redirect/Config) trigger qhtlBindInlineSave.
+Enhancement
+- Clicking the Firewall tab label now clears inline content and restores the default idle animation state.
+
 UI
 - Standardized AJAX save completion message to 'Save done' for Allow, Deny, Redirect, Config; inline area now always replaced by success message (panel closes) so user sees immediate confirmation.
 
