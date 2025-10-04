@@ -4467,7 +4467,12 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 			if(act==='denyf'){ fragment='<div class="text-success">Temporary bans flushed.</div>'; }
 			if(act==='restart'){ fragment='<div class="text-info">Firewall restart requested.</div>'; }
 			var clean=fragment.trim();
-			if(!clean){ clean='<div class="text-muted">(No output returned)</div>'; }
+			if(!clean){
+				if(act==='status'){ clean='<div class="text-muted">(No rules output)</div>'; }
+				else if(act==='conf'){ clean='<div class="text-muted">(Config output unavailable)</div>'; }
+				else if(act==='profiles'){ clean='<div class="text-muted">(Profiles output unavailable)</div>'; }
+				else { clean='<div class="text-muted">(No output returned)</div>'; }
+			}
 			if(tgt){
 				tgt.innerHTML=clean;
 				tgt.classList.remove('fw-loading');
@@ -4500,9 +4505,8 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 setTimeout(function(){
 	var statusBtn2=document.getElementById('fwb1'); if(statusBtn2 && !statusBtn2._fwBound){
 		statusBtn2.addEventListener('click',function(ev){ try{
-			// Short click: if off -> enable; if on/testing -> no immediate disable, just ignore (hold mechanic expected externally)
-			if(statusBtn2.classList.contains('fw-status-off')){ window.submitAction('conf',{autorefresh:'1'}); /* optional: show conf or status */ }
-			else { /* no-op on short click when running */ }
+			// Always load status (rules fragment) inline; do not enable/disable directly.
+			window.submitAction('status');
 		}catch(_){ } });
 		statusBtn2._fwBound=1;
 	}
@@ -4512,7 +4516,8 @@ setTimeout(function(){
 },400);
  } catch(e){} })();</script>
 QHTL_FIREWALL_CLUSTER
-		print <<'QHTL_FW_SPACER_CSS';
+        # Interpolated heredoc (needs $script expansion for loader image URL)
+		print <<"QHTL_FW_SPACER_CSS";
 <style>
 	#fw-spacer-inline-area { position:relative; z-index:20; background:transparent !important; min-height:220px; padding:8px 10px; box-sizing:border-box; }
 	#fw-spacer-inline-area.fw-loading { background:transparent url('$script?image=idle_fallback.gif') center 60px / 240px 68px no-repeat !important; }

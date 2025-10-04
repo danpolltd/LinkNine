@@ -354,6 +354,15 @@ Changes:
 - Status button short click: if Off -> inline fetch (shows UI), otherwise no immediate action (prevents unintended disable)
 - Version bump for safer status interaction and restored config/rules rendering
 
+Version: 0.1.30
+Release Date: 2025-10-04
+Changes:
+- Fixed idle_fallback.gif not loading (heredoc changed to interpolated so $script expands in CSS URL)
+- Status button always loads Rules inline (no silent no-op, no accidental state change)
+- Added fallback messages for status/config/profiles when output empty
+- Strengthened fragment fallback to retain forms/rules output
+- Version bump for distribution
+
 Date: 2025-09-19
 Version: 0.1.2
 
