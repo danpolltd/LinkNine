@@ -2598,7 +2598,7 @@ QHTL_JQ_GREP
 		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1');
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.allow","both");
 		if($is_ajax_req){
-			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Allow list saved.</div></div>"; return;
+			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Save done</div></div>"; return;
 		}
 		&printreturn;
 	}
@@ -2614,7 +2614,7 @@ QHTL_JQ_GREP
 		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1');
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.redirect","both");
 		if($is_ajax_req){
-			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Redirect rules saved.</div></div>"; return;
+			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Save done</div></div>"; return;
 		}
 		&printreturn;
 	}
@@ -2685,7 +2685,7 @@ QHTL_JQ_GREP
 		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1');
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.deny","both");
 		if($is_ajax_req){
-			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Deny list saved.</div></div>"; return;
+			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Save done</div></div>"; return;
 		}
 		&printreturn;
 	}
@@ -3111,7 +3111,7 @@ EOD
 		close ($OUT);
 
 		if($is_ajax_req){
-			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Configuration saved successfully.</div></div>"; return;
+			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Save done</div></div>"; return;
 		}
 		print "<div style='text-align:center'>Configuration Updated</div>";
 		&printreturn;

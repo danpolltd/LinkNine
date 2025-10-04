@@ -6,6 +6,12 @@ Version: 0.1.53 “Inline Save UX Trim”
 Date: 2025-10-04
 Version: 0.1.54 “Inline Save Actions”
 
+Date: 2025-10-04
+Version: 0.1.55 “Unified Save Done Message”
+
+UI
+- Standardized AJAX save completion message to 'Save done' for Allow, Deny, Redirect, Config; inline area now always replaced by success message (panel closes) so user sees immediate confirmation.
+
 Fix
 - AJAX saves for Allow, Deny, Redirect now persist changes (added ajax handlers for saveallow/savedeny/saveredirect).
 - Config save (ajax) now closes panel and replaces inline area with success message instead of leaving editor open.
