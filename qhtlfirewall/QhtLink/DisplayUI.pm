@@ -4468,7 +4468,21 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 			})();
 			if(act==='denyf'){ fragment='<div class="text-success">Temporary bans flushed.</div>'; }
 			if(act==='restart'){ fragment='<div class="text-info">Firewall restart requested.</div>'; }
-			if(act==='enable'){ fragment='<div class="text-success">Firewall enable requested.</div>'; try{ setTimeout(function(){ try{ window.submitAction('status'); }catch(_){ } }, 1600); }catch(_){ } }
+			if(act==='enable'){
+				fragment='<div class="text-success">Firewall enable requested.</div>';
+				try{ setTimeout(function(){ try{ window.submitAction('status'); }catch(_){ } }, 1600); }catch(_){ }
+				// Hard reload fallback if status fails to populate anything meaningful after ~4s
+				try { setTimeout(function(){ try{
+					var t=document.getElementById('fw-spacer-inline-area');
+					if(t){
+						var tc=(t.textContent||'').trim();
+						if(/Firewall enable requested/i.test(tc) || tc==='' || /No rules output|output unavailable/.test(tc)){
+							if(window.console && console.warn){ console.warn('[QHTL enable fallback] Forcing full reload to get status.'); }
+							window.location.reload();
+						}
+					}
+				} catch(_){ } }, 4000); }catch(_){ }
+			}
 			var clean=fragment.trim();
 			if(!clean && txt){ clean=txt.trim(); }
 			if(!clean){
@@ -4479,6 +4493,38 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 			}
 			if(tgt){
 				tgt.innerHTML=clean;
+				// Secondary retry: if conf/status returned an obviously empty placeholder, try a non-AJAX fetch (server will emit full page) and re-extract.
+				(function(){
+					if(!(act==='conf' || act==='status')) return; // only for conf & status which user reports blank
+					var placeholderRe=/(?:Config output unavailable|No rules output|No output returned|\(No rules output\)|\(Config output unavailable\))/i;
+					if(!placeholderRe.test(clean)) return;
+					try{ if(window.console && console.debug){ console.debug('[QHTL retry] Attempting non-AJAX fallback for', act); } }catch(_){ }
+					var fd2=new FormData(); fd2.append('action',act); // no ajax flag
+					fetch(base,{method:'POST',body:fd2,credentials:'same-origin'}).then(r=>r.text()).then(function(txt2){ try{
+						var div2=document.createElement('div'); div2.innerHTML=txt2;
+						Array.from(div2.querySelectorAll('script,noscript')).forEach(function(n){ n.parentNode.removeChild(n); });
+						var newFrag='';
+						var inline2=div2.querySelector('.qhtl-inline-fragment'); if(inline2){ newFrag=inline2.innerHTML; }
+						if(!newFrag && act==='status'){
+							var pre2=div2.querySelector('pre'); if(pre2){ newFrag='<pre>'+pre2.innerHTML+'</pre>'; }
+						}
+						if(!newFrag){
+							var body2=div2.querySelector('body')||div2;
+							var first2=body2.querySelector('pre,table,div,section,article');
+							if(first2){ newFrag=first2.outerHTML; }
+							if(!newFrag){
+								var forms2=body2.querySelectorAll('form');
+								if(forms2.length){ var wrap2=document.createElement('div'); forms2.forEach(function(fm){ wrap2.appendChild(fm.cloneNode(true)); }); newFrag=wrap2.innerHTML; }
+							}
+							if(!newFrag){ newFrag=body2.innerHTML||txt2; }
+						}
+						newFrag=(newFrag||'').trim();
+						if(newFrag && !placeholderRe.test(newFrag) && newFrag.length>20){
+							if(window.console && console.debug){ console.debug('[QHTL retry] Non-AJAX fetch produced content, replacing placeholder.'); }
+							tgt.innerHTML=newFrag;
+						}
+					}catch(_){ });
+				})();
 				tgt.classList.remove('fw-loading');
 				try{ tgt.style.backgroundImage='none'; }catch(_){}
 				// Schedule staged fade (20s then hide at 30s). Cancelled by new activity or user interaction.
