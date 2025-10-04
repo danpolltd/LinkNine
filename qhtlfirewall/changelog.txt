@@ -12,6 +12,13 @@ Version: 0.1.46 “Instant Morph”
 Date: 2025-10-04
 Version: 0.1.47 “Config Empty Fallback”
 
+Date: 2025-10-04
+Version: 0.1.48 “Config Raw Preview”
+
+Enhancement
+- When editable Config parsing finds no entries, now appends a raw file preview (first 450 lines) so users can still view comment-only or atypically formatted configs inline.
+
+
 Fixes
 - Inline editable Config panel now reports when no entries were parsed and shows file size + permission hint instead of displaying an empty white area.
 - Ensures trailing open comment div is closed to avoid layout collapse.

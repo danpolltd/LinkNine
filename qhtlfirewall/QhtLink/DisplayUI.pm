@@ -2861,6 +2861,21 @@ EOF
 		}
 		if($comment){ print "</div>\n"; }
 		if(!$printed_any){ print "<div class='text-muted'>No configuration entries were detected in qhtlfirewall.conf (file size: ".(-s "/etc/qhtlfirewall/qhtlfirewall.conf"||0)." bytes).<br/>If this seems wrong, verify permissions and ownership.</div>"; }
+		# Raw fallback preview (read-only) if nothing parsed but file contains non-empty lines (e.g., only comments or unusual formatting)
+		if(!$printed_any){
+			my $raw_path = "/etc/qhtlfirewall/qhtlfirewall.conf";
+			if(-s $raw_path){
+				if(open my $RAW,'<',$raw_path){
+					flock($RAW,LOCK_SH);
+					my @raw = <$RAW>; close $RAW;
+					my $shown=0; my $limit=450; # cap lines
+					print "<hr style='margin:12px 0'>";
+					print "<div class='text-info small' style='margin-bottom:4px'>Showing raw fallback preview (first $limit lines)</div><pre style='max-height:360px;overflow:auto;background:#f8f8f8;border:1px solid #ddd;padding:8px;font-family:monospace;font-size:12px;line-height:1.25;'>";
+					foreach my $l (@raw){ last if $shown++ >= $limit; my $esc=$l; $esc =~ s/&/&amp;/g; $esc =~ s/</&lt;/g; $esc =~ s/>/&gt;/g; print $esc; }
+					print "</pre>";
+				}
+			}
+		}
 	    my $is_ajax = ($FORM{ajax} && $FORM{ajax} eq '1');
 		print "</div><br />\n";
 		unless ($is_ajax){
