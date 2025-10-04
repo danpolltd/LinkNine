@@ -2583,8 +2583,16 @@ QHTL_JQ_GREP
 		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
 		if($is_ajax_req){ print "<div class='qhtl-inline-fragment'>"; }
 		&editfile("/etc/qhtlfirewall/qhtlfirewall.allow","saveallow");
+		if($is_ajax_req){
+			# Inline Save button + status (no Close button as requested)
+			print "<div class='text-center' style='margin-top:10px'>" .
+			      "<button form='qhtlfirewallform' type='submit' class='btn btn-primary qhtl-inline-save-btn'>Save Allow List</button>" .
+			      "<span class='qhtl-inline-save-status text-muted small' style='margin-left:12px'></span></div></div>" .
+			      "<script>(function(){try{var f=document.getElementById('qhtlfirewallform'); if(f){ qhtlBindInlineSave(f,'saveallow'); }}catch(_){}})();</script>";
+			return;
+		}
 		&printreturn;
-		if($is_ajax_req){ print "</div>"; }
+		if($is_ajax_req){ print "</div>"; } # (kept for non-early-return path safety)
 	}
 	elsif ($FORM{action} eq "saveallow") {
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.allow","both");
@@ -2595,7 +2603,7 @@ QHTL_JQ_GREP
 		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
 		if($is_ajax_req){ print "<div class='qhtl-inline-fragment'>"; }
 		&editfile("/etc/qhtlfirewall/qhtlfirewall.redirect","saveredirect");
-		if($is_ajax_req){ print "<div class='text-center' style='margin-top:10px'><button form='qhtlfirewallform' type='submit' class='btn btn-primary qhtl-inline-save-btn'>Save Redirects</button> <button type='button' class='btn btn-default qhtl-inline-cancel-btn'>Close</button><span class='qhtl-inline-save-status text-muted small' style='margin-left:12px'></span></div></div><script>(function(){try{var f=document.getElementById('qhtlfirewallform'); if(f){ qhtlBindInlineSave(f,'saveredirect'); }}catch(_){}})();</script>"; return; }
+		if($is_ajax_req){ print "<div class='text-center' style='margin-top:10px'><button form='qhtlfirewallform' type='submit' class='btn btn-primary qhtl-inline-save-btn'>Save Redirects</button><span class='qhtl-inline-save-status text-muted small' style='margin-left:12px'></span></div></div><script>(function(){try{var f=document.getElementById('qhtlfirewallform'); if(f){ qhtlBindInlineSave(f,'saveredirect'); }}catch(_){}})();</script>"; return; }
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "saveredirect") {
@@ -2662,7 +2670,7 @@ QHTL_JQ_GREP
 		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
 		if($is_ajax_req){ print "<div class='qhtl-inline-fragment'>"; }
 		&editfile("/etc/qhtlfirewall/qhtlfirewall.deny","savedeny");
-		if($is_ajax_req){ print "<div class='text-center' style='margin-top:10px'><button form='qhtlfirewallform' type='submit' class='btn btn-primary qhtl-inline-save-btn'>Save Deny List</button> <button type='button' class='btn btn-default qhtl-inline-cancel-btn'>Close</button><span class='qhtl-inline-save-status text-muted small' style='margin-left:12px'></span></div></div><script>(function(){try{var f=document.getElementById('qhtlfirewallform'); if(f){ qhtlBindInlineSave(f,'savedeny'); }}catch(_){}})();</script>"; return; }
+		if($is_ajax_req){ print "<div class='text-center' style='margin-top:10px'><button form='qhtlfirewallform' type='submit' class='btn btn-primary qhtl-inline-save-btn'>Save Deny List</button><span class='qhtl-inline-save-status text-muted small' style='margin-left:12px'></span></div></div><script>(function(){try{var f=document.getElementById('qhtlfirewallform'); if(f){ qhtlBindInlineSave(f,'savedeny'); }}catch(_){}})();</script>"; return; }
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "savedeny") {
@@ -2897,7 +2905,7 @@ EOD
 		print "''])\npagecontent.showall();\n</script>\n";
 		print "<br /><div class='text-center'><input type='submit' class='btn btn-default' value='Change'></div>\n";
 		}
-		print "<div class='text-center' style='margin:10px 0 0'><button type='submit' class='btn btn-primary qhtl-inline-save-btn'>Save Changes</button> <button type='button' class='btn btn-default qhtl-inline-cancel-btn'>Close</button><span class='qhtl-inline-save-status text-muted small' style='margin-left:12px'></span></div></form>\n";
+		print "<div class='text-center' style='margin:10px 0 0'><button type='submit' class='btn btn-primary qhtl-inline-save-btn'>Save Changes</button><span class='qhtl-inline-save-status text-muted small' style='margin-left:12px'></span></div></form>\n";
 		if($is_ajax_req){ print "</div></div></div>"; print "<script>(function(){try{var wrap=document.getElementById('fw-spacer-inline-area');if(!wrap)return;wrap.querySelectorAll('.hidepiece').forEach(function(n){n.classList.remove('hidepiece');});var form=wrap.querySelector('#qhtl-options-form');if(form){qhtlBindInlineSave(form,'saveconf');}}catch(_){}})();</script>"; return; }
 		&printreturn;
 	}
@@ -6130,16 +6138,16 @@ sub editfile {
 EOF
 	} else {
 		if ($config{DIRECTADMIN}) {
-			print "<form action='$script?pipe_post=yes' method='post'>\n<div class='panel panel-default'>\n";
+			print "<form action='$script?pipe_post=yes' method='post'" . ($is_ajax ? " id='qhtlfirewallform'" : '') . ">\n<div class='panel panel-default'>\n";
 		} else {
 			print "<div class='qhtl-inline-fragment'>" if $is_ajax;
-			print "<form action='$script' method='post'>\n<div class='panel panel-default'>\n" unless $is_ajax;
+			print "<form action='$script' method='post'" . ($is_ajax ? " id='qhtlfirewallform'" : '') . ">\n<div class='panel panel-default'>\n" unless $is_ajax;
 		}
 		print "<div class='panel-heading panel-heading-qhtlwatcher'>Edit <code>$file</code></div>\n" unless $is_ajax;
 		print "<div class='panel-body'>\n";
 		print "<input type='hidden' name='action' value='$save'>\n";
 		if ($extra) {print "<input type='hidden' name='$extra' value='$FORM{$extra}'>\n";}
-		print "<textarea class='textarea' name='formdata' style='width:100%;height:500px;border: 1px solid #000;' wrap='off'>";
+		print "<textarea class='textarea' name='formdata' style='width:100%;height:500px;border: 1px solid #000;resize:none;' wrap='off'>";
 		foreach my $line (@confdata) {
 			$line =~ s/\</\&lt\;/g;
 			$line =~ s/\>/\&gt\;/g;
