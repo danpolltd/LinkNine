@@ -3802,7 +3802,8 @@ EOF
 			}
 			close ($IN);
 		}
-		my $permbans = "(Currently: <code>$permcnt</code> permanent IP bans)";
+		my $permbans_count = $permcnt;
+		my $permbans = "(Currently: <code>$permbans_count</code> permanent IP bans)";
 
 		$permcnt = 0;
 		if (! -z "/etc/qhtlfirewall/qhtlfirewall.allow") {
@@ -3815,7 +3816,8 @@ EOF
 			}
 			close ($IN);
 		}
-		my $permallows = "(Currently: <code>$permcnt</code> permanent IP allows)";
+		my $permallows_count = $permcnt;
+		my $permallows = "(Currently: <code>$permallows_count</code> permanent IP allows)";
 
 		# If invoked from cPanel/WHM UI, the header already shows status next to the Watcher button.
 		# Suppress the inline ribbon entirely in that context to avoid duplication.
@@ -4470,9 +4472,9 @@ QHTL_TEMP_MODAL_JS_B
 		<div class='fw-plus-item'><button id='fwb2' class='fw-plus-btn' aria-label='Config' title='Config'><span class='fw-plus-label'>Config</span></button></div>
 		<div class='fw-plus-item'><button id='fwb3' class='fw-plus-btn' aria-label='Profiles' title='Profiles'><span class='fw-plus-label'>Profiles</span></button></div>
 		<div class='fw-plus-item'>
-		  <span class='fw-plus-count fw-count-above' id='fw-allow-count'></span>
+		  <span class='fw-plus-count fw-count-above' id='fw-allow-count'>$permallows_count</span>
 		  <button id='fwb4' class='fw-plus-btn fw-allow-btn' aria-label='Allow IPs' title='Allow IPs'><span class='fw-plus-label'>Allow</span></button>
-		  <span class='fw-plus-count fw-count-below fw-deny-count' id='fw-deny-count'></span>
+		  <span class='fw-plus-count fw-count-below fw-deny-count' id='fw-deny-count'>$permbans_count</span>
 		</div>
 		<div class='fw-plus-item'><button id='fwb5' class='fw-plus-btn' aria-label='Rules' title='Firewall Rules'><span class='fw-plus-label'>Rules</span></button></div>
 		<div class='fw-plus-item' style='display:none'><button id='fwb6' class='fw-plus-btn' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'><span class='fw-plus-label'>Hidden</span></button></div>

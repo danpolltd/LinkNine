@@ -1,11 +1,11 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
-Version: 0.1.61 “Unified Restart Buttons for All Saves”
+Version: 0.1.62 “Immediate Allow/Deny Counts”
 Enhancement
-- Added Restart Both Now button + unified success fragment (with restart recommendation) for saveallow, savedeny, saveredirect to match saveconf.
+- Server now injects initial permanent allow and deny counts directly into plus button spans (no waiting on JS). Deny count now reliably visible below Allow button.
 Fix
-- Ensured these save actions no longer trigger full-page responses when ajax=1.
+- Avoids race where deny count span stayed empty if JS executed before variable interpolation or mutation observer timing.
 
 Date: 2025-10-04
 Version: 0.1.53 “Inline Save UX Trim”
