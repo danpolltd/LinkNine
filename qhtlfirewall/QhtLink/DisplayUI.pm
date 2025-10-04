@@ -4438,9 +4438,13 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 			tgt.classList.remove('fw-spacer-empty');
 			tgt.classList.add('fw-loading');
 		}
-		var fd=new FormData(); fd.append('action',act); fd.append('ajax','1'); if(act==='enable'){ fd.append('override','1'); }
-		if(extra){ Object.keys(extra).forEach(function(k){ fd.append(k,extra[k]); }); }
-		fetch(base,{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.text()).then(function(txt){ try{
+		// IMPORTANT: switched from FormData (multipart/form-data) to URL-encoded body.
+		// The server action parser only understands application/x-www-form-urlencoded; multipart was causing
+		// the 'action' field to be ignored, returning a full page shell with no inline fragment.
+		var pairs=[]; pairs.push('action='+encodeURIComponent(act)); pairs.push('ajax=1'); if(act==='enable'){ pairs.push('override=1'); }
+		if(extra){ Object.keys(extra).forEach(function(k){ pairs.push(encodeURIComponent(k)+'='+encodeURIComponent(extra[k])); }); }
+		var bodyStr=pairs.join('&');
+		fetch(base,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'},body:bodyStr,credentials:'same-origin'}).then(r=>r.text()).then(function(txt){ try{
 			try{ if(window.console && console.debug){ console.debug('[QHTL submitAction raw]', act, txt.slice(0,400)); } }catch(_){ }
 			var fragment='';
 			(function(){
@@ -4472,6 +4476,10 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 					var rx=/<div class=['\"]qhtl-inline-fragment['\"]>([\s\S]*?)<\/div>/i;
 					var mm=txt.match(rx); if(mm && mm[1]){ fragment=mm[1]; if(window.console&&console.debug){ console.debug('[QHTL fallback] Regex extracted inline fragment for',act,'len',mm[1].length); } }
 				}catch(e){ }
+			}
+			// Detect classic full-page shell (doctype+<title>) with no inline fragment wrapper
+			if((!fragment || !fragment.trim()) && /<!DOCTYPE/i.test(txt) && /<title>/i.test(txt)){
+				try { if(window.console && console.warn){ console.warn('[QHTL detect] Full page shell returned for',act,'(likely server ignored ajax=1 earlier).'); } }catch(e){}
 			}
 			// If still empty and full document returned, attempt body innerHTML salvage
 			if((!fragment || !fragment.trim()) && /<!DOCTYPE|<html[\s>]/i.test(txt)){

@@ -1,6 +1,17 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.37 “Encoded Action”
+
+Critical Fix
+- Switched AJAX submission from multipart FormData to classic application/x-www-form-urlencoded. Server parsing logic (using CGI/ENV FORM) was ignoring multipart body for inline plus-button actions, returning the full WHM shell instead of inline fragments (explaining blank spacer).
+- Added explicit detection log: warns when a full page shell arrives without fragment wrapper.
+- Retained all previous fallback layers; with correct parameter parsing they should no longer trigger for Config/Rules in normal cases.
+
+Packaging
+- Version bump to propagate protocol change immediately.
+
+Date: 2025-10-04
 Version: 0.1.36 “Black Box”
 
 Diagnostics / Fallback
