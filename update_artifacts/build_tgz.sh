@@ -16,6 +16,20 @@ mkdir -p "$TMP_DIR/$PKG_NAME"
 rsync -a --exclude '.git' --exclude 'update_artifacts' --exclude 'qhtlfirewall-main.tar.gz' \
   "$ROOT_DIR/qhtlfirewall/" "$TMP_DIR/$PKG_NAME/"
 
+# Preflight: verify critical Perl modules compile before packaging (fail fast)
+if command -v perl >/dev/null 2>&1; then
+  if ! perl -c "$TMP_DIR/$PKG_NAME/QhtLink/DisplayUI.pm" >/dev/null 2>&1; then
+    echo "ERROR: Perl syntax check failed for QhtLink/DisplayUI.pm. Aborting build." >&2
+    perl -c "$TMP_DIR/$PKG_NAME/QhtLink/DisplayUI.pm" || true
+    exit 1
+  fi
+fi
+
+# Emit version for traceability
+if [ -f "$TMP_DIR/$PKG_NAME/version.txt" ]; then
+  echo "Packaging qhtlfirewall version: $(head -n1 "$TMP_DIR/$PKG_NAME/version.txt")"
+fi
+
 # Ensure version.txt and changelog.txt exist
 if [[ -f "$ROOT_DIR/qhtlfirewall/version.txt" ]]; then
   cp "$ROOT_DIR/qhtlfirewall/version.txt" "$OUT_DIR/version.txt"

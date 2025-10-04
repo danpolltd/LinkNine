@@ -4519,10 +4519,13 @@ QHTL_FW_PLUS_LABELS_CSS
 	#print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='allow' type='submit' class='btn btn-default'>Allow IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.allow, the IP address allow file $permallows</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.deny, the IP address deny file $permbans</div></td></tr>\n";
 	# Unified inline output/content area (reusing gradient background motif)
-	print "<tr id='fw-inline-row'><td colspan='2' style='padding:0;background:transparent'>\n";
-	print "<div id='fw-inline-output' style='min-height:260px;background:url('$script?image=qhtlfirewall-loader.gif') center 40px no-repeat, linear-gradient(180deg,#d7f0ff 0%,#b5d6ff 50%,#c9b5ff 100%);background-blend-mode:normal;position:relative;border:2px solid rgba(255,255,255,0.35);border-radius:6px;margin:8px 6px;padding:14px;overflow:auto;box-shadow:inset 0 0 8px rgba(0,0,0,0.25);">";
-	print "<div id='fw-inline-placeholder' class='text-muted' style='font-style:italic'>Action output will appear here (Allow/Deny/Redirect/Rules/etc.).</div>";
-	print "</div></td></tr>\n";
+	my $loader = "$script?image=qhtlfirewall-loader.gif"; # isolate interpolation to a single variable
+	print <<"QHTL_FW_INLINE_OUT";
+<tr id='fw-inline-row'><td colspan='2' style='padding:0;background:transparent'>
+<div id='fw-inline-output' style="min-height:260px;background:url('$loader') center 40px no-repeat, linear-gradient(180deg,#d7f0ff 0%,#b5d6ff 50%,#c9b5ff 100%);background-blend-mode:normal;position:relative;border:2px solid rgba(255,255,255,0.35);border-radius:6px;margin:8px 6px;padding:14px;overflow:auto;box-shadow:inset 0 0 8px rgba(0,0,0,0.25);">
+<div id='fw-inline-placeholder' class='text-muted' style='font-style:italic'>Action output will appear here (Allow/Deny/Redirect/Rules/etc.).</div>
+</div></td></tr>
+QHTL_FW_INLINE_OUT
 	# Redundant control rows removed (Enable/Disable/Restart now handled by status plus button hold logic)
 	# print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='enable' type='submit' class='btn btn-default'>Enable</button></form><div class='text-muted small' style='margin-top:6px'>Enables qhtlfirewall and qhtlwaterfall if previously Disabled</div></td></tr>\n";
 	# print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='disable' type='submit' class='btn btn-default'>Disable</button></form><div class='text-muted small' style='margin-top:6px'>Completely disables qhtlfirewall and qhtlwaterfall</div></td></tr>\n";
@@ -4564,7 +4567,7 @@ QHTL_FW_PLUS_LABELS_CSS
 	function recenterPromo(){ var m=document.querySelector('.qhtl-promo-modal'); if(!m) return; m.style.position='fixed'; m.style.left='50%'; m.style.top='90px'; m.style.transform='translateX(-50%)'; }
 	setInterval(recenterPromo,800);
 	}catch(e){ console.error('inline helper init failed', e); }})();</script>
-	QHTL_INLINE_HELPER_JS
+QHTL_INLINE_HELPER_JS
 
 		# New Waterfall tab (duplicate of QhtLink Waterfall content) placed before QhtLink Firewall
 					print "<div id='waterfall' class='tab-pane'>\n";

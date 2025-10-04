@@ -1,5 +1,16 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
+Date: 2025-10-04
+Version: 0.1.14 “Inline Anchor”
+
+Stability
+- Fixed a heredoc emission block for the unified inline output panel that some target environments parsed incorrectly, triggering Perl errors around "comparison chaining" and bogus regexp modifiers. Refactored to an isolated interpolated variable + controlled heredoc.
+- Added clearer isolation of the loader image URL to prevent accidental interpolation drift.
+
+Packaging / Install
+- Version bump to ensure cache-busting and to distinguish fixed builds from 0.1.13 artifacts that may still include the problematic heredoc formatting.
+
+
 Date: 2025-10-02
 Version: 0.1.11 “Curse Blade”
 
