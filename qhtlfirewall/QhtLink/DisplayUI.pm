@@ -4371,10 +4371,12 @@ QHTL_TEMP_MODAL_JS_B
  }
  var statusBtn=document.getElementById('fwb1'); var statusLabel=document.getElementById('fw-status-text');
  if(statusBtn && statusLabel){
-	 statusBtn.classList.remove('fw-status-on','fw-status-testing','fw-status-off');
-	 if(statusState==='on'){ statusBtn.classList.add('fw-status-on'); statusLabel.textContent='On'; }
-	 else if(statusState==='testing'){ statusBtn.classList.add('fw-status-testing'); statusLabel.textContent='Testing'; }
-	 else { statusBtn.classList.add('fw-status-off'); statusLabel.textContent='Off'; }
+ 	 statusBtn.classList.remove('fw-status-on','fw-status-testing','fw-status-off');
+ 	 if(statusState==='on'){ statusBtn.classList.add('fw-status-on'); statusLabel.textContent='On'; }
+ 	 else if(statusState==='testing'){ statusBtn.classList.add('fw-status-testing'); statusLabel.textContent='Testing'; }
+ 	 else { statusBtn.classList.add('fw-status-off'); statusLabel.textContent='Off'; }
+     // Sync global so later logic trusts it
+     try { window.QHTL_FW_STATUS = statusState; } catch(_){ }
  }
  // Delayed re-check once DOM likely settled (handles late header injection)
  setTimeout(function(){
@@ -4395,8 +4397,14 @@ QHTL_TEMP_MODAL_JS_B
 	 var holdState={active:false,phase:0,count:3,countInt:null,dimTimer:null,actionArmed:null,mouseDown:false};
 	 function submitAction(act, extra){ try{ var f=document.createElement('form'); f.method='post'; f.action=base; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); if(act==='enable'){ var o=document.createElement('input'); o.type='hidden'; o.name='override'; o.value='1'; f.appendChild(o);} if(extra){ Object.keys(extra).forEach(function(k){ var h=document.createElement('input'); h.type='hidden'; h.name=k; h.value=extra[k]; f.appendChild(h); }); } document.body.appendChild(f); f.submit(); }catch(e){} }
 	 function clearHold(btn){ if(!btn) return; holdState.active=false; holdState.phase=0; holdState.count=3; if(holdState.countInt){ clearInterval(holdState.countInt); holdState.countInt=null; } if(holdState.dimTimer){ clearTimeout(holdState.dimTimer); holdState.dimTimer=null; } btn.classList.remove('hold-counting','hold-warning','hold-dimming'); try{ var cur=(typeof window.QHTL_FW_STATUS==='string')?window.QHTL_FW_STATUS:''; var lab=document.getElementById('fw-status-text'); if(lab && cur){ lab.textContent = (cur==='on')?'On':(cur==='testing')?'Testing':'Off'; } }catch(_){ } }
-	 function startHold(btn){ if(!btn) return; try{ var cur=(typeof window.QHTL_FW_STATUS==='string')?window.QHTL_FW_STATUS:''; if(cur==='off'){ // treat as enable click
-				 submitAction('enable'); return; } }catch(_){ }
+	 function startHold(btn){ if(!btn) return; try{ // Determine live state from classes if present
+				 var curClass = btn.classList.contains('fw-status-on') ? 'on' : (btn.classList.contains('fw-status-testing') ? 'testing' : (btn.classList.contains('fw-status-off') ? 'off' : null));
+				 var cur = curClass || ((typeof window.QHTL_FW_STATUS==='string')?window.QHTL_FW_STATUS:'');
+				 // If button visually marked off THEN enable; if already on/testing do nothing until hold completes
+				 if(cur==='off'){ submitAction('enable'); return; }
+				 // If global said off but class shows on/testing, sync to prevent erroneous enable on quick re-click
+				 if(curClass && window.QHTL_FW_STATUS!==curClass){ try{ window.QHTL_FW_STATUS=curClass; }catch(__){} }
+			 }catch(_){ }
 		 clearHold(btn); holdState.active=true; holdState.phase=1; btn.classList.add('hold-counting'); var lab=document.getElementById('fw-status-text'); if(lab){ lab.textContent='3'; }
 		 holdState.count=3; holdState.countInt=setInterval(function(){ holdState.count--; if(holdState.count<=0){ clearInterval(holdState.countInt); holdState.countInt=null; // transition to warning
 					 holdState.phase=2; btn.classList.remove('hold-counting'); btn.classList.add('hold-warning'); if(lab){ lab.textContent='Warning'; }
@@ -4410,9 +4418,13 @@ QHTL_TEMP_MODAL_JS_B
 		 },800); // 3->2->1 over ~2.4s
 	 }
 		 function releaseHold(btn){ if(!btn) return; if(!holdState.active){ // normal click semantics
-			 // For status button simple click when not holding: if off => enable else no immediate action
-			 try{ var cur=(typeof window.QHTL_FW_STATUS==='string')?window.QHTL_FW_STATUS:''; if(cur==='off'){ submitAction('enable'); return; } }catch(_){ }
-			 return; }
+					 try {
+						 var cur = btn.classList.contains('fw-status-on') ? 'on' : (btn.classList.contains('fw-status-testing') ? 'testing' : (btn.classList.contains('fw-status-off') ? 'off' : null));
+						 if(!cur) cur = (typeof window.QHTL_FW_STATUS==='string')?window.QHTL_FW_STATUS:'';
+						 if(cur==='off'){ submitAction('enable'); return; }
+						 if(cur && window.QHTL_FW_STATUS!==cur){ try{ window.QHTL_FW_STATUS=cur; }catch(__){} }
+					 }catch(_){ }
+					 return; }
 			 // Restart only if released during dimming (phase 3) before disable triggers
 			 if(holdState.phase===3 && holdState.dimTimer){ submitAction('restart'); }
 		 clearHold(btn);
