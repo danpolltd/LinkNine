@@ -18,6 +18,16 @@ Version: 0.1.48 “Config Raw Preview”
 Date: 2025-10-04
 Version: 0.1.49 “Config Sections Inline”
 
+Date: 2025-10-04
+Version: 0.1.50 “Inline Save Return”
+
+Enhancement
+- Restored Save/Close buttons for inline editable actions (Config, Deny, Redirect) with AJAX save handler (qhtlBindInlineSave) showing transient status (Saving / Saved / Error).
+- Config: added inline Save Changes button at panel bottom.
+- Deny & Redirect: appended Save + Close controls beneath text area when loaded via plus button.
+- Cancel/Close clears inline spacer content.
+
+
 Fix
 - Sections inside inline editable Config (ajax) were hidden because pagination hidepiece class was always applied. Ajax mode now omits hidepiece and auto-unhides any legacy markup.
 

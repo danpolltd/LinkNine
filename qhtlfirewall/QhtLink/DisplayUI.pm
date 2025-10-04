@@ -2595,8 +2595,8 @@ QHTL_JQ_GREP
 		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
 		if($is_ajax_req){ print "<div class='qhtl-inline-fragment'>"; }
 		&editfile("/etc/qhtlfirewall/qhtlfirewall.redirect","saveredirect");
+		if($is_ajax_req){ print "<div class='text-center' style='margin-top:10px'><button form='qhtlfirewallform' type='submit' class='btn btn-primary qhtl-inline-save-btn'>Save Redirects</button> <button type='button' class='btn btn-default qhtl-inline-cancel-btn'>Close</button><span class='qhtl-inline-save-status text-muted small' style='margin-left:12px'></span></div></div><script>(function(){try{var f=document.getElementById('qhtlfirewallform'); if(f){ qhtlBindInlineSave(f,'saveredirect'); }}catch(_){}})();</script>"; return; }
 		&printreturn;
-		if($is_ajax_req){ print "</div>"; }
 	}
 	elsif ($FORM{action} eq "saveredirect") {
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.redirect","both");
@@ -2662,8 +2662,8 @@ QHTL_JQ_GREP
 		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
 		if($is_ajax_req){ print "<div class='qhtl-inline-fragment'>"; }
 		&editfile("/etc/qhtlfirewall/qhtlfirewall.deny","savedeny");
+		if($is_ajax_req){ print "<div class='text-center' style='margin-top:10px'><button form='qhtlfirewallform' type='submit' class='btn btn-primary qhtl-inline-save-btn'>Save Deny List</button> <button type='button' class='btn btn-default qhtl-inline-cancel-btn'>Close</button><span class='qhtl-inline-save-status text-muted small' style='margin-left:12px'></span></div></div><script>(function(){try{var f=document.getElementById('qhtlfirewallform'); if(f){ qhtlBindInlineSave(f,'savedeny'); }}catch(_){}})();</script>"; return; }
 		&printreturn;
-		if($is_ajax_req){ print "</div>"; }
 	}
 	elsif ($FORM{action} eq "savedeny") {
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.deny","both");
@@ -2897,8 +2897,8 @@ EOD
 		print "''])\npagecontent.showall();\n</script>\n";
 		print "<br /><div class='text-center'><input type='submit' class='btn btn-default' value='Change'></div>\n";
 		}
-		print "</form>\n";
-		if($is_ajax_req){ print "</div></div></div>"; print "<script>(function(){try{var hs=document.querySelectorAll('#fw-spacer-inline-area .hidepiece');hs.forEach(function(n){n.classList.remove('hidepiece');});}catch(_){}})();</script>"; return; }
+		print "<div class='text-center' style='margin:10px 0 0'><button type='submit' class='btn btn-primary qhtl-inline-save-btn'>Save Changes</button> <button type='button' class='btn btn-default qhtl-inline-cancel-btn'>Close</button><span class='qhtl-inline-save-status text-muted small' style='margin-left:12px'></span></div></form>\n";
+		if($is_ajax_req){ print "</div></div></div>"; print "<script>(function(){try{var wrap=document.getElementById('fw-spacer-inline-area');if(!wrap)return;wrap.querySelectorAll('.hidepiece').forEach(function(n){n.classList.remove('hidepiece');});var form=wrap.querySelector('#qhtl-options-form');if(form){qhtlBindInlineSave(form,'saveconf');}}catch(_){}})();</script>"; return; }
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "saveconf") {
@@ -4668,6 +4668,30 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 	// Non-inline acts fallback to full submit (rare now)
 	var f=document.createElement('form'); f.method='post'; f.action=base; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); if(extra){ Object.keys(extra).forEach(function(k){ var h=document.createElement('input'); h.type='hidden'; h.name=k; h.value=extra[k]; f.appendChild(h); }); } document.body.appendChild(f); f.submit();
 }catch(e){} };
+// Inline save helper: attaches AJAX submit + feedback to forms inside inline fragment
+function qhtlBindInlineSave(form, actionName){ try{
+	if(!form || form._qhtlSaveBound) return; form._qhtlSaveBound=1;
+	var statusEl=form.querySelector('.qhtl-inline-save-status');
+	var saveBtn=form.querySelector('.qhtl-inline-save-btn');
+	var cancelBtn=form.querySelector('.qhtl-inline-cancel-btn');
+	if(cancelBtn){ cancelBtn.addEventListener('click',function(){ try{ var area=document.getElementById('fw-spacer-inline-area'); if(area){ area.innerHTML=''; area.classList.add('fw-spacer-empty'); } }catch(_){ } }); }
+	form.addEventListener('submit',function(ev){ ev.preventDefault(); try{
+		if(saveBtn){ saveBtn.disabled=true; }
+		if(statusEl){ statusEl.textContent='Saving...'; statusEl.className='qhtl-inline-save-status text-info small'; }
+		var fd=new FormData(form); fd.set('action', actionName);
+		fd.append('ajax','1');
+		fetch((window.QHTL_SCRIPT||'$script'),{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.text()).then(function(txt){ try{
+			if(/WARNING:/i.test(txt)){ if(statusEl){ statusEl.textContent='Saved with warnings'; statusEl.className='qhtl-inline-save-status text-warning small'; } }
+			else { if(statusEl){ statusEl.textContent='Saved'; statusEl.className='qhtl-inline-save-status text-success small'; } }
+			// Refresh allow/deny counts if present
+			try { var allowC=document.getElementById('fw-allow-count'); if(allowC){ /* could trigger recount via future endpoint */ }
+						var denyC=document.getElementById('fw-deny-count'); if(denyC){ /* placeholder for dynamic update */ } }catch(_){ }
+			setTimeout(function(){ if(statusEl){ statusEl.textContent=''; } if(saveBtn){ saveBtn.disabled=false; } },1800);
+		}catch(e){ if(statusEl){ statusEl.textContent='Error'; statusEl.className='qhtl-inline-save-status text-danger small'; } if(saveBtn){ saveBtn.disabled=false; } })
+		.catch(function(){ if(statusEl){ statusEl.textContent='Network error'; statusEl.className='qhtl-inline-save-status text-danger small'; } if(saveBtn){ saveBtn.disabled=false; } });
+	}catch(e){ if(statusEl){ statusEl.textContent='Failed'; statusEl.className='qhtl-inline-save-status text-danger small'; } if(saveBtn){ saveBtn.disabled=false; } }
+	});
+}catch(_){ }}
 // Direct inline bindings (removed external module loader due to MIME issues in some environments)
 setTimeout(function(){
 	var statusBtn2=document.getElementById('fwb1'); if(statusBtn2 && !statusBtn2._fwBound){
