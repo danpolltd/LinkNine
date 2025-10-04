@@ -4347,8 +4347,22 @@ QHTL_TEMP_MODAL_JS_B
 </div>
 <script>(function(){ try { var base=(window.QHTL_SCRIPT||'$script');
  // Allow count extraction (unchanged)
- var allowCount=(function(){ try{ var m=("$permallows").match(/<code>(\d+)<\/code>/); return m?m[1]:""; }catch(e){ return "";} })();
- var c=document.getElementById('fw-allow-count'); if(c && allowCount!==''){ c.textContent=allowCount; }
+ // Allow count extraction with robust fallbacks
+ var allowCount=(function(){
+	 try {
+		 var raw = "$permallows";
+		 // Primary pattern: (Currently: <code>123</code> permanent IP allows)
+		 var m = raw.match(/<code>(\d+)<\/code>/);
+		 if(m) return m[1];
+		 // Fallback: any standalone digits
+		 var m2 = raw.match(/(\d+)/);
+		 if(m2) return m2[1];
+	 } catch(e) { }
+	 return "0"; // default
+ })();
+ var c=document.getElementById('fw-allow-count'); if(c){ c.textContent = (allowCount===""?"0":allowCount); }
+ // Late re-check in case markup injected asynchronously later updates $permallows equivalent
+ setTimeout(function(){ try{ if(!c) c=document.getElementById('fw-allow-count'); if(c && (!c.textContent || /^(?:0|)$/.test(c.textContent))){ var raw="$permallows"; var mm=raw.match(/<code>(\d+)<\/code>/)||raw.match(/(\d+)/); if(mm){ c.textContent=mm[1]; } } }catch(_){ } }, 800);
  // Improved firewall status detection: prefer authoritative global set by server, fallback to callout or heuristic
  var statusState = (typeof window.QHTL_FW_STATUS==='string') ? window.QHTL_FW_STATUS : 'off';
  if(statusState!=='on' && statusState!=='off' && statusState!=='testing'){ statusState='off'; }
@@ -4459,7 +4473,7 @@ QHTL_FIREWALL_CLUSTER
 #firewall1 .fw-plus-btn .fw-plus-label {position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:16px; font-weight:700; color:#fff !important; text-shadow:0 0 3px #000,0 0 6px #d40000,0 0 12px #ff2020; letter-spacing:.6px; pointer-events:none; z-index:3; line-height:1; white-space:nowrap;}
 #firewall1 .fw-plus-btn .fw-plus-count {position:absolute; bottom:-18px; left:50%; transform:translate(-50%,0); background:transparent !important; color:#00454d; font-weight:800; font-size:22px; line-height:1; padding:0; border:none !important; border-radius:0; box-shadow:none !important; min-width:0; text-align:center; z-index:40; letter-spacing:.5px; white-space:nowrap; filter:drop-shadow(0 2px 2px rgba(0,0,0,0.35)); pointer-events:none; }
 #firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-count { bottom:-22px; transform:translate(-50%,0); font-size:24px; color:#007b89; text-shadow:0 0 3px rgba(255,255,255,0.85),0 0 6px rgba(255,255,255,0.55); }
-#firewall1 .fw-plus-btn .fw-plus-count:empty { display:none; }
+#firewall1 .fw-plus-btn .fw-plus-count:empty { display:inline; }
 #firewall1 .fw-status-btn::before, #firewall1 .fw-status-btn::after { transition:background .4s ease; }
 #firewall1 .fw-status-on::before, #firewall1 .fw-status-on::after { background: linear-gradient(180deg,#e8ffe9 0%,#b9f5c2 8%,#2ecc4f 42%,#1f9939 78%,#16722a 100%) !important; }
 #firewall1 .fw-status-testing::before, #firewall1 .fw-status-testing::after { background: linear-gradient(180deg,#fff6e6 0%,#ffe2b3 8%,#ffb347 45%,#ff8c00 78%,#d46a00 100%) !important; }
