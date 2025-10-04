@@ -4521,11 +4521,11 @@ QHTL_FW_PLUS_LABELS_CSS
 	# Unified inline output/content area (reusing gradient background motif)
 	my $loader = "$script?image=qhtlfirewall-loader.gif"; # isolate interpolation to a single variable
 print <<"QHTL_FW_INLINE_OUT";
-<tr id='fw-inline-row'><td colspan='2' style='padding:0;background:transparent'>
-	<div id='fw-inline-output' style="min-height:280px;position:relative;margin:8px 6px;padding:12px;border:2px solid rgba(255,255,255,0.35);border-radius:6px;overflow:auto;box-shadow:inset 0 0 8px rgba(0,0,0,0.25);background:linear-gradient(180deg,#d7f0ff 0%,#b5d6ff 50%,#c9b5ff 100%);"></div>
-</td></tr>
+<tr id='fw-inline-row'>
+  <td id='fw-inline-output' colspan='2' style="min-height:280px;position:relative;margin:8px 6px;padding:12px;border:2px solid rgba(255,255,255,0.35);border-radius:6px;overflow:auto;box-shadow:inset 0 0 8px rgba(0,0,0,0.25);background:linear-gradient(180deg,#d7f0ff 0%,#b5d6ff 50%,#c9b5ff 100%);"></td>
+</tr>
 <style>
-	/* Simplified single-layer inline output cell; loader via background image on loading */
+	/* Simplified single-layer inline output cell; loader via background image on loading (now the TD itself) */
 	#fw-inline-output.loading { filter:brightness(.92); background-image:linear-gradient(180deg,#d7f0ff 0%,#b5d6ff 50%,#c9b5ff 100%), url('$loader'); background-position:0 0, center center; background-repeat:repeat, no-repeat; background-size:auto,96px 96px; }
 	#fw-inline-output .fw-inline-result pre { background:rgba(0,0,0,0.55); color:#eee; padding:10px; border-radius:4px; }
 </style>
