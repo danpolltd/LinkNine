@@ -1,6 +1,111 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.23 “Idle Blade”
+
+Firewall Tab
+- Spacer now uses idle_fallback.gif (sword animation) as its default background until first AJAX result replaces it; background removed on content fill.
+- Plus button inline loads (conf/allow/profiles/status/redirect) append ajax=1 so only inner editor/content fragment renders (editfile now outputs a compact fragment when ajax=1).
+
+Developer
+- Added qhtl-inline-fragment wrapper markers for future JS filtering or styling of inline-only responses.
+
+Packaging
+- Pending rebuild to ship idle_fallback.gif integration + trimmed editfile AJAX output.
+
+Date: 2025-10-04
+Version: 0.1.22 “Spacer GIF”
+
+Firewall Tab
+- Spacer now shows actual loader GIF centered immediately (not stripe animation) until first inline result arrives, then GIF removed.
+- Plus button actions no longer dump full page markup; conf action now renders minimal content when ajax=1 (suppresses outer scripts/pagination shell on inline loads).
+
+Packaging
+- Pending rebuild for GIF loader + minimal AJAX conf.
+
+Date: 2025-10-04
+Version: 0.1.21 “Spacer Live”
+
+Firewall Tab
+- Plus button actions (Config, Profiles, Allow, Rules(Status), Redirect) now load inline via AJAX into the spacer row with animated loader and auto-fade.
+- Fallback (other actions) still use main inline output or full submit where appropriate (enable/disable/restart/flush mechanics unchanged).
+
+Packaging
+- Pending rebuild for AJAX spacer behavior.
+
+Date: 2025-10-04
+Version: 0.1.20 “Spacer”
+
+Firewall Tab
+- Inserted an inline spacer row (180px min-height) between the plus button cluster and the Deny IPs row.
+- Spacer now acts as an AJAX target for plus button actions (conf/profiles/allow/status/redirect): shows animated loader background, then fades out ~4s after content loads.
+
+Packaging
+- Pending rebuild to ship spacer addition.
+
+Date: 2025-10-04
+Version: 0.1.19 “Flat Cell”
+
+UI / Inline Panel
+- Removed the remaining wrapper layer: the table cell (TD) now directly serves as the inline output container (id=fw-inline-output).
+- Updated CSS/JS selectors accordingly (no behavioral change) for slightly lower DOM depth and cheaper style recalcs.
+
+Packaging
+- Pending rebuild to propagate flattened structure.
+
+Enhancement
+- Added visual spacer/inline row (empty 180px cell) between Firewall plus buttons and Deny IPs row, mirroring Options tab layout for alignment and future context output.
+
+Date: 2025-10-04
+Version: 0.1.18 “Clean Cell”
+
+UI / Inline Panel
+- Removed nested placeholder <div> from inline action output cell; now a truly empty container ready for fresh action content.
+- Increased minimum height from 220px to 280px to provide more breathing room for multi-line command results without immediate scroll.
+- Stripped JS references to the removed placeholder element to avoid redundant DOM lookups.
+- Follow-up: fully flattened structure by turning the TD itself into the output container (removed wrapper <div>) to eliminate one more layer and simplify future styling hooks.
+
+Packaging
+- Pending rebuild to propagate structural cleanup (will create -0.1.18 artifact after version bump).
+
+Date: 2025-10-04
+Version: 0.1.17 “Opt Reset”
+
+UI
+- Fixed invalid CSS selector (:contains) in Options tab double-click reset logic; replaced with robust textContent scan to eliminate DOMException noise.
+- Ensures inline output reset still works after simplifying the panel structure.
+
+Packaging
+- Version bump to propagate selector fix via tarball so installer sees update immediately.
+
+Date: 2025-10-04
+Version: 0.1.16 “Single Cell”
+
+UI / Inline Actions
+- Simplified the inline output panel: removed nested inner wrapper & separate loader element; loader now appears as a background image on the single gradient cell.
+- Reduced DOM depth (−1 div) and JS logic (removed inner query path) for faster repaint and clearer future styling tweaks.
+- Brightness dim on load replaces prior blur for sharper perceived responsiveness.
+
+Packaging
+- Immediate version bump to force cache-bust so environments pick up the structural simplification without waiting for manual purge.
+
+Date: 2025-10-04
+Version: 0.1.15 “Twin Panel”
+
+UI / Inline Actions
+- Restyled the unified inline output panel to visually match the Options tab nested gradient style (outer surface + recessed inner gradient) for consistency.
+- Added centered loader overlay while an action is in-flight; previous text-based “Loading +act…” placeholder replaced with spinner layer.
+- Introduced subtle blur + opacity dim on stale content until new action output arrives; prevents flash/flicker on rapid successive submits.
+- Structural change: inner container now retains height during loads to avoid layout shift, eliminating scroll jumps.
+
+Code Quality
+- Migrated the inline panel emission to a single heredoc with column-1 terminator to prevent future heredoc parsing edge cases.
+- No behavioral changes to plus-button remaps (redirect on fwb7, hold-to-flush on fwb8), only presentation & load-state signaling.
+
+Packaging
+- Version bump solely to ensure updaters invalidate cached 0.1.14 tarballs when fetching the refined UI.
+
+Date: 2025-10-04
 Version: 0.1.14 “Inline Anchor”
 
 Stability
@@ -187,6 +292,23 @@ Packaging & Scripts
 - Cleaned packaging excludes and normalized staging paths.
 
 General
+
+Version: 0.1.24
+Release Date: 2025-10-04
+Changes:
+- Implemented client-side fragment extraction in submitAction() choosing .qhtl-inline-fragment > body > raw
+- Wrapped conf/allow/redirect/profiles outputs with .qhtl-inline-fragment when ajax=1
+- Replaced legacy spacer gradients/stripes with pure idle_fallback.gif placeholder (forced !important override)
+- Added css refinements (faded state opacity .55, removed overlay pseudo-element)
+- This should stop full WHM page being injected into spacer and show the new placeholder correctly
+
+Version: 0.1.25
+Release Date: 2025-10-04
+Changes:
+- Reverted dark spacer panel + text; restored transparent spacer showing only idle_fallback.gif loader
+- Added resilient fallback inline click bindings if external per-button JS files fail to load
+- Cache-bust parameter updated to 0.1.25 for per-button modules
+- Version bump to force installer pickup of UI modularization + spacer adjustments
 - Integration merges; minor fixes and code cleanup.
 
 Date: 2025-09-19

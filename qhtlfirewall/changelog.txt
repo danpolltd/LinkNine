@@ -301,6 +301,14 @@ Changes:
 - Replaced legacy spacer gradients/stripes with pure idle_fallback.gif placeholder (forced !important override)
 - Added css refinements (faded state opacity .55, removed overlay pseudo-element)
 - This should stop full WHM page being injected into spacer and show the new placeholder correctly
+
+Version: 0.1.25
+Release Date: 2025-10-04
+Changes:
+- Reverted dark spacer panel + text; restored transparent spacer showing only idle_fallback.gif loader
+- Added resilient fallback inline click bindings if external per-button JS files fail to load
+- Cache-bust parameter updated to 0.1.25 for per-button modules
+- Version bump to force installer pickup of UI modularization + spacer adjustments
 - Integration merges; minor fixes and code cleanup.
 
 Date: 2025-09-19
