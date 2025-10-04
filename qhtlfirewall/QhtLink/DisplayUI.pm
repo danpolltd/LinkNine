@@ -4505,11 +4505,18 @@ QHTL_TEMP_MODAL_JS_B
 QHTL_FIREWALL_CLUSTER
 		print <<'QHTL_FW_SPACER_CSS';
 <style>
-	/* Spacer inline area refined: remove legacy gradients/stripes; show idle placeholder gif only */
-	#fw-spacer-inline-area { position:relative; }
-	#fw-spacer-inline-area.fw-loading { filter:brightness(1); background-image:url('$script?image=idle_fallback.gif') !important; background-position:center center; background-repeat:no-repeat; background-size:260px 72px; }
+	/* Spacer inline area refined again: force removal of any inherited gradients/overlays */
+	#fw-spacer-inline-area { position:relative; z-index:20; background:#0e1824 !important; }
+	/* If idle_fallback.gif exists it will be used; otherwise we fall back to a small inline base64 pulse bar */
+	#fw-spacer-inline-area.fw-loading { background:#0e1824 url('$script?image=idle_fallback.gif') center 28px / 240px 68px no-repeat, #0e1824 !important; }
+	/* Provide inline data URI fallback if the above 404s; we layer it via a pseudo element only while loading */
+	#fw-spacer-inline-area.fw-loading::after { content:""; position:absolute; inset:0; background:transparent url(data:image/gif;base64,R0lGODlhEAAQAPQAAP///7y8vNnZ2czMzN7e3uHh4czMzP///wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAAAAAAALAAAAAAQABAAAAVXICSOZGmeaKqubIsxQBwCwB4JgSJbmKqrmzrvnAsz3Rt33iu73vegYHBIDCh8ikcslsOp/QqHRKrVqv2Kx2y+16v9gIAOw==) center 28px / 48px 16px no-repeat; opacity:.55; pointer-events:none; }
+	#fw-spacer-inline-area:not(.fw-loading)::after { content:none; }
 	#fw-spacer-inline-area.fw-spacer-empty::before { content:none !important; }
 	#fw-spacer-inline-area.fw-faded { opacity:.55; pointer-events:none; transition:opacity .6s ease; }
+	#fw-spacer-inline-area #fw-spacer-placeholder { position:absolute; left:50%; top:54%; transform:translate(-50%,-50%); font:600 18px/1.2 'Helvetica Neue',Arial,sans-serif; letter-spacing:.5px; color:#7dd3f7; text-shadow:0 0 6px rgba(0,180,255,.55); opacity:.9; animation: fwPulse 2.8s ease-in-out infinite; }
+	#fw-spacer-inline-area:not(.fw-loading) #fw-spacer-placeholder { display:none; }
+	@keyframes fwPulse { 0%,100% { filter:brightness(1); } 50% { filter:brightness(1.35); } }
 </style>
 QHTL_FW_SPACER_CSS
 		# Added/Updated: Firewall plus button label styling (labels above buttons, white text)
@@ -4559,7 +4566,7 @@ QHTL_FW_PLUS_LABELS_CSS
 	# Spacer/inline row enhanced: acts as a secondary inline output target for the plus buttons (conf/profiles/allow/status/redirect)
 	# Includes loader background animation similar to main inline output cell; fades/disappears once populated
 	print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>".
-		      "<div id='fw-spacer-inline-area' class='fw-spacer-empty fw-loading' style=\"position:relative;min-height:180px;margin:6px 4px;padding:10px;border:2px solid rgba(255,255,255,0.3);border-radius:6px;overflow:auto;box-shadow:inset 0 0 6px rgba(0,0,0,0.2);background:transparent;transition:opacity .4s ease;\"></div>".
+		      "<div id='fw-spacer-inline-area' class='fw-spacer-empty fw-loading' style=\"position:relative;min-height:180px;margin:6px 4px;padding:10px;border:2px solid rgba(255,255,255,0.25);border-radius:6px;overflow:auto;box-shadow:inset 0 0 8px rgba(0,0,0,0.35);background:#0e1824;transition:opacity .4s ease;\"><div id='fw-spacer-placeholder'>Idle...</div></div>".
 		      "</td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.deny, the IP address deny file $permbans</div></td></tr>\n";
 	# Unified inline output/content area (reusing gradient background motif)
