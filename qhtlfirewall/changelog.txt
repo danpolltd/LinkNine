@@ -1,6 +1,17 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.35 “Fragment Net”
+
+Inline Extraction Hardening
+- Added regex-based fragment extraction fallback when DOM parsing fails but the raw response still contains a qhtl-inline-fragment wrapper.
+- Added body-level salvage: if full HTML document is returned without an extracted fragment, inject entire <body> contents so users see something instead of a blank spacer.
+- Diagnostic console.debug messages identify which fallback path succeeded (Regex vs Body).
+
+Packaging
+- Version bump to propagate hardened extraction to environments still receiving full-page shells for Config/Rules.
+
+Date: 2025-10-04
 Version: 0.1.34 “Retry Patch”
 
 Hotfix

@@ -4466,6 +4466,20 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 					fragment=body.innerHTML || txt;
 				} catch(_){ fragment=txt; }
 			})();
+			// Regex fallback if DOM-based extraction failed to find inline fragment but marker exists
+			if((!fragment || !fragment.trim()) && /qhtl-inline-fragment/.test(txt)){
+				try{
+					var rx=/<div class=['\"]qhtl-inline-fragment['\"]>([\s\S]*?)<\/div>/i;
+					var mm=txt.match(rx); if(mm && mm[1]){ fragment=mm[1]; if(window.console&&console.debug){ console.debug('[QHTL fallback] Regex extracted inline fragment for',act,'len',mm[1].length); } }
+				}catch(e){ }
+			}
+			// If still empty and full document returned, attempt body innerHTML salvage
+			if((!fragment || !fragment.trim()) && /<!DOCTYPE|<html[\s>]/i.test(txt)){
+				try{
+					var div2=document.createElement('div'); div2.innerHTML=txt;
+					var b2=div2.querySelector('body'); if(b2){ fragment=b2.innerHTML; if(window.console&&console.debug){ console.debug('[QHTL fallback] Took entire <body> for',act,'len',fragment.length); } }
+				}catch(e){ }
+			}
 			if(act==='denyf'){ fragment='<div class="text-success">Temporary bans flushed.</div>'; }
 			if(act==='restart'){ fragment='<div class="text-info">Firewall restart requested.</div>'; }
 			if(act==='enable'){
