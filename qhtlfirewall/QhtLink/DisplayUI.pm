@@ -2580,8 +2580,11 @@ QHTL_JQ_GREP
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "allow") {
+		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
+		if($is_ajax_req){ print "<div class='qhtl-inline-fragment'>"; }
 		&editfile("/etc/qhtlfirewall/qhtlfirewall.allow","saveallow");
 		&printreturn;
+		if($is_ajax_req){ print "</div>"; }
 	}
 	elsif ($FORM{action} eq "saveallow") {
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.allow","both");
@@ -2589,8 +2592,11 @@ QHTL_JQ_GREP
 	}
 	# Reintroduced redirect editing (now triggered from plus button fwb7 instead of legacy table row)
 	elsif ($FORM{action} eq "redirect") {
+		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
+		if($is_ajax_req){ print "<div class='qhtl-inline-fragment'>"; }
 		&editfile("/etc/qhtlfirewall/qhtlfirewall.redirect","saveredirect");
 		&printreturn;
+		if($is_ajax_req){ print "</div>"; }
 	}
 	elsif ($FORM{action} eq "saveredirect") {
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.redirect","both");
@@ -2677,6 +2683,8 @@ QHTL_JQ_GREP
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "conf") {
+		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
+		if($is_ajax_req){ print "<div class='qhtl-inline-fragment'>"; }
 		sysopen (my $IN, "/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
 		flock ($IN, LOCK_SH);
 		my @confdata = <$IN>;
@@ -2876,6 +2884,7 @@ EOD
 		print "<div>Changes saved. You should restart both qhtlfirewall and qhtlwaterfall.</div>\n";
 		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall+qhtlwaterfall'></form></div>\n";
 		&printreturn;
+		if($is_ajax_req){ print "</div>"; }
 	}
 	elsif ($FORM{action} eq "viewlogs") {
 		if (-e "/var/lib/qhtlfirewall/stats/iptables_log") {
@@ -3127,6 +3136,7 @@ QHTL_UPGRADE_POLL
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "profiles") {
+		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0; if($is_ajax_req){ print "<div class='qhtl-inline-fragment'>"; }
 		my @profiles = sort glob("/usr/local/qhtlfirewall/profiles/*");
 		my @backups = reverse glob("/var/lib/qhtlfirewall/backup/*");
 
@@ -3216,7 +3226,7 @@ QHTL_UPGRADE_POLL
 		print "</table>\n";
 		print "</form>\n";
 
-		&printreturn;
+		&printreturn; if($is_ajax_req){ print "</div>"; }
 	}
 	elsif ($FORM{action} eq "profileapply") {
 		my $profile = $FORM{profile};
@@ -4427,7 +4437,8 @@ QHTL_TEMP_MODAL_JS_B
 			if(act==='enable'){ fd.append('override','1'); }
 			if(extra){ Object.keys(extra).forEach(function(k){ fd.append(k, extra[k]); }); }
 			fetch(base, {method:'POST', body:fd, credentials:'same-origin'}).then(r=>r.text()).then(function(txt){ try{
-				var clean = (txt.replace(/<form[\s\S]*?<\/form>/gi,'').trim() || '<div class="text-muted">(No output returned)</div>');
+				var fragment=(function(){ try{ var div=document.createElement('div'); div.innerHTML=txt; var frag=div.querySelector('.qhtl-inline-fragment'); if(frag){ return frag.innerHTML; } var body=div.querySelector('body'); if(body){ return body.innerHTML; } return txt; }catch(_){ return txt; } })();
+				var clean = (fragment.replace(/<form[\s\S]*?<\/form>/gi,'').trim() || '<div class="text-muted">(No output returned)</div>');
 				if(tgt){ tgt.innerHTML = clean; tgt.classList.remove('fw-loading','fw-spacer-empty'); try{ tgt.style.backgroundImage='none'; }catch(_){ } setTimeout(function(){ try{ tgt.classList.add('fw-faded'); }catch(_){ } },4000); }
 			}catch(e){ if(tgt){ tgt.innerHTML='<pre>'+String(e)+'</pre>'; tgt.classList.remove('fw-loading'); } }}).catch(function(e){ if(tgt){ tgt.innerHTML='<div class="text-danger">Request failed: '+e+'</div>'; tgt.classList.remove('fw-loading'); } });
 			return;
@@ -4494,9 +4505,11 @@ QHTL_TEMP_MODAL_JS_B
 QHTL_FIREWALL_CLUSTER
 		print <<'QHTL_FW_SPACER_CSS';
 <style>
-	#fw-spacer-inline-area.fw-loading { filter:brightness(.92); background-image:linear-gradient(180deg,#e7f5ff 0%,#cfe5ff 55%,#dccfff 100%), url('$script?image=qhtlfirewall-loader.gif'); background-position:0 0, center center; background-repeat:repeat, no-repeat; background-size:auto,72px 72px; }
-	#fw-spacer-inline-area.fw-faded { opacity:0; pointer-events:none; }
-	#fw-spacer-inline-area.fw-spacer-empty::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(45deg,rgba(255,255,255,0.15) 0 12px,rgba(255,255,255,0.05) 12px 24px); mix-blend-mode:overlay; pointer-events:none; }
+	/* Spacer inline area refined: remove legacy gradients/stripes; show idle placeholder gif only */
+	#fw-spacer-inline-area { position:relative; }
+	#fw-spacer-inline-area.fw-loading { filter:brightness(1); background-image:url('$script?image=idle_fallback.gif') !important; background-position:center center; background-repeat:no-repeat; background-size:260px 72px; }
+	#fw-spacer-inline-area.fw-spacer-empty::before { content:none !important; }
+	#fw-spacer-inline-area.fw-faded { opacity:.55; pointer-events:none; transition:opacity .6s ease; }
 </style>
 QHTL_FW_SPACER_CSS
 		# Added/Updated: Firewall plus button label styling (labels above buttons, white text)
@@ -4546,8 +4559,8 @@ QHTL_FW_PLUS_LABELS_CSS
 	# Spacer/inline row enhanced: acts as a secondary inline output target for the plus buttons (conf/profiles/allow/status/redirect)
 	# Includes loader background animation similar to main inline output cell; fades/disappears once populated
 	print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>".
-	      "<div id='fw-spacer-inline-area' class='fw-spacer-empty' style=\"position:relative;min-height:180px;margin:6px 4px;padding:10px;border:2px solid rgba(255,255,255,0.3);border-radius:6px;overflow:auto;box-shadow:inset 0 0 6px rgba(0,0,0,0.2);background:linear-gradient(180deg,#e7f5ff 0%,#cfe5ff 55%,#dccfff 100%);transition:opacity .4s ease; background-image:url('$script?image=idle_fallback.gif'); background-position:center center; background-repeat:no-repeat; background-size:260px 72px;\"></div>".
-	      "</td></tr>\n";
+		      "<div id='fw-spacer-inline-area' class='fw-spacer-empty fw-loading' style=\"position:relative;min-height:180px;margin:6px 4px;padding:10px;border:2px solid rgba(255,255,255,0.3);border-radius:6px;overflow:auto;box-shadow:inset 0 0 6px rgba(0,0,0,0.2);background:transparent;transition:opacity .4s ease;\"></div>".
+		      "</td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.deny, the IP address deny file $permbans</div></td></tr>\n";
 	# Unified inline output/content area (reusing gradient background motif)
 	my $loader = "$script?image=qhtlfirewall-loader.gif"; # isolate interpolation to a single variable
