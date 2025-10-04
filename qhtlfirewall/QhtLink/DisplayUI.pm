@@ -2598,7 +2598,7 @@ QHTL_JQ_GREP
 		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1');
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.allow","both");
 		if($is_ajax_req){
-			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Save done</div></div>"; return;
+			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Save done (qhtlwaterfall restarting; qhtlfirewall may need restart) <button type=\"button\" class=\"btn btn-xs btn-primary\" onclick=\"try{submitAction('restart_services');}catch(e){}\">Restart Both Now</button></div></div>"; return;
 		}
 		&printreturn;
 	}
@@ -2614,7 +2614,7 @@ QHTL_JQ_GREP
 		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1');
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.redirect","both");
 		if($is_ajax_req){
-			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Save done</div></div>"; return;
+			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Save done (qhtlwaterfall restarting; qhtlfirewall may need restart) <button type=\"button\" class=\"btn btn-xs btn-primary\" onclick=\"try{submitAction('restart_services');}catch(e){}\">Restart Both Now</button></div></div>"; return;
 		}
 		&printreturn;
 	}
@@ -2685,7 +2685,7 @@ QHTL_JQ_GREP
 		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1');
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.deny","both");
 		if($is_ajax_req){
-			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Save done</div></div>"; return;
+			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Save done (qhtlwaterfall restarting; qhtlfirewall may need restart) <button type=\"button\" class=\"btn btn-xs btn-primary\" onclick=\"try{submitAction('restart_services');}catch(e){}\">Restart Both Now</button></div></div>"; return;
 		}
 		&printreturn;
 	}
