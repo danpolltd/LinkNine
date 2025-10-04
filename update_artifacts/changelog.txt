@@ -324,6 +324,20 @@ Changes:
 - Prep for future server-side minimalization of status/redirect responses; current pass relies on client filtering logic
 - Version bump to distribute these UI reliability/UX refinements
 
+Version: 0.1.27
+Release Date: 2025-10-04
+Changes:
+- Spacer min-height standardized to 220px across tabs
+- Fade system reworked: 20s full, dim then hide at 30s; interaction resets timers (no stuck half-dim)
+- Inline enable/disable support (status button output now inline)
+- Removed external per-button JS modules causing MIME nosniff blocks; unified inline binding
+- Robust fragment parsing (remove script/form/noscript early; fallback: .qhtl-inline-fragment > pre > first block element > body) eliminating stray JS snippet leakage
+- Inline success/notice messages for enable/disable/flush
+- Loader artwork repositioned for taller spacer baseline
+- Prevents residual timers on rapid actions (clears old fade timers before scheduling new)
+- Structural groundwork for possible server-side minimal fragments next pass
+- Version bump to deliver UI stability & UX polish
+
 Date: 2025-09-19
 Version: 0.1.2
 
