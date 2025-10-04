@@ -4328,6 +4328,10 @@ QHTL_TEMP_MODAL_JS_B
 /* Placement (7 true plus buttons + optional center for 8th if needed) */
 /* No special positioning needed in row */
 #fwb6 { display:none; }
+/* Flush/Reboot countdown animation */
+@keyframes fwFlushToOrange { 0% { filter:brightness(1); } 40% { filter:brightness(1.05); } 70% { filter:brightness(1.08); } 100% { filter:brightness(1.12); } }
+#firewall1 .fw-flush-btn.fw-flush-counting::before, #firewall1 .fw-flush-btn.fw-flush-counting::after { background: linear-gradient(180deg,#ffe6e6 0%,#ffb5b5 10%,#ff6a2a 45%,#ff9c1a 78%,#ff8c00 100%) !important; animation: fwFlushToOrange 3s linear forwards; }
+#firewall1 .fw-flush-btn.fw-flush-counting .fw-plus-label { text-shadow:0 0 4px #000,0 0 10px rgba(255,150,0,0.9),0 0 18px rgba(255,120,0,0.85); }
 @media (max-width: 1200px) { #firewall1 .fw-plus-grid { flex-wrap:wrap; } }
 @media (max-width: 860px) { #firewall1 .fw-plus-grid { transform:scale(.85); transform-origin:top center; } }
 @media (max-width: 620px) { #firewall1 .fw-plus-grid { transform:scale(.72); } }
