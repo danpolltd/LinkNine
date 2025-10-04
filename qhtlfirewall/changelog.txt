@@ -311,6 +311,19 @@ Changes:
 - Version bump to force installer pickup of UI modularization + spacer adjustments
 - Integration merges; minor fixes and code cleanup.
 
+Version: 0.1.26
+Release Date: 2025-10-04
+Changes:
+- Inline AJAX improvements: submitAction() now trims Rules output to first <pre> and strips outer WHM chrome more aggressively (scripts/forms/doctype/body wrappers removed client-side)
+- Added inline handling for Flush (denyf) so it no longer navigates away; shows compact success fragment inline and fades
+- Extended fade delay to ~12s to keep results visible longer before opacity transition
+- Spacer container made effectively invisible (no dark panel, no text); only the idle_fallback.gif is briefly visible while loading
+- Added denyf to inlineActs list and broadened fragment parsing fallback order (.qhtl-inline-fragment > body > raw)
+- Strengthened fallback per-button bindings (conf/profiles/allow/status/redirect/flush) to guarantee functionality if external JS modules fail
+- Cache-bust query references updated internally to v=0.1.26 (per-button JS modules)
+- Prep for future server-side minimalization of status/redirect responses; current pass relies on client filtering logic
+- Version bump to distribute these UI reliability/UX refinements
+
 Date: 2025-09-19
 Version: 0.1.2
 
