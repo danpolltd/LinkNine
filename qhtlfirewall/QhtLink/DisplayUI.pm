@@ -4426,38 +4426,90 @@ QHTL_TEMP_MODAL_JS_B
  }, 600);
  // Expose submitAction globally (refactored external per-button modules will call this)
 window.submitAction = window.submitAction || function(act, extra){ try{
-	var inlineActs=/^(conf|profiles|allow|status|redirect|denyf)$/; var tgt;
+	// Now also handle enable/disable inline for consistency
+	var inlineActs=/^(conf|profiles|allow|status|redirect|denyf|enable|disable)$/; var tgt;
 	if(inlineActs.test(act)){
-		tgt=document.getElementById('fw-spacer-inline-area'); if(tgt){ tgt.classList.remove('fw-faded'); tgt.classList.add('fw-loading'); }
+		tgt=document.getElementById('fw-spacer-inline-area');
+		if(tgt){
+			// Cancel any pending fades
+			if(tgt._fadeTimer){ clearTimeout(tgt._fadeTimer); tgt._fadeTimer=null; }
+			if(tgt._fadeHideTimer){ clearTimeout(tgt._fadeHideTimer); tgt._fadeHideTimer=null; }
+			tgt.classList.remove('fw-faded','fw-fade-hidden');
+			tgt.classList.remove('fw-spacer-empty');
+			tgt.classList.add('fw-loading');
+		}
 		var fd=new FormData(); fd.append('action',act); fd.append('ajax','1'); if(act==='enable'){ fd.append('override','1'); }
 		if(extra){ Object.keys(extra).forEach(function(k){ fd.append(k,extra[k]); }); }
 		fetch(base,{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.text()).then(function(txt){ try{
-			var fragment=(function(){ try{ var div=document.createElement('div'); div.innerHTML=txt; var frag=div.querySelector('.qhtl-inline-fragment'); if(frag){ return frag.innerHTML; } var body=div.querySelector('body'); if(body){ return body.innerHTML; } return txt;}catch(_){ return txt;} })();
-			if(act==='status'){ var pre=fragment.match(/<pre[\s\S]*?<\/pre>/i); if(pre){ fragment=pre[0]; } }
+			var fragment='';
+			(function(){
+				try {
+					var div=document.createElement('div');
+					div.innerHTML=txt;
+					// Remove script & form nodes early
+					Array.from(div.querySelectorAll('script,form,noscript')).forEach(function(n){ n.parentNode.removeChild(n); });
+					var inlineFrag=div.querySelector('.qhtl-inline-fragment');
+					if(inlineFrag){ fragment=inlineFrag.innerHTML; return; }
+					if(act==='status'){
+						var preEl=div.querySelector('pre');
+						if(preEl){ fragment='<pre>'+preEl.innerHTML+'</pre>'; return; }
+					}
+					// Fallback: take first meaningful block-level element inside body
+					var body=div.querySelector('body')||div;
+					var firstBlock = body.querySelector('pre,table,div,section,article');
+					if(firstBlock){ fragment=firstBlock.outerHTML; return; }
+					fragment=body.innerHTML || txt;
+				} catch(_){ fragment=txt; }
+			})();
 			if(act==='denyf'){ fragment='<div class="text-success">Temporary bans flushed.</div>'; }
-			var clean=(fragment.replace(/<!DOCTYPE[\s\S]*?<body[^>]*>/i,'').replace(/<\/body>[\s\S]*$/i,'').replace(/<script[\s\S]*?<\/script>/gi,'').replace(/<form[\s\S]*?<\/form>/gi,'').trim()||'<div class="text-muted">(No output returned)</div>');
-			if(tgt){ tgt.innerHTML=clean; tgt.classList.remove('fw-loading','fw-spacer-empty'); try{ tgt.style.backgroundImage='none'; }catch(_){ } setTimeout(function(){ try{ tgt.classList.add('fw-faded'); }catch(_){ } },12000); }
+			if(act==='enable'){ fragment='<div class="text-success">Firewall enabled.</div>'; }
+			if(act==='disable'){ fragment='<div class="text-warning">Firewall disabled.</div>'; }
+			var clean=fragment.trim();
+			if(!clean){ clean='<div class="text-muted">(No output returned)</div>'; }
+			if(tgt){
+				tgt.innerHTML=clean;
+				tgt.classList.remove('fw-loading');
+				try{ tgt.style.backgroundImage='none'; }catch(_){}
+				// Schedule staged fade (20s then hide at 30s). Cancelled by new activity or user interaction.
+				var schedule=function(){
+					if(tgt._fadeTimer){ clearTimeout(tgt._fadeTimer); }
+					if(tgt._fadeHideTimer){ clearTimeout(tgt._fadeHideTimer); }
+					tgt._fadeTimer=setTimeout(function(){ try{ tgt.classList.add('fw-faded'); }catch(_){} },20000);
+					tgt._fadeHideTimer=setTimeout(function(){ try{ tgt.classList.add('fw-fade-hidden'); }catch(_){} },30000);
+				};
+				// Interaction cancels fade & re-schedules
+				var cancel=function(){
+					if(tgt._fadeTimer){ clearTimeout(tgt._fadeTimer); tgt._fadeTimer=null; }
+					if(tgt._fadeHideTimer){ clearTimeout(tgt._fadeHideTimer); tgt._fadeHideTimer=null; }
+					tgt.classList.remove('fw-faded','fw-fade-hidden');
+				};
+				['mouseenter','mousedown','focusin','keydown','touchstart'].forEach(function(ev){
+					if(!tgt._fadeBound){ tgt.addEventListener(ev,function(){ cancel(); schedule(); },{passive:true}); }
+				});
+				tgt._fadeBound=1;
+				schedule();
+			}
 		}catch(e){ if(tgt){ tgt.innerHTML='<pre>'+String(e)+'</pre>'; tgt.classList.remove('fw-loading'); } }}).catch(function(e){ if(tgt){ tgt.innerHTML='<div class="text-danger">Request failed: '+e+'</div>'; tgt.classList.remove('fw-loading'); } });
 		return; }
+	// Non-inline acts fallback to full submit (rare now)
 	var f=document.createElement('form'); f.method='post'; f.action=base; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); if(act==='enable'){ var o=document.createElement('input'); o.type='hidden'; o.name='override'; o.value='1'; f.appendChild(o);} if(extra){ Object.keys(extra).forEach(function(k){ var h=document.createElement('input'); h.type='hidden'; h.name=k; h.value=extra[k]; f.appendChild(h); }); } document.body.appendChild(f); f.submit();
 }catch(e){} };
- // Attempt to load external per-button modules (cache-busted by version); silent if path not available
-try { var fwMods=['fon','fconfig','fprofiles','fallow','frules','fredirect','fflush']; fwMods.forEach(function(m){ var s=document.createElement('script'); s.src='js/'+m+'.js?v=0.1.26'; s.defer=true; (document.currentScript||document.body).parentNode.appendChild(s); }); }catch(_){ }
- // Fallback inline bindings if modules fail (attach after brief delay if no listener set)
+// Direct inline bindings (removed external module loader due to MIME issues in some environments)
 setTimeout(function(){
 	var statusBtn2=document.getElementById('fwb1'); if(statusBtn2 && !statusBtn2._fwBound){ statusBtn2.addEventListener('click',function(){ try{ if(statusBtn2.classList.contains('fw-status-off')){ window.submitAction('enable'); } else { window.submitAction('disable'); } }catch(_){ } }); statusBtn2._fwBound=1; }
 	var map={fwb2:'conf',fwb3:'profiles',fwb4:'allow',fwb5:'status',fwb7:'redirect'};
 	Object.keys(map).forEach(function(id){ var el=document.getElementById(id); if(!el) return; if(!el._fwBound){ el.addEventListener('click',function(){ if(window.submitAction) window.submitAction(map[id]); }); el._fwBound=1; } });
 	var flush=document.getElementById('fwb8'); if(flush && !flush._fwBound){ flush.addEventListener('click',function(){ if(window.submitAction) window.submitAction('denyf'); }); flush._fwBound=1; }
-},600);
+},400);
  } catch(e){} })();</script>
 QHTL_FIREWALL_CLUSTER
 		print <<'QHTL_FW_SPACER_CSS';
 <style>
-	#fw-spacer-inline-area { position:relative; z-index:20; background:transparent !important; }
-	#fw-spacer-inline-area.fw-loading { background:transparent url('$script?image=idle_fallback.gif') center 26px / 240px 68px no-repeat !important; }
+	#fw-spacer-inline-area { position:relative; z-index:20; background:transparent !important; min-height:220px; padding:8px 10px; box-sizing:border-box; }
+	#fw-spacer-inline-area.fw-loading { background:transparent url('$script?image=idle_fallback.gif') center 60px / 240px 68px no-repeat !important; }
 	#fw-spacer-inline-area.fw-spacer-empty::before { content:none !important; }
-	#fw-spacer-inline-area.fw-faded { opacity:.55; pointer-events:none; transition:opacity .6s ease; }
+	#fw-spacer-inline-area.fw-faded { opacity:.55; transition:opacity .6s ease; }
+	#fw-spacer-inline-area.fw-fade-hidden { opacity:0; pointer-events:none; }
 </style>
 QHTL_FW_SPACER_CSS
 		# Added/Updated: Firewall plus button label styling (labels above buttons, white text)
@@ -4507,7 +4559,7 @@ QHTL_FW_PLUS_LABELS_CSS
 	# Spacer/inline row enhanced: acts as a secondary inline output target for the plus buttons (conf/profiles/allow/status/redirect)
 	# Includes loader background animation similar to main inline output cell; fades/disappears once populated
 	print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>".
-		      "<div id='fw-spacer-inline-area' class='fw-spacer-empty fw-loading' style=\"position:relative;min-height:6px;margin:0;padding:0;border:none;overflow:visible;background:transparent;transition:opacity 1s ease;\"></div>".
+		      "<div id='fw-spacer-inline-area' class='fw-spacer-empty fw-loading'></div>".
 		      "</td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.deny, the IP address deny file $permbans</div></td></tr>\n";
 	# Unified inline output/content area (reusing gradient background motif)
