@@ -4522,18 +4522,14 @@ QHTL_FW_PLUS_LABELS_CSS
 	my $loader = "$script?image=qhtlfirewall-loader.gif"; # isolate interpolation to a single variable
 print <<"QHTL_FW_INLINE_OUT";
 <tr id='fw-inline-row'><td colspan='2' style='padding:0;background:transparent'>
-  <div id='fw-inline-output' class='fw-inline-surface' style="min-height:260px;position:relative;margin:8px 6px;padding:14px;border:2px solid rgba(255,255,255,0.35);border-radius:6px;overflow:auto;box-shadow:inset 0 0 8px rgba(0,0,0,0.25);background:transparent;">
-    <div class='fw-inline-inner' style="min-height:220px;background:linear-gradient(180deg,#d7f0ff 0%,#b5d6ff 50%,#c9b5ff 100%);border:1px solid rgba(255,255,255,0.4);border-radius:4px;position:relative;padding:12px;">
-      <div id='fw-inline-placeholder' class='text-muted' style='font-style:italic;opacity:.8'>Action output will appear here (Allow/Deny/Redirect/Rules/etc.).</div>
-      <div class='fw-inline-loader' style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:96px;height:96px;background:url('$loader') center center no-repeat;opacity:.9;"></div>
-    </div>
-  </div>
+	<div id='fw-inline-output' style="min-height:220px;position:relative;margin:8px 6px;padding:12px;border:2px solid rgba(255,255,255,0.35);border-radius:6px;overflow:auto;box-shadow:inset 0 0 8px rgba(0,0,0,0.25);background:linear-gradient(180deg,#d7f0ff 0%,#b5d6ff 50%,#c9b5ff 100%);">
+		<div id='fw-inline-placeholder' class='text-muted' style='font-style:italic;opacity:.8'>Action output will appear here (Allow/Deny/Redirect/Rules/etc.).</div>
+	</div>
 </td></tr>
 <style>
-  /* Inline area align with Options tab aesthetic */
-  #fw-inline-output.loading .fw-inline-inner { filter:blur(1px) brightness(.9); }
-  #fw-inline-output.loading .fw-inline-loader { display:block; }
-  #fw-inline-output .fw-inline-result pre { background:rgba(0,0,0,0.55); color:#eee; padding:10px; border-radius:4px; }
+	/* Simplified single-layer inline output cell; loader via background image on loading */
+	#fw-inline-output.loading { filter:brightness(.92); background-image:linear-gradient(180deg,#d7f0ff 0%,#b5d6ff 50%,#c9b5ff 100%), url('$loader'); background-position:0 0, center center; background-repeat:repeat, no-repeat; background-size:auto,96px 96px; }
+	#fw-inline-output .fw-inline-result pre { background:rgba(0,0,0,0.55); color:#eee; padding:10px; border-radius:4px; }
 </style>
 QHTL_FW_INLINE_OUT
 	# Redundant control rows removed (Enable/Disable/Restart now handled by status plus button hold logic)
@@ -4557,10 +4553,10 @@ QHTL_FW_INLINE_OUT
 				var form=btn.closest('form'); if(!form) return; if(form.dataset.qhtlHijacked) return; form.dataset.qhtlHijacked='1';
 				form.addEventListener('submit', function(ev){
 					var act=btn.value; if(!/^(allow|deny|conf|profiles|status|redirect|temp|sips|denyf)$/.test(act)) return; ev.preventDefault();
-					try{out.classList.add('loading'); var inner=out.querySelector('.fw-inline-inner'); if(inner){ inner.querySelector('#fw-inline-placeholder')?.classList.add('text-muted'); } }catch(_){ }
+					try{out.classList.add('loading'); var ph=document.getElementById('fw-inline-placeholder'); if(ph){ ph.classList.add('text-muted'); }}catch(_){ }
 					var fd=new FormData(form); fd.append('ajax','1');
 					fetch(form.action||location.href,{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.text()).then(function(txt){
-						try{ out.classList.remove('loading'); var inner=out.querySelector('.fw-inline-inner'); if(!inner){ out.innerHTML=txt; } else { inner.innerHTML = (txt.replace(/<form[\s\S]*?<\/form>/gi,'').trim() || '<div class="text-muted">(No output returned)</div>'); } }catch(e){ var inner=out.querySelector('.fw-inline-inner'); if(inner){ inner.innerHTML='<pre>'+String(e)+'</pre>'; } else { out.innerHTML='<pre>'+String(e)+'</pre>'; } }
+						try{ out.classList.remove('loading'); out.innerHTML = (txt.replace(/<form[\s\S]*?<\/form>/gi,'').trim() || '<div class="text-muted">(No output returned)</div>'); }catch(e){ out.innerHTML='<pre>'+String(e)+'</pre>'; }
 					}).catch(function(e){ out.innerHTML='<div class="text-danger">Request failed: '+e+'</div>'; });
 				});
 			});
