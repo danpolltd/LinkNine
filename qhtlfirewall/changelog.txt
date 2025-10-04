@@ -1,6 +1,29 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.41 “Centered Blade”
+
+UI
+- Recentered inline spacer loader using flex + ::before pseudo element so sword sits vertically centered (previous fixed Y offset appeared too low compared to other tabs).
+- Converted responsive sizing rules to target ::before ensuring clean scaling at breakpoints.
+- Added halo hardening for Advanced tab hex buttons (isolation + blend-mode) to ensure glow remains visible even after subsequent dynamic style injections.
+
+Packaging
+- Version already set to 0.1.41; artifact rebuild pending.
+
+Date: 2025-10-04
+Version: 0.1.41 “Inline Extend”
+
+Fixes
+- Added `conf_inline` and `deny` to the inline action regex so the Config preview and Deny editor no longer trigger a full page reload.
+- Wrapped `deny` action body with `qhtl-inline-fragment` when ajax=1 (parity with allow/redirect/etc.).
+- Status inline endpoint now clarifies when the LOCALINPUT chain is empty or inaccessible.
+
+Result
+- Config button should no longer reload the entire firewall page; should render the truncated inline panel instead.
+- Rules button continues using dedicated `status` action; enhanced empty output message helps diagnose permission or chain issues.
+
+Date: 2025-10-04
 Version: 0.1.40 “Morph Press”
 
 Functional

@@ -2659,8 +2659,11 @@ QHTL_JQ_GREP
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "deny") {
+		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
+		if($is_ajax_req){ print "<div class='qhtl-inline-fragment'>"; }
 		&editfile("/etc/qhtlfirewall/qhtlfirewall.deny","savedeny");
 		&printreturn;
+		if($is_ajax_req){ print "</div>"; }
 	}
 	elsif ($FORM{action} eq "savedeny") {
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.deny","both");
@@ -2747,7 +2750,7 @@ elsif ($FORM{action} eq 'status') {
 		print "<pre style=\"max-height:420px;overflow:auto;white-space:pre-wrap\">";
 		foreach my $l (@show){ $l =~ s/&/&amp;/g; $l =~ s/</&lt;/g; $l =~ s/>/&gt;/g; print $l."\n"; }
 		print "</pre>";
-	} else { print "<div class='text-muted'>(No rules output)</div>"; }
+	} else { print "<div class='text-muted'>(No rules output – LOCALINPUT chain empty or inaccessible)</div>"; }
 	print "</div>" if $is_ajax_req;
 	exit;
 }
@@ -4470,8 +4473,8 @@ QHTL_TEMP_MODAL_JS_B
  }, 600);
  // Expose submitAction globally (refactored external per-button modules will call this)
 window.submitAction = window.submitAction || function(act, extra){ try{
-	// Inline-capable actions (include enable so starting firewall doesn't navigate away)
-	var inlineActs=/^(conf|profiles|allow|status|redirect|denyf|restart|enable)$/; var tgt;
+	// Inline-capable actions (extended with conf_inline + deny so they don't trigger full page reloads)
+	var inlineActs=/^(conf|conf_inline|profiles|allow|deny|status|redirect|denyf|restart|enable)$/; var tgt;
 	if(inlineActs.test(act)){
 		tgt=document.getElementById('fw-spacer-inline-area');
 		if(tgt){
@@ -4673,22 +4676,22 @@ QHTL_FIREWALL_CLUSTER
         # Interpolated heredoc (needs $script expansion for loader image URL)
 		print <<"QHTL_FW_SPACER_CSS";
 <style>
-		#fw-spacer-inline-area { position:relative; z-index:20; background:transparent !important; min-height:220px; padding:8px 10px 12px; box-sizing:border-box; }
-		/* Enlarged sword loader for parity with other tabs (Options, etc). Uses responsive max width. */
-		#fw-spacer-inline-area.fw-loading { 
-			background:transparent url('$script?action=fallback_asset&name=idle_fallback.gif&v=$myv') center 84px / 620px 176px no-repeat !important; 
-		}
+		#fw-spacer-inline-area { position:relative; z-index:20; background:transparent !important; min-height:220px; padding:8px 10px 12px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; }
+		#fw-spacer-inline-area::before{ content:""; position:absolute; inset:0; opacity:0; transition:opacity .25s ease; }
+		/* Loader sword now truly centered (flex) instead of fixed Y offset */
+		#fw-spacer-inline-area.fw-loading { background:none!important; }
+		#fw-spacer-inline-area.fw-loading::before { opacity:1; background:transparent url('$script?action=fallback_asset&name=idle_fallback.gif&v=$myv') center center / 620px 176px no-repeat; }
 		@media (max-width: 1100px){
-			#fw-spacer-inline-area.fw-loading { background-size: 520px 148px; background-position:center 76px; }
+			#fw-spacer-inline-area.fw-loading::before { background-size:520px 148px; }
 		}
 		@media (max-width: 880px){
-			#fw-spacer-inline-area.fw-loading { background-size: 440px 126px; background-position:center 70px; }
+			#fw-spacer-inline-area.fw-loading::before { background-size:440px 126px; }
 		}
 		@media (max-width: 680px){
-			#fw-spacer-inline-area.fw-loading { background-size: 340px 98px; background-position:center 62px; }
+			#fw-spacer-inline-area.fw-loading::before { background-size:340px 98px; }
 		}
 		/* Slight fade-in animation for visual polish */
-		#fw-spacer-inline-area.fw-loading { animation: fwLoaderFade .55s ease; }
+		#fw-spacer-inline-area.fw-loading::before { animation: fwLoaderFade .55s ease; }
 		@keyframes fwLoaderFade { from { opacity:0; } to { opacity:1; } }
 	#fw-spacer-inline-area.fw-spacer-empty::before { content:none !important; }
 	#fw-spacer-inline-area.fw-faded { opacity:.55; transition:opacity .6s ease; }
@@ -5002,6 +5005,9 @@ QHTL_ADV_RESET_JS
 	print "    animation:qhtlHexPulse 4.2s ease-in-out infinite; transform-origin:center center;\n";
 	print "  }\n";
 	print "  @keyframes qhtlHexPulse { 0%,100%{opacity:1; filter:brightness(1);} 50%{opacity:.86; filter:brightness(1.08);} }\n";
+	print "  /* Hardening: ensure halo not suppressed by other loaders */\n";
+	print "  #moreplus .qhtl-hex-btn{isolation:isolate;}\n";
+	print "  #moreplus .qhtl-hex-btn:before,#moreplus .qhtl-hex-btn:after{mix-blend-mode:screen;}\n";
 	print "  #moreplus a.qhtl-hex-btn{color:#ffffff !important; text-shadow:0 1px 2px rgba(0,0,0,0.65);}\n";
 	print "  #moreplus a.qhtl-hex-btn:visited{color:#ffffff !important;}\n";
 	print "  #moreplus a.qhtl-hex-btn:hover{color:#ffffff !important;}\n";
