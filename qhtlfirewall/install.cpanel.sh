@@ -434,6 +434,12 @@ cp -avf version/* /usr/local/qhtlfirewall/lib/
 cp -avf qhtlfirewall.div /usr/local/qhtlfirewall/lib/
 cp -avf qhtlfirewallajaxtail.js /usr/local/qhtlfirewall/lib/
 cp -avf ui/images /etc/qhtlfirewall/ui/.
+# Force overwrite all JS and CSS files to ensure latest UI assets are deployed
+cp -f ui/images/*.js /etc/qhtlfirewall/ui/images/ 2>/dev/null || true
+cp -f ui/images/*.css /etc/qhtlfirewall/ui/images/ 2>/dev/null || true
+cp -f ui/images/bootstrap/css/*.css /etc/qhtlfirewall/ui/images/bootstrap/css/ 2>/dev/null || true
+cp -f ui/images/bootstrap/js/*.js /etc/qhtlfirewall/ui/images/bootstrap/js/ 2>/dev/null || true
+cp -f ui/images/holiday/*.css /etc/qhtlfirewall/ui/images/holiday/ 2>/dev/null || true
 cp -avf profiles /usr/local/qhtlfirewall/
 cp -avf qhtlfirewall.conf /usr/local/qhtlfirewall/profiles/reset_to_defaults.conf
 cp -avf cpanel.comodo.ignore /etc/qhtlfirewall/
