@@ -1,6 +1,16 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.39 “Golden Halo”
+
+Advanced Tab
+- Strengthened hex button halo (larger radial gradient, deeper glow stack, animated pulse lengthened) and ensured pseudo-elements sit behind buttons (z-index adjustments) so glow is visible.
+- Increased hover and active box-shadow intensity for clearer feedback.
+
+Packaging
+- Version bump to deliver Advanced tab halo polish.
+
+Date: 2025-10-04
 Version: 0.1.38 “Long Blade”
 
 UI
