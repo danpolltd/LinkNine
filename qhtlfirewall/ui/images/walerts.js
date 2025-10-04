@@ -182,18 +182,50 @@
         var el = typeof anchor==='string'?document.querySelector(anchor):anchor; if(!el) return false;
         ensureStyles();
         // Clear anchor and mount
-        try { while(el.firstChild) el.removeChild(el.firstChild); } catch(_){}
-  var pieces = make('Transfer');
-  el.appendChild(pieces.wrap);
-  // Style label white and bold
-  pieces.inner.style.color = '#fff';
-  pieces.inner.style.fontWeight = 'bold';
-  // Click triggers flush/reboot logic from WStatus
-  pieces.inner.addEventListener('click', function(e){ e.preventDefault(); if(window.WStatus && typeof window.WStatus.restartCountdown === 'function'){ window.WStatus.restartCountdown(); } });
-  // Keyboard accessibility
-  pieces.inner.setAttribute('role','button'); pieces.inner.setAttribute('tabindex','0');
-  pieces.inner.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); if(window.WStatus && typeof window.WStatus.restartCountdown === 'function'){ window.WStatus.restartCountdown(); } } });
-  return true;
+  try { while(el.firstChild) el.removeChild(el.firstChild); } catch(_) {}
+        // Patch: Use Redirect logic and label for Lower (6th) button
+        var pieces = make('Redirect');
+        el.appendChild(pieces.wrap);
+        // Style label white and bold
+        pieces.inner.style.color = '#fff';
+        pieces.inner.style.fontWeight = 'bold';
+        // Click triggers Redirect logic (navigate to redirect page)
+        pieces.inner.addEventListener('click', function(e){
+          e.preventDefault();
+          // Redirect logic: navigate to redirect page or perform redirect action
+          var url = (window.QHTL_SCRIPT||'') + '?action=redirect';
+          var area = document.getElementById('qhtl-inline-area');
+          if (area) {
+            var u = url + (url.indexOf('?')>-1?'&':'?') + 'ajax=1';
+            if (window.jQuery) {
+              jQuery(area).html('<div class="text-muted">Loading...</div>').load(u);
+            } else {
+              var x=new XMLHttpRequest(); x.open('GET', u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4 && x.status>=200 && x.status<300){ area.innerHTML=x.responseText; } }; x.send();
+            }
+          } else {
+            window.location.href = url;
+          }
+        });
+        // Keyboard accessibility
+        pieces.inner.setAttribute('role','button'); pieces.inner.setAttribute('tabindex','0');
+        pieces.inner.addEventListener('keydown', function(e){
+          if(e.key==='Enter' || e.key===' '){
+            e.preventDefault();
+            var url = (window.QHTL_SCRIPT||'') + '?action=redirect';
+            var area = document.getElementById('qhtl-inline-area');
+            if (area) {
+              var u = url + (url.indexOf('?')>-1?'&':'?') + 'ajax=1';
+              if (window.jQuery) {
+                jQuery(area).html('<div class="text-muted">Loading...</div>').load(u);
+              } else {
+                var x=new XMLHttpRequest(); x.open('GET', u, true); try{x.setRequestHeader('X-Requested-With','XMLHttpRequest');}catch(__){} x.onreadystatechange=function(){ if(x.readyState===4 && x.status>=200 && x.status<300){ area.innerHTML=x.responseText; } }; x.send();
+              }
+            } else {
+              window.location.href = url;
+            }
+          }
+        });
+        return true;
       } catch(e){ return false; }
     }
   };
