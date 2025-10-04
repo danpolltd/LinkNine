@@ -1,15 +1,22 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.60 “Config Inline Restart Consistency”
+Fix
+- Added restart_services to inline action whitelist so it never triggers full page loads.
+- Adjusted saveconf AJAX path to emit a single inline fragment with unified restart messaging + button.
+Enhancement
+- Unified restart button presentation across configuration saves; consistent wording with other save paths.
+
+Date: 2025-10-04
 Version: 0.1.59 “Inline Dual Restart Button”
 Enhancement
-- Added restart_services AJAX action returning a single inline fragment with combined qhtlfirewall and qhtlwaterfall restart output + success alert.
-- Save paths requiring both restarts now show a compact “Restart Both Now” button appended to the unified Save done message (no page navigation).
+- Added restart_services AJAX action returning combined restart output + success alert.
+- Save paths needing both restarts now show a compact Restart Both Now button.
 UX
-- Button disables after first click and shows a lightweight spinner while restart runs to prevent duplicate invocations.
+- Button disables after first click with spinner to avoid duplicate restarts.
 Technical
-- Introduced @keyframes qhtlspin for inline spinner animation.
-- Ensured fragment wrapping for restart to eliminate residual full-page fallback in edge cases.
+- Added @keyframes qhtlspin and ensured fragment wrapping.
 
 Date: 2025-10-04
 Version: 0.1.53 “Inline Save UX Trim”
