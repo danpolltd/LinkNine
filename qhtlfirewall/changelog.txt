@@ -11,6 +11,12 @@ Version: 0.1.55 “Unified Save Done Message”
 
 Date: 2025-10-04
 Version: 0.1.56 “Save Form Binding + Tab Reset”
+
+Date: 2025-10-04
+Version: 0.1.57 “Post-Save Inline Replace”
+Fix
+- Prevent full-page navigation view after Save (Allow/Deny/Redirect/Config): added fallback script that, on non-AJAX save response, transplants the single returned inline fragment into the inline area so user stays in-context.
+- Correct malformed form tag in Ace editor ajax branch (missing closing quote) ensuring consistent binding.
 Fix
 - Ensure AJAX edit forms (ace + basic) always output <form id='qhtlfirewallform'> in inline mode so Save buttons (Allow/Deny/Redirect/Config) trigger qhtlBindInlineSave.
 Enhancement

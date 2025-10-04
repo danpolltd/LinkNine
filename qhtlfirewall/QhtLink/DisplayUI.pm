@@ -4802,6 +4802,28 @@ QHTL_FIREWALL_CLUSTER
 	#fw-spacer-inline-area.fw-fade-hidden { opacity:0; pointer-events:none; }
 </style>
 QHTL_FW_SPACER_CSS
+		# Post-save full page fallback handler: if a navigation occurred (no ajax) but we have a single inline fragment, transplant into inline area
+		print <<'QHTL_FW_INLINE_REPLACE_JS';
+<script>(function(){try{
+ var area=document.getElementById('fw-spacer-inline-area');
+ if(!area) return;
+ // If page load contains only an inline fragment from a save* action (heuristic: body has exactly one .qhtl-inline-fragment or an alert-success), move it into area.
+ var body=document.body;
+ if(!body) return;
+ var frags=body.querySelectorAll('.qhtl-inline-fragment');
+ if(frags.length===1){
+	 var frag=frags[0];
+	 // Avoid duplicating if already inside area
+	 if(!area.contains(frag)){
+		 area.innerHTML=frag.outerHTML;
+		 area.classList.remove('fw-loading');
+		 area.classList.remove('fw-spacer-empty');
+		 // Optional fade after save
+		 setTimeout(function(){ try{ var a=area.querySelector('.alert-success'); if(a){ a.style.transition='opacity .6s'; a.style.opacity='0.92'; } }catch(_){ } },120);
+	 }
+ }
+}catch(_){}})();</script>
+QHTL_FW_INLINE_REPLACE_JS
 		# Added/Updated: Firewall plus button label styling (labels above buttons, white text)
 		# Find the existing fw-plus CSS block and append overrides.
 		print <<'QHTL_FW_PLUS_LABELS_CSS';
@@ -6108,7 +6130,8 @@ sub editfile {
 		print "<button class='btn btn-default' id='toggletextarea-btn'>Toggle Editor/Textarea</button>\n";
 	print " <div class='pull-right btn-group'><button type='button' class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>\n";
 	print "<button type='button' class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>\n";
-		print "<form action='$script' method='post" . ($is_ajax ? "' id='qhtlfirewallform'" : "'") . ">\n";
+		# Correctly close method attribute and add form id in ajax mode
+		print "<form action='$script' method='post'" . ($is_ajax ? " id='qhtlfirewallform'" : '') . ">\n";
 		print "<input type='hidden' name='action' value='$save'>\n";
 		print "<input type='hidden' name='ace' value='1'>\n";
 		if ($extra) {print "<input type='hidden' name='$extra' value='$FORM{$extra}'>\n";}
