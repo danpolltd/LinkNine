@@ -1,6 +1,33 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.34 “Retry Patch”
+
+Hotfix
+- Refactored the 0.1.33 secondary non-AJAX retry block to a clearer named IIFE to resolve a browser-side SyntaxError ( stray parenthesis in minified-style inline block ). No functional change intended beyond eliminating the parse error.
+- Version bump to ensure environments pull corrected script.
+
+Date: 2025-10-04
+Version: 0.1.33 “Second Wind”
+
+Reliability / Inline Spacer
+- Added a second-layer non-AJAX retry for Config and Rules (Status) buttons. If the initial ajax=1 fragment comes back empty or only placeholder text, the UI now silently re-submits the same action WITHOUT the ajax flag and attempts a fresh fragment extraction from the full page markup.
+- Improved fragment replacement logic: only replaces placeholder if the retry yields substantive content (>20 chars and not a placeholder token) to avoid flicker.
+
+Enable Flow Hardening
+- After requesting Enable inline, if no meaningful Status output arrives within ~4s (still shows only the enable notice or placeholder text), the UI now forces a full page reload to guarantee updated status state.
+- Console warning logs the forced reload for diagnostics (visible in browser dev tools).
+
+Diagnostics
+- Retains prior 0.1.32 raw-response console.debug logging for now so we can verify whether retry produces richer fragments; will prune in a later stabilization build once confirmed.
+
+User Impact
+- Should resolve persistent blank Config / Rules outputs and unreliable start-from-Off behavior by guaranteeing either a retry-derived fragment or a full refreshed state.
+
+Packaging
+- Version bump to 0.1.33 to propagate retry + enable fallback changes.
+
+Date: 2025-10-04
 Version: 0.1.23 “Idle Blade”
 
 Firewall Tab

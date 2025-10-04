@@ -4493,37 +4493,44 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 			}
 			if(tgt){
 				tgt.innerHTML=clean;
-				// Secondary retry: if conf/status returned an obviously empty placeholder, try a non-AJAX fetch (server will emit full page) and re-extract.
-				(function(){
-					if(!(act==='conf' || act==='status')) return; // only for conf & status which user reports blank
+				// Secondary retry: if conf/status returned an empty placeholder, perform a non-AJAX fetch of full page and re-extract.
+				(function retryFallback(){
+					if(act!=='conf' && act!=='status') return;
 					var placeholderRe=/(?:Config output unavailable|No rules output|No output returned|\(No rules output\)|\(Config output unavailable\))/i;
 					if(!placeholderRe.test(clean)) return;
-					try{ if(window.console && console.debug){ console.debug('[QHTL retry] Attempting non-AJAX fallback for', act); } }catch(_){ }
-					var fd2=new FormData(); fd2.append('action',act); // no ajax flag
-					fetch(base,{method:'POST',body:fd2,credentials:'same-origin'}).then(r=>r.text()).then(function(txt2){ try{
-						var div2=document.createElement('div'); div2.innerHTML=txt2;
-						Array.from(div2.querySelectorAll('script,noscript')).forEach(function(n){ n.parentNode.removeChild(n); });
-						var newFrag='';
-						var inline2=div2.querySelector('.qhtl-inline-fragment'); if(inline2){ newFrag=inline2.innerHTML; }
-						if(!newFrag && act==='status'){
-							var pre2=div2.querySelector('pre'); if(pre2){ newFrag='<pre>'+pre2.innerHTML+'</pre>'; }
-						}
-						if(!newFrag){
-							var body2=div2.querySelector('body')||div2;
-							var first2=body2.querySelector('pre,table,div,section,article');
-							if(first2){ newFrag=first2.outerHTML; }
-							if(!newFrag){
-								var forms2=body2.querySelectorAll('form');
-								if(forms2.length){ var wrap2=document.createElement('div'); forms2.forEach(function(fm){ wrap2.appendChild(fm.cloneNode(true)); }); newFrag=wrap2.innerHTML; }
-							}
-							if(!newFrag){ newFrag=body2.innerHTML||txt2; }
-						}
-						newFrag=(newFrag||'').trim();
-						if(newFrag && !placeholderRe.test(newFrag) && newFrag.length>20){
-							if(window.console && console.debug){ console.debug('[QHTL retry] Non-AJAX fetch produced content, replacing placeholder.'); }
-							tgt.innerHTML=newFrag;
-						}
-					}catch(_){ });
+					try { if(window.console && console.debug){ console.debug('[QHTL retry] Attempting non-AJAX fallback for', act); } } catch(e){}
+					try {
+						var fd2=new FormData(); fd2.append('action',act); // intentionally omit ajax flag
+						fetch(base,{method:'POST',body:fd2,credentials:'same-origin'})
+							.then(function(r){ return r.text(); })
+							.then(function(txt2){
+								try {
+									var div2=document.createElement('div'); div2.innerHTML=txt2;
+									Array.from(div2.querySelectorAll('script,noscript')).forEach(function(n){ if(n.parentNode){ n.parentNode.removeChild(n); }});
+									var newFrag='';
+									var inline2=div2.querySelector('.qhtl-inline-fragment'); if(inline2){ newFrag=inline2.innerHTML; }
+									if(!newFrag && act==='status'){
+										var pre2=div2.querySelector('pre'); if(pre2){ newFrag='<pre>'+pre2.innerHTML+'</pre>'; }
+									}
+									if(!newFrag){
+										var body2=div2.querySelector('body')||div2;
+										var first2=body2.querySelector('pre,table,div,section,article');
+										if(first2){ newFrag=first2.outerHTML; }
+										if(!newFrag){
+											var forms2=body2.querySelectorAll('form');
+											if(forms2.length){ var wrap2=document.createElement('div'); forms2.forEach(function(fm){ wrap2.appendChild(fm.cloneNode(true)); }); newFrag=wrap2.innerHTML; }
+										}
+										if(!newFrag){ newFrag=body2.innerHTML||txt2; }
+									}
+									newFrag=(newFrag||'').trim();
+									if(newFrag && !placeholderRe.test(newFrag) && newFrag.length>20){
+										try { if(window.console && console.debug){ console.debug('[QHTL retry] Non-AJAX fetch produced content, replacing placeholder.'); } } catch(e){}
+										tgt.innerHTML=newFrag;
+									}
+								} catch(e) { /* swallow parse issues */ }
+							})
+							.catch(function(){ /* ignore network errors */ });
+					} catch(e) { /* swallow outer retry errors */ }
 				})();
 				tgt.classList.remove('fw-loading');
 				try{ tgt.style.backgroundImage='none'; }catch(_){}

@@ -1,6 +1,13 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.34 “Retry Patch”
+
+Hotfix
+- Refactored the 0.1.33 secondary non-AJAX retry block to a clearer named IIFE to resolve a browser-side SyntaxError ( stray parenthesis in minified-style inline block ). No functional change intended beyond eliminating the parse error.
+- Version bump to ensure environments pull corrected script.
+
+Date: 2025-10-04
 Version: 0.1.33 “Second Wind”
 
 Reliability / Inline Spacer
