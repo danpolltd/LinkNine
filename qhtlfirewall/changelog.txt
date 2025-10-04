@@ -1,6 +1,22 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.15 “Twin Panel”
+
+UI / Inline Actions
+- Restyled the unified inline output panel to visually match the Options tab nested gradient style (outer surface + recessed inner gradient) for consistency.
+- Added centered loader overlay while an action is in-flight; previous text-based “Loading +act…” placeholder replaced with spinner layer.
+- Introduced subtle blur + opacity dim on stale content until new action output arrives; prevents flash/flicker on rapid successive submits.
+- Structural change: inner container now retains height during loads to avoid layout shift, eliminating scroll jumps.
+
+Code Quality
+- Migrated the inline panel emission to a single heredoc with column-1 terminator to prevent future heredoc parsing edge cases.
+- No behavioral changes to plus-button remaps (redirect on fwb7, hold-to-flush on fwb8), only presentation & load-state signaling.
+
+Packaging
+- Version bump solely to ensure updaters invalidate cached 0.1.14 tarballs when fetching the refined UI.
+
+Date: 2025-10-04
 Version: 0.1.14 “Inline Anchor”
 
 Stability
