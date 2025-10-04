@@ -393,6 +393,12 @@ cp -avf version/* /usr/local/qhtlfirewall/lib/
 cp -avf qhtlfirewall.div /usr/local/qhtlfirewall/lib/
 cp -avf qhtlfirewallajaxtail.js /usr/local/qhtlfirewall/lib/
 cp -avf ui/images /etc/qhtlfirewall/ui/.
+# Explicitly overwrite all shipped JS and CSS files
+for f in ui/images/*.js ui/images/*.css; do
+	if [ -f "$f" ]; then
+		cp -avf "$f" /etc/qhtlfirewall/ui/images/$(basename "$f")
+	fi
+done
 cp -avf profiles /usr/local/qhtlfirewall/
 cp -avf qhtlfirewall.conf /usr/local/qhtlfirewall/profiles/reset_to_defaults.conf
 cp -avf qhtlwaterfall.logrotate /etc/logrotate.d/qhtlwaterfall
