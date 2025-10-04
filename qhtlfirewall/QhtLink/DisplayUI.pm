@@ -2587,6 +2587,15 @@ QHTL_JQ_GREP
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.allow","both");
 		&printreturn;
 	}
+	# Reintroduced redirect editing (now triggered from plus button fwb7 instead of legacy table row)
+	elsif ($FORM{action} eq "redirect") {
+		&editfile("/etc/qhtlfirewall/qhtlfirewall.redirect","saveredirect");
+		&printreturn;
+	}
+	elsif ($FORM{action} eq "saveredirect") {
+		&savefile("/etc/qhtlfirewall/qhtlfirewall.redirect","both");
+		&printreturn;
+	}
 	elsif ($FORM{action} eq "smtpauth") {
 		&editfile("/etc/qhtlfirewall/qhtlfirewall.smtpauth","savesmtpauth");
 		&printreturn;
@@ -4337,8 +4346,8 @@ QHTL_TEMP_MODAL_JS_B
 		<div class='fw-plus-item'><button id='fwb4' class='fw-plus-btn fw-allow-btn' aria-label='Allow IPs' title='Allow IPs'><span class='fw-plus-label'>Allow</span><span class='fw-plus-count' id='fw-allow-count'></span></button></div>
 		<div class='fw-plus-item'><button id='fwb5' class='fw-plus-btn' aria-label='Rules' title='Firewall Rules'><span class='fw-plus-label'>Rules</span></button></div>
 		<div class='fw-plus-item' style='display:none'><button id='fwb6' class='fw-plus-btn' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'><span class='fw-plus-label'>Hidden</span></button></div>
-		<div class='fw-plus-item'><button id='fwb7' class='fw-plus-btn' aria-label='Lower Control' title='Lower Control'><span class='fw-plus-label'>Lower</span></button></div>
-		<div class='fw-plus-item'><button id='fwb8' class='fw-plus-btn fw-flush-btn' aria-label='Flush / Reboot Firewall' title='Flush / Reboot Firewall'><span class='fw-plus-label' id='fw-flush-label'>Flush</span></button></div>
+	<div class='fw-plus-item'><button id='fwb7' class='fw-plus-btn' aria-label='Redirect' title='Redirect'><span class='fw-plus-label'>Redirect</span></button></div>
+	<div class='fw-plus-item'><button id='fwb8' class='fw-plus-btn fw-flush-btn' aria-label='Flush / Restart Firewall' title='Flush / Restart Firewall (Hold 3s to Restart)'><span class='fw-plus-label' id='fw-flush-label'>Flush</span></button></div>
 	</div>
 </div>
 <script>(function(){ try { var base=(window.QHTL_SCRIPT||'$script');
@@ -4453,7 +4462,12 @@ QHTL_TEMP_MODAL_JS_B
 		 }
 		 // Fallback click for other buttons (and status button simple clicks not treated as hold)
 			 if(id!=='fwb1'){
-				 el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); },400); var act=null; if(id==='fwb2'){ act='conf'; } else if(id==='fwb3'){ act='profiles'; } else if(id==='fwb4'){ act='allow'; } else if(id==='fwb5'){ act='status'; } else if(id==='fwb8'){ var btn=el; if(btn.classList.contains('fw-flush-counting')) return; var lab=document.getElementById('fw-flush-label'); var cnt=3; btn.classList.add('fw-flush-counting'); if(lab) lab.textContent='Rebooting '+cnt; var iv=setInterval(function(){ cnt--; if(cnt<=0){ clearInterval(iv); if(lab) lab.textContent='Rebooting'; submitAction('restartq'); return; } if(lab) lab.textContent='Rebooting '+cnt; },1000); } if(act){ submitAction(act); } });
+		   el.addEventListener('mousedown', function(ev){ if(id==='fwb8'){ var btn=el; btn.dataset.down=Date.now(); btn.classList.add('fw-flush-holding'); var lab=document.getElementById('fw-flush-label'); if(lab) lab.textContent='Hold'; btn._holdTimer=setTimeout(function(){ if(btn.dataset.down){ if(lab) lab.textContent='Restart'; submitAction('restartq'); btn.classList.remove('fw-flush-holding'); delete btn.dataset.down; } },3000); return; } });
+		   el.addEventListener('mouseup', function(ev){ if(id==='fwb8'){ var btn=el; var lab=document.getElementById('fw-flush-label'); if(btn._holdTimer){ clearTimeout(btn._holdTimer); } if(btn.dataset.down){ // short click -> Flush action (denyf)
+			   submitAction('denyf'); if(lab) lab.textContent='Flush'; delete btn.dataset.down; btn.classList.remove('fw-flush-holding'); }
+			   return; } });
+		   el.addEventListener('mouseleave', function(ev){ if(id==='fwb8' && el.dataset.down){ if(el._holdTimer) clearTimeout(el._holdTimer); delete el.dataset.down; el.classList.remove('fw-flush-holding'); var lab=document.getElementById('fw-flush-label'); if(lab) lab.textContent='Flush'; } });
+		   el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); },400); var act=null; if(id==='fwb2'){ act='conf'; } else if(id==='fwb3'){ act='profiles'; } else if(id==='fwb4'){ act='allow'; } else if(id==='fwb5'){ act='status'; } else if(id==='fwb7'){ act='redirect'; } if(act){ submitAction(act); } });
 		 }
 	 });
  })();
@@ -4504,6 +4518,11 @@ QHTL_FW_PLUS_LABELS_CSS
     # View Rules row removed; functionality moved to fifth plus button (fwb5 -> action=status)
 	#print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='allow' type='submit' class='btn btn-default'>Allow IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.allow, the IP address allow file $permallows</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.deny, the IP address deny file $permbans</div></td></tr>\n";
+	# Unified inline output/content area (reusing gradient background motif)
+	print "<tr id='fw-inline-row'><td colspan='2' style='padding:0;background:transparent'>\n";
+	print "<div id='fw-inline-output' style='min-height:260px;background:url('$script?image=qhtlfirewall-loader.gif') center 40px no-repeat, linear-gradient(180deg,#d7f0ff 0%,#b5d6ff 50%,#c9b5ff 100%);background-blend-mode:normal;position:relative;border:2px solid rgba(255,255,255,0.35);border-radius:6px;margin:8px 6px;padding:14px;overflow:auto;box-shadow:inset 0 0 8px rgba(0,0,0,0.25);">";
+	print "<div id='fw-inline-placeholder' class='text-muted' style='font-style:italic'>Action output will appear here (Allow/Deny/Redirect/Rules/etc.).</div>";
+	print "</div></td></tr>\n";
 	# Redundant control rows removed (Enable/Disable/Restart now handled by status plus button hold logic)
 	# print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='enable' type='submit' class='btn btn-default'>Enable</button></form><div class='text-muted small' style='margin-top:6px'>Enables qhtlfirewall and qhtlwaterfall if previously Disabled</div></td></tr>\n";
 	# print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='disable' type='submit' class='btn btn-default'>Disable</button></form><div class='text-muted small' style='margin-top:6px'>Completely disables qhtlfirewall and qhtlwaterfall</div></td></tr>\n";
@@ -4514,6 +4533,38 @@ QHTL_FW_PLUS_LABELS_CSS
 	# Fix Tool moved into Advanced (hex buttons) as 3rd hex; original row removed
 		print "</table>\n";
 		print "</div>\n";
+		# Inject JS helpers for inline output + options tab reset + promo modal centering
+		print <<'QHTL_INLINE_HELPER_JS';
+	<script>(function(){try{
+	// Inline output hijack: capture postbacks triggered by plus buttons & table buttons
+	var out=document.getElementById('fw-inline-output');
+	if(out){
+		function hijackForms(){
+			document.querySelectorAll("form[action][method='post'] button[name='action']").forEach(function(btn){
+				var form=btn.closest('form'); if(!form) return; if(form.dataset.qhtlHijacked) return; form.dataset.qhtlHijacked='1';
+				form.addEventListener('submit', function(ev){
+					var act=btn.value; if(!/^(allow|deny|conf|profiles|status|redirect|temp|sips|denyf)$/.test(act)) return; ev.preventDefault();
+					try{out.classList.add('loading'); out.innerHTML="<div style='padding:20px;text-align:center;font-weight:600'>Loading "+act+"...</div>";}catch(_){ }
+					var fd=new FormData(form); fd.append('ajax','1');
+					fetch(form.action||location.href,{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.text()).then(function(txt){
+						try{ out.classList.remove('loading'); out.innerHTML= txt.replace(/<form[\s\S]*?<\/form>/gi,''); if(!txt.trim()){ out.innerHTML='<div class="text-muted">(No output returned)</div>'; } }catch(e){ out.innerHTML='<pre>'+String(e)+'</pre>'; }
+					}).catch(function(e){ out.innerHTML='<div class="text-danger">Request failed: '+e+'</div>'; });
+				});
+			});
+		}
+		setTimeout(hijackForms,400); setTimeout(hijackForms,1200); document.addEventListener('click', function(){ setTimeout(hijackForms,200); }, true);
+	}
+	// Options tab re-click reset (clears any inline outputs in that tab area)
+	var tabs=document.querySelectorAll('.nav-tabs li a');
+	tabs.forEach(function(a){ a.addEventListener('click', function(){ a.dataset.lastClick=Date.now(); }); });
+	var optTab=document.querySelector('.nav-tabs li a[href*="Options" i], .nav-tabs li a:contains(Options)');
+	if(optTab){ optTab.addEventListener('click', function(ev){ if(optTab.dataset._last){ var delta=Date.now()-(+optTab.dataset._last); if(delta<800){ var optPane=document.getElementById('Options')||document.querySelector('#options,#OptionsTab'); if(optPane){ var area=optPane.querySelector('#fw-inline-output'); if(area){ area.innerHTML='<div class="text-muted">(Reset)</div>'; } }
+	 } } optTab.dataset._last=Date.now(); }); }
+	// Promo modal centering tweak
+	function recenterPromo(){ var m=document.querySelector('.qhtl-promo-modal'); if(!m) return; m.style.position='fixed'; m.style.left='50%'; m.style.top='90px'; m.style.transform='translateX(-50%)'; }
+	setInterval(recenterPromo,800);
+	}catch(e){ console.error('inline helper init failed', e); }})();</script>
+	QHTL_INLINE_HELPER_JS
 
 		# New Waterfall tab (duplicate of QhtLink Waterfall content) placed before QhtLink Firewall
 					print "<div id='waterfall' class='tab-pane'>\n";
