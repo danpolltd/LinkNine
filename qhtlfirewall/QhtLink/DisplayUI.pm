@@ -2734,7 +2734,7 @@ QHTL_JQ_GREP
 	}
 	elsif ($FORM{action} eq "conf") {
 		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
-		if($is_ajax_req){ print "<div class='qhtl-inline-fragment'>"; }
+		if($is_ajax_req){ print "<div class='qhtl-inline-fragment'><div class='panel panel-default'><div class='panel-heading'>Firewall Configuration (Editable)</div><div class='panel-body' style='max-height:480px;overflow:auto'>"; }
 		sysopen (my $IN, "/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
 		flock ($IN, LOCK_SH);
 		my @confdata = <$IN>;
@@ -2877,7 +2877,7 @@ EOD
 		print "<br /><div class='text-center'><input type='submit' class='btn btn-default' value='Change'></div>\n";
 		}
 		print "</form>\n";
-		if($is_ajax_req){ print "</div>"; return; }
+		if($is_ajax_req){ print "</div></div></div>"; return; }
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "saveconf") {
@@ -4671,11 +4671,10 @@ setTimeout(function(){
 	// Long-press on Allow morphs to Deny (after 2s visual morph, 3s executes Deny IPs action)
 	(function(){
 		var allowBtn=document.getElementById('fwb4'); if(!allowBtn || allowBtn._lpBound) return; allowBtn._lpBound=1;
-		var pressTimer=null, morphTimer=null, labelEl=allowBtn.querySelector('.fw-plus-label');
-		var originalLabel=labelEl?labelEl.textContent:'Allow';
-		function reset(){ if(labelEl){ labelEl.textContent=originalLabel; } allowBtn.classList.remove('fw-allow-morph'); }
-		function startPress(){ if(pressTimer) return; morphTimer=setTimeout(function(){ try{ allowBtn.classList.add('fw-allow-morph'); if(labelEl){ labelEl.textContent='Deny'; } }catch(_){ } },2000); pressTimer=setTimeout(function(){ try{ reset(); if(window.submitAction){ window.submitAction('deny'); } }catch(_){ } clearTimers(); },3000); }
-		function clearTimers(){ if(morphTimer){ clearTimeout(morphTimer); morphTimer=null; } if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; } }
+		var pressTimer=null, labelEl=allowBtn.querySelector('.fw-plus-label');
+		function reset(){ allowBtn.classList.remove('fw-allow-morph'); }
+		function startPress(){ if(pressTimer) return; try{ allowBtn.classList.add('fw-allow-morph'); }catch(_){ } pressTimer=setTimeout(function(){ try{ reset(); if(window.submitAction){ window.submitAction('deny'); } }catch(_){ } clearTimers(); },3000); }
+		function clearTimers(){ if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; } }
 		function cancel(){ clearTimers(); reset(); }
 		['mousedown','touchstart'].forEach(function(ev){ allowBtn.addEventListener(ev,function(e){ if(e.button!==0 && ev==='mousedown') return; startPress(); },{passive:true}); });
 		['mouseup','mouseleave','touchend','touchcancel','blur'].forEach(function(ev){ allowBtn.addEventListener(ev,function(){ cancel(); },{passive:true}); });
