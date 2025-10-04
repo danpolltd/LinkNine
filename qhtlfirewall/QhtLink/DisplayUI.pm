@@ -2985,10 +2985,13 @@ EOD
 			if ($insane) {print "<br>WARNING: $key sanity check. $key = \"$newconfig{$key}\". Recommended range: $range (Default: $default)\n"}
 		}
 
-		print "<div>Changes saved. You should restart both qhtlfirewall and qhtlwaterfall.</div>\n";
+		if($is_ajax_req){
+			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Save done (qhtlwaterfall restarting; qhtlfirewall may need restart) <button type=\"button\" class=\"btn btn-xs btn-primary\" onclick=\"try{submitAction('restart_services');}catch(e){}\">Restart Both Now</button></div></div>";
+			return;
+		}
+		print "<div>Changes saved. Restarting qhtlwaterfall now; qhtlfirewall may also need a restart depending on your change.</div>\n";
 		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restartboth'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall+qhtlwaterfall'></form></div>\n";
 		&printreturn;
-		if($is_ajax_req){ print "</div>"; }
 	}
 	elsif ($FORM{action} eq "viewlogs") {
 		if (-e "/var/lib/qhtlfirewall/stats/iptables_log") {
@@ -4541,7 +4544,7 @@ QHTL_TEMP_MODAL_JS_B
  // Expose submitAction globally (refactored external per-button modules will call this)
 window.submitAction = window.submitAction || function(act, extra){ try{
 	// Inline-capable actions (extended with conf_inline + deny so they don't trigger full page reloads)
-	var inlineActs=/^(conf|conf_inline|profiles|allow|deny|status|redirect|denyf|restart|enable)$/; var tgt;
+	var inlineActs=/^(conf|conf_inline|profiles|allow|deny|status|redirect|denyf|restart|restart_services|enable)$/; var tgt;
 	if(inlineActs.test(act)){
 		tgt=document.getElementById('fw-spacer-inline-area');
 		if(tgt){
