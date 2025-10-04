@@ -3,6 +3,16 @@ QhtLink Firewall (qhtlfirewall) Changelog
 Date: 2025-10-04
 Version: 0.1.53 “Inline Save UX Trim”
 
+Date: 2025-10-04
+Version: 0.1.54 “Inline Save Actions”
+
+Fix
+- AJAX saves for Allow, Deny, Redirect now persist changes (added ajax handlers for saveallow/savedeny/saveredirect).
+- Config save (ajax) now closes panel and replaces inline area with success message instead of leaving editor open.
+
+Enhancement
+- Inline save JS now parses returned fragment and replaces content for any save* action, simplifying future additions.
+
 UI
 - Removed Close button from inline Config, Redirect, and Deny panels (requested streamline).
 - Added inline Save button + status bar for Allow list (was missing).

@@ -2595,7 +2595,11 @@ QHTL_JQ_GREP
 		if($is_ajax_req){ print "</div>"; } # (kept for non-early-return path safety)
 	}
 	elsif ($FORM{action} eq "saveallow") {
+		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1');
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.allow","both");
+		if($is_ajax_req){
+			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Allow list saved.</div></div>"; return;
+		}
 		&printreturn;
 	}
 	# Reintroduced redirect editing (now triggered from plus button fwb7 instead of legacy table row)
@@ -2607,7 +2611,11 @@ QHTL_JQ_GREP
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "saveredirect") {
+		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1');
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.redirect","both");
+		if($is_ajax_req){
+			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Redirect rules saved.</div></div>"; return;
+		}
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "smtpauth") {
@@ -2674,7 +2682,11 @@ QHTL_JQ_GREP
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "savedeny") {
+		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1');
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.deny","both");
+		if($is_ajax_req){
+			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Deny list saved.</div></div>"; return;
+		}
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "templates") {
@@ -2910,6 +2922,7 @@ EOD
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "saveconf") {
+		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1');
 		sysopen (my $IN, "/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
 		flock ($IN, LOCK_SH);
 		my @confdata = <$IN>;
@@ -3095,10 +3108,13 @@ EOD
 				print $OUT "$ip\n";
 			}
 		}
-		close($OUT);
+		close ($OUT);
 
-		print "<div>Changes saved. You should restart qhtlfirewall.</div>\n";
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restart'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall'></form></div>\n";
+		if($is_ajax_req){
+			print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>Configuration saved successfully.</div></div>"; return;
+		}
+		print "<div style='text-align:center'>Configuration Updated</div>";
+		&printreturn;
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "upgrade") {
@@ -4694,7 +4710,17 @@ function qhtlBindInlineSave(form, actionName){ try{
 			}else{
 				if(statusEl){ statusEl.textContent='Saved'; statusEl.className='qhtl-inline-save-status text-success small'; }
 			}
-			setTimeout(function(){ if(statusEl){ statusEl.textContent=''; } if(saveBtn){ saveBtn.disabled=false; } },1800);
+			// Attempt to extract inline fragment and replace panel (for all save* actions)
+			try {
+				var frag='';
+				var m = txt.match(/<div class='qhtl-inline-fragment'[^>]*>([\s\S]*?)<\/div>/i);
+				if(m){ frag = m[0]; }
+				if(frag){
+					var area=document.getElementById('fw-spacer-inline-area');
+					if(area){ area.innerHTML=frag; area.classList.remove('fw-loading'); area.classList.remove('fw-spacer-empty'); }
+				}
+			} catch(_){ }
+			setTimeout(function(){ if(statusEl){ statusEl.textContent=''; } if(saveBtn){ saveBtn.disabled=false; } },1200);
 		}).catch(function(e){
 			if(statusEl){ statusEl.textContent='Save failed'; statusEl.className='qhtl-inline-save-status text-danger small'; }
 			if(saveBtn){ saveBtn.disabled=false; }
