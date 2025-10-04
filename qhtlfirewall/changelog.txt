@@ -24,6 +24,13 @@ Version: 0.1.50 “Inline Save Return”
 Date: 2025-10-04
 Version: 0.1.51 “Inline Save JS Fix”
 
+Date: 2025-10-04
+Version: 0.1.52 “Inline Save Chain Simplify”
+
+Fix
+- Refactored qhtlBindInlineSave promise chain to remove nested try/catch that left an unmatched parenthesis causing persistent SyntaxError in some browsers. Now uses simple .then().catch() chain.
+
+
 Fix
 - Added missing semicolon after qhtlBindInlineSave function definition preventing browser SyntaxError (expected expression) in inline script.
 

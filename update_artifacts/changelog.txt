@@ -1,6 +1,109 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.44 “Editable Config”
+
+Date: 2025-10-04
+Version: 0.1.45 “Config Inline Fix”
+
+Date: 2025-10-04
+Version: 0.1.46 “Instant Morph”
+
+Date: 2025-10-04
+Version: 0.1.47 “Config Empty Fallback”
+
+Date: 2025-10-04
+Version: 0.1.48 “Config Raw Preview”
+
+Date: 2025-10-04
+Version: 0.1.49 “Config Sections Inline”
+
+Date: 2025-10-04
+Version: 0.1.50 “Inline Save Return”
+
+Date: 2025-10-04
+Version: 0.1.51 “Inline Save JS Fix”
+
+Date: 2025-10-04
+Version: 0.1.52 “Inline Save Chain Simplify”
+
+Fix
+- Refactored qhtlBindInlineSave promise chain to remove nested try/catch that left an unmatched parenthesis causing persistent SyntaxError in some browsers. Now uses simple .then().catch() chain.
+
+
+Fix
+- Added missing semicolon after qhtlBindInlineSave function definition preventing browser SyntaxError (expected expression) in inline script.
+
+
+Enhancement
+- Restored Save/Close buttons for inline editable actions (Config, Deny, Redirect) with AJAX save handler (qhtlBindInlineSave) showing transient status (Saving / Saved / Error).
+- Config: added inline Save Changes button at panel bottom.
+- Deny & Redirect: appended Save + Close controls beneath text area when loaded via plus button.
+- Cancel/Close clears inline spacer content.
+
+
+Fix
+- Sections inside inline editable Config (ajax) were hidden because pagination hidepiece class was always applied. Ajax mode now omits hidepiece and auto-unhides any legacy markup.
+
+
+Enhancement
+- When editable Config parsing finds no entries, now appends a raw file preview (first 450 lines) so users can still view comment-only or atypically formatted configs inline.
+
+
+Fixes
+- Inline editable Config panel now reports when no entries were parsed and shows file size + permission hint instead of displaying an empty white area.
+- Ensures trailing open comment div is closed to avoid layout collapse.
+
+
+UI
+- Allow button now morphs to orange immediately on press (no 2s delay) and stays orange until release or 3s hold triggers Deny action.
+- Removed temporary label swap to 'Deny' to keep interface stable.
+- Editable Config inline panel now wrapped inside panel container for ajax view (was previously missing outer wrapper causing empty display in some extraction paths).
+
+
+Fixes
+- Editable Config (conf) action now properly wraps output in qhtl-inline-fragment and returns early for ajax=1 preventing blank panel.
+
+Notes
+- Addresses report that Config button showed nothing.
+
+
+UI / Behavior
+- Config plus button now opens full editable configuration (action=conf) instead of read‑only preview panel. Legacy read-only action retained as conf_inline (unused by default).
+- Status (On) button no longer auto-fetches rules snapshot; only toggles enable when firewall is off. Use Rules button for inline snapshot.
+
+Packaging
+- Version bump to 0.1.44.
+
+Date: 2025-10-04
+Version: 0.1.43 “Dual Counts”
+
+UI
+- Added separate Allow (green, above button) and Deny (red, below button) IP counts around the Allow plus button.
+- Removed dynamic creation of deny span; now static markup ensures zero layout shift.
+- Suppressed inline status callout ribbon for ajax Rules/Status loads (button already conveys On/Off/Test state).
+- Added dedicated CSS for count positioning and styling; deny count inherits red theme, allow count teal/green accent.
+
+Packaging
+- Version bump to 0.1.43 for distribution.
+
+Date: 2025-10-04
+Version: 0.1.42 “Inline Shape”
+
+Fixes / UI Hardening
+- Resolved visual deformation of some inline drops (Profiles, Redirect) caused by flex centering persisting after load; flex now restricted to the loading state only.
+- Added width normalization (panels/forms expand to 100%) and MutationObserver to reassert layout after dynamic insertion.
+- Loader pseudo-element now has pointer-events:none to avoid intercepting clicks once content paints beneath it.
+- Ensured monospace <pre> content respects container width with max-width:100% to prevent horizontal overflow mis-measuring.
+
+Notes
+- No functional server action changes; focuses purely on layout stability following 0.1.41 centering changes.
+
+Packaging
+- Version bump to 0.1.42 for distribution.
+
+
+Date: 2025-10-04
 Version: 0.1.41 “Centered Blade”
 
 UI

@@ -4680,15 +4680,17 @@ function qhtlBindInlineSave(form, actionName){ try{
 		if(statusEl){ statusEl.textContent='Saving...'; statusEl.className='qhtl-inline-save-status text-info small'; }
 		var fd=new FormData(form); fd.set('action', actionName);
 		fd.append('ajax','1');
-		fetch((window.QHTL_SCRIPT||'$script'),{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.text()).then(function(txt){ try{
-			if(/WARNING:/i.test(txt)){ if(statusEl){ statusEl.textContent='Saved with warnings'; statusEl.className='qhtl-inline-save-status text-warning small'; } }
-			else { if(statusEl){ statusEl.textContent='Saved'; statusEl.className='qhtl-inline-save-status text-success small'; } }
-			// Refresh allow/deny counts if present
-			try { var allowC=document.getElementById('fw-allow-count'); if(allowC){ /* could trigger recount via future endpoint */ }
-						var denyC=document.getElementById('fw-deny-count'); if(denyC){ /* placeholder for dynamic update */ } }catch(_){ }
+		fetch((window.QHTL_SCRIPT||'$script'),{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.text();}).then(function(txt){
+			if(/WARNING:/i.test(txt)){
+				if(statusEl){ statusEl.textContent='Saved with warnings'; statusEl.className='qhtl-inline-save-status text-warning small'; }
+			}else{
+				if(statusEl){ statusEl.textContent='Saved'; statusEl.className='qhtl-inline-save-status text-success small'; }
+			}
 			setTimeout(function(){ if(statusEl){ statusEl.textContent=''; } if(saveBtn){ saveBtn.disabled=false; } },1800);
-		}catch(e){ if(statusEl){ statusEl.textContent='Error'; statusEl.className='qhtl-inline-save-status text-danger small'; } if(saveBtn){ saveBtn.disabled=false; } })
-		.catch(function(){ if(statusEl){ statusEl.textContent='Network error'; statusEl.className='qhtl-inline-save-status text-danger small'; } if(saveBtn){ saveBtn.disabled=false; } });
+		}).catch(function(e){
+			if(statusEl){ statusEl.textContent='Save failed'; statusEl.className='qhtl-inline-save-status text-danger small'; }
+			if(saveBtn){ saveBtn.disabled=false; }
+		});
 	}catch(e){ if(statusEl){ statusEl.textContent='Failed'; statusEl.className='qhtl-inline-save-status text-danger small'; } if(saveBtn){ saveBtn.disabled=false; } }
 	});
 }catch(_){ }};
