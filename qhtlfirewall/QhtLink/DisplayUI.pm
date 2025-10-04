@@ -4426,8 +4426,8 @@ QHTL_TEMP_MODAL_JS_B
  }, 600);
  // Expose submitAction globally (refactored external per-button modules will call this)
 window.submitAction = window.submitAction || function(act, extra){ try{
-	// Inline-capable actions (status only for viewing rules; enable/disable handled by hold logic elsewhere)
-	var inlineActs=/^(conf|profiles|allow|status|redirect|denyf|restart)$/; var tgt;
+	// Inline-capable actions (include enable so starting firewall doesn't navigate away)
+	var inlineActs=/^(conf|profiles|allow|status|redirect|denyf|restart|enable)$/; var tgt;
 	if(inlineActs.test(act)){
 		tgt=document.getElementById('fw-spacer-inline-area');
 		if(tgt){
@@ -4466,6 +4466,7 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 			})();
 			if(act==='denyf'){ fragment='<div class="text-success">Temporary bans flushed.</div>'; }
 			if(act==='restart'){ fragment='<div class="text-info">Firewall restart requested.</div>'; }
+			if(act==='enable'){ fragment='<div class="text-success">Firewall enable requested.</div>'; try{ setTimeout(function(){ try{ window.submitAction('status'); }catch(_){ } }, 1600); }catch(_){ } }
 			var clean=fragment.trim();
 			if(!clean){
 				if(act==='status'){ clean='<div class="text-muted">(No rules output)</div>'; }
@@ -4505,7 +4506,7 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 setTimeout(function(){
 	var statusBtn2=document.getElementById('fwb1'); if(statusBtn2 && !statusBtn2._fwBound){
 		statusBtn2.addEventListener('click',function(ev){ try{
-			// Always load status (rules fragment) inline; do not enable/disable directly.
+			if(statusBtn2.classList.contains('fw-status-off')){ window.submitAction('enable'); return; }
 			window.submitAction('status');
 		}catch(_){ } });
 		statusBtn2._fwBound=1;
@@ -4520,7 +4521,7 @@ QHTL_FIREWALL_CLUSTER
 		print <<"QHTL_FW_SPACER_CSS";
 <style>
 	#fw-spacer-inline-area { position:relative; z-index:20; background:transparent !important; min-height:220px; padding:8px 10px; box-sizing:border-box; }
-	#fw-spacer-inline-area.fw-loading { background:transparent url('$script?image=idle_fallback.gif') center 60px / 240px 68px no-repeat !important; }
+	#fw-spacer-inline-area.fw-loading { background:transparent url('$script?action=fallback_asset&name=idle_fallback.gif&v=$myv') center 60px / 240px 68px no-repeat !important; }
 	#fw-spacer-inline-area.fw-spacer-empty::before { content:none !important; }
 	#fw-spacer-inline-area.fw-faded { opacity:.55; transition:opacity .6s ease; }
 	#fw-spacer-inline-area.fw-fade-hidden { opacity:0; pointer-events:none; }

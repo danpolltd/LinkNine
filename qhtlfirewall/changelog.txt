@@ -363,6 +363,15 @@ Changes:
 - Strengthened fragment fallback to retain forms/rules output
 - Version bump for distribution
 
+Version: 0.1.31
+Release Date: 2025-10-04
+Changes:
+- Status Off button now triggers enable inline (AJAX) instead of navigating
+- Added success message + automatic status refresh after enable
+- Loader GIF path corrected to fallback_asset endpoint with cache version token
+- Added 'enable' to inlineActs so starting firewall stays on page
+- Version bump for distribution
+
 Date: 2025-09-19
 Version: 0.1.2
 
