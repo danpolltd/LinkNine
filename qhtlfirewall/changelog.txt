@@ -1,12 +1,23 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.19 “Flat Cell”
+
+UI / Inline Panel
+- Removed the remaining wrapper layer: the table cell (TD) now directly serves as the inline output container (id=fw-inline-output).
+- Updated CSS/JS selectors accordingly (no behavioral change) for slightly lower DOM depth and cheaper style recalcs.
+
+Packaging
+- Pending rebuild to propagate flattened structure.
+
+Date: 2025-10-04
 Version: 0.1.18 “Clean Cell”
 
 UI / Inline Panel
 - Removed nested placeholder <div> from inline action output cell; now a truly empty container ready for fresh action content.
 - Increased minimum height from 220px to 280px to provide more breathing room for multi-line command results without immediate scroll.
 - Stripped JS references to the removed placeholder element to avoid redundant DOM lookups.
+- Follow-up: fully flattened structure by turning the TD itself into the output container (removed wrapper <div>) to eliminate one more layer and simplify future styling hooks.
 
 Packaging
 - Pending rebuild to propagate structural cleanup (will create -0.1.18 artifact after version bump).
