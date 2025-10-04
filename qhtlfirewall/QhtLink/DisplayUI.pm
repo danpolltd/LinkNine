@@ -2689,6 +2689,17 @@ QHTL_JQ_GREP
 		}
 		&printreturn;
 	}
+	elsif ($FORM{action} eq "restart_services") {
+		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1');
+		if($is_ajax_req){ print "<div class='qhtl-inline-fragment'><pre style='margin:0 0 8px;max-height:320px;overflow:auto;'>"; }
+		print "Restarting qhtlfirewall and qhtlwaterfall...\n";
+		&printcmd("/usr/sbin/qhtlfirewall","-r");
+		print "-- qhtlwaterfall restart (via wrapper) --\n";
+		&printcmd("/usr/sbin/qhtlfirewall","--qhtlwaterfall","restart");
+		print "Done.\n";
+		if($is_ajax_req){ print "</pre><div class='alert alert-success' style='margin:0'>Services restarted</div></div>"; return; }
+		&printreturn;
+	}
 	elsif ($FORM{action} eq "templates") {
 		&editfile("/usr/local/qhtlfirewall/tpl/$FORM{template}","savetemplates","template");
 		&printreturn;
@@ -4692,6 +4703,21 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 	// Non-inline acts fallback to full submit (rare now)
 	var f=document.createElement('form'); f.method='post'; f.action=base; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); if(extra){ Object.keys(extra).forEach(function(k){ var h=document.createElement('input'); h.type='hidden'; h.name=k; h.value=extra[k]; f.appendChild(h); }); } document.body.appendChild(f); f.submit();
 }catch(e){} };
+	// UX enhancement: intercept clicks on dynamically injected "Restart Both Now" button
+	document.addEventListener('click', function(ev){
+		try{
+			var t=ev.target;
+			if(!t) return;
+			if(t.tagName==='BUTTON' && /Restart Both Now/i.test(t.textContent||'')){
+				if(t._qhtlClicked) return;
+				t._qhtlClicked=1;
+				var old=t.innerHTML;
+				t.disabled=true;
+				t.innerHTML='<span style="display:inline-block;width:14px;height:14px;border:2px solid #fff;border-right-color:transparent;border-radius:50%;animation:qhtlspin .7s linear infinite;margin:-2px 6px -2px 0"></span>Restarting...';
+				try{ submitAction('restart_services'); }catch(e){ t.disabled=false; t.innerHTML=old; }
+			}
+		}catch(_){ }
+	}, true);
 // Inline save helper: attaches AJAX submit + feedback to forms inside inline fragment
 function qhtlBindInlineSave(form, actionName){ try{
 	if(!form || form._qhtlSaveBound) return; form._qhtlSaveBound=1;
@@ -4797,6 +4823,7 @@ QHTL_FIREWALL_CLUSTER
 		/* Slight fade-in animation for visual polish */
 		#fw-spacer-inline-area.fw-loading::before { animation: fwLoaderFade .55s ease; }
 		@keyframes fwLoaderFade { from { opacity:0; } to { opacity:1; } }
+		@keyframes qhtlspin { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
 	#fw-spacer-inline-area.fw-spacer-empty::before { content:none !important; }
 	#fw-spacer-inline-area.fw-faded { opacity:.55; transition:opacity .6s ease; }
 	#fw-spacer-inline-area.fw-fade-hidden { opacity:0; pointer-events:none; }
@@ -6247,7 +6274,7 @@ sub savefile {
 		my $msg = 'Save done';
 		if ($restart eq 'qhtlfirewall') { $msg = 'Save done (restart qhtlfirewall recommended)'; }
 		elsif ($restart eq 'qhtlwaterfall') { $msg = 'Save done (qhtlwaterfall restarting)'; }
-		elsif ($restart eq 'both') { $msg = 'Save done (qhtlwaterfall restarting; qhtlfirewall may need restart)'; }
+		elsif ($restart eq 'both') { $msg = 'Save done (qhtlwaterfall restarting; qhtlfirewall may need restart)'; $msg .= " <button type=\"button\" class=\"btn btn-xs btn-primary\" onclick=\"try{submitAction('restart_services');}catch(e){}\">Restart Both Now</button>"; }
 		print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>$msg</div></div>";
 		return;
 	} else {

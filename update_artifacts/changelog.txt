@@ -1,6 +1,17 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.59 “Inline Dual Restart Button”
+Enhancement
+- Added restart_services AJAX action returning a single inline fragment with combined qhtlfirewall and qhtlwaterfall restart output + success alert.
+- Save paths requiring both restarts now show a compact “Restart Both Now” button appended to the unified Save done message (no page navigation).
+UX
+- Button disables after first click and shows a lightweight spinner while restart runs to prevent duplicate invocations.
+Technical
+- Introduced @keyframes qhtlspin for inline spinner animation.
+- Ensured fragment wrapping for restart to eliminate residual full-page fallback in edge cases.
+
+Date: 2025-10-04
 Version: 0.1.53 “Inline Save UX Trim”
 
 Date: 2025-10-04
