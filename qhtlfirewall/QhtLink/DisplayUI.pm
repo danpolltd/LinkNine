@@ -4480,6 +4480,15 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 					var b2=div2.querySelector('body'); if(b2){ fragment=b2.innerHTML; if(window.console&&console.debug){ console.debug('[QHTL fallback] Took entire <body> for',act,'len',fragment.length); } }
 				}catch(e){ }
 			}
+			// LAST CHANCE: if still empty, dump first 20k of raw response as escaped pre so user sees something
+			if(!fragment || !fragment.trim()){
+				try{
+					var esc=function(s){return s.replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]||c;});};
+					var snippet=txt.slice(0,20000);
+					fragment='<div class="panel panel-default"><div class="panel-heading">Raw Response (debug fallback)</div><div class="panel-body" style="max-height:360px;overflow:auto"><pre style="white-space:pre-wrap">'+esc(snippet)+'</pre></div></div>';
+					if(window.console && console.error){ console.error('[QHTL fallback] Raw dump fallback engaged for',act,'len',txt.length); }
+				}catch(e){ fragment='<pre>(fallback failure)</pre>'; }
+			}
 			if(act==='denyf'){ fragment='<div class="text-success">Temporary bans flushed.</div>'; }
 			if(act==='restart'){ fragment='<div class="text-info">Firewall restart requested.</div>'; }
 			if(act==='enable'){

@@ -1,6 +1,17 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.36 “Black Box”
+
+Diagnostics / Fallback
+- Added a final-stage raw HTML dump fallback (first 20KB escaped) when Config or Rules inline loads still fail all fragment extraction tiers. Displays inside a scrollable panel so user never sees a silent blank area.
+- Console now emits an explicit [QHTL fallback] Raw dump message when this path is taken, including full response length.
+- Intention: surface evidence of why ajax=1 fragment markers aren’t present (missing wrapper, rewrite, server-side filtering) to guide next server fix.
+
+Packaging
+- Version bump to deploy diagnostic raw-dump safety net.
+
+Date: 2025-10-04
 Version: 0.1.35 “Fragment Net”
 
 Inline Extraction Hardening
