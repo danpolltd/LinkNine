@@ -2734,7 +2734,7 @@ QHTL_JQ_GREP
 	}
 	elsif ($FORM{action} eq "conf") {
 		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
-		if($is_ajax_req){ print "<div class='qhtl-inline-fragment'><div class='panel panel-default'><div class='panel-heading'>Firewall Configuration (Editable)</div><div class='panel-body' style='max-height:480px;overflow:auto'>"; }
+		if($is_ajax_req){ print "<div class='qhtl-inline-fragment'><div class='panel panel-default'><div class='panel-heading'>Firewall Configuration (Editable)</div><div class='panel-body' style='max-height:480px;overflow:auto;background:#fff;color:#222;font-size:13px;line-height:1.3'>"; }
 		sysopen (my $IN, "/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
 		flock ($IN, LOCK_SH);
 		my @confdata = <$IN>;
@@ -2773,10 +2773,12 @@ EOF
 		print "<form action='$script' method='post' id='qhtl-options-form'>\n";
 		print "<input type='hidden' name='action' value='saveconf'>\n";
 		my $first = 1;
+		my $printed_any = 0;
 		my @divnames;
 		my $comment = 0;
 		foreach my $line (@confdata) {
 			if (($line !~ /^\#/) and ($line =~ /=/)) {
+				$printed_any = 1;
 				if ($comment) {print "</div>\n"}
 				$comment = 0;
 				my ($start,$end) = split (/=/,$line,2);
@@ -2837,6 +2839,7 @@ EOF
 				}
 			} else {
 				if ($line =~ /^\# SECTION:(.*)/) {
+					$printed_any = 1;
 					push @divnames, $1;
 					unless ($first) {print "</div>\n"}
 					print "<div class='virtualpage hidepiece'>\n<div class='section'>";
@@ -2856,6 +2859,8 @@ EOF
 				print "$line<br />\n";
 			}
 		}
+		if($comment){ print "</div>\n"; }
+		if(!$printed_any){ print "<div class='text-muted'>No configuration entries were detected in qhtlfirewall.conf (file size: ".(-s "/etc/qhtlfirewall/qhtlfirewall.conf"||0)." bytes).<br/>If this seems wrong, verify permissions and ownership.</div>"; }
 	    my $is_ajax = ($FORM{ajax} && $FORM{ajax} eq '1');
 		print "</div><br />\n";
 		unless ($is_ajax){

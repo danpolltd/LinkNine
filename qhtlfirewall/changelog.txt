@@ -9,6 +9,14 @@ Version: 0.1.45 “Config Inline Fix”
 Date: 2025-10-04
 Version: 0.1.46 “Instant Morph”
 
+Date: 2025-10-04
+Version: 0.1.47 “Config Empty Fallback”
+
+Fixes
+- Inline editable Config panel now reports when no entries were parsed and shows file size + permission hint instead of displaying an empty white area.
+- Ensures trailing open comment div is closed to avoid layout collapse.
+
+
 UI
 - Allow button now morphs to orange immediately on press (no 2s delay) and stays orange until release or 3s hold triggers Deny action.
 - Removed temporary label swap to 'Deny' to keep interface stable.
