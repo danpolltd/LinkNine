@@ -2842,7 +2842,8 @@ EOF
 					$printed_any = 1;
 					push @divnames, $1;
 					unless ($first) {print "</div>\n"}
-					print "<div class='virtualpage hidepiece'>\n<div class='section'>";
+					my $secClass = $is_ajax_req ? 'virtualpage' : 'virtualpage hidepiece';
+					print "<div class='$secClass'>\n<div class='section'>";
 					print "$1</div>\n";
 					$first = 0;
 					next;
@@ -2897,7 +2898,7 @@ EOD
 		print "<br /><div class='text-center'><input type='submit' class='btn btn-default' value='Change'></div>\n";
 		}
 		print "</form>\n";
-		if($is_ajax_req){ print "</div></div></div>"; return; }
+		if($is_ajax_req){ print "</div></div></div>"; print "<script>(function(){try{var hs=document.querySelectorAll('#fw-spacer-inline-area .hidepiece');hs.forEach(function(n){n.classList.remove('hidepiece');});}catch(_){}})();</script>"; return; }
 		&printreturn;
 	}
 	elsif ($FORM{action} eq "saveconf") {

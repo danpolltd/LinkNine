@@ -15,6 +15,13 @@ Version: 0.1.47 “Config Empty Fallback”
 Date: 2025-10-04
 Version: 0.1.48 “Config Raw Preview”
 
+Date: 2025-10-04
+Version: 0.1.49 “Config Sections Inline”
+
+Fix
+- Sections inside inline editable Config (ajax) were hidden because pagination hidepiece class was always applied. Ajax mode now omits hidepiece and auto-unhides any legacy markup.
+
+
 Enhancement
 - When editable Config parsing finds no entries, now appends a raw file preview (first 450 lines) so users can still view comment-only or atypically formatted configs inline.
 
