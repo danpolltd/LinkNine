@@ -4346,7 +4346,7 @@ QHTL_TEMP_MODAL_JS_B
 		<div class='fw-plus-item'><button id='fwb5' class='fw-plus-btn' aria-label='Rules' title='Firewall Rules'><span class='fw-plus-label'>Rules</span></button></div>
 		<div class='fw-plus-item' style='display:none'><button id='fwb6' class='fw-plus-btn' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'><span class='fw-plus-label'>Hidden</span></button></div>
 		<div class='fw-plus-item'><button id='fwb7' class='fw-plus-btn' aria-label='Lower Control' title='Lower Control'><span class='fw-plus-label'>Lower</span></button></div>
-		<div class='fw-plus-item'><button id='fwb8' class='fw-plus-btn' aria-label='Flush All' title='Flush All'><span class='fw-plus-label'>Flush</span></button></div>
+		<div class='fw-plus-item'><button id='fwb8' class='fw-plus-btn fw-flush-btn' aria-label='Flush / Reboot Firewall' title='Flush / Reboot Firewall'><span class='fw-plus-label' id='fw-flush-label'>Flush</span></button></div>
 	</div>
 </div>
 <script>(function(){ try { var base=(window.QHTL_SCRIPT||'$script');
@@ -4461,7 +4461,7 @@ QHTL_TEMP_MODAL_JS_B
 		 }
 		 // Fallback click for other buttons (and status button simple clicks not treated as hold)
 			 if(id!=='fwb1'){
-				 el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); },400); var act=null; if(id==='fwb2'){ act='conf'; } else if(id==='fwb3'){ act='profiles'; } else if(id==='fwb4'){ act='allow'; } else if(id==='fwb5'){ act='status'; } else if(id==='fwb8'){ act='denyf'; } if(act){ submitAction(act); } });
+				 el.addEventListener('click', function(){ try{ console.log('Firewall button clicked:', id); }catch(e){} el.classList.add('fw-clicked'); setTimeout(function(){ el.classList.remove('fw-clicked'); },400); var act=null; if(id==='fwb2'){ act='conf'; } else if(id==='fwb3'){ act='profiles'; } else if(id==='fwb4'){ act='allow'; } else if(id==='fwb5'){ act='status'; } else if(id==='fwb8'){ var btn=el; if(btn.classList.contains('fw-flush-counting')) return; var lab=document.getElementById('fw-flush-label'); var cnt=3; btn.classList.add('fw-flush-counting'); if(lab) lab.textContent='Rebooting '+cnt; var iv=setInterval(function(){ cnt--; if(cnt<=0){ clearInterval(iv); if(lab) lab.textContent='Rebooting'; submitAction('restartq'); return; } if(lab) lab.textContent='Rebooting '+cnt; },1000); } if(act){ submitAction(act); } });
 		 }
 	 });
  })();
