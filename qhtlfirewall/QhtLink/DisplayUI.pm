@@ -4679,13 +4679,18 @@ QHTL_FIREWALL_CLUSTER
         # Interpolated heredoc (needs $script expansion for loader image URL)
 		print <<"QHTL_FW_SPACER_CSS";
 <style>
-		#fw-spacer-inline-area { position:relative; z-index:20; background:transparent !important; min-height:220px; padding:8px 10px 12px; box-sizing:border-box; }
+			#fw-spacer-inline-area { position:relative; z-index:20; background:transparent !important; min-height:220px; padding:8px 10px 12px; box-sizing:border-box; width:100%; }
 		/* Apply flex centering ONLY while loading so inserted multi-column tables/forms are not squeezed */
 		#fw-spacer-inline-area.fw-loading { display:flex; align-items:center; justify-content:center; }
-		#fw-spacer-inline-area::before{ content:""; position:absolute; inset:0; opacity:0; transition:opacity .25s ease; }
+			#fw-spacer-inline-area::before{ content:""; position:absolute; inset:0; opacity:0; transition:opacity .25s ease; pointer-events:none; }
 		/* Loader sword now truly centered (flex) instead of fixed Y offset */
 		#fw-spacer-inline-area.fw-loading { background:none!important; }
 		#fw-spacer-inline-area.fw-loading::before { opacity:1; background:transparent url('$script?action=fallback_asset&name=idle_fallback.gif&v=$myv') center center / 620px 176px no-repeat; }
+			/* Ensure any direct child panels / tables expand to available width after load */
+			#fw-spacer-inline-area:not(.fw-loading) > .panel { width:100%; }
+			#fw-spacer-inline-area:not(.fw-loading) pre { max-width:100%; }
+			#fw-spacer-inline-area .qhtl-inline-fragment > .panel { width:100%; }
+			#fw-spacer-inline-area .qhtl-inline-fragment { display:block; width:100%; }
 		@media (max-width: 1100px){
 			#fw-spacer-inline-area.fw-loading::before { background-size:520px 148px; }
 		}
@@ -4711,6 +4716,7 @@ QHTL_FW_SPACER_CSS
 #firewall1 .fw-plus-item {position:relative; display:inline-flex; flex-direction:column; align-items:center; justify-content:flex-start;}
 #firewall1 .fw-plus-btn {position:relative;}
 #firewall1 .fw-plus-btn .fw-plus-label {position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:16px; font-weight:700; color:#fff !important; text-shadow:0 0 3px #000,0 0 6px #d40000,0 0 12px #ff2020; letter-spacing:.6px; pointer-events:none; z-index:3; line-height:1; white-space:nowrap;}
+<script>(function(){try{ var area=document.getElementById('fw-spacer-inline-area'); if(!area) return; var obs=new MutationObserver(function(muts){ if(area.classList.contains('fw-loading')) return; try{ var panels=area.querySelectorAll(':scope > .panel, :scope > .qhtl-inline-fragment > .panel'); panels.forEach(function(p){ p.style.width='100%'; }); }catch(_){ } }); obs.observe(area,{childList:true,subtree:true}); }catch(_){ }})();</script>
 #firewall1 .fw-plus-btn .fw-plus-count {position:absolute; bottom:-18px; left:50%; transform:translate(-50%,0); background:transparent !important; color:#00454d; font-weight:800; font-size:22px; line-height:1; padding:0; border:none !important; border-radius:0; box-shadow:none !important; min-width:0; text-align:center; z-index:40; letter-spacing:.5px; white-space:nowrap; filter:drop-shadow(0 2px 2px rgba(0,0,0,0.35)); pointer-events:none; }
 #firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-count { bottom:-22px; transform:translate(-50%,0); font-size:24px; color:#007b89; text-shadow:0 0 3px rgba(255,255,255,0.85),0 0 6px rgba(255,255,255,0.55); }
 #firewall1 .fw-plus-btn .fw-plus-count:empty { display:inline; }

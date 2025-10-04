@@ -1,6 +1,22 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.42 “Inline Shape”
+
+Fixes / UI Hardening
+- Resolved visual deformation of some inline drops (Profiles, Redirect) caused by flex centering persisting after load; flex now restricted to the loading state only.
+- Added width normalization (panels/forms expand to 100%) and MutationObserver to reassert layout after dynamic insertion.
+- Loader pseudo-element now has pointer-events:none to avoid intercepting clicks once content paints beneath it.
+- Ensured monospace <pre> content respects container width with max-width:100% to prevent horizontal overflow mis-measuring.
+
+Notes
+- No functional server action changes; focuses purely on layout stability following 0.1.41 centering changes.
+
+Packaging
+- Version bump to 0.1.42 for distribution.
+
+
+Date: 2025-10-04
 Version: 0.1.41 “Centered Blade”
 
 UI
