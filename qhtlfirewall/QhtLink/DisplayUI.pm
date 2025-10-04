@@ -2715,8 +2715,11 @@ QHTL_JQ_GREP
 		if (-e "/etc/qhtlfirewall/qhtlfirewall.disable") { $state='off'; }
 		elsif ($config{TESTING}) { $state='testing'; }
 		elsif ($ipt[0] && $ipt[0] =~ /^Chain LOCALINPUT/) { $state='on'; }
-		my $callout = ($state eq 'on') ? "<div class='bs-callout bs-callout-success text-center'><h4>Firewall Status: Enabled and Running</h4></div>" : ($state eq 'testing' ? "<div class='bs-callout bs-callout-warning text-center'><h4>Firewall Status: Enabled (Test Mode)</h4></div>" : "<div class='bs-callout bs-callout-danger text-center'><h4>Firewall Status: Disabled / Stopped</h4></div>");
-		print $callout;
+		# Suppress status callout ribbon for inline (ajax) requests – On/Off button now conveys state visually
+		unless($is_ajax_req){
+			my $callout = ($state eq 'on') ? "<div class='bs-callout bs-callout-success text-center'><h4>Firewall Status: Enabled and Running</h4></div>" : ($state eq 'testing' ? "<div class='bs-callout bs-callout-warning text-center'><h4>Firewall Status: Enabled (Test Mode)</h4></div>" : "<div class='bs-callout bs-callout-danger text-center'><h4>Firewall Status: Disabled / Stopped</h4></div>");
+			print $callout;
+		}
 		if($err){ print "<div class='text-danger small'>$err</div>"; }
 		# show first 80 lines (or less) of rules
 		my @show = (); my $limit=80; my $count=0;
@@ -4406,7 +4409,11 @@ QHTL_TEMP_MODAL_JS_B
 		<div class='fw-plus-item'><button id='fwb1' class='fw-plus-btn fw-status-btn' aria-label='Firewall Status' title='Firewall Status'><span class='fw-plus-label' id='fw-status-text'>Status</span></button></div>
 		<div class='fw-plus-item'><button id='fwb2' class='fw-plus-btn' aria-label='Config' title='Config'><span class='fw-plus-label'>Config</span></button></div>
 		<div class='fw-plus-item'><button id='fwb3' class='fw-plus-btn' aria-label='Profiles' title='Profiles'><span class='fw-plus-label'>Profiles</span></button></div>
-		<div class='fw-plus-item'><button id='fwb4' class='fw-plus-btn fw-allow-btn' aria-label='Allow IPs' title='Allow IPs'><span class='fw-plus-label'>Allow</span><span class='fw-plus-count' id='fw-allow-count'></span></button></div>
+		<div class='fw-plus-item'>
+		  <span class='fw-plus-count fw-count-above' id='fw-allow-count'></span>
+		  <button id='fwb4' class='fw-plus-btn fw-allow-btn' aria-label='Allow IPs' title='Allow IPs'><span class='fw-plus-label'>Allow</span></button>
+		  <span class='fw-plus-count fw-count-below fw-deny-count' id='fw-deny-count'></span>
+		</div>
 		<div class='fw-plus-item'><button id='fwb5' class='fw-plus-btn' aria-label='Rules' title='Firewall Rules'><span class='fw-plus-label'>Rules</span></button></div>
 		<div class='fw-plus-item' style='display:none'><button id='fwb6' class='fw-plus-btn' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'><span class='fw-plus-label'>Hidden</span></button></div>
 	<div class='fw-plus-item'><button id='fwb7' class='fw-plus-btn' aria-label='Redirect' title='Redirect'><span class='fw-plus-label'>Redirect</span></button></div>
@@ -4654,7 +4661,6 @@ setTimeout(function(){
 	// Deny count persistent display above (reuse allow count logic pattern)
 	try{
 		var denySpan=document.getElementById('fw-deny-count');
-		if(!denySpan){ var allowBtn=document.getElementById('fwb4'); if(allowBtn){ denySpan=document.createElement('span'); denySpan.id='fw-deny-count'; denySpan.className='fw-plus-count'; denySpan.style.bottom='-18px'; denySpan.style.color='#8b0000'; allowBtn.parentNode.appendChild(denySpan);} }
 		if(denySpan && (!denySpan.textContent || /^(?:0|)$/.test(denySpan.textContent))){
 			var rawDeny="(Currently: <code>0</code> permanent IP bans)"; try{ rawDeny="$permbans"; }catch(_){ }
 			var md=rawDeny.match(/<code>(\d+)<\/code>/)||rawDeny.match(/(\d+)/); if(md){ denySpan.textContent=md[1]; }
@@ -4719,6 +4725,10 @@ QHTL_FW_SPACER_CSS
 <script>(function(){try{ var area=document.getElementById('fw-spacer-inline-area'); if(!area) return; var obs=new MutationObserver(function(muts){ if(area.classList.contains('fw-loading')) return; try{ var panels=area.querySelectorAll(':scope > .panel, :scope > .qhtl-inline-fragment > .panel'); panels.forEach(function(p){ p.style.width='100%'; }); }catch(_){ } }); obs.observe(area,{childList:true,subtree:true}); }catch(_){ }})();</script>
 #firewall1 .fw-plus-btn .fw-plus-count {position:absolute; bottom:-18px; left:50%; transform:translate(-50%,0); background:transparent !important; color:#00454d; font-weight:800; font-size:22px; line-height:1; padding:0; border:none !important; border-radius:0; box-shadow:none !important; min-width:0; text-align:center; z-index:40; letter-spacing:.5px; white-space:nowrap; filter:drop-shadow(0 2px 2px rgba(0,0,0,0.35)); pointer-events:none; }
 #firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-count { bottom:-22px; transform:translate(-50%,0); font-size:24px; color:#007b89; text-shadow:0 0 3px rgba(255,255,255,0.85),0 0 6px rgba(255,255,255,0.55); }
+#firewall1 .fw-plus-item { position:relative; }
+#firewall1 .fw-plus-count.fw-count-above { position:absolute; top:-8px; left:50%; transform:translate(-50%, -100%); font-size:20px; color:#0d7c00; text-shadow:0 0 4px rgba(255,255,255,0.9),0 0 10px rgba(0,0,0,0.35); }
+#firewall1 .fw-plus-count.fw-count-below { position:absolute; bottom:-28px; left:50%; transform:translate(-50%,0); font-size:20px; color:#8b0000; text-shadow:0 0 3px rgba(255,255,255,0.85),0 0 6px rgba(0,0,0,0.4); }
+#firewall1 .fw-plus-count.fw-deny-count { color:#8b0000; }
 #firewall1 .fw-plus-btn .fw-plus-count:empty { display:inline; }
 #firewall1 .fw-status-btn::before, #firewall1 .fw-status-btn::after { transition:background .4s ease; }
 #firewall1 .fw-status-on::before, #firewall1 .fw-status-on::after { background: linear-gradient(180deg,#e8ffe9 0%,#b9f5c2 8%,#2ecc4f 42%,#1f9939 78%,#16722a 100%) !important; }

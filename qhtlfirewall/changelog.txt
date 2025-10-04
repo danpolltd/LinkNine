@@ -1,6 +1,18 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.43 “Dual Counts”
+
+UI
+- Added separate Allow (green, above button) and Deny (red, below button) IP counts around the Allow plus button.
+- Removed dynamic creation of deny span; now static markup ensures zero layout shift.
+- Suppressed inline status callout ribbon for ajax Rules/Status loads (button already conveys On/Off/Test state).
+- Added dedicated CSS for count positioning and styling; deny count inherits red theme, allow count teal/green accent.
+
+Packaging
+- Version bump to 0.1.43 for distribution.
+
+Date: 2025-10-04
 Version: 0.1.42 “Inline Shape”
 
 Fixes / UI Hardening
