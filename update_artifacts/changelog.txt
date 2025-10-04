@@ -1,13 +1,6 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
-Version: 0.1.62 “Immediate Allow/Deny Counts”
-Enhancement
-- Server now injects initial permanent allow and deny counts directly into plus button spans (no waiting on JS). Deny count now reliably visible below Allow button.
-Fix
-- Avoids race where deny count span stayed empty if JS executed before variable interpolation or mutation observer timing.
-
-Date: 2025-10-04
 Version: 0.1.53 “Inline Save UX Trim”
 
 Date: 2025-10-04
@@ -416,6 +409,12 @@ Date: 2025-10-02
 Version: 0.1.11 “Curse Blade”
 
 Upgrade UI/Flow
+Enhancement
+- Replaced full-area clear + idle GIF flash with a lightweight overlay spinner when switching between inline panels, eliminating the brief idle animation flicker.
+Technical
+- Added fw-busy state with .fw-inline-loader-overlay; keeps previous content visible until new fragment arrives.
+- Automatically removes overlay on success or failure and suppresses ::before idle background while busy.
+
 - “Check Manually” now morphs into a prominent orange “Upgrade” triangle when a newer version is available. The text and the short countdown render inside the triangle for clarity.
 - Inline ChangeLog viewer added next to the manual check for quick review before upgrading.
 - Post-upgrade behavior simplified: the UI now auto-refreshes every 10s (up to 60s) and stops when the Upgrade button disappears. This replaces the previous progress polling loop.

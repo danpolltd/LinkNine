@@ -4554,8 +4554,20 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 			if(tgt._fadeTimer){ clearTimeout(tgt._fadeTimer); tgt._fadeTimer=null; }
 			if(tgt._fadeHideTimer){ clearTimeout(tgt._fadeHideTimer); tgt._fadeHideTimer=null; }
 			tgt.classList.remove('fw-faded','fw-fade-hidden');
-			tgt.classList.remove('fw-spacer-empty');
-			tgt.classList.add('fw-loading');
+			// If there is existing visible content, keep it and show lightweight overlay instead of clearing (prevents idle gif flash)
+			var hasContent = tgt.innerHTML.trim().length>0 && !tgt.classList.contains('fw-spacer-empty');
+			if(hasContent){
+				if(!tgt.querySelector('.fw-inline-loader-overlay')){
+					var ov=document.createElement('div');
+					ov.className='fw-inline-loader-overlay';
+					ov.innerHTML='<div class="qhtl-inline-spinner-mini"></div>';
+					tgt.appendChild(ov);
+				}
+				tgt.classList.add('fw-busy');
+			}else{
+				tgt.classList.remove('fw-spacer-empty');
+				tgt.classList.add('fw-loading');
+			}
 		}
 		// IMPORTANT: switched from FormData (multipart/form-data) to URL-encoded body.
 		// The server action parser only understands application/x-www-form-urlencoded; multipart was causing
@@ -4642,6 +4654,8 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 				else { clean='<div class="text-muted">(No output returned)</div>'; }
 			}
 			if(tgt){
+				var ov=tgt.querySelector('.fw-inline-loader-overlay'); if(ov) try{ ov.remove(); }catch(_){ }
+				tgt.classList.remove('fw-busy');
 				tgt.innerHTML=clean;
 				// Secondary retry: if conf/status returned an empty placeholder, perform a non-AJAX fetch of full page and re-extract.
 				(function retryFallback(){
@@ -4703,7 +4717,7 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 				tgt._fadeBound=1;
 				schedule();
 			}
-		}catch(e){ if(tgt){ tgt.innerHTML='<pre>'+String(e)+'</pre>'; tgt.classList.remove('fw-loading'); } }}).catch(function(e){ if(tgt){ tgt.innerHTML='<div class="text-danger">Request failed: '+e+'</div>'; tgt.classList.remove('fw-loading'); } });
+		}catch(e){ if(tgt){ tgt.innerHTML='<pre>'+String(e)+'</pre>'; tgt.classList.remove('fw-loading','fw-busy'); var ov=tgt.querySelector('.fw-inline-loader-overlay'); if(ov) ov.remove(); } }}).catch(function(e){ if(tgt){ tgt.innerHTML='<div class="text-danger">Request failed: '+e+'</div>'; tgt.classList.remove('fw-loading','fw-busy'); var ov=tgt.querySelector('.fw-inline-loader-overlay'); if(ov) ov.remove(); } });
 		return; }
 	// Non-inline acts fallback to full submit (rare now)
 	var f=document.createElement('form'); f.method='post'; f.action=base; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); if(extra){ Object.keys(extra).forEach(function(k){ var h=document.createElement('input'); h.type='hidden'; h.name=k; h.value=extra[k]; f.appendChild(h); }); } document.body.appendChild(f); f.submit();
@@ -4807,6 +4821,10 @@ QHTL_FIREWALL_CLUSTER
 			#fw-spacer-inline-area { position:relative; z-index:20; background:transparent !important; min-height:220px; padding:8px 10px 12px; box-sizing:border-box; width:100%; }
 		/* Apply flex centering ONLY while loading so inserted multi-column tables/forms are not squeezed */
 		#fw-spacer-inline-area.fw-loading { display:flex; align-items:center; justify-content:center; }
+		#fw-spacer-inline-area.fw-busy { position:relative; }
+		#fw-spacer-inline-area .fw-inline-loader-overlay { position:absolute; inset:0; background:rgba(255,255,255,0.55); display:flex; align-items:center; justify-content:center; z-index:50; backdrop-filter:blur(1px); }
+		.qhtl-inline-spinner-mini { width:28px; height:28px; border:4px solid #d33; border-right-color:transparent; border-radius:50%; animation:qhtlspin .8s linear infinite; }
+		#fw-spacer-inline-area.fw-busy.fw-loading::before { display:none; }
 			#fw-spacer-inline-area::before{ content:""; position:absolute; inset:0; opacity:0; transition:opacity .25s ease; pointer-events:none; }
 		/* Loader sword now truly centered (flex) instead of fixed Y offset */
 		#fw-spacer-inline-area.fw-loading { background:none!important; }
