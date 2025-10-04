@@ -1,6 +1,19 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.23 “Idle Blade”
+
+Firewall Tab
+- Spacer now uses idle_fallback.gif (sword animation) as its default background until first AJAX result replaces it; background removed on content fill.
+- Plus button inline loads (conf/allow/profiles/status/redirect) append ajax=1 so only inner editor/content fragment renders (editfile now outputs a compact fragment when ajax=1).
+
+Developer
+- Added qhtl-inline-fragment wrapper markers for future JS filtering or styling of inline-only responses.
+
+Packaging
+- Pending rebuild to ship idle_fallback.gif integration + trimmed editfile AJAX output.
+
+Date: 2025-10-04
 Version: 0.1.22 “Spacer GIF”
 
 Firewall Tab

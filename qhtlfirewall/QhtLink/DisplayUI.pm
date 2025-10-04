@@ -4423,7 +4423,7 @@ QHTL_TEMP_MODAL_JS_B
 		 if(inlineActs.test(act)){
 			var tgt = document.getElementById('fw-spacer-inline-area');
 		if(tgt){ tgt.classList.remove('fw-faded'); tgt.classList.add('fw-loading'); }
-			var fd = new FormData(); fd.append('action', act); fd.append('ajax','1');
+		 var fd = new FormData(); fd.append('action', act); fd.append('ajax','1');
 			if(act==='enable'){ fd.append('override','1'); }
 			if(extra){ Object.keys(extra).forEach(function(k){ fd.append(k, extra[k]); }); }
 			fetch(base, {method:'POST', body:fd, credentials:'same-origin'}).then(r=>r.text()).then(function(txt){ try{
@@ -4546,7 +4546,7 @@ QHTL_FW_PLUS_LABELS_CSS
 	# Spacer/inline row enhanced: acts as a secondary inline output target for the plus buttons (conf/profiles/allow/status/redirect)
 	# Includes loader background animation similar to main inline output cell; fades/disappears once populated
 	print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>".
-	      "<div id='fw-spacer-inline-area' class='fw-spacer-empty' style=\"position:relative;min-height:180px;margin:6px 4px;padding:10px;border:2px solid rgba(255,255,255,0.3);border-radius:6px;overflow:auto;box-shadow:inset 0 0 6px rgba(0,0,0,0.2);background:linear-gradient(180deg,#e7f5ff 0%,#cfe5ff 55%,#dccfff 100%);transition:opacity .4s ease; background-image:url('$script?image=qhtlfirewall-loader.gif'); background-position:center center; background-repeat:no-repeat; background-size:96px 96px;\"></div>".
+	      "<div id='fw-spacer-inline-area' class='fw-spacer-empty' style=\"position:relative;min-height:180px;margin:6px 4px;padding:10px;border:2px solid rgba(255,255,255,0.3);border-radius:6px;overflow:auto;box-shadow:inset 0 0 6px rgba(0,0,0,0.2);background:linear-gradient(180deg,#e7f5ff 0%,#cfe5ff 55%,#dccfff 100%);transition:opacity .4s ease; background-image:url('$script?image=idle_fallback.gif'); background-position:center center; background-repeat:no-repeat; background-size:260px 72px;\"></div>".
 	      "</td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.deny, the IP address deny file $permbans</div></td></tr>\n";
 	# Unified inline output/content area (reusing gradient background motif)
@@ -5780,6 +5780,7 @@ sub editfile {
 	my $save = shift;
 	my $extra = shift;
 	my $ace = 0;
+	my $is_ajax = ($FORM{ajax} && $FORM{ajax} eq '1');
 
 	sysopen (my $IN, $file, O_RDWR | O_CREAT) or die "Unable to open file: $!";
 	flock ($IN, LOCK_SH);
@@ -5791,7 +5792,8 @@ sub editfile {
 
 	if (-e "/usr/local/cpanel/version" and $ace and !$config{THIS_UI}) {
 		print "<script src='/libraries/ace-editor/optimized/src-min-noconflict/ace.js'></script>\n";
-		print "<h4>Edit <code>$file</code></h4>\n";
+		print "<div class='qhtl-inline-fragment'>" if $is_ajax;
+		print "<h4>Edit <code>$file</code></h4>\n" unless $is_ajax;
 		print "<button class='btn btn-default' id='toggletextarea-btn'>Toggle Editor/Textarea</button>\n";
 	print " <div class='pull-right btn-group'><button type='button' class='btn btn-default' id='fontminus-btn'><strong>a</strong><span class='glyphicon glyphicon-arrow-down icon-qhtlfirewall'></span></button>\n";
 	print "<button type='button' class='btn btn-default' id='fontplus-btn'><strong>A</strong><span class='glyphicon glyphicon-arrow-up icon-qhtlfirewall'></span></button></div>\n";
@@ -5809,8 +5811,9 @@ sub editfile {
 			print $line."\n";
 		}
 		print "</textarea><br></div>\n";
-		print "<br><div class='text-center'><input type='submit' class='btn btn-default' value='Change'></div>\n";
+		print "<br><div class='text-center'><input type='submit' class='btn btn-default' value='Change'></div>\n" unless $is_ajax;
 		print "</form>\n";
+		print "</div>" if $is_ajax;
 		print <<EOF;
 <script>
 	var myFont = 14;
@@ -5859,9 +5862,10 @@ EOF
 		if ($config{DIRECTADMIN}) {
 			print "<form action='$script?pipe_post=yes' method='post'>\n<div class='panel panel-default'>\n";
 		} else {
-			print "<form action='$script' method='post'>\n<div class='panel panel-default'>\n";
+			print "<div class='qhtl-inline-fragment'>" if $is_ajax;
+			print "<form action='$script' method='post'>\n<div class='panel panel-default'>\n" unless $is_ajax;
 		}
-		print "<div class='panel-heading panel-heading-qhtlwatcher'>Edit <code>$file</code></div>\n";
+		print "<div class='panel-heading panel-heading-qhtlwatcher'>Edit <code>$file</code></div>\n" unless $is_ajax;
 		print "<div class='panel-body'>\n";
 		print "<input type='hidden' name='action' value='$save'>\n";
 		if ($extra) {print "<input type='hidden' name='$extra' value='$FORM{$extra}'>\n";}
@@ -5872,8 +5876,9 @@ EOF
 			print $line."\n";
 		}
 		print "</textarea></div>\n";
-		print "<div class='panel-footer text-center'><input type='submit' class='btn btn-default' value='Change'></div>\n";
-		print "</div></form>\n";
+		print "<div class='panel-footer text-center'><input type='submit' class='btn btn-default' value='Change'></div>\n" unless $is_ajax;
+		print "</div></form>\n" unless $is_ajax;
+		print "</div>" if $is_ajax;
 	}
 
 	return;
