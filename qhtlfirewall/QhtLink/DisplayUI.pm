@@ -4472,9 +4472,9 @@ QHTL_TEMP_MODAL_JS_B
 		<div class='fw-plus-item'><button id='fwb2' class='fw-plus-btn' aria-label='Config' title='Config'><span class='fw-plus-label'>Config</span></button></div>
 		<div class='fw-plus-item'><button id='fwb3' class='fw-plus-btn' aria-label='Profiles' title='Profiles'><span class='fw-plus-label'>Profiles</span></button></div>
 		<div class='fw-plus-item'>
-		  <span class='fw-plus-count fw-count-above' id='fw-allow-count'>$permallows_count</span>
+		  <span class='fw-plus-count fw-count-above' id='fw-allow-count'></span>
 		  <button id='fwb4' class='fw-plus-btn fw-allow-btn' aria-label='Allow IPs' title='Allow IPs'><span class='fw-plus-label'>Allow</span></button>
-		  <span class='fw-plus-count fw-count-below fw-deny-count' id='fw-deny-count'>$permbans_count</span>
+		  <span class='fw-plus-count fw-count-below fw-deny-count' id='fw-deny-count'></span>
 		</div>
 		<div class='fw-plus-item'><button id='fwb5' class='fw-plus-btn' aria-label='Rules' title='Firewall Rules'><span class='fw-plus-label'>Rules</span></button></div>
 		<div class='fw-plus-item' style='display:none'><button id='fwb6' class='fw-plus-btn' aria-label='Inner Right Firewall Control' title='Inner Right Firewall Control'><span class='fw-plus-label'>Hidden</span></button></div>
@@ -4483,6 +4483,9 @@ QHTL_TEMP_MODAL_JS_B
 	</div>
 </div>
 <script>(function(){ try { var base=(window.QHTL_SCRIPT||'$script');
+	 // Immediate server-derived counts (avoid showing raw placeholders)
+	 try { var ac=document.getElementById('fw-allow-count'); if(ac){ ac.textContent = (function(){ var raw="$permallows"; var m=raw.match(/<code>(\d+)<\/code>/); return m?m[1]:"0"; })(); } } catch(_){ }
+	 try { var dc=document.getElementById('fw-deny-count'); if(dc){ dc.textContent = (function(){ var raw="$permbans"; var m=raw.match(/<code>(\d+)<\/code>/); return m?m[1]:"0"; })(); } } catch(_){ }
  // Allow count extraction (unchanged)
  // Allow count extraction with robust fallbacks
  var allowCount=(function(){
@@ -5198,6 +5201,13 @@ QHTL_ADV_RESET_JS
 		print "  /* Provide minimal fallback if clip-path unsupported */\n";
 		print "  @supports not (clip-path: polygon(0 0)){ #moreplus .qhtl-hex-btn{border-radius:10px;} #moreplus .qhtl-hex-btn:before{clip-path:none;} }\n";
 		print "</style>\n";
+		# Simplified re-style: remove fancy halos and revert to plain bright gold glow
+		print "<style id='qhtl-hex-override'>\n".
+		      "#moreplus .qhtl-hex-btn{box-shadow:0 0 10px 4px rgba(255,215,0,0.85)!important; background:linear-gradient(135deg,#ffe07a,#ffd000,#ffbf00)!important; border:1px solid rgba(255,255,255,0.65)!important;}\n".
+		      "#moreplus .qhtl-hex-btn:before,#moreplus .qhtl-hex-btn:after{content:none!important; box-shadow:none!important; background:none!important;}\n".
+		      "#moreplus .qhtl-hex-btn:hover{box-shadow:0 0 14px 6px rgba(255,215,0,0.95)!important; transform:translateY(-2px)!important;}\n".
+		      "#moreplus .qhtl-hex-btn:active{box-shadow:0 0 6px 3px rgba(255,190,0,0.85)!important; transform:translateY(0)!important;}\n".
+		      "</style>\n";
 		print "<div class='qhtl-advanced-hexes' aria-label='Advanced actions'>\n";
 		for my $i (1..8) {
 			if ($i == 1) {

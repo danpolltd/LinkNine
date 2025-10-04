@@ -1,10 +1,14 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
-Version: 0.1.64 “Fix Deny Count Placeholder”
+Version: 0.1.65 “Plain Gold Halo”
+UI
+- Simplified Advanced (More tab) hex button halo: removed complex layered pseudo-element gradients and pulse animation; added single bright gold glow + gradient for crisper visibility across themes.
+- Cleared ::before/::after content to prevent prior halo artifacts persisting under new design.
 Fix
-- Removed literal '$permbans_count' / '$permallows_count' showing in plus button row; counts now injected via immediate JS and never display placeholders.
-- Ensures deny count always numeric on first paint.
+- Ensured initial Allow/Deny counts never flash raw variable placeholders (counts injected immediately via JS before async fetch logic runs).
+Packaging
+- Version bump to distribute halo simplification and count placeholder hardening.
 
 Date: 2025-10-04
 Version: 0.1.53 “Inline Save UX Trim”
