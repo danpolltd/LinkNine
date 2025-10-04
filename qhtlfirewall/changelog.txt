@@ -1,6 +1,17 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.16 “Single Cell”
+
+UI / Inline Actions
+- Simplified the inline output panel: removed nested inner wrapper & separate loader element; loader now appears as a background image on the single gradient cell.
+- Reduced DOM depth (−1 div) and JS logic (removed inner query path) for faster repaint and clearer future styling tweaks.
+- Brightness dim on load replaces prior blur for sharper perceived responsiveness.
+
+Packaging
+- Immediate version bump to force cache-bust so environments pick up the structural simplification without waiting for manual purge.
+
+Date: 2025-10-04
 Version: 0.1.15 “Twin Panel”
 
 UI / Inline Actions
