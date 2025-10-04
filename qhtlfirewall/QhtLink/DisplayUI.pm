@@ -4566,9 +4566,20 @@ QHTL_FW_INLINE_OUT
 	// Options tab re-click reset (clears any inline outputs in that tab area)
 	var tabs=document.querySelectorAll('.nav-tabs li a');
 	tabs.forEach(function(a){ a.addEventListener('click', function(){ a.dataset.lastClick=Date.now(); }); });
-	var optTab=document.querySelector('.nav-tabs li a[href*="Options" i], .nav-tabs li a:contains(Options)');
-	if(optTab){ optTab.addEventListener('click', function(ev){ if(optTab.dataset._last){ var delta=Date.now()-(+optTab.dataset._last); if(delta<800){ var optPane=document.getElementById('Options')||document.querySelector('#options,#OptionsTab'); if(optPane){ var area=optPane.querySelector('#fw-inline-output'); if(area){ area.innerHTML='<div class="text-muted">(Reset)</div>'; } }
-	 } } optTab.dataset._last=Date.now(); }); }
+	// Find the Options tab link without using non-standard :contains
+	var optTab=(function(){
+		var c=document.querySelectorAll('.nav-tabs li a');
+		for(var i=0;i<c.length;i++){ var t=c[i].textContent.trim().toLowerCase(); if(t==='options'){ return c[i]; } }
+		return null;
+	})();
+	if(optTab){ optTab.addEventListener('click', function(){
+		var last=optTab.dataset._last?parseInt(optTab.dataset._last,10):0; var now=Date.now();
+		if(last && (now-last)<800){
+			var optPane=document.getElementById('Options')||document.querySelector('#options,#OptionsTab');
+			if(optPane){ var area=document.getElementById('fw-inline-output'); if(area){ area.innerHTML='<div class="text-muted">(Reset)</div>'; } }
+		}
+		optTab.dataset._last=now;
+	}); }
 	// Promo modal centering tweak
 	function recenterPromo(){ var m=document.querySelector('.qhtl-promo-modal'); if(!m) return; m.style.position='fixed'; m.style.left='50%'; m.style.top='90px'; m.style.transform='translateX(-50%)'; }
 	setInterval(recenterPromo,800);
