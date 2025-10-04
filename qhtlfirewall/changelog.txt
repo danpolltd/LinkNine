@@ -372,6 +372,14 @@ Changes:
 - Added 'enable' to inlineActs so starting firewall stays on page
 - Version bump for distribution
 
+Version: 0.1.32
+Release Date: 2025-10-04
+Changes:
+- Added console.debug of raw AJAX responses (first 400 chars) for troubleshooting
+- Use raw response text if fragment parsing yields empty
+- Status (rules) action: if no <pre> block present, fallback to full body to avoid blank output
+- Version bump for diagnostic build
+
 Date: 2025-09-19
 Version: 0.1.2
 

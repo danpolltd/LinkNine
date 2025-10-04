@@ -4441,6 +4441,7 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 		var fd=new FormData(); fd.append('action',act); fd.append('ajax','1'); if(act==='enable'){ fd.append('override','1'); }
 		if(extra){ Object.keys(extra).forEach(function(k){ fd.append(k,extra[k]); }); }
 		fetch(base,{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.text()).then(function(txt){ try{
+			try{ if(window.console && console.debug){ console.debug('[QHTL submitAction raw]', act, txt.slice(0,400)); } }catch(_){ }
 			var fragment='';
 			(function(){
 				try {
@@ -4453,6 +4454,7 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 					if(act==='status'){
 						var preEl=div.querySelector('pre');
 						if(preEl){ fragment='<pre>'+preEl.innerHTML+'</pre>'; return; }
+						// If no pre, take entire body to at least show something
 					}
 					// Fallback: take first meaningful block-level element inside body
 					var body=div.querySelector('body')||div;
@@ -4468,6 +4470,7 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 			if(act==='restart'){ fragment='<div class="text-info">Firewall restart requested.</div>'; }
 			if(act==='enable'){ fragment='<div class="text-success">Firewall enable requested.</div>'; try{ setTimeout(function(){ try{ window.submitAction('status'); }catch(_){ } }, 1600); }catch(_){ } }
 			var clean=fragment.trim();
+			if(!clean && txt){ clean=txt.trim(); }
 			if(!clean){
 				if(act==='status'){ clean='<div class="text-muted">(No rules output)</div>'; }
 				else if(act==='conf'){ clean='<div class="text-muted">(Config output unavailable)</div>'; }
