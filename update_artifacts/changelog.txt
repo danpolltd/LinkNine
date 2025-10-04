@@ -1,6 +1,25 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.40 “Morph Press”
+
+Functional
+- Added new `conf_inline` action that serves a truncated, read-only configuration preview wrapped in `qhtl-inline-fragment` for the Config plus button (solves blank Config output).
+- Updated Config button mapping to call `conf_inline` (ajax=1) instead of full `conf` page.
+- Added persistent Deny count display below the Allow button (mirrors existing Allow count style).
+- Implemented long‑press morph on Allow button: after 2s the button visually transforms (orange gradient + label switch to Deny); after 3s it auto-triggers the `deny` action. Releasing early cancels without action.
+
+UI
+- Added morph CSS state (`fw-allow-morph`) with orange gradient and glow.
+- Confirmed Advanced tab halo styling active (prior missing halo issue addressed by restoring :before + :after layers earlier; documented now).
+
+Reliability
+- Inline Config preview capped at first 450 lines to prevent performance / overflow while still giving quick access.
+
+Packaging
+- Version bump to distribute new inline config and morph interaction.
+
+Date: 2025-10-04
 Version: 0.1.39 “Inline Status”
 
 Functional

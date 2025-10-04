@@ -2710,6 +2710,20 @@ function QHTLFIREWALLexpand(obj){
 	if (newsize > 120) {newsize = 120;}
 	obj.size = newsize;
 }
+elsif ($FORM{action} eq 'conf_inline') {
+	# Lightweight configuration viewer/editor for inline plus button
+	my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
+	print "<div class='qhtl-inline-fragment'>" if $is_ajax_req;
+	sysopen (my $IN, "/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
+	flock ($IN, LOCK_SH); my @confdata = <$IN>; close($IN); chomp @confdata;
+	print "<div class='panel panel-default'><div class='panel-heading'>Firewall Configuration (Read-Only Inline)</div><div class='panel-body' style='max-height:440px;overflow:auto;font-family:monospace;font-size:12px;line-height:1.25'>";
+	my $shown=0; my $limit=450; # show first 450 lines to avoid massive dump inline
+	foreach my $line (@confdata){ last if $shown++ >= $limit; my $esc=$line; $esc =~ s/&/&amp;/g; $esc =~ s/</&lt;/g; $esc =~ s/>/&gt;/g; print $esc."\n"; }
+	print "</div><div class='panel-footer text-muted small'>Truncated inline preview. Use full Config page for edits.";
+	print "</div></div>"; # close panel
+	print "</div>" if $is_ajax_req;
+	exit;
+}
 elsif ($FORM{action} eq 'status') {
 	# Lightweight status/rules endpoint for plus button (fwb5) inline loads.
 	# Mirrors core logic used earlier but trimmed for AJAX consumption.
@@ -4366,6 +4380,9 @@ QHTL_TEMP_MODAL_JS_B
 /* Hover/active effects */
 #firewall1 .fw-plus-btn:hover { transform:translateY(-4px) scale(1.05); }
 #firewall1 .fw-plus-btn:active { transform:scale(.94); }
+/* Morph state for Allow->Deny long press */
+#firewall1 .fw-plus-btn.fw-allow-morph::before, #firewall1 .fw-plus-btn.fw-allow-morph::after { background: linear-gradient(180deg,#fff2e0 0%,#ffc177 10%,#ff7a00 42%,#e05d00 78%,#a84200 100%) !important; }
+#firewall1 .fw-plus-btn.fw-allow-morph .fw-plus-label { text-shadow:0 0 3px #000,0 0 6px rgba(255,170,0,0.9); }
 /* Placement (7 true plus buttons + optional center for 8th if needed) */
 /* No special positioning needed in row */
 #fwb6 { display:none; }
@@ -4625,9 +4642,31 @@ setTimeout(function(){
 		}catch(_){ } });
 		statusBtn2._fwBound=1;
 	}
-	var map={fwb2:'conf',fwb3:'profiles',fwb4:'allow',fwb5:'status',fwb7:'redirect'};
+	var map={fwb2:'conf_inline',fwb3:'profiles',fwb4:'allow',fwb5:'status',fwb7:'redirect'};
 	Object.keys(map).forEach(function(id){ var el=document.getElementById(id); if(!el) return; if(!el._fwBound){ el.addEventListener('click',function(){ if(window.submitAction) window.submitAction(map[id]); }); el._fwBound=1; } });
 	var flush=document.getElementById('fwb8'); if(flush && !flush._fwBound){ flush.addEventListener('click',function(){ if(window.submitAction) window.submitAction('denyf'); }); flush._fwBound=1; }
+	// Deny count persistent display above (reuse allow count logic pattern)
+	try{
+		var denySpan=document.getElementById('fw-deny-count');
+		if(!denySpan){ var allowBtn=document.getElementById('fwb4'); if(allowBtn){ denySpan=document.createElement('span'); denySpan.id='fw-deny-count'; denySpan.className='fw-plus-count'; denySpan.style.bottom='-18px'; denySpan.style.color='#8b0000'; allowBtn.parentNode.appendChild(denySpan);} }
+		if(denySpan && (!denySpan.textContent || /^(?:0|)$/.test(denySpan.textContent))){
+			var rawDeny="(Currently: <code>0</code> permanent IP bans)"; try{ rawDeny="$permbans"; }catch(_){ }
+			var md=rawDeny.match(/<code>(\d+)<\/code>/)||rawDeny.match(/(\d+)/); if(md){ denySpan.textContent=md[1]; }
+		}
+	}catch(_){ }
+
+	// Long-press on Allow morphs to Deny (after 2s visual morph, 3s executes Deny IPs action)
+	(function(){
+		var allowBtn=document.getElementById('fwb4'); if(!allowBtn || allowBtn._lpBound) return; allowBtn._lpBound=1;
+		var pressTimer=null, morphTimer=null, labelEl=allowBtn.querySelector('.fw-plus-label');
+		var originalLabel=labelEl?labelEl.textContent:'Allow';
+		function reset(){ if(labelEl){ labelEl.textContent=originalLabel; } allowBtn.classList.remove('fw-allow-morph'); }
+		function startPress(){ if(pressTimer) return; morphTimer=setTimeout(function(){ try{ allowBtn.classList.add('fw-allow-morph'); if(labelEl){ labelEl.textContent='Deny'; } }catch(_){ } },2000); pressTimer=setTimeout(function(){ try{ reset(); if(window.submitAction){ window.submitAction('deny'); } }catch(_){ } clearTimers(); },3000); }
+		function clearTimers(){ if(morphTimer){ clearTimeout(morphTimer); morphTimer=null; } if(pressTimer){ clearTimeout(pressTimer); pressTimer=null; } }
+		function cancel(){ clearTimers(); reset(); }
+		['mousedown','touchstart'].forEach(function(ev){ allowBtn.addEventListener(ev,function(e){ if(e.button!==0 && ev==='mousedown') return; startPress(); },{passive:true}); });
+		['mouseup','mouseleave','touchend','touchcancel','blur'].forEach(function(ev){ allowBtn.addEventListener(ev,function(){ cancel(); },{passive:true}); });
+	})();
 },400);
  } catch(e){} })();</script>
 QHTL_FIREWALL_CLUSTER
