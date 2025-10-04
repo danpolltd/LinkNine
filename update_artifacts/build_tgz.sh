@@ -38,10 +38,22 @@ if [[ -f "$ROOT_DIR/qhtlfirewall/changelog.txt" ]]; then
   cp "$ROOT_DIR/qhtlfirewall/changelog.txt" "$OUT_DIR/changelog.txt"
 fi
 
-# Create tarball at output path (qhtlfirewall.tgz containing folder qhtlfirewall/)
-cd "$TMP_DIR"
-TARBALL_PATH="$OUT_DIR/qhtlfirewall.tgz"
-rm -f "$TARBALL_PATH"
-tar -czf "$TARBALL_PATH" "$PKG_NAME"
+# Determine version for versioned artifact
+VERSION="unknown"
+if [ -f "$TMP_DIR/$PKG_NAME/version.txt" ]; then
+  VERSION=$(head -n1 "$TMP_DIR/$PKG_NAME/version.txt" | tr -d '\r')
+fi
 
-echo "Built: $TARBALL_PATH"
+# Create tarballs at output path (unversioned and versioned)
+cd "$TMP_DIR"
+TARBALL_UNVERSIONED="$OUT_DIR/qhtlfirewall.tgz"
+TARBALL_VERSIONED="$OUT_DIR/qhtlfirewall-${VERSION}.tgz"
+rm -f "$TARBALL_UNVERSIONED" "$TARBALL_VERSIONED"
+tar -czf "$TARBALL_UNVERSIONED" "$PKG_NAME"
+cp -f "$TARBALL_UNVERSIONED" "$TARBALL_VERSIONED"
+
+# Compute checksums for traceability
+SHA256=$(sha256sum "$TARBALL_UNVERSIONED" | awk '{print $1}')
+echo "sha256  $SHA256  qhtlfirewall.tgz (version $VERSION)" > "$OUT_DIR/qhtlfirewall.sha256"
+echo "Built: $TARBALL_UNVERSIONED (checksum $SHA256)"
+echo "Built: $TARBALL_VERSIONED"
