@@ -4691,7 +4691,7 @@ function qhtlBindInlineSave(form, actionName){ try{
 		.catch(function(){ if(statusEl){ statusEl.textContent='Network error'; statusEl.className='qhtl-inline-save-status text-danger small'; } if(saveBtn){ saveBtn.disabled=false; } });
 	}catch(e){ if(statusEl){ statusEl.textContent='Failed'; statusEl.className='qhtl-inline-save-status text-danger small'; } if(saveBtn){ saveBtn.disabled=false; } }
 	});
-}catch(_){ }}
+}catch(_){ }};
 // Direct inline bindings (removed external module loader due to MIME issues in some environments)
 setTimeout(function(){
 	var statusBtn2=document.getElementById('fwb1'); if(statusBtn2 && !statusBtn2._fwBound){
