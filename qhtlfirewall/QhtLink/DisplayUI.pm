@@ -4414,7 +4414,23 @@ QHTL_TEMP_MODAL_JS_B
  // Button action mappings (added Flush -> fwb8 / action=denyf)
  (function(){
 	 var holdState={active:false,phase:0,count:3,countInt:null,dimTimer:null,actionArmed:null,mouseDown:false};
-	 function submitAction(act, extra){ try{ var f=document.createElement('form'); f.method='post'; f.action=base; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); if(act==='enable'){ var o=document.createElement('input'); o.type='hidden'; o.name='override'; o.value='1'; f.appendChild(o);} if(extra){ Object.keys(extra).forEach(function(k){ var h=document.createElement('input'); h.type='hidden'; h.name=k; h.value=extra[k]; f.appendChild(h); }); } document.body.appendChild(f); f.submit(); }catch(e){} }
+	 function submitAction(act, extra){ try{
+		 // Actions we want inline inside spacer
+		 var inlineActs = /^(conf|profiles|allow|status|redirect)$/;
+		 if(inlineActs.test(act)){
+			var tgt = document.getElementById('fw-spacer-inline-area');
+			if(tgt){ tgt.classList.remove('fw-faded'); tgt.classList.add('fw-loading'); }
+			var fd = new FormData(); fd.append('action', act); fd.append('ajax','1');
+			if(act==='enable'){ fd.append('override','1'); }
+			if(extra){ Object.keys(extra).forEach(function(k){ fd.append(k, extra[k]); }); }
+			fetch(base, {method:'POST', body:fd, credentials:'same-origin'}).then(r=>r.text()).then(function(txt){ try{
+				var clean = (txt.replace(/<form[\s\S]*?<\/form>/gi,'').trim() || '<div class="text-muted">(No output returned)</div>');
+				if(tgt){ tgt.innerHTML = clean; tgt.classList.remove('fw-loading','fw-spacer-empty'); setTimeout(function(){ try{ tgt.classList.add('fw-faded'); }catch(_){ } },4000); }
+			}catch(e){ if(tgt){ tgt.innerHTML='<pre>'+String(e)+'</pre>'; tgt.classList.remove('fw-loading'); } }}).catch(function(e){ if(tgt){ tgt.innerHTML='<div class="text-danger">Request failed: '+e+'</div>'; tgt.classList.remove('fw-loading'); } });
+			return;
+		 }
+		 var f=document.createElement('form'); f.method='post'; f.action=base; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); if(act==='enable'){ var o=document.createElement('input'); o.type='hidden'; o.name='override'; o.value='1'; f.appendChild(o);} if(extra){ Object.keys(extra).forEach(function(k){ var h=document.createElement('input'); h.type='hidden'; h.name=k; h.value=extra[k]; f.appendChild(h); }); } document.body.appendChild(f); f.submit();
+	 }catch(e){} }
 	 function clearHold(btn){ if(!btn) return; holdState.active=false; holdState.phase=0; holdState.count=3; if(holdState.countInt){ clearInterval(holdState.countInt); holdState.countInt=null; } if(holdState.dimTimer){ clearTimeout(holdState.dimTimer); holdState.dimTimer=null; } btn.classList.remove('hold-counting','hold-warning','hold-dimming'); try{ var cur=(typeof window.QHTL_FW_STATUS==='string')?window.QHTL_FW_STATUS:''; var lab=document.getElementById('fw-status-text'); if(lab && cur){ lab.textContent = (cur==='on')?'On':(cur==='testing')?'Testing':'Off'; } }catch(_){ } }
 	 function startHold(btn){ if(!btn) return; try{ // Determine live state from classes if present
 				 var curClass = btn.classList.contains('fw-status-on') ? 'on' : (btn.classList.contains('fw-status-testing') ? 'testing' : (btn.classList.contains('fw-status-off') ? 'off' : null));
@@ -4473,6 +4489,13 @@ QHTL_TEMP_MODAL_JS_B
  })();
  } catch(e){} })();</script>
 QHTL_FIREWALL_CLUSTER
+		print <<'QHTL_FW_SPACER_CSS';
+<style>
+	#fw-spacer-inline-area.fw-loading { filter:brightness(.92); background-image:linear-gradient(180deg,#e7f5ff 0%,#cfe5ff 55%,#dccfff 100%), url('$script?image=qhtlfirewall-loader.gif'); background-position:0 0, center center; background-repeat:repeat, no-repeat; background-size:auto,72px 72px; }
+	#fw-spacer-inline-area.fw-faded { opacity:0; pointer-events:none; }
+	#fw-spacer-inline-area.fw-spacer-empty::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(45deg,rgba(255,255,255,0.15) 0 12px,rgba(255,255,255,0.05) 12px 24px); mix-blend-mode:overlay; pointer-events:none; }
+</style>
+QHTL_FW_SPACER_CSS
 		# Added/Updated: Firewall plus button label styling (labels above buttons, white text)
 		# Find the existing fw-plus CSS block and append overrides.
 		print <<'QHTL_FW_PLUS_LABELS_CSS';
@@ -4517,8 +4540,11 @@ QHTL_FW_PLUS_LABELS_CSS
 	#print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='profiles' type='submit' class='btn btn-default'>Profiles</button></form><div class='text-muted small' style='margin-top:6px'>Apply pre-configured qhtlfirewall.conf profiles and backup/restore qhtlfirewall.conf</div></td></tr>\n";
     # View Rules row removed; functionality moved to fifth plus button (fwb5 -> action=status)
 	#print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='allow' type='submit' class='btn btn-default'>Allow IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.allow, the IP address allow file $permallows</div></td></tr>\n";
-	# Spacer/inline row (mirrors Options tab inline area cell) placed between plus buttons and Deny IPs for visual consistency
-	print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'><div id='fw-spacer-inline-area' style='padding-top:10px;min-height:180px;background:transparent'></div></td></tr>\n";
+	# Spacer/inline row enhanced: acts as a secondary inline output target for the plus buttons (conf/profiles/allow/status/redirect)
+	# Includes loader background animation similar to main inline output cell; fades/disappears once populated
+	print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>".
+	      "<div id='fw-spacer-inline-area' class='fw-spacer-empty' style=\"position:relative;min-height:180px;margin:6px 4px;padding:10px;border:2px solid rgba(255,255,255,0.3);border-radius:6px;overflow:auto;box-shadow:inset 0 0 6px rgba(0,0,0,0.2);background:linear-gradient(180deg,#e7f5ff 0%,#cfe5ff 55%,#dccfff 100%);transition:opacity .4s ease;\"></div>".
+	      "</td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.deny, the IP address deny file $permbans</div></td></tr>\n";
 	# Unified inline output/content area (reusing gradient background motif)
 	my $loader = "$script?image=qhtlfirewall-loader.gif"; # isolate interpolation to a single variable

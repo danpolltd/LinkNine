@@ -1,10 +1,21 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.21 “Spacer Live”
+
+Firewall Tab
+- Plus button actions (Config, Profiles, Allow, Rules(Status), Redirect) now load inline via AJAX into the spacer row with animated loader and auto-fade.
+- Fallback (other actions) still use main inline output or full submit where appropriate (enable/disable/restart/flush mechanics unchanged).
+
+Packaging
+- Pending rebuild for AJAX spacer behavior.
+
+Date: 2025-10-04
 Version: 0.1.20 “Spacer”
 
 Firewall Tab
-- Inserted an empty inline spacer row (180px min-height) between the plus button cluster and the Deny IPs row, cloned from the Options tab inline cell for visual rhythm and future inline context.
+- Inserted an inline spacer row (180px min-height) between the plus button cluster and the Deny IPs row.
+- Spacer now acts as an AJAX target for plus button actions (conf/profiles/allow/status/redirect): shows animated loader background, then fades out ~4s after content loads.
 
 Packaging
 - Pending rebuild to ship spacer addition.
