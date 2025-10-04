@@ -4446,8 +4446,8 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 				try {
 					var div=document.createElement('div');
 					div.innerHTML=txt;
-					// Remove script & form nodes early
-					Array.from(div.querySelectorAll('script,form,noscript')).forEach(function(n){ n.parentNode.removeChild(n); });
+					// Remove only script/noscript nodes (preserve forms so editors render inline)
+					Array.from(div.querySelectorAll('script,noscript')).forEach(function(n){ n.parentNode.removeChild(n); });
 					var inlineFrag=div.querySelector('.qhtl-inline-fragment');
 					if(inlineFrag){ fragment=inlineFrag.innerHTML; return; }
 					if(act==='status'){

@@ -338,6 +338,13 @@ Changes:
 - Structural groundwork for possible server-side minimal fragments next pass
 - Version bump to deliver UI stability & UX polish
 
+Version: 0.1.28
+Release Date: 2025-10-04
+Changes:
+- Fix: Config / Profiles / Rules spacer outputs were blank because fragment parser stripped <form> elements
+- Parser now preserves forms (still removes script & noscript) so editors and lists render inline
+- Version bump to propagate inline editing visibility fix
+
 Date: 2025-09-19
 Version: 0.1.2
 
