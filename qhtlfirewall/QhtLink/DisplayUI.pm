@@ -2587,14 +2587,6 @@ QHTL_JQ_GREP
 		&savefile("/etc/qhtlfirewall/qhtlfirewall.allow","both");
 		&printreturn;
 	}
-	elsif ($FORM{action} eq "redirect") {
-		&editfile("/etc/qhtlfirewall/qhtlfirewall.redirect","saveredirect");
-		&printreturn;
-	}
-	elsif ($FORM{action} eq "saveredirect") {
-		&savefile("/etc/qhtlfirewall/qhtlfirewall.redirect","both");
-		&printreturn;
-	}
 	elsif ($FORM{action} eq "smtpauth") {
 		&editfile("/etc/qhtlfirewall/qhtlfirewall.smtpauth","savesmtpauth");
 		&printreturn;
@@ -4516,11 +4508,9 @@ QHTL_FW_PLUS_LABELS_CSS
 	# print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='enable' type='submit' class='btn btn-default'>Enable</button></form><div class='text-muted small' style='margin-top:6px'>Enables qhtlfirewall and qhtlwaterfall if previously Disabled</div></td></tr>\n";
 	# print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='disable' type='submit' class='btn btn-default'>Disable</button></form><div class='text-muted small' style='margin-top:6px'>Completely disables qhtlfirewall and qhtlwaterfall</div></td></tr>\n";
 	# print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='restart' type='submit' class='btn btn-default'>Restart</button></form><div class='text-muted small' style='margin-top:6px'>Restart the qhtlfirewall iptables firewall</div></td></tr>\n";
-	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='restartq' type='submit' class='btn btn-default'>Reboot</button></form><div class='text-muted small' style='margin-top:6px'>Have qhtlwaterfall restart the qhtlfirewall iptables firewall</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='temp' type='submit' class='btn btn-default'>Temp IPs</button></form><div class='text-muted small' style='margin-top:6px'>View/Remove the <i>temporary</i> IP entries $tempbans</div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='sips' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Deny access to and from specific IP addresses configured on the server (qhtlfirewall.sips)</div></td></tr>\n";
 	#print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='denyf' type='submit' class='btn btn-default'>Flush All</button></form><div class='text-muted small' style='margin-top:6px'>Removes and unblocks all entries in qhtlfirewall.deny (excluding those marked \"do not delete\") and all temporary IP entries (blocks <i>and</i> allows)</div></td></tr>\n"; # Mapped to fwb8 plus button (Flush)
-	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='redirect' type='submit' class='btn btn-default'>Redirect</button></form><div class='text-muted small' style='margin-top:6px'>Redirect connections to this server to other ports/IP addresses</div></td></tr>\n";
 	# Fix Tool moved into Advanced (hex buttons) as 3rd hex; original row removed
 		print "</table>\n";
 		print "</div>\n";

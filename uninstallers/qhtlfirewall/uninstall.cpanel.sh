@@ -69,5 +69,23 @@ sed -i 's/qhtlwaterfall:1//' /etc/chkserv.d/chkservd.conf
 
 rm -Rfv /etc/qhtlfirewall /usr/local/qhtlfirewall /var/lib/qhtlfirewall
 
+# Remove all UI CSS/JS/image folders and files for qhtlfirewall
+/bin/rm -Rfv /usr/local/qhtlfirewall/ui/images/
+/bin/rm -Rfv /usr/local/qhtlfirewall/ui/images/bootstrap/
+/bin/rm -Rfv /usr/local/qhtlfirewall/ui/images/holiday/
+/bin/rm -Rfv /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/ui/images/
+/bin/rm -Rfv /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/ui/images/bootstrap/
+/bin/rm -Rfv /usr/local/cpanel/whostmgr/docroot/cgi/qhtlink/qhtlfirewall/ui/images/holiday/
+# Remove DirectAdmin/Webmin/DA panel UI assets if present
+/bin/rm -Rfv /usr/local/directadmin/plugins/qhtlfirewall/images/
+/bin/rm -Rfv /usr/local/directadmin/plugins/qhtlfirewall/images/bootstrap/
+/bin/rm -Rfv /usr/local/directadmin/plugins/qhtlfirewall/images/holiday/
+/bin/rm -Rfv /usr/local/webmin/qhtlfirewall/images/
+/bin/rm -Rfv /usr/local/webmin/qhtlfirewall/images/bootstrap/
+/bin/rm -Rfv /usr/local/webmin/qhtlfirewall/images/holiday/
+# Remove DA and Webmin plugin folders if present
+/bin/rm -Rfv /usr/local/directadmin/plugins/qhtlfirewall/
+/bin/rm -Rfv /usr/local/webmin/qhtlfirewall/
+
 echo
 echo "...Done"
