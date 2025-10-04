@@ -1,6 +1,21 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.39 “Inline Status”
+
+Functional
+- Added dedicated lightweight 'status' action producing a compact inline fragment (status callout + first 80 lines of LOCALINPUT chain) when ajax=1. This directly feeds the Rules plus button (fwb5) rather than relying on parsing a large page.
+
+UI
+- Restored spacer min-height to 220px baseline (was briefly elevated) to maintain vertical consistency with other cells while still accommodating enlarged loader sizing through background scaling.
+
+Reliability
+- Inline status no longer depends on full page parse; resolves blank Rules panel scenario if prior multipart form parsing or fragment extraction failed.
+
+Packaging
+- Version alignment: 0.1.39 already set in version.txt; entry documents the change set.
+
+Date: 2025-10-04
 Version: 0.1.39 “Golden Halo”
 
 Advanced Tab
