@@ -1,6 +1,16 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.17 “Opt Reset”
+
+UI
+- Fixed invalid CSS selector (:contains) in Options tab double-click reset logic; replaced with robust textContent scan to eliminate DOMException noise.
+- Ensures inline output reset still works after simplifying the panel structure.
+
+Packaging
+- Version bump to propagate selector fix via tarball so installer sees update immediately.
+
+Date: 2025-10-04
 Version: 0.1.16 “Single Cell”
 
 UI / Inline Actions
