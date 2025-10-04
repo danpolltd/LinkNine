@@ -4445,8 +4445,9 @@ QHTL_FIREWALL_CLUSTER
 #firewall1 .fw-plus-item {position:relative; display:inline-flex; flex-direction:column; align-items:center; justify-content:flex-start;}
 #firewall1 .fw-plus-btn {position:relative;}
 #firewall1 .fw-plus-btn .fw-plus-label {position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:16px; font-weight:700; color:#fff !important; text-shadow:0 0 3px #000,0 0 6px #d40000,0 0 12px #ff2020; letter-spacing:.6px; pointer-events:none; z-index:3; line-height:1; white-space:nowrap;}
-#firewall1 .fw-plus-btn .fw-plus-count {position:absolute; bottom:4px; left:50%; transform:translate(-50%, 0); background:transparent; color:#00363d; font-weight:800; font-size:20px; line-height:1; padding:0; border:none; border-radius:0; box-shadow:none; min-width:0; text-align:center; z-index:22; letter-spacing:.5px; white-space:nowrap; filter:drop-shadow(0 2px 2px rgba(0,0,0,0.35)); }
-#firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-count { z-index:24; transform:translate(-50%, calc(100% + 6px)); background:transparent; border:none; box-shadow:none; font-size:22px; padding:0; min-width:0; color:#005f6b; text-shadow:0 0 4px rgba(255,255,255,0.65),0 0 6px rgba(255,255,255,0.45); }
+#firewall1 .fw-plus-btn .fw-plus-count {position:absolute; bottom:-18px; left:50%; transform:translate(-50%,0); background:transparent !important; color:#00454d; font-weight:800; font-size:22px; line-height:1; padding:0; border:none !important; border-radius:0; box-shadow:none !important; min-width:0; text-align:center; z-index:40; letter-spacing:.5px; white-space:nowrap; filter:drop-shadow(0 2px 2px rgba(0,0,0,0.35)); pointer-events:none; }
+#firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-count { bottom:-22px; transform:translate(-50%,0); font-size:24px; color:#007b89; text-shadow:0 0 3px rgba(255,255,255,0.85),0 0 6px rgba(255,255,255,0.55); }
+#firewall1 .fw-plus-btn .fw-plus-count:empty { display:none; }
 #firewall1 .fw-status-btn::before, #firewall1 .fw-status-btn::after { transition:background .4s ease; }
 #firewall1 .fw-status-on::before, #firewall1 .fw-status-on::after { background: linear-gradient(180deg,#e8ffe9 0%,#b9f5c2 8%,#2ecc4f 42%,#1f9939 78%,#16722a 100%) !important; }
 #firewall1 .fw-status-testing::before, #firewall1 .fw-status-testing::after { background: linear-gradient(180deg,#fff6e6 0%,#ffe2b3 8%,#ffb347 45%,#ff8c00 78%,#d46a00 100%) !important; }
@@ -4459,7 +4460,6 @@ QHTL_FIREWALL_CLUSTER
 /* Allow button (fwb4) green theme */
 #firewall1 .fw-plus-btn.fw-allow-btn::before, #firewall1 .fw-plus-btn.fw-allow-btn::after { background: linear-gradient(180deg,#e3fcff 0%,#b8f1f7 10%,#6ddbe8 38%,#27b9cc 70%,#138da0 100%) !important; }
 #firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-label { text-shadow:0 0 3px #000,0 0 6px #12b0c7,0 0 14px #3dd0e5 !important; }
-#firewall1 .fw-plus-btn.fw-allow-btn .fw-plus-count { box-shadow:0 0 0 4px rgba(0,0,0,0.06),0 4px 10px rgba(0,0,0,0.55); z-index:14; transform:translate(-50%, calc(100% + 12px)); background:linear-gradient(180deg,#ffffff 0%,#d8f7ff 100%); border:1px solid rgba(0,0,0,0.32); font-size:18px; padding:9px 16px 10px; min-width:48px; }
 /* Provide some extra space beneath plus buttons to show count if translated */
 #firewall1 .fw-plus-grid { padding-bottom:26px; }
 /* Advanced tab hex halo restoration */
