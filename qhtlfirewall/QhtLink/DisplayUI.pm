@@ -2685,6 +2685,50 @@ QHTL_JQ_GREP
 		&savefile("/etc/qhtlfirewall/$FORM{ignorefile}","qhtlwaterfall");
 		&printreturn;
 	}
+	# Lightweight inline configuration preview (read-only) for plus button (fwb2)
+	elsif ($FORM{action} eq 'conf_inline') {
+		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
+		print "<div class='qhtl-inline-fragment'>" if $is_ajax_req;
+		# Load config file (read-only preview)
+		sysopen (my $IN, "/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
+		flock ($IN, LOCK_SH); my @confdata = <$IN>; close($IN); chomp @confdata;
+		print "<div class='panel panel-default'><div class='panel-heading'>Firewall Configuration (Read-Only Inline)</div><div class='panel-body' style='max-height:440px;overflow:auto;font-family:monospace;font-size:12px;line-height:1.25'>";
+		my $shown=0; my $limit=450; # show first 450 lines to avoid huge dump inline
+		foreach my $line (@confdata){ last if $shown++ >= $limit; my $esc=$line; $esc =~ s/&/&amp;/g; $esc =~ s/</&lt;/g; $esc =~ s/>/&gt;/g; print $esc."\n"; }
+		print "</div><div class='panel-footer text-muted small'>Truncated inline preview. Use full Config page for edits.</div></div>";
+		print "</div>" if $is_ajax_req;
+		return;
+	}
+	# Lightweight firewall status / rules snapshot for plus button (fwb5 -> action=status)
+	elsif ($FORM{action} eq 'status') {
+		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
+		print "<div class='qhtl-inline-fragment'>" if $is_ajax_req;
+		my ($childin,$childout);
+		my @ipt = (); my $err='';
+		eval {
+			my $pid = open3($childin,$childout,$childout, "$config{IPTABLES} $config{IPTABLESWAIT} -L LOCALINPUT -n");
+			@ipt = <$childout>; waitpid($pid,0); chomp @ipt;
+		};
+		if ($@) { $err = 'iptables command failed'; }
+		if(@ipt && $ipt[0] =~ /# Warning: iptables-legacy tables present/){ shift @ipt; }
+		my $state = 'off';
+		if (-e "/etc/qhtlfirewall/qhtlfirewall.disable") { $state='off'; }
+		elsif ($config{TESTING}) { $state='testing'; }
+		elsif ($ipt[0] && $ipt[0] =~ /^Chain LOCALINPUT/) { $state='on'; }
+		my $callout = ($state eq 'on') ? "<div class='bs-callout bs-callout-success text-center'><h4>Firewall Status: Enabled and Running</h4></div>" : ($state eq 'testing' ? "<div class='bs-callout bs-callout-warning text-center'><h4>Firewall Status: Enabled (Test Mode)</h4></div>" : "<div class='bs-callout bs-callout-danger text-center'><h4>Firewall Status: Disabled / Stopped</h4></div>");
+		print $callout;
+		if($err){ print "<div class='text-danger small'>$err</div>"; }
+		# show first 80 lines (or less) of rules
+		my @show = (); my $limit=80; my $count=0;
+		foreach my $l (@ipt){ push @show,$l; last if ++$count>=$limit; }
+		if(@show){
+			print "<pre style=\"max-height:420px;overflow:auto;white-space:pre-wrap\">";
+			foreach my $l (@show){ my $esc=$l; $esc =~ s/&/&amp;/g; $esc =~ s/</&lt;/g; $esc =~ s/>/&gt;/g; print $esc."\n"; }
+			print "</pre>";
+		} else { print "<div class='text-muted'>(No rules output – LOCALINPUT chain empty or inaccessible)</div>"; }
+		print "</div>" if $is_ajax_req;
+		return;
+	}
 	elsif ($FORM{action} eq "conf") {
 		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
 		if($is_ajax_req){ print "<div class='qhtl-inline-fragment'>"; }
@@ -2712,47 +2756,6 @@ function QHTLFIREWALLexpand(obj){
 	var newsize = Math.max(obj.savesize,obj.value.length);
 	if (newsize > 120) {newsize = 120;}
 	obj.size = newsize;
-}
-elsif ($FORM{action} eq 'conf_inline') {
-	# Lightweight configuration viewer/editor for inline plus button
-	my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
-	print "<div class='qhtl-inline-fragment'>" if $is_ajax_req;
-	sysopen (my $IN, "/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
-	flock ($IN, LOCK_SH); my @confdata = <$IN>; close($IN); chomp @confdata;
-	print "<div class='panel panel-default'><div class='panel-heading'>Firewall Configuration (Read-Only Inline)</div><div class='panel-body' style='max-height:440px;overflow:auto;font-family:monospace;font-size:12px;line-height:1.25'>";
-	my $shown=0; my $limit=450; # show first 450 lines to avoid massive dump inline
-	foreach my $line (@confdata){ last if $shown++ >= $limit; my $esc=$line; $esc =~ s/&/&amp;/g; $esc =~ s/</&lt;/g; $esc =~ s/>/&gt;/g; print $esc."\n"; }
-	print "</div><div class='panel-footer text-muted small'>Truncated inline preview. Use full Config page for edits.";
-	print "</div></div>"; # close panel
-	print "</div>" if $is_ajax_req;
-	exit;
-}
-elsif ($FORM{action} eq 'status') {
-	# Lightweight status/rules endpoint for plus button (fwb5) inline loads.
-	# Mirrors core logic used earlier but trimmed for AJAX consumption.
-	my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
-	my ($childin,$childout);
-	my $pid = open3($childin,$childout,$childout, "$config{IPTABLES} $config{IPTABLESWAIT} -L LOCALINPUT -n");
-	my @ipt = <$childout>; waitpid($pid,0); chomp @ipt;
-	if(@ipt && $ipt[0] =~ /# Warning: iptables-legacy tables present/){ shift @ipt; }
-	my $state = 'off';
-	if (-e "/etc/qhtlfirewall/qhtlfirewall.disable") { $state='off'; }
-	elsif ($config{TESTING}) { $state='testing'; }
-	elsif ($ipt[0] !~ /^Chain LOCALINPUT/){ $state='off'; }
-	else { $state='on'; }
-	my $callout = ($state eq 'on') ? "<div class='bs-callout bs-callout-success text-center'><h4>Firewall Status: Enabled and Running</h4></div>" : ($state eq 'testing' ? "<div class='bs-callout bs-callout-warning text-center'><h4>Firewall Status: Enabled (Test Mode)</h4></div>" : "<div class='bs-callout bs-callout-danger text-center'><h4>Firewall Status: Disabled / Stopped</h4></div>");
-	print "<div class='qhtl-inline-fragment'>" if $is_ajax_req;
-	print $callout;
-	# Trim rules output for inline view: show first 80 lines or until empty line after headers
-	my @show = (); my $limit=80; my $count=0;
-	foreach my $l (@ipt){ push @show,$l; last if ++$count>=$limit; }
-	if(@show){
-		print "<pre style=\"max-height:420px;overflow:auto;white-space:pre-wrap\">";
-		foreach my $l (@show){ $l =~ s/&/&amp;/g; $l =~ s/</&lt;/g; $l =~ s/>/&gt;/g; print $l."\n"; }
-		print "</pre>";
-	} else { print "<div class='text-muted'>(No rules output – LOCALINPUT chain empty or inaccessible)</div>"; }
-	print "</div>" if $is_ajax_req;
-	exit;
 }
 
 </script>
@@ -4676,7 +4679,9 @@ QHTL_FIREWALL_CLUSTER
         # Interpolated heredoc (needs $script expansion for loader image URL)
 		print <<"QHTL_FW_SPACER_CSS";
 <style>
-		#fw-spacer-inline-area { position:relative; z-index:20; background:transparent !important; min-height:220px; padding:8px 10px 12px; box-sizing:border-box; display:flex; align-items:center; justify-content:center; }
+		#fw-spacer-inline-area { position:relative; z-index:20; background:transparent !important; min-height:220px; padding:8px 10px 12px; box-sizing:border-box; }
+		/* Apply flex centering ONLY while loading so inserted multi-column tables/forms are not squeezed */
+		#fw-spacer-inline-area.fw-loading { display:flex; align-items:center; justify-content:center; }
 		#fw-spacer-inline-area::before{ content:""; position:absolute; inset:0; opacity:0; transition:opacity .25s ease; }
 		/* Loader sword now truly centered (flex) instead of fixed Y offset */
 		#fw-spacer-inline-area.fw-loading { background:none!important; }
