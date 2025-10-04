@@ -6224,6 +6224,7 @@ EOF
 sub savefile {
 	my $file = shift;
 	my $restart = shift;
+	my $is_ajax = ($FORM{ajax} && $FORM{ajax} eq '1');
 
 	$FORM{formdata} =~ s/\r//g;
 	if ($FORM{ace} == "1") {
@@ -6242,23 +6243,27 @@ sub savefile {
 	print $OUT $FORM{formdata};
 	close ($OUT);
 
-	if ($restart eq "qhtlfirewall") {
-		print "<div>Changes saved. You should restart qhtlfirewall.</div>\n";
-		# Keep legacy button for firewall only (not tied to On bubble)
-		print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restart'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall'></form></div>\n";
-	}
-	elsif ($restart eq "qhtlwaterfall") {
-		print "<div>Changes saved. Restarting qhtlwaterfall…</div>\n";
-		# Auto-trigger the On bubble restart countdown; no manual button
-		print "<script>(function(){ try { if (window.WStatus && typeof WStatus.restartCountdown==='function') { WStatus.restartCountdown(); } else { /* ensure loader present then trigger */ var s=document.createElement('script'); s.src=(window.QHTL_SCRIPT||'$script')+'?action=wstatus_js&v=$myv'; s.onload=function(){ try{ if(window.WStatus&&WStatus.restartCountdown) WStatus.restartCountdown(); }catch(e){} }; (document.head||document.documentElement).appendChild(s); } } catch(e){} })();</script>\n";
-	}
-	elsif ($restart eq "both") {
-		print "<div>Changes saved. Restarting qhtlwaterfall now; qhtlfirewall may also need a restart depending on your change.</div>\n";
-		# Trigger bubble restart for qhtlwaterfall; keep firewall combo button hidden to reduce clutter
-		print "<script>(function(){ try { if (window.WStatus && typeof WStatus.restartCountdown==='function') { WStatus.restartCountdown(); } else { var s=document.createElement('script'); s.src=(window.QHTL_SCRIPT||'$script')+'?action=wstatus_js&v=$myv'; s.onload=function(){ try{ if(window.WStatus&&WStatus.restartCountdown) WStatus.restartCountdown(); }catch(e){} }; (document.head||document.documentElement).appendChild(s); } } catch(e){} })();</script>\n";
-	}
-	else {
-		print "<div>Changes saved.</div>\n";
+	if($is_ajax){
+		my $msg = 'Save done';
+		if ($restart eq 'qhtlfirewall') { $msg = 'Save done (restart qhtlfirewall recommended)'; }
+		elsif ($restart eq 'qhtlwaterfall') { $msg = 'Save done (qhtlwaterfall restarting)'; }
+		elsif ($restart eq 'both') { $msg = 'Save done (qhtlwaterfall restarting; qhtlfirewall may need restart)'; }
+		print "<div class='qhtl-inline-fragment'><div class='alert alert-success' style='margin:0'>$msg</div></div>";
+		return;
+	} else {
+		if ($restart eq "qhtlfirewall") {
+			print "<div>Changes saved. You should restart qhtlfirewall.</div>\n";
+			print "<div><form action='$script' method='post'><input type='hidden' name='action' value='restart'><input type='submit' class='btn btn-default' value='Restart qhtlfirewall'></form></div>\n";
+		}
+		elsif ($restart eq "qhtlwaterfall") {
+			print "<div>Changes saved. Restarting qhtlwaterfall…</div>\n";
+			print "<script>(function(){ try { if (window.WStatus && typeof WStatus.restartCountdown==='function') { WStatus.restartCountdown(); } else { var s=document.createElement('script'); s.src=(window.QHTL_SCRIPT||'$script')+'?action=wstatus_js&v=$myv'; s.onload=function(){ try{ if(window.WStatus&&WStatus.restartCountdown) WStatus.restartCountdown(); }catch(e){} }; (document.head||document.documentElement).appendChild(s); } } catch(e){} })();</script>\n";
+		}
+		elsif ($restart eq "both") {
+			print "<div>Changes saved. Restarting qhtlwaterfall now; qhtlfirewall may also need a restart depending on your change.</div>\n";
+			print "<script>(function(){ try { if (window.WStatus && typeof WStatus.restartCountdown==='function') { WStatus.restartCountdown(); } else { var s=document.createElement('script'); s.src=(window.QHTL_SCRIPT||'$script')+'?action=wstatus_js&v=$myv'; s.onload=function(){ try{ if(window.WStatus&&WStatus.restartCountdown) WStatus.restartCountdown(); }catch(e){} }; (document.head||document.documentElement).appendChild(s); } } catch(e){} })();</script>\n";
+		}
+		else { print "<div>Changes saved.</div>\n"; }
 	}
 
 	return;

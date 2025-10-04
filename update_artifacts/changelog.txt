@@ -14,6 +14,13 @@ Version: 0.1.56 “Save Form Binding + Tab Reset”
 
 Date: 2025-10-04
 Version: 0.1.57 “Post-Save Inline Replace”
+
+Date: 2025-10-04
+Version: 0.1.58 “Ajax Savefile Fragment”
+Fix
+- All savefile outputs now respect ajax=1 and return a single .qhtl-inline-fragment with a unified status message (no more full-page restart notice rendering outside inline area).
+Enhancement
+- Restart-related messages condensed into single inline success line (e.g. qhtlwaterfall restarting) to keep UI compact.
 Fix
 - Prevent full-page navigation view after Save (Allow/Deny/Redirect/Config): added fallback script that, on non-AJAX save response, transplants the single returned inline fragment into the inline area so user stays in-context.
 - Correct malformed form tag in Ace editor ajax branch (missing closing quote) ensuring consistent binding.
