@@ -1,6 +1,17 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.38 “Long Blade”
+
+UI
+- Enlarged inline spacer loader (idle_fallback.gif) to visually match sword size used on other tabs; increased min-height to 260px for consistent vertical balance.
+- Added responsive breakpoints (1100px, 880px, 680px) to scale loader down on narrower viewports.
+- Added subtle fade-in animation when loader first appears.
+
+Packaging
+- Version bump to ship visual consistency improvement.
+
+Date: 2025-10-04
 Version: 0.1.37 “Encoded Action”
 
 Critical Fix

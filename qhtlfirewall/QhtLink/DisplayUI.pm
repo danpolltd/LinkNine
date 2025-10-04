@@ -4607,8 +4607,23 @@ QHTL_FIREWALL_CLUSTER
         # Interpolated heredoc (needs $script expansion for loader image URL)
 		print <<"QHTL_FW_SPACER_CSS";
 <style>
-	#fw-spacer-inline-area { position:relative; z-index:20; background:transparent !important; min-height:220px; padding:8px 10px; box-sizing:border-box; }
-	#fw-spacer-inline-area.fw-loading { background:transparent url('$script?action=fallback_asset&name=idle_fallback.gif&v=$myv') center 60px / 240px 68px no-repeat !important; }
+		#fw-spacer-inline-area { position:relative; z-index:20; background:transparent !important; min-height:260px; padding:8px 10px 12px; box-sizing:border-box; }
+		/* Enlarged sword loader for parity with other tabs (Options, etc). Uses responsive max width. */
+		#fw-spacer-inline-area.fw-loading { 
+			background:transparent url('$script?action=fallback_asset&name=idle_fallback.gif&v=$myv') center 84px / 620px 176px no-repeat !important; 
+		}
+		@media (max-width: 1100px){
+			#fw-spacer-inline-area.fw-loading { background-size: 520px 148px; background-position:center 76px; }
+		}
+		@media (max-width: 880px){
+			#fw-spacer-inline-area.fw-loading { background-size: 440px 126px; background-position:center 70px; }
+		}
+		@media (max-width: 680px){
+			#fw-spacer-inline-area.fw-loading { background-size: 340px 98px; background-position:center 62px; }
+		}
+		/* Slight fade-in animation for visual polish */
+		#fw-spacer-inline-area.fw-loading { animation: fwLoaderFade .55s ease; }
+		@keyframes fwLoaderFade { from { opacity:0; } to { opacity:1; } }
 	#fw-spacer-inline-area.fw-spacer-empty::before { content:none !important; }
 	#fw-spacer-inline-area.fw-faded { opacity:.55; transition:opacity .6s ease; }
 	#fw-spacer-inline-area.fw-fade-hidden { opacity:0; pointer-events:none; }
