@@ -2798,9 +2798,11 @@ EOF
 				print "$line<br />\n";
 			}
 		}
+	    my $is_ajax = ($FORM{ajax} && $FORM{ajax} eq '1');
 		print "</div><br />\n";
-		print "<div id='paginatediv' class='text-center'>\n<a class='btn btn-default' href='javascript:pagecontent.showall()'>Show All</a> <a class='btn btn-default' href='#' rel='previous'>Prev</a> <select style='width: 250px'></select> <a class='btn btn-default' href='#' rel='next' >Next</a>\n</div>\n";
-		print <<'EOD';
+		unless ($is_ajax){
+			print "<div id='paginatediv' class='text-center'>\n<a class='btn btn-default' href='javascript:pagecontent.showall()'>Show All</a> <a class='btn btn-default' href='#' rel='previous'>Prev</a> <select style='width: 250px'></select> <a class='btn btn-default' href='#' rel='next' >Next</a>\n</div>\n";
+			print <<'EOD';
 <script type="text/javascript">
 var pagecontent=new virtualpaginate({
  piececlass: "virtualpage", //class of container for each piece of content
@@ -2815,8 +2817,9 @@ EOD
 		foreach my $line (@divnames) {print "'$line',"}
 		print "''])\npagecontent.showall();\n</script>\n";
 		print "<br /><div class='text-center'><input type='submit' class='btn btn-default' value='Change'></div>\n";
+		}
 		print "</form>\n";
-		&printreturn;
+		&printreturn unless $is_ajax;
 	}
 	elsif ($FORM{action} eq "saveconf") {
 		sysopen (my $IN, "/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
@@ -4419,13 +4422,13 @@ QHTL_TEMP_MODAL_JS_B
 		 var inlineActs = /^(conf|profiles|allow|status|redirect)$/;
 		 if(inlineActs.test(act)){
 			var tgt = document.getElementById('fw-spacer-inline-area');
-			if(tgt){ tgt.classList.remove('fw-faded'); tgt.classList.add('fw-loading'); }
+		if(tgt){ tgt.classList.remove('fw-faded'); tgt.classList.add('fw-loading'); }
 			var fd = new FormData(); fd.append('action', act); fd.append('ajax','1');
 			if(act==='enable'){ fd.append('override','1'); }
 			if(extra){ Object.keys(extra).forEach(function(k){ fd.append(k, extra[k]); }); }
 			fetch(base, {method:'POST', body:fd, credentials:'same-origin'}).then(r=>r.text()).then(function(txt){ try{
 				var clean = (txt.replace(/<form[\s\S]*?<\/form>/gi,'').trim() || '<div class="text-muted">(No output returned)</div>');
-				if(tgt){ tgt.innerHTML = clean; tgt.classList.remove('fw-loading','fw-spacer-empty'); setTimeout(function(){ try{ tgt.classList.add('fw-faded'); }catch(_){ } },4000); }
+				if(tgt){ tgt.innerHTML = clean; tgt.classList.remove('fw-loading','fw-spacer-empty'); try{ tgt.style.backgroundImage='none'; }catch(_){ } setTimeout(function(){ try{ tgt.classList.add('fw-faded'); }catch(_){ } },4000); }
 			}catch(e){ if(tgt){ tgt.innerHTML='<pre>'+String(e)+'</pre>'; tgt.classList.remove('fw-loading'); } }}).catch(function(e){ if(tgt){ tgt.innerHTML='<div class="text-danger">Request failed: '+e+'</div>'; tgt.classList.remove('fw-loading'); } });
 			return;
 		 }
@@ -4543,7 +4546,7 @@ QHTL_FW_PLUS_LABELS_CSS
 	# Spacer/inline row enhanced: acts as a secondary inline output target for the plus buttons (conf/profiles/allow/status/redirect)
 	# Includes loader background animation similar to main inline output cell; fades/disappears once populated
 	print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'>".
-	      "<div id='fw-spacer-inline-area' class='fw-spacer-empty' style=\"position:relative;min-height:180px;margin:6px 4px;padding:10px;border:2px solid rgba(255,255,255,0.3);border-radius:6px;overflow:auto;box-shadow:inset 0 0 6px rgba(0,0,0,0.2);background:linear-gradient(180deg,#e7f5ff 0%,#cfe5ff 55%,#dccfff 100%);transition:opacity .4s ease;\"></div>".
+	      "<div id='fw-spacer-inline-area' class='fw-spacer-empty' style=\"position:relative;min-height:180px;margin:6px 4px;padding:10px;border:2px solid rgba(255,255,255,0.3);border-radius:6px;overflow:auto;box-shadow:inset 0 0 6px rgba(0,0,0,0.2);background:linear-gradient(180deg,#e7f5ff 0%,#cfe5ff 55%,#dccfff 100%);transition:opacity .4s ease; background-image:url('$script?image=qhtlfirewall-loader.gif'); background-position:center center; background-repeat:no-repeat; background-size:96px 96px;\"></div>".
 	      "</td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.deny, the IP address deny file $permbans</div></td></tr>\n";
 	# Unified inline output/content area (reusing gradient background motif)

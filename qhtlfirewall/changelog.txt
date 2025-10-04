@@ -1,6 +1,16 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.22 “Spacer GIF”
+
+Firewall Tab
+- Spacer now shows actual loader GIF centered immediately (not stripe animation) until first inline result arrives, then GIF removed.
+- Plus button actions no longer dump full page markup; conf action now renders minimal content when ajax=1 (suppresses outer scripts/pagination shell on inline loads).
+
+Packaging
+- Pending rebuild for GIF loader + minimal AJAX conf.
+
+Date: 2025-10-04
 Version: 0.1.21 “Spacer Live”
 
 Firewall Tab
