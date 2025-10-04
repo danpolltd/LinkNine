@@ -2685,7 +2685,7 @@ QHTL_JQ_GREP
 		&savefile("/etc/qhtlfirewall/$FORM{ignorefile}","qhtlwaterfall");
 		&printreturn;
 	}
-	# Lightweight inline configuration preview (read-only) for plus button (fwb2)
+	# Legacy lightweight inline configuration preview (read-only). The Config plus button now maps to full editable 'conf'.
 	elsif ($FORM{action} eq 'conf_inline') {
 		my $is_ajax_req = ($FORM{ajax} && $FORM{ajax} eq '1') ? 1 : 0;
 		print "<div class='qhtl-inline-fragment'>" if $is_ajax_req;
@@ -4650,12 +4650,12 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 setTimeout(function(){
 	var statusBtn2=document.getElementById('fwb1'); if(statusBtn2 && !statusBtn2._fwBound){
 		statusBtn2.addEventListener('click',function(ev){ try{
-			if(statusBtn2.classList.contains('fw-status-off')){ window.submitAction('enable'); return; }
-			window.submitAction('status');
+			// If firewall off, clicking enables. Otherwise no inline rules snapshot auto-load (user can use Rules button).
+			if(statusBtn2.classList.contains('fw-status-off')){ window.submitAction('enable'); }
 		}catch(_){ } });
 		statusBtn2._fwBound=1;
 	}
-	var map={fwb2:'conf_inline',fwb3:'profiles',fwb4:'allow',fwb5:'status',fwb7:'redirect'};
+	var map={fwb2:'conf',fwb3:'profiles',fwb4:'allow',fwb5:'status',fwb7:'redirect'};
 	Object.keys(map).forEach(function(id){ var el=document.getElementById(id); if(!el) return; if(!el._fwBound){ el.addEventListener('click',function(){ if(window.submitAction) window.submitAction(map[id]); }); el._fwBound=1; } });
 	var flush=document.getElementById('fwb8'); if(flush && !flush._fwBound){ flush.addEventListener('click',function(){ if(window.submitAction) window.submitAction('denyf'); }); flush._fwBound=1; }
 	// Deny count persistent display above (reuse allow count logic pattern)
