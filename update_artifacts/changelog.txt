@@ -345,6 +345,15 @@ Changes:
 - Parser now preserves forms (still removes script & noscript) so editors and lists render inline
 - Version bump to propagate inline editing visibility fix
 
+Version: 0.1.29
+Release Date: 2025-10-04
+Changes:
+- Removed inline enable/disable toggle to avoid accidental single-click disables; preserves hold-to-disable intent
+- Added inline restart acknowledgement (restart action)
+- Expanded fragment parser: if only forms present (config/profiles), they are retained so editor renders
+- Status button short click: if Off -> inline fetch (shows UI), otherwise no immediate action (prevents unintended disable)
+- Version bump for safer status interaction and restored config/rules rendering
+
 Date: 2025-09-19
 Version: 0.1.2
 

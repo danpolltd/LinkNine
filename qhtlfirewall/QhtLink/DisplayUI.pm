@@ -4426,8 +4426,8 @@ QHTL_TEMP_MODAL_JS_B
  }, 600);
  // Expose submitAction globally (refactored external per-button modules will call this)
 window.submitAction = window.submitAction || function(act, extra){ try{
-	// Now also handle enable/disable inline for consistency
-	var inlineActs=/^(conf|profiles|allow|status|redirect|denyf|enable|disable)$/; var tgt;
+	// Inline-capable actions (status only for viewing rules; enable/disable handled by hold logic elsewhere)
+	var inlineActs=/^(conf|profiles|allow|status|redirect|denyf|restart)$/; var tgt;
 	if(inlineActs.test(act)){
 		tgt=document.getElementById('fw-spacer-inline-area');
 		if(tgt){
@@ -4458,12 +4458,14 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 					var body=div.querySelector('body')||div;
 					var firstBlock = body.querySelector('pre,table,div,section,article');
 					if(firstBlock){ fragment=firstBlock.outerHTML; return; }
+					// If body contains forms (config/profiles editors) but no block matched, keep the forms
+					var forms=body.querySelectorAll('form');
+					if(forms.length){ var wrap=document.createElement('div'); forms.forEach(function(fm){ wrap.appendChild(fm.cloneNode(true)); }); fragment=wrap.innerHTML; return; }
 					fragment=body.innerHTML || txt;
 				} catch(_){ fragment=txt; }
 			})();
 			if(act==='denyf'){ fragment='<div class="text-success">Temporary bans flushed.</div>'; }
-			if(act==='enable'){ fragment='<div class="text-success">Firewall enabled.</div>'; }
-			if(act==='disable'){ fragment='<div class="text-warning">Firewall disabled.</div>'; }
+			if(act==='restart'){ fragment='<div class="text-info">Firewall restart requested.</div>'; }
 			var clean=fragment.trim();
 			if(!clean){ clean='<div class="text-muted">(No output returned)</div>'; }
 			if(tgt){
@@ -4492,11 +4494,18 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 		}catch(e){ if(tgt){ tgt.innerHTML='<pre>'+String(e)+'</pre>'; tgt.classList.remove('fw-loading'); } }}).catch(function(e){ if(tgt){ tgt.innerHTML='<div class="text-danger">Request failed: '+e+'</div>'; tgt.classList.remove('fw-loading'); } });
 		return; }
 	// Non-inline acts fallback to full submit (rare now)
-	var f=document.createElement('form'); f.method='post'; f.action=base; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); if(act==='enable'){ var o=document.createElement('input'); o.type='hidden'; o.name='override'; o.value='1'; f.appendChild(o);} if(extra){ Object.keys(extra).forEach(function(k){ var h=document.createElement('input'); h.type='hidden'; h.name=k; h.value=extra[k]; f.appendChild(h); }); } document.body.appendChild(f); f.submit();
+	var f=document.createElement('form'); f.method='post'; f.action=base; var i=document.createElement('input'); i.type='hidden'; i.name='action'; i.value=act; f.appendChild(i); if(extra){ Object.keys(extra).forEach(function(k){ var h=document.createElement('input'); h.type='hidden'; h.name=k; h.value=extra[k]; f.appendChild(h); }); } document.body.appendChild(f); f.submit();
 }catch(e){} };
 // Direct inline bindings (removed external module loader due to MIME issues in some environments)
 setTimeout(function(){
-	var statusBtn2=document.getElementById('fwb1'); if(statusBtn2 && !statusBtn2._fwBound){ statusBtn2.addEventListener('click',function(){ try{ if(statusBtn2.classList.contains('fw-status-off')){ window.submitAction('enable'); } else { window.submitAction('disable'); } }catch(_){ } }); statusBtn2._fwBound=1; }
+	var statusBtn2=document.getElementById('fwb1'); if(statusBtn2 && !statusBtn2._fwBound){
+		statusBtn2.addEventListener('click',function(ev){ try{
+			// Short click: if off -> enable; if on/testing -> no immediate disable, just ignore (hold mechanic expected externally)
+			if(statusBtn2.classList.contains('fw-status-off')){ window.submitAction('conf',{autorefresh:'1'}); /* optional: show conf or status */ }
+			else { /* no-op on short click when running */ }
+		}catch(_){ } });
+		statusBtn2._fwBound=1;
+	}
 	var map={fwb2:'conf',fwb3:'profiles',fwb4:'allow',fwb5:'status',fwb7:'redirect'};
 	Object.keys(map).forEach(function(id){ var el=document.getElementById(id); if(!el) return; if(!el._fwBound){ el.addEventListener('click',function(){ if(window.submitAction) window.submitAction(map[id]); }); el._fwBound=1; } });
 	var flush=document.getElementById('fwb8'); if(flush && !flush._fwBound){ flush.addEventListener('click',function(){ if(window.submitAction) window.submitAction('denyf'); }); flush._fwBound=1; }
