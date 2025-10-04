@@ -4522,9 +4522,7 @@ QHTL_FW_PLUS_LABELS_CSS
 	my $loader = "$script?image=qhtlfirewall-loader.gif"; # isolate interpolation to a single variable
 print <<"QHTL_FW_INLINE_OUT";
 <tr id='fw-inline-row'><td colspan='2' style='padding:0;background:transparent'>
-	<div id='fw-inline-output' style="min-height:220px;position:relative;margin:8px 6px;padding:12px;border:2px solid rgba(255,255,255,0.35);border-radius:6px;overflow:auto;box-shadow:inset 0 0 8px rgba(0,0,0,0.25);background:linear-gradient(180deg,#d7f0ff 0%,#b5d6ff 50%,#c9b5ff 100%);">
-		<div id='fw-inline-placeholder' class='text-muted' style='font-style:italic;opacity:.8'>Action output will appear here (Allow/Deny/Redirect/Rules/etc.).</div>
-	</div>
+	<div id='fw-inline-output' style="min-height:280px;position:relative;margin:8px 6px;padding:12px;border:2px solid rgba(255,255,255,0.35);border-radius:6px;overflow:auto;box-shadow:inset 0 0 8px rgba(0,0,0,0.25);background:linear-gradient(180deg,#d7f0ff 0%,#b5d6ff 50%,#c9b5ff 100%);"></div>
 </td></tr>
 <style>
 	/* Simplified single-layer inline output cell; loader via background image on loading */
@@ -4553,7 +4551,7 @@ QHTL_FW_INLINE_OUT
 				var form=btn.closest('form'); if(!form) return; if(form.dataset.qhtlHijacked) return; form.dataset.qhtlHijacked='1';
 				form.addEventListener('submit', function(ev){
 					var act=btn.value; if(!/^(allow|deny|conf|profiles|status|redirect|temp|sips|denyf)$/.test(act)) return; ev.preventDefault();
-					try{out.classList.add('loading'); var ph=document.getElementById('fw-inline-placeholder'); if(ph){ ph.classList.add('text-muted'); }}catch(_){ }
+					try{out.classList.add('loading');}catch(_){ }
 					var fd=new FormData(form); fd.append('ajax','1');
 					fetch(form.action||location.href,{method:'POST',body:fd,credentials:'same-origin'}).then(r=>r.text()).then(function(txt){
 						try{ out.classList.remove('loading'); out.innerHTML = (txt.replace(/<form[\s\S]*?<\/form>/gi,'').trim() || '<div class="text-muted">(No output returned)</div>'); }catch(e){ out.innerHTML='<pre>'+String(e)+'</pre>'; }
