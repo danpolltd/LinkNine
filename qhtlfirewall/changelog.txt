@@ -3,6 +3,16 @@ QhtLink Firewall (qhtlfirewall) Changelog
 Date: 2025-10-04
 Version: 0.1.44 “Editable Config”
 
+Date: 2025-10-04
+Version: 0.1.45 “Config Inline Fix”
+
+Fixes
+- Editable Config (conf) action now properly wraps output in qhtl-inline-fragment and returns early for ajax=1 preventing blank panel.
+
+Notes
+- Addresses report that Config button showed nothing.
+
+
 UI / Behavior
 - Config plus button now opens full editable configuration (action=conf) instead of read‑only preview panel. Legacy read-only action retained as conf_inline (unused by default).
 - Status (On) button no longer auto-fetches rules snapshot; only toggles enable when firewall is off. Use Rules button for inline snapshot.

@@ -2877,7 +2877,8 @@ EOD
 		print "<br /><div class='text-center'><input type='submit' class='btn btn-default' value='Change'></div>\n";
 		}
 		print "</form>\n";
-		&printreturn unless $is_ajax;
+		if($is_ajax_req){ print "</div>"; return; }
+		&printreturn;
 	}
 	elsif ($FORM{action} eq "saveconf") {
 		sysopen (my $IN, "/etc/qhtlfirewall/qhtlfirewall.conf", O_RDWR | O_CREAT) or die "Unable to open file: $!";
