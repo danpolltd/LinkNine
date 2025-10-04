@@ -183,14 +183,17 @@
         ensureStyles();
         // Clear anchor and mount
         try { while(el.firstChild) el.removeChild(el.firstChild); } catch(_){}
-        var pieces = make('Alerts');
-        el.appendChild(pieces.wrap);
-        // Click to expand/collapse
-        pieces.inner.addEventListener('click', function(e){ e.preventDefault(); expand(el, pieces); });
-        // Keyboard accessibility
-        pieces.inner.setAttribute('role','button'); pieces.inner.setAttribute('tabindex','0');
-        pieces.inner.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); expand(el, pieces); } });
-        return true;
+  var pieces = make('Transfer');
+  el.appendChild(pieces.wrap);
+  // Style label white and bold
+  pieces.inner.style.color = '#fff';
+  pieces.inner.style.fontWeight = 'bold';
+  // Click triggers flush/reboot logic from WStatus
+  pieces.inner.addEventListener('click', function(e){ e.preventDefault(); if(window.WStatus && typeof window.WStatus.restartCountdown === 'function'){ window.WStatus.restartCountdown(); } });
+  // Keyboard accessibility
+  pieces.inner.setAttribute('role','button'); pieces.inner.setAttribute('tabindex','0');
+  pieces.inner.addEventListener('keydown', function(e){ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); if(window.WStatus && typeof window.WStatus.restartCountdown === 'function'){ window.WStatus.restartCountdown(); } } });
+  return true;
       } catch(e){ return false; }
     }
   };
