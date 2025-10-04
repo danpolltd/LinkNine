@@ -4517,6 +4517,8 @@ QHTL_FW_PLUS_LABELS_CSS
 	#print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='profiles' type='submit' class='btn btn-default'>Profiles</button></form><div class='text-muted small' style='margin-top:6px'>Apply pre-configured qhtlfirewall.conf profiles and backup/restore qhtlfirewall.conf</div></td></tr>\n";
     # View Rules row removed; functionality moved to fifth plus button (fwb5 -> action=status)
 	#print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='allow' type='submit' class='btn btn-default'>Allow IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.allow, the IP address allow file $permallows</div></td></tr>\n";
+	# Spacer/inline row (mirrors Options tab inline area cell) placed between plus buttons and Deny IPs for visual consistency
+	print "<tr style='background:transparent!important'><td colspan='2' style='background:transparent!important'><div id='fw-spacer-inline-area' style='padding-top:10px;min-height:180px;background:transparent'></div></td></tr>\n";
 	print "<tr><td colspan='2'><form action='$script' method='post'><button name='action' value='deny' type='submit' class='btn btn-default'>Deny IPs</button></form><div class='text-muted small' style='margin-top:6px'>Edit qhtlfirewall.deny, the IP address deny file $permbans</div></td></tr>\n";
 	# Unified inline output/content area (reusing gradient background motif)
 	my $loader = "$script?image=qhtlfirewall-loader.gif"; # isolate interpolation to a single variable

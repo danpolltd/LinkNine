@@ -1,6 +1,15 @@
 QhtLink Firewall (qhtlfirewall) Changelog
 
 Date: 2025-10-04
+Version: 0.1.20 “Spacer”
+
+Firewall Tab
+- Inserted an empty inline spacer row (180px min-height) between the plus button cluster and the Deny IPs row, cloned from the Options tab inline cell for visual rhythm and future inline context.
+
+Packaging
+- Pending rebuild to ship spacer addition.
+
+Date: 2025-10-04
 Version: 0.1.19 “Flat Cell”
 
 UI / Inline Panel
@@ -9,6 +18,9 @@ UI / Inline Panel
 
 Packaging
 - Pending rebuild to propagate flattened structure.
+
+Enhancement
+- Added visual spacer/inline row (empty 180px cell) between Firewall plus buttons and Deny IPs row, mirroring Options tab layout for alignment and future context output.
 
 Date: 2025-10-04
 Version: 0.1.18 “Clean Cell”
