@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ver="0.1.65"
+ver=$(tr -d '\n' < update_artifacts/version.txt)
 out_versioned="update_artifacts/qhtlfirewall-${ver}.tgz"
 out_canonical="update_artifacts/qhtlfirewall.tgz"
 echo "Building $out_versioned"
