@@ -3,6 +3,16 @@ QhtLink Firewall (qhtlfirewall) Changelog
 Date: 2025-10-05
 Version: 0.1.66 “Inline Save Persist”
 Fix
+- AJAX Save (Config/Allow/Deny/Redirect) now posts using application/x-www-form-urlencoded; prior multipart body caused server to miss ajax=1 leading to full-page legacy restart message and no persist.
+- Injects hidden ajax=1 field into inline edit forms to guarantee correct server branch even on fallback submits.
+Internal
+- Synced internal tree `qhtlfirewall/version.txt` (previously left at 0.1.64) with artifact version to prevent installer believing an upgrade is needed immediately after install.
+Packaging
+- Rebuilt canonical + versioned tarballs; checksum updated.
+
+Date: 2025-10-05
+Version: 0.1.66 “Inline Save Persist”
+Fix
 - Save buttons (Config/Allow/Deny/Redirect) now reliably persist changes inline: switched client submission from multipart FormData to classic application/x-www-form-urlencoded to match server parsing, eliminating full-page legacy restart message fallback.
 - Force-inject hidden ajax=1 field into inline editor forms to guarantee fragment response path even if form markup changes.
 Dev

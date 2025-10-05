@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ver=$(tr -d '\n' < update_artifacts/version.txt)
+echo "Detected version: $ver"
+# Sync internal tree version.txt if present and different
+if [ -f qhtlfirewall/version.txt ]; then
+	cur=$(tr -d '\n' < qhtlfirewall/version.txt || true)
+	if [ "$cur" != "$ver" ]; then
+		echo "Syncing internal qhtlfirewall/version.txt ($cur -> $ver)";
+		printf '%s\n' "$ver" > qhtlfirewall/version.txt;
+	fi
+fi
 out_versioned="update_artifacts/qhtlfirewall-${ver}.tgz"
 out_canonical="update_artifacts/qhtlfirewall.tgz"
 echo "Building $out_versioned"
