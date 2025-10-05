@@ -4743,6 +4743,8 @@ window.submitAction = window.submitAction || function(act, extra){ try{
 // Inline save helper: attaches AJAX submit + feedback to forms inside inline fragment
 function qhtlBindInlineSave(form, actionName){ try{
 	if(!form || form._qhtlSaveBound) return; form._qhtlSaveBound=1;
+	// Ensure ajax hidden field present for graceful non-AJAX fallback (full submit)
+	try{ if(!form.querySelector('input[name="ajax"]')){ var ah=document.createElement('input'); ah.type='hidden'; ah.name='ajax'; ah.value='1'; form.appendChild(ah);} }catch(_){ }
 	var statusEl=form.querySelector('.qhtl-inline-save-status');
 	var saveBtn=form.querySelector('.qhtl-inline-save-btn');
 	var cancelBtn=form.querySelector('.qhtl-inline-cancel-btn');
@@ -4750,9 +4752,13 @@ function qhtlBindInlineSave(form, actionName){ try{
 	form.addEventListener('submit',function(ev){ ev.preventDefault(); try{
 		if(saveBtn){ saveBtn.disabled=true; }
 		if(statusEl){ statusEl.textContent='Saving...'; statusEl.className='qhtl-inline-save-status text-info small'; }
-		var fd=new FormData(form); fd.set('action', actionName);
-		fd.append('ajax','1');
-		fetch((window.QHTL_SCRIPT||'$script'),{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.text();}).then(function(txt){
+		// Build application/x-www-form-urlencoded body (server had issues with multipart FormData in some environments)
+		var pairs=[]; var fdata=new FormData(form);
+		fdata.set('action', actionName);
+		fdata.set('ajax','1');
+		fdata.forEach(function(v,k){ pairs.push(encodeURIComponent(k)+'='+encodeURIComponent(v)); });
+		var body=pairs.join('&');
+		fetch((window.QHTL_SCRIPT||'$script'),{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body,credentials:'same-origin'}).then(function(r){return r.text();}).then(function(txt){
 			if(/WARNING:/i.test(txt)){
 				if(statusEl){ statusEl.textContent='Saved with warnings'; statusEl.className='qhtl-inline-save-status text-warning small'; }
 			}else{
@@ -6193,6 +6199,7 @@ sub editfile {
 		# Correctly close method attribute and add form id in ajax mode
 		print "<form action='$script' method='post'" . ($is_ajax ? " id='qhtlfirewallform'" : '') . ">\n";
 		print "<input type='hidden' name='action' value='$save'>\n";
+		print "<input type='hidden' name='ajax' value='1'>\n" if $is_ajax;
 		print "<input type='hidden' name='ace' value='1'>\n";
 		if ($extra) {print "<input type='hidden' name='$extra' value='$FORM{$extra}'>\n";}
 		print "<div id='editor' style='width:100%;height:500px;border: 1px solid #000;display:none;'>";
@@ -6263,6 +6270,7 @@ EOF
 		print "<div class='panel-heading panel-heading-qhtlwatcher'>Edit <code>$file</code></div>\n" unless $is_ajax;
 		print "<div class='panel-body'>\n";
 		print "<input type='hidden' name='action' value='$save'>\n";
+		print "<input type='hidden' name='ajax' value='1'>\n" if $is_ajax;
 		if ($extra) {print "<input type='hidden' name='$extra' value='$FORM{$extra}'>\n";}
 		print "<textarea class='textarea' name='formdata' style='width:100%;height:500px;border: 1px solid #000;resize:none;' wrap='off'>";
 		foreach my $line (@confdata) {
